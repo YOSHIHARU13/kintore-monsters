@@ -7,6 +7,7 @@ import { boughtCap, evolutionCost, isExpFull, planPour } from '../lib/evolution'
 import { Gauge } from '../components/Gauge'
 import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
+import { monsterName } from '../types'
 
 export function MonsterDetail({ id, go }: { id: string; go: Go }) {
   const { owned, defs, state, pourExp, evolve, setActive } = useStore()
@@ -50,7 +51,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
         <div className={evolved ? 'evolve-flash' : ''} key={evolved}>
           <MonsterImage imageId={def.images[mon.nodeId]} size={200} />
         </div>
-        <h1 className="title">{def.name}</h1>
+        <h1 className="title">{monsterName(def, mon.nodeId)}</h1>
         <p style={{ color: ATTR_COLOR[def.attr] }}>
           {ATTR_LABEL[def.attr]}属性・{node.label}
         </p>

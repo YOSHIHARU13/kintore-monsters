@@ -6,7 +6,7 @@ import { Stepper } from '../components/Stepper'
 import { MonsterImage } from '../components/MonsterImage'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { ATTR_COLOR, type Go } from '../nav'
-import type { MonsterDef } from '../types'
+import { monsterName, type MonsterDef } from '../types'
 
 export function Shop({ go }: { go: Go }) {
   const { state, defs, owned, buyEgg, hatchEgg, buyExp } = useStore()
@@ -90,7 +90,7 @@ export function Shop({ go }: { go: Go }) {
           <div className="beat-burst" />
           <div className="beat-text">
             <MonsterImage imageId={hatched.images[FIRST_NODE_ID]} size={180} />
-            <div className="beat-title">{hatched.name}</div>
+            <div className="beat-title">{monsterName(hatched, FIRST_NODE_ID)}</div>
             <div className="beat-sub">が生まれた！</div>
             <button
               className="btn primary"

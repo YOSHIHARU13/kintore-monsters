@@ -41,7 +41,15 @@ const state: GameState = {
   activeMonsterId: 'm1',
 }
 const defs: MonsterDef[] = [
-  { id: 'm1', name: 'ムキドラ', attr: 'chestArms', templateId: 'lateBranch', images: {}, createdAt: 1 },
+  {
+    id: 'm1',
+    name: 'ムキドラ',
+    attr: 'chestArms',
+    templateId: 'lateBranch',
+    images: {},
+    names: { n2: 'ムキドラゴ', n3b: 'ヤミムキドラ' },
+    createdAt: 1,
+  },
   { id: 'm2', name: 'アシガメ', attr: 'legs', templateId: 'linear3', images: {}, createdAt: 2 },
 ]
 const owned: OwnedMonster[] = [{ id: 'm1', nodeId: 'n2', invested: { trained: 250, bought: 250 }, obtainedAt: 1 }]
@@ -115,7 +123,7 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('今日のメニュー：月曜・胸腕')
     expect(el.textContent).toContain('プッシュアップ')
     expect(el.textContent).toContain('500G')
-    expect(el.textContent).toContain('ムキドラ')
+    expect(el.textContent).toContain('ムキドラゴ') // 第2段階の名前
     await click('トレーニング開始')
     expect(go).toHaveBeenCalledWith({ name: 'training', day: 'mon' })
   })
@@ -184,14 +192,21 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('1→2 150EXP＋30G')
     await click('保存する')
     expect(el.textContent).toContain('名前を入力してください')
-    const input = el.querySelector('input')!
-    await act(async () => {
-      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'テストモン')
-      input.dispatchEvent(new Event('input', { bubbles: true }))
-    })
+    const type = async (input: HTMLInputElement, value: string) =>
+      act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value)
+        input.dispatchEvent(new Event('input', { bubbles: true }))
+      })
+    await type(el.querySelector('input')!, 'テストモン')
+    await type(el.querySelector<HTMLInputElement>('input[aria-label="第2段階の名前"]')!, 'テストモン改')
     await click('保存する')
     expect(fake.store.saveMonsterDef).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'テストモン', attr: 'chestArms', templateId: 'linear3' }),
+      expect.objectContaining({
+        name: 'テストモン',
+        attr: 'chestArms',
+        templateId: 'linear3',
+        names: { n2: 'テストモン改' },
+      }),
     )
     expect(go).toHaveBeenCalledWith({ name: 'dex' })
   })

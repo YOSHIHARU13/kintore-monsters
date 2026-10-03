@@ -55,6 +55,7 @@ export interface MonsterDefInput {
   name: string
   attr: Attr
   templateId: string
+  names: Record<string, string> // nodeId → その段階だけの名前
   files: Record<string, File> // nodeId → 新しくアップロードする画像
 }
 
@@ -333,6 +334,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         attr: existing?.attr ?? input.attr,
         templateId: existing?.templateId ?? input.templateId,
         images,
+        names: input.names,
         createdAt: existing?.createdAt ?? Date.now(),
       })
       batch.commit().catch(fail)

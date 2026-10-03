@@ -16,6 +16,7 @@ import { CONFIG } from '../config/gameConfig'
 import { Gauge } from '../components/Gauge'
 import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
+import { monsterName } from '../types'
 
 export function Home({ go }: { go: Go }) {
   const { state, menu, todaySets, defs, owned, today } = useStore()
@@ -109,7 +110,7 @@ export function Home({ go }: { go: Go }) {
           <button className="monster-row" onClick={() => go({ name: 'monster', id: active.id })}>
             <MonsterImage imageId={activeDef.images[active.nodeId]} size={88} />
             <div>
-              <strong>{activeDef.name}</strong>
+              <strong>{monsterName(activeDef, active.nodeId)}</strong>
               <div className="muted">
                 {ATTR_LABEL[activeDef.attr]}・{getNode(getTemplate(activeDef.templateId), active.nodeId).label}
               </div>

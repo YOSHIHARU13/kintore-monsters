@@ -12,6 +12,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
   const [name, setName] = useState(existing?.name ?? '')
   const [attr, setAttr] = useState<Attr>(existing?.attr ?? 'chestArms')
   const [templateId, setTemplateId] = useState(existing?.templateId ?? TEMPLATES[0].id)
+  const [names, setNames] = useState<Record<string, string>>(existing?.names ?? {})
   const [files, setFiles] = useState<Record<string, File>>({})
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -36,7 +37,17 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
       const validFiles = Object.fromEntries(
         Object.entries(files).filter(([nodeId]) => template.nodes.some((n) => n.id === nodeId)),
       )
-      await saveMonsterDef({ id: existing?.id, name: name.trim(), attr, templateId, files: validFiles })
+      const validNames = Object.fromEntries(
+        template.nodes.map((n) => [n.id, (names[n.id] ?? '').trim()] as const).filter(([, v]) => v !== ''),
+      )
+      await saveMonsterDef({
+        id: existing?.id,
+        name: name.trim(),
+        attr,
+        templateId,
+        names: validNames,
+        files: validFiles,
+      })
       go({ name: 'dex' })
     } catch (e) {
       console.error(e)
@@ -54,7 +65,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
 
       <section className="card">
         <label className="field">
-          <span>名前</span>
+          <span>名前（段階ごとの名前を付けないときに使われます）</span>
           <input value={name} onChange={(e) => setName(e.target.value)} maxLength={20} placeholder="なまえ" />
         </label>
 
@@ -97,9 +108,9 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
       </section>
 
       <section className="card">
-        <h2>各段階の画像</h2>
+        <h2>各段階の名前と画像</h2>
         <p className="muted small">
-          あとからでも追加・差し替えできます。未登録の段階はシルエットで表示されます。
+          あとからでも追加・変更できます。名前が空の段階は上の名前、画像が未登録の段階はシルエットで表示されます。
         </p>
         {template.nodes.map((node) => (
           <div key={node.id} className="image-row">
@@ -110,6 +121,14 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
             )}
             <div>
               <strong>{node.label}</strong>
+              <input
+                className="stage-name"
+                value={names[node.id] ?? ''}
+                onChange={(e) => setNames({ ...names, [node.id]: e.target.value })}
+                maxLength={20}
+                placeholder={name.trim() || 'この段階の名前'}
+                aria-label={`${node.label}の名前`}
+              />
               <label className="btn small file-btn">
                 画像を選ぶ
                 <input

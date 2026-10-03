@@ -53,7 +53,13 @@ export interface MonsterDef {
   attr: Attr
   templateId: string
   images: Record<string, string> // nodeId → 画像ドキュメントID
+  names?: Record<string, string> // nodeId → その段階だけの名前（なければ name を使う）
   createdAt: number
+}
+
+/** その段階での名前。段階ごとの名前が未設定なら全体の名前 */
+export function monsterName(def: MonsterDef, nodeId: string): string {
+  return def.names?.[nodeId]?.trim() || def.name
 }
 
 export interface OwnedMonster {

@@ -604,6 +604,19 @@ h2 {
   gap: 6px;
   align-items: flex-start;
 }
+.image-row > div {
+  flex: 1;
+  min-width: 0;
+}
+.stage-name {
+  background: var(--card2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  color: var(--text);
+  font-size: 1rem;
+  width: 100%;
+}
 .file-btn {
   display: inline-flex;
   align-items: center;
