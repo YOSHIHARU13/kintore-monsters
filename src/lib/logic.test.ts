@@ -4,7 +4,7 @@ import { calcSetReward, cardioGold } from './rewards'
 import { boughtCap, evolutionCost, isExpFull, planPour } from './evolution'
 import { CONFIG } from '../config/gameConfig'
 import { EXERCISES, SLOTS } from '../data/exercises'
-import { TEMPLATES } from '../data/evolutionTemplates'
+import { TEMPLATES, canChangeTemplate, getTemplate } from '../data/evolutionTemplates'
 
 const rec = (setNo: number, weightKg: number, reps: number, ts: number, date = `d${ts}`) => ({
   setNo,
@@ -118,6 +118,26 @@ describe('進化', () => {
     })
     expect(isExpFull(cost, { trained: 100, bought: 50 })).toBe(true)
     expect(isExpFull(cost, { trained: 100, bought: 49 })).toBe(false)
+  })
+})
+
+describe('進化ツリー', () => {
+  it('分岐は最大3種類で、5段階は新規登録の対象外', () => {
+    const maxBranch = Math.max(...TEMPLATES.flatMap((t) => t.nodes.map((n) => n.next.length)))
+    expect(maxBranch).toBe(3)
+    expect(TEMPLATES.filter((t) => !t.retired).every((t) => t.nodes.every((n) => n.stage <= 3))).toBe(true)
+  })
+  it('2種→3種への変更だけ許可し、元ツリーの形態はすべて引き継がれる', () => {
+    expect(canChangeTemplate('lateBranch', 'lateBranch3')).toBe(true)
+    expect(canChangeTemplate('lateBranch3', 'lateBranch')).toBe(false)
+    expect(canChangeTemplate('linear3', 'lateBranch3')).toBe(false)
+    for (const t of TEMPLATES.filter((x) => x.extends)) {
+      for (const node of getTemplate(t.extends!).nodes) {
+        const same = t.nodes.find((n) => n.id === node.id)
+        expect(same?.stage).toBe(node.stage)
+        for (const next of node.next) expect(same?.next).toContain(next)
+      }
+    }
   })
 })
 

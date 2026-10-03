@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useStore } from '../store'
 import { ATTRS, ATTR_LABEL, type Attr } from '../data/exercises'
-import { TEMPLATES, getTemplate } from '../data/evolutionTemplates'
+import { TEMPLATES, canChangeTemplate, getTemplate } from '../data/evolutionTemplates'
 import { evolutionCost } from '../lib/evolution'
 import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
@@ -9,7 +9,10 @@ import { ATTR_COLOR, type Go } from '../nav'
 export function MonsterForm({ id, go }: { id?: string; go: Go }) {
   const { defs, saveMonsterDef } = useStore()
   const existing = id ? defs.find((d) => d.id === id) : undefined
-  const selectable = TEMPLATES.filter((t) => !t.retired || t.id === existing?.templateId)
+  // 登録済みのモンスターは、ツリーを変えられないか、分岐を増やす方向にだけ変えられる
+  const selectable = TEMPLATES.filter((t) =>
+    existing ? canChangeTemplate(existing.templateId, t.id) : !t.retired,
+  )
   const [name, setName] = useState(existing?.name ?? '')
   const [templateId, setTemplateId] = useState(existing?.templateId ?? selectable[0].id)
   const [attrs, setAttrs] = useState<Record<string, Attr>>(existing?.attrs ?? {})
@@ -74,8 +77,15 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
         </label>
 
         <label className="field">
-          <span>進化ツリー{existing ? '（変更できません）' : ''}</span>
-          <select value={templateId} disabled={!!existing} onChange={(e) => setTemplateId(e.target.value)}>
+          <span>
+            進化ツリー
+            {!existing ? '' : selectable.length > 1 ? '（分岐を3種に増やせます。増やすと戻せません）' : '（変更できません）'}
+          </span>
+          <select
+            value={templateId}
+            disabled={selectable.length <= 1}
+            onChange={(e) => setTemplateId(e.target.value)}
+          >
             {selectable.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.name}：{t.description}

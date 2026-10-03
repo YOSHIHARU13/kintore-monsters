@@ -195,6 +195,26 @@ describe('画面の表示', () => {
     expect(fake.store.pourExp).toHaveBeenCalledWith('m1', 'n3b')
   })
 
+  it('モンスター編集：2種分岐のモンスターは3種分岐に増やせる', async () => {
+    const el = await render(<MonsterForm id="m1" go={go} />)
+    const options = [...el.querySelectorAll('option')].map((o) => o.value)
+    expect(options).toEqual(['lateBranch', 'lateBranch3'])
+    const select = el.querySelector('select')!
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(select, 'lateBranch3')
+      select.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    expect(el.textContent).toContain('最終C')
+    await click('保存する')
+    expect(fake.store.saveMonsterDef).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'm1',
+        templateId: 'lateBranch3',
+        attrs: { n1: 'chestArms', n2: 'chestArms', n3a: 'chestArms', n3b: 'legs', n3c: 'chestArms' },
+      }),
+    )
+  })
+
   it('モンスター登録：名前を入れて保存', async () => {
     const el = await render(<MonsterForm go={go} />)
     expect(el.textContent).toContain('1→2 150EXP＋30G')

@@ -16,7 +16,7 @@ import {
 import { db } from './lib/firebase'
 import { CONFIG } from './config/gameConfig'
 import { DAYS, type Attr } from './data/exercises'
-import { FIRST_NODE_ID, getNode, getTemplate } from './data/evolutionTemplates'
+import { FIRST_NODE_ID, canChangeTemplate, getNode, getTemplate } from './data/evolutionTemplates'
 import { dateKey } from './lib/date'
 import { evolutionCost, isExpFull, planPour } from './lib/evolution'
 import { cardioGold } from './lib/rewards'
@@ -341,7 +341,10 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         name: input.name,
         attr: input.attrs[FIRST_NODE_ID],
         attrs: input.attrs,
-        templateId: existing?.templateId ?? input.templateId,
+        templateId:
+          existing && !canChangeTemplate(existing.templateId, input.templateId)
+            ? existing.templateId
+            : input.templateId,
         images,
         names: input.names,
         createdAt: existing?.createdAt ?? Date.now(),
