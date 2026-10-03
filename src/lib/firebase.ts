@@ -5,8 +5,8 @@ import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager
 // Firebaseのウェブ用設定（公開されて問題ない値。データはfirestore.rulesで守る）
 const app = initializeApp({
   apiKey: 'AIzaSyB-aM61o7e2qgHLaSwK9TNaM9DaCpH97cQ',
-  // ログイン画面を自分のサイトと同じドメインで開く（スマホのホーム画面アプリでログインを安定させるため）
-  authDomain: import.meta.env.DEV ? 'workout-rpg.firebaseapp.com' : 'workout-rpg.web.app',
+  // アプリを workout-rpg.firebaseapp.com で開くと、ログイン画面と同じドメインになりスマホでも安定する
+  authDomain: 'workout-rpg.firebaseapp.com',
   projectId: 'workout-rpg',
   storageBucket: 'workout-rpg.firebasestorage.app',
   messagingSenderId: '267524061423',

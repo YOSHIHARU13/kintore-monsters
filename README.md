@@ -2,7 +2,7 @@
 
 筋トレの記録でモンスターを育てる、自分専用のスマホ用Webアプリ。
 
-- 公開先: https://workout-rpg.web.app （Firebase Hosting / プロジェクト `workout-rpg`）
+- 公開先: https://workout-rpg.firebaseapp.com （Firebase Hosting / プロジェクト `workout-rpg`）
 - 構成: React + TypeScript + Vite、Firebase Authentication（Google）、Firestore
 
 ## 数値の調整
