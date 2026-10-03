@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useStore } from '../store'
-import { ATTRS, ATTR_LABEL, type Attr } from '../data/exercises'
+import { FORM_ATTRS, FORM_ATTR_LABEL, type FormAttr } from '../data/exercises'
 import { TEMPLATES, canChangeTemplate, getTemplate } from '../data/evolutionTemplates'
 import { evolutionCost } from '../lib/evolution'
 import { MonsterImage } from '../components/MonsterImage'
@@ -15,14 +15,14 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
   )
   const [name, setName] = useState(existing?.name ?? '')
   const [templateId, setTemplateId] = useState(existing?.templateId ?? selectable[0].id)
-  const [attrs, setAttrs] = useState<Record<string, Attr>>(existing?.attrs ?? {})
+  const [attrs, setAttrs] = useState<Record<string, FormAttr>>(existing?.attrs ?? {})
   const [names, setNames] = useState<Record<string, string>>(existing?.names ?? {})
   const [files, setFiles] = useState<Record<string, File>>({})
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const template = getTemplate(templateId)
-  const attrOf = (nodeId: string): Attr => attrs[nodeId] ?? existing?.attr ?? 'chestArms'
+  const attrOf = (nodeId: string): FormAttr => attrs[nodeId] ?? existing?.attr ?? 'chestArms'
   const previews = useMemo(
     () => Object.fromEntries(Object.entries(files).map(([nodeId, file]) => [nodeId, URL.createObjectURL(file)])),
     [files],
@@ -108,7 +108,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
       <section className="card">
         <h2>各形態の属性・名前・画像</h2>
         <p className="muted small">
-          その形態に進化するには、その形態の属性のEXPが必要です。
+          その形態に進化するには、その形態の属性のEXPが必要です。「無」はどの筋トレのEXPでも育ちます。
           {hasBranch && '分岐先を別々の属性にすると、どのEXPを注いだかで進化先が変わります。'}
           あとからでも変更できます。
         </p>
@@ -122,7 +122,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
             <div>
               <strong>{node.label}</strong>
               <div className="chips" role="group" aria-label={`${node.label}の属性`}>
-                {ATTRS.map((a) => {
+                {FORM_ATTRS.map((a) => {
                   const on = a === attrOf(node.id)
                   return (
                     <button
@@ -132,7 +132,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
                       style={on ? { borderColor: ATTR_COLOR[a], color: ATTR_COLOR[a] } : undefined}
                       onClick={() => setAttrs({ ...attrs, [node.id]: a })}
                     >
-                      {ATTR_LABEL[a]}
+                      {FORM_ATTR_LABEL[a]}
                     </button>
                   )
                 })}

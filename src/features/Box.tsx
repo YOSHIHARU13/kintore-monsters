@@ -1,5 +1,5 @@
 import { useStore } from '../store'
-import { ATTR_LABEL } from '../data/exercises'
+import { FORM_ATTR_LABEL } from '../data/exercises'
 import { getNode, getTemplate } from '../data/evolutionTemplates'
 import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
@@ -26,7 +26,7 @@ export function Box({ go }: { go: Go }) {
               <MonsterImage imageId={def.images[mon.nodeId]} size={96} />
               <strong>{monsterName(def, mon.nodeId)}</strong>
               <span className="small" style={{ color: ATTR_COLOR[nodeAttr(def, mon.nodeId)] }}>
-                {ATTR_LABEL[nodeAttr(def, mon.nodeId)]}・{node.stage}段階
+                {FORM_ATTR_LABEL[nodeAttr(def, mon.nodeId)]}・{node.stage}段階
               </span>
               {state.activeMonsterId === mon.id && <span className="badge">育成中</span>}
             </button>

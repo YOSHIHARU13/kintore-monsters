@@ -4,6 +4,7 @@ import { useStore } from '../store'
 import {
   ATTRS,
   ATTR_LABEL,
+  FORM_ATTR_LABEL,
   BONUS_SLOT,
   DAYS,
   DAY_KEYS,
@@ -108,7 +109,7 @@ export function Home({ go }: { go: Go }) {
             <div>
               <strong>{monsterName(activeDef, active.nodeId)}</strong>
               <div className="muted">
-                {ATTR_LABEL[nodeAttr(activeDef, active.nodeId)]}・{getNode(getTemplate(activeDef.templateId), active.nodeId).label}
+                {FORM_ATTR_LABEL[nodeAttr(activeDef, active.nodeId)]}・{getNode(getTemplate(activeDef.templateId), active.nodeId).label}
               </div>
             </div>
           </button>

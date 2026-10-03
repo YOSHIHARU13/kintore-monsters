@@ -10,6 +10,11 @@ export const ATTR_LABEL: Record<Attr, string> = {
   backShoulders: '背肩',
 }
 
+// モンスターの形態の属性。'none'（無属性）はどの属性のEXPでも育つ
+export type FormAttr = Attr | 'none'
+export const FORM_ATTRS: FormAttr[] = [...ATTRS, 'none']
+export const FORM_ATTR_LABEL: Record<FormAttr, string> = { ...ATTR_LABEL, none: '無' }
+
 export const DAY_KEYS: DayKey[] = ['mon', 'wed', 'fri']
 export const DAYS: Record<DayKey, { label: string; title: string; attr: Attr; weekday: number }> = {
   mon: { label: '月', title: '胸腕', attr: 'chestArms', weekday: 1 },

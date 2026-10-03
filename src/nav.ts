@@ -18,4 +18,5 @@ export const ATTR_COLOR = {
   chestArms: '#ef476f',
   legs: '#06d6a0',
   backShoulders: '#4cc9f0',
+  none: '#c9cbd6',
 } as const

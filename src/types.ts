@@ -1,4 +1,4 @@
-import type { Attr, DayKey } from './data/exercises'
+import type { Attr, DayKey, FormAttr } from './data/exercises'
 
 export type Judge = 'beat' | 'keep' | 'normal'
 
@@ -50,9 +50,9 @@ export interface Activity {
 export interface MonsterDef {
   id: string
   name: string
-  attr: Attr // 第1段階の属性
+  attr: FormAttr // 第1段階の属性
   templateId: string
-  attrs?: Record<string, Attr> // nodeId → その形態の属性（なければ attr を使う）
+  attrs?: Record<string, FormAttr> // nodeId → その形態の属性（なければ attr を使う）
   images: Record<string, string> // nodeId → 画像ドキュメントID
   names?: Record<string, string> // nodeId → その段階だけの名前（なければ name を使う）
   createdAt: number
@@ -67,12 +67,13 @@ export interface OwnedMonster {
   id: string // MonsterDef の id と同じ（ダブりなし）
   nodeId: string
   investedBy?: Record<string, AttrExp> // 進化先のnodeId → その進化に向けて注いだEXP
+  investedFrom?: Record<string, Partial<Record<Attr, AttrExp>>> // 進化先 → どの属性の財布から注いだか（返却用）
   invested?: AttrExp // 旧形式（通常ルートに注いだEXP）
   obtainedAt: number
 }
 
 /** その形態の属性。形態ごとの属性が未設定ならモンスター全体の属性 */
-export function nodeAttr(def: MonsterDef, nodeId: string): Attr {
+export function nodeAttr(def: MonsterDef, nodeId: string): FormAttr {
   return def.attrs?.[nodeId] ?? def.attr
 }
 

@@ -192,7 +192,18 @@ describe('画面の表示', () => {
     fake.store.state = { ...state, exp: { ...state.exp, legs: { trained: 80, bought: 0 } } }
     await render(<MonsterDetail id="m1" go={go} />)
     await click('EXPを注ぐ（+80）')
-    expect(fake.store.pourExp).toHaveBeenCalledWith('m1', 'n3b')
+    expect(fake.store.pourExp).toHaveBeenCalledWith('m1', 'n3b', 'legs')
+  })
+
+  it('モンスター詳細：無属性の進化先には、どの属性のEXPでも注げる', async () => {
+    fake.store.defs = [{ ...defs[0], attrs: { ...defs[0].attrs, n3b: 'none' } }, defs[1]]
+    fake.store.state = { ...state, exp: { ...state.exp, backShoulders: { trained: 60, bought: 0 } } }
+    const el = await render(<MonsterDetail id="m1" go={go} />)
+    expect(el.textContent).toContain('無属性：どのEXPでも進化')
+    await click('背肩のEXPを注ぐ（+60）')
+    expect(fake.store.pourExp).toHaveBeenCalledWith('m1', 'n3b', 'backShoulders')
+    await click('胸腕のEXPを注ぐ（+300・うち購入 100）')
+    expect(fake.store.pourExp).toHaveBeenCalledWith('m1', 'n3b', 'chestArms')
   })
 
   it('モンスター編集：2種分岐のモンスターは3種分岐に増やせる', async () => {
@@ -227,15 +238,17 @@ describe('画面の表示', () => {
       })
     expect(el.textContent).not.toContain('大器晩成') // 5段階は新規登録では選べない
     await type(el.querySelector('input')!, 'テストモン')
-    const legsOfStage2 = el.querySelector('[aria-label="第2段階の属性"]')!.querySelectorAll('button')[1]
-    await act(async () => legsOfStage2.click())
+    const chips = (label: string) => el.querySelector(`[aria-label="${label}の属性"]`)!.querySelectorAll('button')
+    expect([...chips('第2段階')].map((b) => b.textContent)).toEqual(['胸腕', '脚', '背肩', '無'])
+    await act(async () => chips('第2段階')[1].click())
+    await act(async () => chips('第3段階（最終）')[3].click())
     await type(el.querySelector<HTMLInputElement>('input[aria-label="第2段階の名前"]')!, 'テストモン改')
     await click('保存する')
     expect(fake.store.saveMonsterDef).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'テストモン',
         templateId: 'linear3',
-        attrs: { n1: 'chestArms', n2: 'legs', n3: 'chestArms' },
+        attrs: { n1: 'chestArms', n2: 'legs', n3: 'none' },
         names: { n2: 'テストモン改' },
       }),
     )

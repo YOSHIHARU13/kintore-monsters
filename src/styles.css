@@ -574,6 +574,10 @@ h2 {
 .route-body .btn {
   margin-top: 6px;
 }
+.pour {
+  display: flex;
+  flex-direction: column;
+}
 
 /* フォーム */
 .field {

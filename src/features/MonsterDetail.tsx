@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../store'
-import { ATTR_LABEL } from '../data/exercises'
+import { ATTRS, ATTR_LABEL, FORM_ATTR_LABEL, type Attr } from '../data/exercises'
 import { getNode, getTemplate } from '../data/evolutionTemplates'
 import { CONFIG } from '../config/gameConfig'
 import { boughtCap, evolutionCost, isExpFull, planPour } from '../lib/evolution'
@@ -50,7 +50,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
         </div>
         <h1 className="title">{monsterName(def, mon.nodeId)}</h1>
         <p style={{ color: ATTR_COLOR[attr] }}>
-          {ATTR_LABEL[attr]}属性・{node.label}
+          {FORM_ATTR_LABEL[attr]}属性・{node.label}
         </p>
         <p className="muted small">{template.name}</p>
         {state.activeMonsterId === id ? (
@@ -68,17 +68,18 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
           <div className="routes">
             {node.next.map((nextId) => {
               const nextAttr = nodeAttr(def, nextId)
-              const wallet = state.exp[nextAttr]
+              // 無属性の進化先には、どの属性のEXPでも注げる
+              const sources: Attr[] = nextAttr === 'none' ? ATTRS : [nextAttr]
               const invested = investedFor(mon, nextId, node.next[0])
               const total = invested.trained + invested.bought
-              const pour = planPour(cost, invested, wallet)
-              const pourTotal = pour.trained + pour.bought
               const full = isExpFull(cost, invested)
               return (
                 <div key={nextId} className="route">
                   <MonsterImage imageId={def.images[nextId]} silhouette size={72} />
                   <div className="route-body">
-                    <strong style={{ color: ATTR_COLOR[nextAttr] }}>{ATTR_LABEL[nextAttr]}EXPで進化</strong>
+                    <strong style={{ color: ATTR_COLOR[nextAttr] }}>
+                      {nextAttr === 'none' ? '無属性：どのEXPでも進化' : `${ATTR_LABEL[nextAttr]}EXPで進化`}
+                    </strong>
                     <div className="gauge-row">
                       <Gauge value={total} max={cost.exp} color={ATTR_COLOR[nextAttr]} />
                       <span className="num">
@@ -86,8 +87,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
                       </span>
                     </div>
                     <span className="small muted">
-                      手持ち：筋トレ {wallet.trained}／購入 {wallet.bought}（購入分は {invested.bought}/
-                      {boughtCap(cost)} まで）
+                      購入EXP {invested.bought}/{boughtCap(cost)} まで
                     </span>
                     {full ? (
                       <button
@@ -98,13 +98,30 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
                         進化する（{cost.gold}G）
                       </button>
                     ) : (
-                      <button className="btn small" disabled={pourTotal <= 0} onClick={() => pourExp(id, nextId)}>
-                        {pourTotal > 0
-                          ? `EXPを注ぐ（+${pourTotal}${pour.bought > 0 ? `・うち購入 ${pour.bought}` : ''}）`
-                          : wallet.bought > 0
-                            ? '残りは筋トレEXPが必要'
-                            : '注げるEXPがありません'}
-                      </button>
+                      sources.map((src) => {
+                        const wallet = state.exp[src]
+                        const pour = planPour(cost, invested, wallet)
+                        const pourTotal = pour.trained + pour.bought
+                        const prefix = nextAttr === 'none' ? `${ATTR_LABEL[src]}の` : ''
+                        return (
+                          <div key={src} className="pour">
+                            <button
+                              className="btn small"
+                              disabled={pourTotal <= 0}
+                              onClick={() => pourExp(id, nextId, src)}
+                            >
+                              {pourTotal > 0
+                                ? `${prefix}EXPを注ぐ（+${pourTotal}${pour.bought > 0 ? `・うち購入 ${pour.bought}` : ''}）`
+                                : wallet.bought > 0
+                                  ? `${prefix}残りは筋トレEXPが必要`
+                                  : `${prefix}注げるEXPがありません`}
+                            </button>
+                            <span className="small muted">
+                              手持ち：筋トレ {wallet.trained}／購入 {wallet.bought}
+                            </span>
+                          </div>
+                        )
+                      })
                     )}
                   </div>
                 </div>

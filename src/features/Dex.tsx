@@ -1,5 +1,5 @@
 import { useStore } from '../store'
-import { ATTR_LABEL } from '../data/exercises'
+import { FORM_ATTR_LABEL } from '../data/exercises'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
@@ -29,7 +29,7 @@ export function Dex({ go }: { go: Go }) {
               <MonsterImage imageId={def.images[mon?.nodeId ?? FIRST_NODE_ID]} silhouette={!mon} size={96} />
               <strong>{monsterName(def, mon?.nodeId ?? FIRST_NODE_ID)}</strong>
               <span className="small" style={{ color: ATTR_COLOR[attr] }}>
-                {ATTR_LABEL[attr]}・{mon ? '入手済み' : '未入手'}
+                {FORM_ATTR_LABEL[attr]}・{mon ? '入手済み' : '未入手'}
               </span>
               <button className="btn small" onClick={() => go({ name: 'monsterForm', id: def.id })}>
                 編集
