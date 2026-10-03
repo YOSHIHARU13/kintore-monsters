@@ -14,7 +14,7 @@ import type { Go } from '../nav'
 import { MusicButtons } from '../music'
 
 export function Training({ day: dayProp, go }: { day?: DayKey; go: Go }) {
-  const { menu, todaySets, today } = useStore()
+  const { menu, todaySets, today, songs } = useStore()
   const day = dayProp ?? dayKeyOfDate(new Date(`${today}T12:00:00`)) ?? 'mon'
 
   return (
@@ -28,6 +28,11 @@ export function Training({ day: dayProp, go }: { day?: DayKey; go: Go }) {
       </div>
 
       <MusicButtons />
+      {songs.length === 0 && (
+        <button className="btn small" onClick={() => go({ name: 'settings' })}>
+          🎵 トレーニング中に流す曲を設定する
+        </button>
+      )}
 
       <section className="card">
         <ul className="slot-list">
@@ -47,6 +52,7 @@ export function Training({ day: dayProp, go }: { day?: DayKey; go: Go }) {
                       {slot.day === 'bonus' ? 'ボーナス枠・' : ''}
                       {rangeText(ex.id)}
                     </div>
+                    <div className="muted small how">{ex.how}</div>
                   </div>
                   <span className="slot-count">
                     {complete ? '✓ ' : ''}

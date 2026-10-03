@@ -24,8 +24,11 @@ export function MenuEdit({ day, go }: { day: DayKey; go: Go }) {
               {slot.candidates.map((id) => (
                 <li key={id}>
                   <button className={`choice${id === current.id ? ' on' : ''}`} onClick={() => setSlot(slot.id, id)}>
-                    <span>{EXERCISES[id].name}</span>
-                    <span className="muted small">{rangeText(id)}</span>
+                    <span>
+                      {EXERCISES[id].name}
+                      <span className="muted small how">{EXERCISES[id].how}</span>
+                    </span>
+                    <span className="muted small range">{rangeText(id)}</span>
                   </button>
                 </li>
               ))}

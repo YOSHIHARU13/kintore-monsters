@@ -102,6 +102,7 @@ beforeEach(() => {
     owned,
     today: TODAY,
     todaySets: [],
+    songs: [],
     todayActivities: [],
     getHistory: vi.fn(async () => [past(1, 10, 1000, '2026-09-28'), past(2, 9, 2000, '2026-09-28')]),
     recordSet: vi.fn((rec: Omit<SetRecord, 'id' | 'ts' | 'date'>) => ({ ...rec, id: 'new', ts: Date.now(), date: TODAY })),

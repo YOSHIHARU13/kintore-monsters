@@ -27,59 +27,199 @@ export interface Exercise {
   name: string
   weighted: boolean // ダンベルを使う種目か（falseは自重）
   next?: string // 難易度を上げた上位バリエーション
+  perSide?: boolean // 左右を片側ずつ行う種目か。回数は片側ぶんで数える
+  how: string // やり方の簡単な説明
 }
 
 const list: Exercise[] = [
   // 月：胸腕
-  { id: 'pushup', name: 'プッシュアップ', weighted: false, next: 'pushupBar' },
-  { id: 'pushupBar', name: 'プッシュアップ（バーで深く）', weighted: false, next: 'pushupFeetUp' },
-  { id: 'pushupFeetUp', name: 'プッシュアップ（足を台に乗せる）', weighted: false, next: 'pushupOneLeg' },
-  { id: 'pushupOneLeg', name: 'プッシュアップ（片足上げ）', weighted: false },
-  { id: 'floorPress', name: 'ダンベルフロアプレス', weighted: true, next: 'floorPressSlow' },
-  { id: 'floorPressSlow', name: 'フロアプレス（3秒で下ろす）', weighted: true, next: 'floorPressOneArm' },
-  { id: 'floorPressOneArm', name: '片手フロアプレス', weighted: true },
-  { id: 'floorPressClose', name: 'ナローフロアプレス', weighted: true },
-  { id: 'fly', name: 'ダンベルフライ', weighted: true, next: 'flySlow' },
-  { id: 'flySlow', name: 'ダンベルフライ（3秒で下ろす）', weighted: true },
-  { id: 'squeezePress', name: 'スクイーズプレス', weighted: true },
-  { id: 'curl', name: 'ダンベルカール', weighted: true, next: 'curlSlow' },
-  { id: 'curlSlow', name: 'ダンベルカール（3秒で下ろす）', weighted: true, next: 'concentrationCurl' },
-  { id: 'concentrationCurl', name: 'コンセントレーションカール', weighted: true },
-  { id: 'hammerCurl', name: 'ハンマーカール', weighted: true },
-  { id: 'ohExtension', name: 'オーバーヘッドエクステンション', weighted: true, next: 'ohExtensionOneArm' },
-  { id: 'ohExtensionOneArm', name: '片手オーバーヘッドエクステンション', weighted: true },
-  { id: 'lyingExtension', name: 'ライイングエクステンション', weighted: true },
-  { id: 'kickback', name: 'キックバック', weighted: true },
+  {
+    id: 'pushup', name: 'プッシュアップ', weighted: false, next: 'pushupBar',
+    how: 'バーを使わず、床に手をついて行う腕立て伏せ。手は肩幅より少し広く、体を一直線に保ったまま胸を床すれすれまで下ろす。',
+  },
+  {
+    id: 'pushupBar', name: 'プッシュアップ（バーで深く）', weighted: false, next: 'pushupFeetUp',
+    how: 'プッシュアップバーを握って行う腕立て伏せ。バーの高さのぶん、胸を深く下ろす。',
+  },
+  {
+    id: 'pushupFeetUp', name: 'プッシュアップ（足を台に乗せる）', weighted: false, next: 'pushupOneLeg',
+    how: '足を椅子や台に乗せて行う腕立て伏せ。バーは引き続き使う。胸の上のほうに効く。',
+  },
+  {
+    id: 'pushupOneLeg', name: 'プッシュアップ（片足上げ）', weighted: false,
+    how: '片足を床から浮かせたまま行う腕立て伏せ。浮かせる足はセットごとに替える。バーは引き続き使う。',
+  },
+  {
+    id: 'floorPress', name: 'ダンベルフロアプレス', weighted: true, next: 'floorPressSlow',
+    how: '床に仰向けになり、両手のダンベルを胸の上へ押し上げる。肘が床に軽く触れるまで下ろす。',
+  },
+  {
+    id: 'floorPressSlow', name: 'フロアプレス（3秒で下ろす）', weighted: true, next: 'floorPressOneArm',
+    how: 'フロアプレスを、3秒かけてゆっくり下ろす。上げるときは普通の速さでOK。',
+  },
+  {
+    id: 'floorPressOneArm', name: '片手フロアプレス', weighted: true, perSide: true,
+    how: '床に仰向けで、片手だけダンベルを持って押し上げる。体がねじれないようお腹に力を入れる。',
+  },
+  {
+    id: 'floorPressClose', name: 'ナローフロアプレス', weighted: true,
+    how: '脇を締め、ダンベル同士を近づけたまま行うフロアプレス。二の腕の裏側に効く。',
+  },
+  {
+    id: 'fly', name: 'ダンベルフライ', weighted: true, next: 'flySlow',
+    how: '床に仰向けで、肘を軽く曲げたまま腕を左右に開き、胸の上で閉じる。胸を開く・寄せる動き。',
+  },
+  {
+    id: 'flySlow', name: 'ダンベルフライ（3秒で下ろす）', weighted: true,
+    how: 'ダンベルフライを、3秒かけてゆっくり開く。',
+  },
+  {
+    id: 'squeezePress', name: 'スクイーズプレス', weighted: true,
+    how: '仰向けで、ダンベル同士を胸の上で強く押しつけ合ったまま上下させる。胸の内側に効く。',
+  },
+  {
+    id: 'curl', name: 'ダンベルカール', weighted: true, next: 'curlSlow',
+    how: '立って手のひらを前に向け、肘の位置を動かさずにダンベルを肩まで巻き上げる。力こぶの種目。',
+  },
+  {
+    id: 'curlSlow', name: 'ダンベルカール（3秒で下ろす）', weighted: true, next: 'concentrationCurl',
+    how: 'ダンベルカールを、3秒かけてゆっくり下ろす。',
+  },
+  {
+    id: 'concentrationCurl', name: 'コンセントレーションカール', weighted: true, perSide: true,
+    how: '椅子に座り、肘を太ももの内側に当てて固定し、片手でダンベルを巻き上げる。',
+  },
+  {
+    id: 'hammerCurl', name: 'ハンマーカール', weighted: true,
+    how: '手のひらを内側（親指が上）に向けたまま、ダンベルを肩まで巻き上げる。',
+  },
+  {
+    id: 'ohExtension', name: 'オーバーヘッドエクステンション', weighted: true, next: 'ohExtensionOneArm',
+    how: 'ダンベル1個を両手で持って頭の上に上げ、肘を曲げて頭の後ろへ下ろし、伸ばして戻す。二の腕の裏側。',
+  },
+  {
+    id: 'ohExtensionOneArm', name: '片手オーバーヘッドエクステンション', weighted: true, perSide: true,
+    how: '片手でダンベルを頭の上に上げ、肘を曲げて頭の後ろへ下ろし、伸ばして戻す。',
+  },
+  {
+    id: 'lyingExtension', name: 'ライイングエクステンション', weighted: true,
+    how: '仰向けで腕を真上に伸ばし、肘の位置を動かさずにダンベルを頭の横まで下ろして戻す。',
+  },
+  {
+    id: 'kickback', name: 'キックバック', weighted: true, perSide: true,
+    how: '片手を椅子などについて前かがみになり、肘を体の横に固定したまま、腕を後ろへ伸ばしきる。',
+  },
   // 水：脚
-  { id: 'bulgarian', name: 'ブルガリアンスクワット', weighted: true, next: 'bulgarianSlow' },
-  { id: 'bulgarianSlow', name: 'ブルガリアンスクワット（3秒で下ろす）', weighted: true },
-  { id: 'reverseLunge', name: 'リバースランジ', weighted: true },
-  { id: 'goblet', name: 'ゴブレットスクワット', weighted: true },
-  { id: 'gobletSlow', name: 'ゴブレットスクワット（3秒で下ろす）', weighted: true, next: 'gobletPause' },
-  { id: 'gobletPause', name: 'ゴブレットスクワット（3秒で下ろし、底で2秒止める）', weighted: true },
-  { id: 'rdl', name: 'ルーマニアンデッドリフト', weighted: true, next: 'rdlOneLeg' },
-  { id: 'rdlOneLeg', name: '片脚ルーマニアンデッドリフト', weighted: true },
-  { id: 'calfBoth', name: '両脚カーフレイズ', weighted: true },
-  { id: 'calfOneLeg', name: '片脚カーフレイズ', weighted: true, next: 'calfOneLegStep' },
-  { id: 'calfOneLegStep', name: '片脚カーフレイズ（段差で深く）', weighted: true },
+  {
+    id: 'bulgarian', name: 'ブルガリアンスクワット', weighted: true, next: 'bulgarianSlow', perSide: true,
+    how: '後ろ足の甲を椅子に乗せ、前足1本でしゃがんで立つ。両手にダンベル。前足のお尻と太ももに効く。',
+  },
+  {
+    id: 'bulgarianSlow', name: 'ブルガリアンスクワット（3秒で下ろす）', weighted: true, perSide: true,
+    how: 'ブルガリアンスクワットを、3秒かけてゆっくりしゃがむ。',
+  },
+  {
+    id: 'reverseLunge', name: 'リバースランジ', weighted: true, perSide: true,
+    how: '立った状態から片足を大きく後ろに引いてしゃがみ、元に戻る。両手にダンベル。',
+  },
+  {
+    id: 'goblet', name: 'ゴブレットスクワット', weighted: true,
+    how: 'ダンベル1個を胸の前で抱え、太ももが床と平行になるまでしゃがんで立つ。',
+  },
+  {
+    id: 'gobletSlow', name: 'ゴブレットスクワット（3秒で下ろす）', weighted: true, next: 'gobletPause',
+    how: 'ダンベル1個を胸の前で抱え、3秒かけてゆっくりしゃがんで立つ。',
+  },
+  {
+    id: 'gobletPause', name: 'ゴブレットスクワット（3秒で下ろし、底で2秒止める）', weighted: true,
+    how: 'ゴブレットスクワットを3秒かけてしゃがみ、いちばん下で2秒止めてから立つ。',
+  },
+  {
+    id: 'rdl', name: 'ルーマニアンデッドリフト', weighted: true, next: 'rdlOneLeg',
+    how: '両手にダンベルを持ち、背すじを伸ばしたままお尻を後ろに引いて上体を倒し、戻す。太ももの裏とお尻。',
+  },
+  {
+    id: 'rdlOneLeg', name: '片脚ルーマニアンデッドリフト', weighted: true, perSide: true,
+    how: '片足で立ち、反対の足を後ろに伸ばしながら上体を倒して戻す。バランスが難しければ壁に手を添える。',
+  },
+  {
+    id: 'calfBoth', name: '両脚カーフレイズ', weighted: true,
+    how: '両足で立ち、かかとをできるだけ高く上げてゆっくり下ろす。ふくらはぎの種目。',
+  },
+  {
+    id: 'calfOneLeg', name: '片脚カーフレイズ', weighted: true, next: 'calfOneLegStep', perSide: true,
+    how: '片足で立ち、かかとをできるだけ高く上げてゆっくり下ろす。壁に手を添えてOK。',
+  },
+  {
+    id: 'calfOneLegStep', name: '片脚カーフレイズ（段差で深く）', weighted: true, perSide: true,
+    how: '段差につま先だけ乗せて片足で立ち、かかとを段より下まで下ろしてから高く上げる。',
+  },
   // 金：背肩
-  { id: 'oneHandRow', name: 'ワンハンドロウ', weighted: true, next: 'oneHandRowPause' },
-  { id: 'oneHandRowPause', name: 'ワンハンドロウ（引ききって2秒止める）', weighted: true },
-  { id: 'bentOverRow', name: 'ベントオーバーロウ', weighted: true, next: 'bentOverRowReverse' },
-  { id: 'bentOverRowReverse', name: 'ベントオーバーロウ（逆手）', weighted: true },
-  { id: 'reverseFly', name: 'リバースフライ', weighted: true, next: 'reverseFlyPause' },
-  { id: 'reverseFlyPause', name: 'リバースフライ（上で2秒止める）', weighted: true },
-  { id: 'shoulderPress', name: 'ショルダープレス', weighted: true, next: 'arnoldPress' },
-  { id: 'arnoldPress', name: 'アーノルドプレス', weighted: true, next: 'shoulderPressOneArm' },
-  { id: 'shoulderPressOneArm', name: '片手ショルダープレス', weighted: true },
-  { id: 'sideRaise', name: 'サイドレイズ', weighted: true, next: 'sideRaiseSlow' },
-  { id: 'sideRaiseSlow', name: 'サイドレイズ（3秒で下ろす）', weighted: true },
-  { id: 'frontRaise', name: 'フロントレイズ', weighted: true },
+  {
+    id: 'oneHandRow', name: 'ワンハンドロウ', weighted: true, next: 'oneHandRowPause', perSide: true,
+    how: '片手と片ひざを椅子などについて前かがみになり、反対の手のダンベルを脇腹へ引き上げる。背中の種目。',
+  },
+  {
+    id: 'oneHandRowPause', name: 'ワンハンドロウ（引ききって2秒止める）', weighted: true, perSide: true,
+    how: 'ワンハンドロウで、引ききったところで2秒止めてから下ろす。',
+  },
+  {
+    id: 'bentOverRow', name: 'ベントオーバーロウ', weighted: true, next: 'bentOverRowReverse',
+    how: '立って上体を前に倒し、両手のダンベルを同時におへその横へ引き上げる。背すじは丸めない。',
+  },
+  {
+    id: 'bentOverRowReverse', name: 'ベントオーバーロウ（逆手）', weighted: true,
+    how: '手のひらを前に向けた逆手で行うベントオーバーロウ。背中の下のほうと力こぶにも効く。',
+  },
+  {
+    id: 'reverseFly', name: 'リバースフライ', weighted: true, next: 'reverseFlyPause',
+    how: '上体を前に倒し、肘を軽く曲げたまま両腕を横へ開く。肩の後ろ側と背中の上部に効く。',
+  },
+  {
+    id: 'reverseFlyPause', name: 'リバースフライ（上で2秒止める）', weighted: true,
+    how: 'リバースフライで、腕を開ききったところで2秒止める。',
+  },
+  {
+    id: 'shoulderPress', name: 'ショルダープレス', weighted: true, next: 'arnoldPress',
+    how: 'ダンベルを両肩の横に構え、頭の上へまっすぐ押し上げる。肩の種目。',
+  },
+  {
+    id: 'arnoldPress', name: 'アーノルドプレス', weighted: true, next: 'shoulderPressOneArm',
+    how: '手のひらを自分に向けて顔の前に構え、手首を外へ回しながら頭の上へ押し上げる。',
+  },
+  {
+    id: 'shoulderPressOneArm', name: '片手ショルダープレス', weighted: true, perSide: true,
+    how: '片手だけでダンベルを頭の上へ押し上げる。体が横に傾かないようにする。',
+  },
+  {
+    id: 'sideRaise', name: 'サイドレイズ', weighted: true, next: 'sideRaiseSlow',
+    how: '立って両腕を体の横から肩の高さまで上げる。肘は軽く曲げ、肩をすくめない。肩の横側。',
+  },
+  {
+    id: 'sideRaiseSlow', name: 'サイドレイズ（3秒で下ろす）', weighted: true,
+    how: 'サイドレイズを、3秒かけてゆっくり下ろす。',
+  },
+  {
+    id: 'frontRaise', name: 'フロントレイズ', weighted: true,
+    how: '立って両腕を体の前から肩の高さまで上げて下ろす。肩の前側。',
+  },
   // ボーナス：腹筋ローラー
-  { id: 'abKnee', name: '腹筋ローラー（膝つき）', weighted: false, next: 'abWall' },
-  { id: 'abWall', name: '腹筋ローラー（壁で止める）', weighted: false, next: 'abKneeFull' },
-  { id: 'abKneeFull', name: '腹筋ローラー（膝つきで最大まで）', weighted: false, next: 'abStanding' },
-  { id: 'abStanding', name: '腹筋ローラー（立ちコロ）', weighted: false },
+  {
+    id: 'abKnee', name: '腹筋ローラー（膝つき）', weighted: false, next: 'abWall',
+    how: 'ひざをついてローラーを前へ転がし、無理のない範囲で体を伸ばして戻る。腰は反らさない。',
+  },
+  {
+    id: 'abWall', name: '腹筋ローラー（壁で止める）', weighted: false, next: 'abKneeFull',
+    how: 'ひざつきで、壁に当たって止まる距離まで転がして戻る。壁から少しずつ離れていく。',
+  },
+  {
+    id: 'abKneeFull', name: '腹筋ローラー（膝つきで最大まで）', weighted: false, next: 'abStanding',
+    how: 'ひざつきで、体が床すれすれになるまで伸ばしきってから戻る。',
+  },
+  {
+    id: 'abStanding', name: '腹筋ローラー（立ちコロ）', weighted: false,
+    how: '立った状態からローラーを前へ転がして戻る。いちばん難しい形。',
+  },
 ]
 
 export const EXERCISES: Record<string, Exercise> = Object.fromEntries(list.map((e) => [e.id, e]))
@@ -127,7 +267,8 @@ export function repRange(exerciseId: string): { min: number | null; max: number 
 
 export function rangeText(exerciseId: string): string {
   const { min, max } = repRange(exerciseId)
-  return min === null ? `上限${max}回` : `${min}〜${max}回`
+  const text = min === null ? `上限${max}回` : `${min}〜${max}回`
+  return EXERCISES[exerciseId]?.perSide ? `左右各${text}` : text
 }
 
 /** 今日が月水金ならその曜日キー、それ以外は null */

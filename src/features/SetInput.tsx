@@ -128,6 +128,12 @@ export function SetInput({ day, slotId, go }: { day: DayKey; slotId: string; go:
         {isBonus ? 'ボーナス枠・' : ''}
         {rangeText(ex.id)}
       </p>
+      <p className="small how">{ex.how}</p>
+      {ex.perSide && (
+        <p className="small how">
+          ↔️ 左右の種目です。右と左を同じ回数ずつやって1セット。回数は<strong>片側ぶん</strong>を入れます（右10回＋左10回なら「10回」）。
+        </p>
+      )}
 
       {suggestion?.kind === 'addWeight' &&
         (baseDone ? (
@@ -170,6 +176,7 @@ export function SetInput({ day, slotId, go }: { day: DayKey; slotId: string; go:
         <Stepper value={reps} onChange={setReps} min={0} max={99} unit="回" big />
 
         <button className="btn primary wide confirm" onClick={confirm}>
+          {ex.perSide ? '左右各' : ''}
           {reps}回で確定
         </button>
 
@@ -206,6 +213,7 @@ export function SetInput({ day, slotId, go }: { day: DayKey; slotId: string; go:
               <li key={s.id}>
                 <span>
                   {s.setNo}セット目　{ex.weighted ? `${s.weightKg}kg × ` : ''}
+                  {ex.perSide ? '左右各' : ''}
                   {s.reps}回
                 </span>
                 <span className={`tag ${s.judge}`}>

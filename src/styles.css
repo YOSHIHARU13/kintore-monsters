@@ -77,6 +77,18 @@ h2 {
 .small {
   font-size: 0.8rem;
 }
+/* 種目のやり方の説明 */
+.how {
+  display: block;
+  margin-top: 4px;
+  line-height: 1.5;
+  font-weight: normal;
+}
+.range,
+.slot-count {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 .center {
   text-align: center;
   align-items: center;
