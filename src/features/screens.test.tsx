@@ -48,6 +48,7 @@ const defs: MonsterDef[] = [
     templateId: 'lateBranch',
     images: {},
     names: { n2: 'ムキドラゴ', n3b: 'ヤミムキドラ' },
+    attrs: { n1: 'chestArms', n2: 'chestArms', n3a: 'chestArms', n3b: 'legs' },
     createdAt: 1,
   },
   { id: 'm2', name: 'アシガメ', attr: 'legs', templateId: 'linear3', images: {}, createdAt: 2 },
@@ -147,7 +148,6 @@ describe('画面の表示', () => {
       true,
     )
     expect(el.textContent).toContain('前回超え！！')
-    expect(el.textContent).toContain('進化の石をゲット') // 累計4回 → 5回目
     expect(el.textContent).toContain('2セット目')
     // 直後の2セット目は30秒ルールで報酬対象外
     expect(el.textContent).toContain('休むと報酬の対象になります')
@@ -176,15 +176,23 @@ describe('画面の表示', () => {
     expect(shop.textContent).toContain('が生まれた！')
   })
 
-  it('モンスター詳細：EXPが満タンなら通常・分岐の両ルートに進化できる', async () => {
+  it('モンスター詳細：進化先ごとに、その属性のEXPを注いで進化する', async () => {
     const el = await render(<MonsterDetail id="m1" go={go} />)
+    // 胸腕の進化先は満タン（旧形式のデータも通常ルートに数える）、脚の進化先はまだ0
+    expect(el.textContent).toContain('胸腕EXPで進化')
     expect(el.textContent).toContain('500/500')
-    expect(el.textContent).toContain('通常ルート')
-    expect(el.textContent).toContain('分岐ルート')
-    const buttons = [...el.querySelectorAll('button')].filter((b) => b.textContent === '進化する')
-    expect(buttons).toHaveLength(2)
-    await act(async () => buttons[1].click())
-    expect(fake.store.evolve).toHaveBeenCalledWith('m1', 'n3b')
+    expect(el.textContent).toContain('脚EXPで進化')
+    expect(el.textContent).toContain('0/500')
+    expect(el.textContent).not.toContain('進化の石')
+    await click('進化する（100G）')
+    expect(fake.store.evolve).toHaveBeenCalledWith('m1', 'n3a')
+  })
+
+  it('モンスター詳細：手持ちのEXPがあれば進化先を選んで注げる', async () => {
+    fake.store.state = { ...state, exp: { ...state.exp, legs: { trained: 80, bought: 0 } } }
+    await render(<MonsterDetail id="m1" go={go} />)
+    await click('EXPを注ぐ（+80）')
+    expect(fake.store.pourExp).toHaveBeenCalledWith('m1', 'n3b')
   })
 
   it('モンスター登録：名前を入れて保存', async () => {
@@ -197,14 +205,17 @@ describe('画面の表示', () => {
         Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value)
         input.dispatchEvent(new Event('input', { bubbles: true }))
       })
+    expect(el.textContent).not.toContain('大器晩成') // 5段階は新規登録では選べない
     await type(el.querySelector('input')!, 'テストモン')
+    const legsOfStage2 = el.querySelector('[aria-label="第2段階の属性"]')!.querySelectorAll('button')[1]
+    await act(async () => legsOfStage2.click())
     await type(el.querySelector<HTMLInputElement>('input[aria-label="第2段階の名前"]')!, 'テストモン改')
     await click('保存する')
     expect(fake.store.saveMonsterDef).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'テストモン',
-        attr: 'chestArms',
         templateId: 'linear3',
+        attrs: { n1: 'chestArms', n2: 'legs', n3: 'chestArms' },
         names: { n2: 'テストモン改' },
       }),
     )

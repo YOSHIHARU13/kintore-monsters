@@ -33,12 +33,6 @@ export const CONFIG = {
     beat: 15,
   },
 
-  // 進化の石
-  stone: {
-    beatsPerStone: 5, // 前回超えが累計この回数ごとに1個
-    branchCost: 1, // 分岐ルートを選ぶのに必要な個数
-  },
-
   // 腹筋ローラー（ボーナス枠）
   bonus: {
     goldPerSet: 5,

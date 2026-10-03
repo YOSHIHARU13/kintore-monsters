@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { calcTarget, judgeSet, latestSession, suggestProgression } from './target'
-import { calcSetReward, cardioGold, stonesGained } from './rewards'
+import { calcSetReward, cardioGold } from './rewards'
 import { boughtCap, evolutionCost, isExpFull, planPour } from './evolution'
 import { CONFIG } from '../config/gameConfig'
 import { EXERCISES, SLOTS } from '../data/exercises'
@@ -62,11 +62,6 @@ describe('セット報酬', () => {
       gold: 5,
     })
     expect(calcSetReward({ isBonus: true, setNo: 4, judge: 'normal', intervalOk: true }).gold).toBe(0)
-  })
-  it('前回超え5回ごとに石1個', () => {
-    expect(stonesGained(3, 1)).toBe(0)
-    expect(stonesGained(4, 1)).toBe(1)
-    expect(stonesGained(9, 1)).toBe(1)
   })
   it('有酸素は1分1G', () => {
     expect(cardioGold(10)).toBe(10)

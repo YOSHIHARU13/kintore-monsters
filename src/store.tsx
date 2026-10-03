@@ -19,9 +19,9 @@ import { DAYS, type Attr } from './data/exercises'
 import { FIRST_NODE_ID, getNode, getTemplate } from './data/evolutionTemplates'
 import { dateKey } from './lib/date'
 import { evolutionCost, isExpFull, planPour } from './lib/evolution'
-import { cardioGold, stonesGained } from './lib/rewards'
+import { cardioGold } from './lib/rewards'
 import { compressImage } from './lib/imageCompress'
-import type { Activity, GameState, MonsterDef, OwnedMonster, SetRecord } from './types'
+import { investedFor, nodeAttr, type Activity, type GameState, type MonsterDef, type OwnedMonster, type SetRecord } from './types'
 
 const zeroExp = () => ({ trained: 0, bought: 0 })
 
@@ -53,8 +53,8 @@ function toState(data: DocumentData): GameState {
 export interface MonsterDefInput {
   id?: string
   name: string
-  attr: Attr
   templateId: string
+  attrs: Record<string, Attr> // nodeId → その形態の属性
   names: Record<string, string> // nodeId → その段階だけの名前
   files: Record<string, File> // nodeId → 新しくアップロードする画像
 }
@@ -75,7 +75,7 @@ interface Store {
   buyExp: (attr: Attr, amount: number) => void
   buyEgg: () => void
   hatchEgg: () => MonsterDef | null
-  pourExp: (monsterId: string) => void
+  pourExp: (monsterId: string, toNodeId: string) => void
   evolve: (monsterId: string, toNodeId: string) => void
   setActive: (monsterId: string) => void
   saveMonsterDef: (input: MonsterDefInput) => Promise<void>
@@ -206,11 +206,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         update[`lifetimeExp.${attr}`] = increment(rec.exp)
       }
       if (rec.gold > 0) update.gold = increment(rec.gold)
-      if (countsBeat) {
-        update.beatCount = increment(1)
-        const stones = stonesGained(state.beatCount, 1)
-        if (stones > 0) update.stones = increment(stones)
-      }
+      if (countsBeat) update.beatCount = increment(1)
       const batch = writeBatch(db)
       batch.set(ref, full)
       batch.update(stateRef, update)
@@ -263,7 +259,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const batch = writeBatch(db)
       batch.set(doc(db, base, 'ownedMonsters', def.id), {
         nodeId: FIRST_NODE_ID,
-        invested: zeroExp(),
+        investedBy: {},
         obtainedAt: Date.now(),
       })
       const update: DocumentData = { eggs: increment(-1) }
@@ -278,39 +274,51 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const def = defs.find((d) => d.id === monsterId)
       if (!mon || !def) return null
       const node = getNode(getTemplate(def.templateId), mon.nodeId)
-      const cost = evolutionCost(node.stage)
-      return { mon, def, node, cost: node.next.length > 0 ? cost : null }
+      return { mon, def, node, cost: node.next.length > 0 ? evolutionCost(node.stage) : null }
     }
 
-    const pourExp: Store['pourExp'] = (monsterId) => {
+    // 進化先の形態の属性のEXPを注ぐ。分岐では、どの進化先に注ぐかで進化先が決まる
+    const pourExp: Store['pourExp'] = (monsterId, toNodeId) => {
       const found = findMonster(monsterId)
-      if (!found?.cost) return
-      const { mon, def, cost } = found
-      const pour = planPour(cost, mon.invested, state.exp[def.attr])
+      if (!found?.cost || !found.node.next.includes(toNodeId)) return
+      const { mon, def, node, cost } = found
+      const attr = nodeAttr(def, toNodeId)
+      const pour = planPour(cost, investedFor(mon, toNodeId, node.next[0]), state.exp[attr])
       if (pour.trained + pour.bought <= 0) return
       const batch = writeBatch(db)
       batch.update(doc(db, base, 'ownedMonsters', monsterId), {
-        'invested.trained': increment(pour.trained),
-        'invested.bought': increment(pour.bought),
+        [`investedBy.${toNodeId}.trained`]: increment(pour.trained),
+        [`investedBy.${toNodeId}.bought`]: increment(pour.bought),
       })
       batch.update(stateRef, {
-        [`exp.${def.attr}.trained`]: increment(-pour.trained),
-        [`exp.${def.attr}.bought`]: increment(-pour.bought),
+        [`exp.${attr}.trained`]: increment(-pour.trained),
+        [`exp.${attr}.bought`]: increment(-pour.bought),
       })
       batch.commit().catch(fail)
     }
 
     const evolve: Store['evolve'] = (monsterId, toNodeId) => {
       const found = findMonster(monsterId)
-      if (!found?.cost) return
-      const { mon, node, cost } = found
-      const routeIndex = node.next.indexOf(toNodeId)
-      if (routeIndex < 0) return
-      const stoneCost = routeIndex > 0 ? CONFIG.stone.branchCost : 0
-      if (!isExpFull(cost, mon.invested) || state.gold < cost.gold || state.stones < stoneCost) return
+      if (!found?.cost || !found.node.next.includes(toNodeId)) return
+      const { mon, def, node, cost } = found
+      if (!isExpFull(cost, investedFor(mon, toNodeId, node.next[0])) || state.gold < cost.gold) return
+      // 選ばなかった進化先に注いでいたEXPは財布に返す
+      const refund: Record<string, number> = {}
+      for (const other of node.next.filter((n) => n !== toNodeId)) {
+        const back = investedFor(mon, other, node.next[0])
+        const attr = nodeAttr(def, other)
+        refund[`exp.${attr}.trained`] = (refund[`exp.${attr}.trained`] ?? 0) + back.trained
+        refund[`exp.${attr}.bought`] = (refund[`exp.${attr}.bought`] ?? 0) + back.bought
+      }
+      const update: DocumentData = { gold: increment(-cost.gold) }
+      for (const [key, value] of Object.entries(refund)) if (value > 0) update[key] = increment(value)
       const batch = writeBatch(db)
-      batch.update(doc(db, base, 'ownedMonsters', monsterId), { nodeId: toNodeId, invested: zeroExp() })
-      batch.update(stateRef, { gold: increment(-cost.gold), stones: increment(-stoneCost) })
+      batch.update(doc(db, base, 'ownedMonsters', monsterId), {
+        nodeId: toNodeId,
+        investedBy: {},
+        invested: zeroExp(),
+      })
+      batch.update(stateRef, update)
       batch.commit().catch(fail)
     }
 
@@ -331,7 +339,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       }
       batch.set(defRef, {
         name: input.name,
-        attr: existing?.attr ?? input.attr,
+        attr: input.attrs[FIRST_NODE_ID],
+        attrs: input.attrs,
         templateId: existing?.templateId ?? input.templateId,
         images,
         names: input.names,

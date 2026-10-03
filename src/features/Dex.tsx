@@ -3,7 +3,7 @@ import { ATTR_LABEL } from '../data/exercises'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
-import { monsterName } from '../types'
+import { monsterName, nodeAttr } from '../types'
 
 export function Dex({ go }: { go: Go }) {
   const { defs, owned } = useStore()
@@ -22,13 +22,14 @@ export function Dex({ go }: { go: Go }) {
       <div className="grid">
         {defs.map((def, index) => {
           const mon = owned.find((o) => o.id === def.id)
+          const attr = nodeAttr(def, mon?.nodeId ?? FIRST_NODE_ID)
           return (
             <div key={def.id} className="tile">
               <span className="muted small">No.{String(index + 1).padStart(3, '0')}</span>
               <MonsterImage imageId={def.images[mon?.nodeId ?? FIRST_NODE_ID]} silhouette={!mon} size={96} />
               <strong>{monsterName(def, mon?.nodeId ?? FIRST_NODE_ID)}</strong>
-              <span className="small" style={{ color: ATTR_COLOR[def.attr] }}>
-                {ATTR_LABEL[def.attr]}・{mon ? '入手済み' : '未入手'}
+              <span className="small" style={{ color: ATTR_COLOR[attr] }}>
+                {ATTR_LABEL[attr]}・{mon ? '入手済み' : '未入手'}
               </span>
               <button className="btn small" onClick={() => go({ name: 'monsterForm', id: def.id })}>
                 編集

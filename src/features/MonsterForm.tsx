@@ -4,26 +4,29 @@ import { ATTRS, ATTR_LABEL, type Attr } from '../data/exercises'
 import { TEMPLATES, getTemplate } from '../data/evolutionTemplates'
 import { evolutionCost } from '../lib/evolution'
 import { MonsterImage } from '../components/MonsterImage'
-import type { Go } from '../nav'
+import { ATTR_COLOR, type Go } from '../nav'
 
 export function MonsterForm({ id, go }: { id?: string; go: Go }) {
   const { defs, saveMonsterDef } = useStore()
   const existing = id ? defs.find((d) => d.id === id) : undefined
+  const selectable = TEMPLATES.filter((t) => !t.retired || t.id === existing?.templateId)
   const [name, setName] = useState(existing?.name ?? '')
-  const [attr, setAttr] = useState<Attr>(existing?.attr ?? 'chestArms')
-  const [templateId, setTemplateId] = useState(existing?.templateId ?? TEMPLATES[0].id)
+  const [templateId, setTemplateId] = useState(existing?.templateId ?? selectable[0].id)
+  const [attrs, setAttrs] = useState<Record<string, Attr>>(existing?.attrs ?? {})
   const [names, setNames] = useState<Record<string, string>>(existing?.names ?? {})
   const [files, setFiles] = useState<Record<string, File>>({})
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const template = getTemplate(templateId)
+  const attrOf = (nodeId: string): Attr => attrs[nodeId] ?? existing?.attr ?? 'chestArms'
   const previews = useMemo(
     () => Object.fromEntries(Object.entries(files).map(([nodeId, file]) => [nodeId, URL.createObjectURL(file)])),
     [files],
   )
 
   const stages = [...new Set(template.nodes.filter((n) => n.next.length > 0).map((n) => n.stage))]
+  const hasBranch = template.nodes.some((n) => n.next.length > 1)
 
   const save = async () => {
     if (!name.trim()) {
@@ -33,18 +36,19 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
     setSaving(true)
     setError(null)
     try {
-      // 選んだテンプレに存在しない段階の画像は送らない
+      // 選んだテンプレに存在する段階の分だけを保存する
       const validFiles = Object.fromEntries(
         Object.entries(files).filter(([nodeId]) => template.nodes.some((n) => n.id === nodeId)),
       )
       const validNames = Object.fromEntries(
         template.nodes.map((n) => [n.id, (names[n.id] ?? '').trim()] as const).filter(([, v]) => v !== ''),
       )
+      const validAttrs = Object.fromEntries(template.nodes.map((n) => [n.id, attrOf(n.id)] as const))
       await saveMonsterDef({
         id: existing?.id,
         name: name.trim(),
-        attr,
         templateId,
+        attrs: validAttrs,
         names: validNames,
         files: validFiles,
       })
@@ -69,26 +73,10 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
           <input value={name} onChange={(e) => setName(e.target.value)} maxLength={20} placeholder="なまえ" />
         </label>
 
-        <div className="field">
-          <span>属性{existing ? '（変更できません）' : ''}</span>
-          <div className="chips">
-            {ATTRS.map((a) => (
-              <button
-                key={a}
-                className={`chip${a === attr ? ' on' : ''}`}
-                disabled={!!existing}
-                onClick={() => setAttr(a)}
-              >
-                {ATTR_LABEL[a]}
-              </button>
-            ))}
-          </div>
-        </div>
-
         <label className="field">
           <span>進化ツリー{existing ? '（変更できません）' : ''}</span>
           <select value={templateId} disabled={!!existing} onChange={(e) => setTemplateId(e.target.value)}>
-            {TEMPLATES.map((t) => (
+            {selectable.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.name}：{t.description}
               </option>
@@ -108,9 +96,11 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
       </section>
 
       <section className="card">
-        <h2>各段階の名前と画像</h2>
+        <h2>各形態の属性・名前・画像</h2>
         <p className="muted small">
-          あとからでも追加・変更できます。名前が空の段階は上の名前、画像が未登録の段階はシルエットで表示されます。
+          その形態に進化するには、その形態の属性のEXPが必要です。
+          {hasBranch && '分岐先を別々の属性にすると、どのEXPを注いだかで進化先が変わります。'}
+          あとからでも変更できます。
         </p>
         {template.nodes.map((node) => (
           <div key={node.id} className="image-row">
@@ -121,6 +111,22 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
             )}
             <div>
               <strong>{node.label}</strong>
+              <div className="chips" role="group" aria-label={`${node.label}の属性`}>
+                {ATTRS.map((a) => {
+                  const on = a === attrOf(node.id)
+                  return (
+                    <button
+                      key={a}
+                      type="button"
+                      className={`chip${on ? ' on' : ''}`}
+                      style={on ? { borderColor: ATTR_COLOR[a], color: ATTR_COLOR[a] } : undefined}
+                      onClick={() => setAttrs({ ...attrs, [node.id]: a })}
+                    >
+                      {ATTR_LABEL[a]}
+                    </button>
+                  )
+                })}
+              </div>
               <input
                 className="stage-name"
                 value={names[node.id] ?? ''}

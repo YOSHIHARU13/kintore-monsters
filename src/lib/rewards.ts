@@ -24,12 +24,6 @@ export function calcSetReward(p: { isBonus: boolean; setNo: number; judge: Judge
   }
 }
 
-/** 前回超えの累計が増えたときにもらえる進化の石の数 */
-export function stonesGained(prevBeats: number, added: number): number {
-  const per = CONFIG.stone.beatsPerStone
-  return Math.floor((prevBeats + added) / per) - Math.floor(prevBeats / per)
-}
-
 export function cardioGold(minutes: number): number {
   return Math.max(0, Math.floor(minutes)) * CONFIG.cardio.goldPerMinute
 }

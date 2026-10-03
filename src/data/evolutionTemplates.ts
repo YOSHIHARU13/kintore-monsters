@@ -2,13 +2,14 @@ export interface EvoNode {
   id: string
   stage: number // 1始まり
   label: string
-  next: string[] // 先頭が通常ルート。2つ目以降は進化の石が必要な分岐ルート
+  next: string[] // 進化先。2つ以上あれば分岐（どの属性のEXPを注ぐかで進化先が決まる）
 }
 
 export interface EvoTemplate {
   id: string
   name: string
   description: string
+  retired?: boolean // 新規登録では選べない（登録済みのモンスターのためだけに残してある）
   nodes: EvoNode[]
 }
 
@@ -30,8 +31,8 @@ export const TEMPLATES: EvoTemplate[] = [
     nodes: [
       { id: 'n1', stage: 1, label: '第1段階', next: ['n2'] },
       { id: 'n2', stage: 2, label: '第2段階', next: ['n3a', 'n3b'] },
-      { id: 'n3a', stage: 3, label: '最終・通常ルート', next: [] },
-      { id: 'n3b', stage: 3, label: '最終・分岐ルート（石）', next: [] },
+      { id: 'n3a', stage: 3, label: '最終A', next: [] },
+      { id: 'n3b', stage: 3, label: '最終B', next: [] },
     ],
   },
   {
@@ -40,10 +41,10 @@ export const TEMPLATES: EvoTemplate[] = [
     description: '1 → 2種類に分岐 → それぞれの最終',
     nodes: [
       { id: 'n1', stage: 1, label: '第1段階', next: ['n2a', 'n2b'] },
-      { id: 'n2a', stage: 2, label: '第2段階・通常ルート', next: ['n3a'] },
-      { id: 'n2b', stage: 2, label: '第2段階・分岐ルート（石）', next: ['n3b'] },
-      { id: 'n3a', stage: 3, label: '最終・通常ルート', next: [] },
-      { id: 'n3b', stage: 3, label: '最終・分岐ルート', next: [] },
+      { id: 'n2a', stage: 2, label: '第2段階A', next: ['n3a'] },
+      { id: 'n2b', stage: 2, label: '第2段階B', next: ['n3b'] },
+      { id: 'n3a', stage: 3, label: '最終A（Aから進化）', next: [] },
+      { id: 'n3b', stage: 3, label: '最終B（Bから進化）', next: [] },
     ],
   },
   {
@@ -59,6 +60,7 @@ export const TEMPLATES: EvoTemplate[] = [
     id: 'late5',
     name: '大器晩成（5段）',
     description: '1 → 2 → 3 → 4 → 5',
+    retired: true,
     nodes: [
       { id: 'n1', stage: 1, label: '第1段階', next: ['n2'] },
       { id: 'n2', stage: 2, label: '第2段階', next: ['n3'] },

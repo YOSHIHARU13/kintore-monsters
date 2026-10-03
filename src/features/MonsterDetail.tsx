@@ -7,7 +7,7 @@ import { boughtCap, evolutionCost, isExpFull, planPour } from '../lib/evolution'
 import { Gauge } from '../components/Gauge'
 import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
-import { monsterName } from '../types'
+import { investedFor, monsterName, nodeAttr } from '../types'
 
 export function MonsterDetail({ id, go }: { id: string; go: Go }) {
   const { owned, defs, state, pourExp, evolve, setActive } = useStore()
@@ -29,11 +29,8 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
   const template = getTemplate(def.templateId)
   const node = getNode(template, mon.nodeId)
   const cost = node.next.length > 0 ? evolutionCost(node.stage) : null
-  const wallet = state.exp[def.attr]
-  const invested = mon.invested.trained + mon.invested.bought
-  const pour = cost ? planPour(cost, mon.invested, wallet) : { trained: 0, bought: 0 }
-  const pourTotal = pour.trained + pour.bought
-  const full = cost ? isExpFull(cost, mon.invested) : false
+  const attr = nodeAttr(def, mon.nodeId)
+  const branching = node.next.length > 1
 
   const doEvolve = (toNodeId: string) => {
     evolve(id, toNodeId)
@@ -52,8 +49,8 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
           <MonsterImage imageId={def.images[mon.nodeId]} size={200} />
         </div>
         <h1 className="title">{monsterName(def, mon.nodeId)}</h1>
-        <p style={{ color: ATTR_COLOR[def.attr] }}>
-          {ATTR_LABEL[def.attr]}属性・{node.label}
+        <p style={{ color: ATTR_COLOR[attr] }}>
+          {ATTR_LABEL[attr]}属性・{node.label}
         </p>
         <p className="muted small">{template.name}</p>
         {state.activeMonsterId === id ? (
@@ -67,58 +64,57 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
 
       {cost ? (
         <section className="card">
-          <h2>次の進化</h2>
-          <div className="gauge-row">
-            <span>EXP</span>
-            <Gauge value={invested} max={cost.exp} color={ATTR_COLOR[def.attr]} />
-            <span className="num">
-              {invested}/{cost.exp}
-            </span>
-          </div>
-          <p className="muted small">
-            うち購入EXP {mon.invested.bought}/{boughtCap(cost)}（購入分は必要EXPの
-            {Math.round(CONFIG.shop.boughtExpMaxRatio * 100)}%まで）
-          </p>
-          <p className="small">
-            手持ちの{ATTR_LABEL[def.attr]}EXP：筋トレ {wallet.trained}／購入 {wallet.bought}
-          </p>
-
-          {!full && (
-            <button className="btn primary wide" disabled={pourTotal <= 0} onClick={() => pourExp(id)}>
-              {pourTotal > 0
-                ? `EXPを注ぐ（+${pourTotal}${pour.bought > 0 ? `・うち購入 ${pour.bought}` : ''}）`
-                : '注げるEXPがありません'}
-            </button>
-          )}
-          {!full && pourTotal <= 0 && wallet.bought > 0 && (
-            <p className="warn small">購入EXPは上限に達しています。残りは筋トレで稼いだEXPが必要です。</p>
-          )}
-
+          <h2>{branching ? '次の進化（注いだEXPの種類で進化先が決まる）' : '次の進化'}</h2>
           <div className="routes">
-            {node.next.map((nextId, index) => {
-              const next = getNode(template, nextId)
-              const needStone = index > 0
-              const canEvolve =
-                full && state.gold >= cost.gold && (!needStone || state.stones >= CONFIG.stone.branchCost)
+            {node.next.map((nextId) => {
+              const nextAttr = nodeAttr(def, nextId)
+              const wallet = state.exp[nextAttr]
+              const invested = investedFor(mon, nextId, node.next[0])
+              const total = invested.trained + invested.bought
+              const pour = planPour(cost, invested, wallet)
+              const pourTotal = pour.trained + pour.bought
+              const full = isExpFull(cost, invested)
               return (
                 <div key={nextId} className="route">
                   <MonsterImage imageId={def.images[nextId]} silhouette size={72} />
                   <div className="route-body">
-                    <strong>{needStone ? '分岐ルート' : node.next.length > 1 ? '通常ルート' : '進化先'}</strong>
-                    <span className="small muted">{next.label}</span>
-                    <span className="small">
-                      {cost.gold}G{needStone ? ` ＋ 進化の石${CONFIG.stone.branchCost}個` : ''}
+                    <strong style={{ color: ATTR_COLOR[nextAttr] }}>{ATTR_LABEL[nextAttr]}EXPで進化</strong>
+                    <div className="gauge-row">
+                      <Gauge value={total} max={cost.exp} color={ATTR_COLOR[nextAttr]} />
+                      <span className="num">
+                        {total}/{cost.exp}
+                      </span>
+                    </div>
+                    <span className="small muted">
+                      手持ち：筋トレ {wallet.trained}／購入 {wallet.bought}（購入分は {invested.bought}/
+                      {boughtCap(cost)} まで）
                     </span>
-                    <button className="btn primary small" disabled={!canEvolve} onClick={() => doEvolve(nextId)}>
-                      進化する
-                    </button>
+                    {full ? (
+                      <button
+                        className="btn primary small"
+                        disabled={state.gold < cost.gold}
+                        onClick={() => doEvolve(nextId)}
+                      >
+                        進化する（{cost.gold}G）
+                      </button>
+                    ) : (
+                      <button className="btn small" disabled={pourTotal <= 0} onClick={() => pourExp(id, nextId)}>
+                        {pourTotal > 0
+                          ? `EXPを注ぐ（+${pourTotal}${pour.bought > 0 ? `・うち購入 ${pour.bought}` : ''}）`
+                          : wallet.bought > 0
+                            ? '残りは筋トレEXPが必要'
+                            : '注げるEXPがありません'}
+                      </button>
+                    )}
                   </div>
                 </div>
               )
             })}
           </div>
           <p className="muted small">
-            所持：{state.gold}G／進化の石 {state.stones}個
+            所持 {state.gold}G。購入EXPで埋められるのは必要EXPの{Math.round(CONFIG.shop.boughtExpMaxRatio * 100)}
+            %までです。
+            {branching && '選ばなかった進化先に注いだEXPは、進化したときに戻ってきます。'}
           </p>
         </section>
       ) : (

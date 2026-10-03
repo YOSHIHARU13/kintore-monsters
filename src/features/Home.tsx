@@ -16,7 +16,7 @@ import { CONFIG } from '../config/gameConfig'
 import { Gauge } from '../components/Gauge'
 import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
-import { monsterName } from '../types'
+import { monsterName, nodeAttr } from '../types'
 
 export function Home({ go }: { go: Go }) {
   const { state, menu, todaySets, defs, owned, today } = useStore()
@@ -89,10 +89,6 @@ export function Home({ go }: { go: Go }) {
             <strong>{state.gold}G</strong>
           </div>
           <div className="wallet-item">
-            <span className="label">進化の石</span>
-            <strong>{state.stones}個</strong>
-          </div>
-          <div className="wallet-item">
             <span className="label">タマゴ</span>
             <strong>{state.eggs}個</strong>
           </div>
@@ -112,7 +108,7 @@ export function Home({ go }: { go: Go }) {
             <div>
               <strong>{monsterName(activeDef, active.nodeId)}</strong>
               <div className="muted">
-                {ATTR_LABEL[activeDef.attr]}・{getNode(getTemplate(activeDef.templateId), active.nodeId).label}
+                {ATTR_LABEL[nodeAttr(activeDef, active.nodeId)]}・{getNode(getTemplate(activeDef.templateId), active.nodeId).label}
               </div>
             </div>
           </button>

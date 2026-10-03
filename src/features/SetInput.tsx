@@ -3,7 +3,7 @@ import { useStore } from '../store'
 import { EXERCISES, SLOTS, exerciseOfSlot, rangeText, repRange, type DayKey } from '../data/exercises'
 import { CONFIG } from '../config/gameConfig'
 import { calcTarget, judgeSet, latestSession, suggestProgression } from '../lib/target'
-import { calcSetReward, stonesGained } from '../lib/rewards'
+import { calcSetReward } from '../lib/rewards'
 import { formatClock } from '../lib/date'
 import { Stepper } from '../components/Stepper'
 import { Gauge } from '../components/Gauge'
@@ -17,7 +17,6 @@ interface Result {
   eligible: boolean
   exp: number
   gold: number
-  stone: boolean
   reps: number
   key: number
 }
@@ -84,7 +83,6 @@ export function SetInput({ day, slotId, go }: { day: DayKey; slotId: string; go:
   const confirm = () => {
     const judge = judgeSet(reps, target)
     const reward = calcSetReward({ isBonus, setNo, judge, intervalOk })
-    const stone = reward.countsBeat && stonesGained(store.state.beatCount, 1) > 0
     const rec = store.recordSet(
       {
         exerciseId: ex.id,
@@ -103,7 +101,7 @@ export function SetInput({ day, slotId, go }: { day: DayKey; slotId: string; go:
     )
     setHistory([...history, rec])
     setNow(Date.now())
-    setResult({ judge, eligible: reward.eligible, exp: reward.exp, gold: reward.gold, stone, reps, key: rec.ts })
+    setResult({ judge, eligible: reward.eligible, exp: reward.exp, gold: reward.gold, reps, key: rec.ts })
     if (judge === 'beat') navigator.vibrate?.([80, 40, 160])
   }
 
@@ -233,7 +231,6 @@ export function SetInput({ day, slotId, go }: { day: DayKey; slotId: string; go:
             <div className="beat-sub">
               {result.reps}回 {result.eligible ? `／ ${rewardText(result)}` : '（報酬対象外）'}
             </div>
-            {result.stone && <div className="beat-stone">進化の石をゲット！</div>}
             <div className="muted small">タップして続ける</div>
           </div>
         </div>

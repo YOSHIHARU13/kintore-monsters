@@ -50,8 +50,9 @@ export interface Activity {
 export interface MonsterDef {
   id: string
   name: string
-  attr: Attr
+  attr: Attr // 第1段階の属性
   templateId: string
+  attrs?: Record<string, Attr> // nodeId → その形態の属性（なければ attr を使う）
   images: Record<string, string> // nodeId → 画像ドキュメントID
   names?: Record<string, string> // nodeId → その段階だけの名前（なければ name を使う）
   createdAt: number
@@ -65,6 +66,22 @@ export function monsterName(def: MonsterDef, nodeId: string): string {
 export interface OwnedMonster {
   id: string // MonsterDef の id と同じ（ダブりなし）
   nodeId: string
-  invested: AttrExp // 次の進化に向けて注いだEXP
+  investedBy?: Record<string, AttrExp> // 進化先のnodeId → その進化に向けて注いだEXP
+  invested?: AttrExp // 旧形式（通常ルートに注いだEXP）
   obtainedAt: number
+}
+
+/** その形態の属性。形態ごとの属性が未設定ならモンスター全体の属性 */
+export function nodeAttr(def: MonsterDef, nodeId: string): Attr {
+  return def.attrs?.[nodeId] ?? def.attr
+}
+
+/** 進化先 targetId に向けて注いだEXP。旧形式の分は通常ルート（firstNextId）に数える */
+export function investedFor(mon: OwnedMonster, targetId: string, firstNextId: string | undefined): AttrExp {
+  const now = mon.investedBy?.[targetId]
+  const legacy = targetId === firstNextId ? mon.invested : undefined
+  return {
+    trained: (now?.trained ?? 0) + (legacy?.trained ?? 0),
+    bought: (now?.bought ?? 0) + (legacy?.bought ?? 0),
+  }
 }
