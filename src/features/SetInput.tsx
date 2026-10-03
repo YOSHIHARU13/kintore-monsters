@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../store'
-import { EXERCISES, SLOTS, exerciseOfSlot, rangeText, repRange, type DayKey } from '../data/exercises'
+import { EXERCISES, SLOTS, dumbbellText, exerciseOfSlot, rangeText, repRange, type DayKey } from '../data/exercises'
 import { CONFIG } from '../config/gameConfig'
 import { calcTarget, judgeSet, latestSession, suggestProgression } from '../lib/target'
 import { calcSetReward } from '../lib/rewards'
@@ -163,6 +163,9 @@ export function SetInput({ day, slotId, go }: { day: DayKey; slotId: string; go:
           <span className="target">{target !== null ? `目標 ${target}回` : '目標なし（初回）'}</span>
         </div>
 
+        {ex.weighted && (
+          <p className="muted small center">{dumbbellText(ex)}・重さは1個ぶんを入れます</p>
+        )}
         {ex.weighted && (
           <Stepper
             value={weight}

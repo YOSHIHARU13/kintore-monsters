@@ -27,6 +27,7 @@ export interface Exercise {
   name: string
   weighted: boolean // ダンベルを使う種目か（falseは自重）
   next?: string // 難易度を上げた上位バリエーション
+  dumbbells?: 1 | 2 // 一度に持つダンベルの数（省略時は2個＝両手に1個ずつ）。重さは常に1個ぶんで記録する
   perSide?: boolean // 左右を片側ずつ行う種目か。回数は片側ぶんで数える
   how: string // やり方の簡単な説明
 }
@@ -58,7 +59,7 @@ const list: Exercise[] = [
     how: 'フロアプレスを、3秒かけてゆっくり下ろす。上げるときは普通の速さでOK。',
   },
   {
-    id: 'floorPressOneArm', name: '片手フロアプレス', weighted: true, perSide: true,
+    id: 'floorPressOneArm', name: '片手フロアプレス', weighted: true, dumbbells: 1, perSide: true,
     how: '床に仰向けで、片手だけダンベルを持って押し上げる。体がねじれないようお腹に力を入れる。',
   },
   {
@@ -86,7 +87,7 @@ const list: Exercise[] = [
     how: 'ダンベルカールを、3秒かけてゆっくり下ろす。',
   },
   {
-    id: 'concentrationCurl', name: 'コンセントレーションカール', weighted: true, perSide: true,
+    id: 'concentrationCurl', name: 'コンセントレーションカール', weighted: true, dumbbells: 1, perSide: true,
     how: '椅子に座り、肘を太ももの内側に当てて固定し、片手でダンベルを巻き上げる。',
   },
   {
@@ -94,19 +95,19 @@ const list: Exercise[] = [
     how: '手のひらを内側（親指が上）に向けたまま、ダンベルを肩まで巻き上げる。',
   },
   {
-    id: 'ohExtension', name: 'オーバーヘッドエクステンション', weighted: true, next: 'ohExtensionOneArm',
+    id: 'ohExtension', name: 'オーバーヘッドエクステンション', weighted: true, dumbbells: 1, next: 'ohExtensionOneArm',
     how: 'ダンベル1個を両手で持って頭の上に上げ、肘を曲げて頭の後ろへ下ろし、伸ばして戻す。二の腕の裏側。',
   },
   {
-    id: 'ohExtensionOneArm', name: '片手オーバーヘッドエクステンション', weighted: true, perSide: true,
+    id: 'ohExtensionOneArm', name: '片手オーバーヘッドエクステンション', weighted: true, dumbbells: 1, perSide: true,
     how: '片手でダンベルを頭の上に上げ、肘を曲げて頭の後ろへ下ろし、伸ばして戻す。',
   },
   {
     id: 'lyingExtension', name: 'ライイングエクステンション', weighted: true,
-    how: '仰向けで腕を真上に伸ばし、肘の位置を動かさずにダンベルを頭の横まで下ろして戻す。',
+    how: '仰向けで両手にダンベルを持って腕を真上に伸ばし、肘の位置を動かさずに頭の横まで下ろして戻す。',
   },
   {
-    id: 'kickback', name: 'キックバック', weighted: true, perSide: true,
+    id: 'kickback', name: 'キックバック', weighted: true, dumbbells: 1, perSide: true,
     how: '片手を椅子などについて前かがみになり、肘を体の横に固定したまま、腕を後ろへ伸ばしきる。',
   },
   // 水：脚
@@ -123,15 +124,15 @@ const list: Exercise[] = [
     how: '立った状態から片足を大きく後ろに引いてしゃがみ、元に戻る。両手にダンベル。',
   },
   {
-    id: 'goblet', name: 'ゴブレットスクワット', weighted: true,
+    id: 'goblet', name: 'ゴブレットスクワット', weighted: true, dumbbells: 1,
     how: 'ダンベル1個を胸の前で抱え、太ももが床と平行になるまでしゃがんで立つ。',
   },
   {
-    id: 'gobletSlow', name: 'ゴブレットスクワット（3秒で下ろす）', weighted: true, next: 'gobletPause',
+    id: 'gobletSlow', name: 'ゴブレットスクワット（3秒で下ろす）', weighted: true, dumbbells: 1, next: 'gobletPause',
     how: 'ダンベル1個を胸の前で抱え、3秒かけてゆっくりしゃがんで立つ。',
   },
   {
-    id: 'gobletPause', name: 'ゴブレットスクワット（3秒で下ろし、底で2秒止める）', weighted: true,
+    id: 'gobletPause', name: 'ゴブレットスクワット（3秒で下ろし、底で2秒止める）', weighted: true, dumbbells: 1,
     how: 'ゴブレットスクワットを3秒かけてしゃがみ、いちばん下で2秒止めてから立つ。',
   },
   {
@@ -139,28 +140,28 @@ const list: Exercise[] = [
     how: '両手にダンベルを持ち、背すじを伸ばしたままお尻を後ろに引いて上体を倒し、戻す。太ももの裏とお尻。',
   },
   {
-    id: 'rdlOneLeg', name: '片脚ルーマニアンデッドリフト', weighted: true, perSide: true,
-    how: '片足で立ち、反対の足を後ろに伸ばしながら上体を倒して戻す。バランスが難しければ壁に手を添える。',
+    id: 'rdlOneLeg', name: '片脚ルーマニアンデッドリフト', weighted: true, dumbbells: 1, perSide: true,
+    how: '片足で立ち、片手にダンベルを持って、反対の足を後ろに伸ばしながら上体を倒して戻す。空いた手は壁に添えてOK。',
   },
   {
     id: 'calfBoth', name: '両脚カーフレイズ', weighted: true,
     how: '両足で立ち、かかとをできるだけ高く上げてゆっくり下ろす。ふくらはぎの種目。',
   },
   {
-    id: 'calfOneLeg', name: '片脚カーフレイズ', weighted: true, next: 'calfOneLegStep', perSide: true,
-    how: '片足で立ち、かかとをできるだけ高く上げてゆっくり下ろす。壁に手を添えてOK。',
+    id: 'calfOneLeg', name: '片脚カーフレイズ', weighted: true, dumbbells: 1, next: 'calfOneLegStep', perSide: true,
+    how: '片足で立ち、片手にダンベルを持って、かかとをできるだけ高く上げてゆっくり下ろす。空いた手は壁に添えてOK。',
   },
   {
-    id: 'calfOneLegStep', name: '片脚カーフレイズ（段差で深く）', weighted: true, perSide: true,
+    id: 'calfOneLegStep', name: '片脚カーフレイズ（段差で深く）', weighted: true, dumbbells: 1, perSide: true,
     how: '段差につま先だけ乗せて片足で立ち、かかとを段より下まで下ろしてから高く上げる。',
   },
   // 金：背肩
   {
-    id: 'oneHandRow', name: 'ワンハンドロウ', weighted: true, next: 'oneHandRowPause', perSide: true,
+    id: 'oneHandRow', name: 'ワンハンドロウ', weighted: true, dumbbells: 1, next: 'oneHandRowPause', perSide: true,
     how: '片手と片ひざを椅子などについて前かがみになり、反対の手のダンベルを脇腹へ引き上げる。背中の種目。',
   },
   {
-    id: 'oneHandRowPause', name: 'ワンハンドロウ（引ききって2秒止める）', weighted: true, perSide: true,
+    id: 'oneHandRowPause', name: 'ワンハンドロウ（引ききって2秒止める）', weighted: true, dumbbells: 1, perSide: true,
     how: 'ワンハンドロウで、引ききったところで2秒止めてから下ろす。',
   },
   {
@@ -188,7 +189,7 @@ const list: Exercise[] = [
     how: '手のひらを自分に向けて顔の前に構え、手首を外へ回しながら頭の上へ押し上げる。',
   },
   {
-    id: 'shoulderPressOneArm', name: '片手ショルダープレス', weighted: true, perSide: true,
+    id: 'shoulderPressOneArm', name: '片手ショルダープレス', weighted: true, dumbbells: 1, perSide: true,
     how: '片手だけでダンベルを頭の上へ押し上げる。体が横に傾かないようにする。',
   },
   {
@@ -263,6 +264,12 @@ export function exerciseOfSlot(slot: Slot, menu: Record<string, string>): Exerci
 export function repRange(exerciseId: string): { min: number | null; max: number } {
   const [min, max] = CONFIG.repRanges[exerciseId]
   return { min, max }
+}
+
+/** ダンベルを何個使うかの表示。自重種目は null */
+export function dumbbellText(ex: Exercise): string | null {
+  if (!ex.weighted) return null
+  return ex.dumbbells === 1 ? 'ダンベル1個' : 'ダンベル2個（両手に1個ずつ）'
 }
 
 export function rangeText(exerciseId: string): string {

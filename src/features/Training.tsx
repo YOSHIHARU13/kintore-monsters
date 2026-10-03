@@ -4,6 +4,7 @@ import {
   DAYS,
   DAY_KEYS,
   dayKeyOfDate,
+  dumbbellText,
   exerciseOfSlot,
   rangeText,
   slotsOfDay,
@@ -51,6 +52,7 @@ export function Training({ day: dayProp, go }: { day?: DayKey; go: Go }) {
                     <div className="muted small">
                       {slot.day === 'bonus' ? 'ボーナス枠・' : ''}
                       {rangeText(ex.id)}
+                      {ex.weighted ? `・${dumbbellText(ex)}` : ''}
                     </div>
                     <div className="muted small how">{ex.how}</div>
                   </div>
