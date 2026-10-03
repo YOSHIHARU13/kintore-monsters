@@ -47,6 +47,11 @@ export interface Activity {
   ts: number
 }
 
+export interface Song {
+  id: string // Sunoの曲ID
+  title: string
+}
+
 export interface MonsterDef {
   id: string
   name: string

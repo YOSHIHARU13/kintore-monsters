@@ -11,6 +11,7 @@ export type View =
   | { name: 'shop' }
   | { name: 'dex' }
   | { name: 'monsterForm'; id?: string }
+  | { name: 'settings' }
 
 export type Go = (view: View) => void
 

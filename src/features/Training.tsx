@@ -11,6 +11,7 @@ import {
 } from '../data/exercises'
 import { CONFIG } from '../config/gameConfig'
 import type { Go } from '../nav'
+import { MusicButtons } from '../music'
 
 export function Training({ day: dayProp, go }: { day?: DayKey; go: Go }) {
   const { menu, todaySets, today } = useStore()
@@ -25,6 +26,8 @@ export function Training({ day: dayProp, go }: { day?: DayKey; go: Go }) {
           </button>
         ))}
       </div>
+
+      <MusicButtons />
 
       <section className="card">
         <ul className="slot-list">

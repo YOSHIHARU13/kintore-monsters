@@ -8,6 +8,7 @@ import { formatClock } from '../lib/date'
 import { Stepper } from '../components/Stepper'
 import { Gauge } from '../components/Gauge'
 import type { Go } from '../nav'
+import { MusicButtons } from '../music'
 import type { Judge, SetRecord } from '../types'
 
 const JUDGE_LABEL: Record<Judge, string> = { beat: '前回超え', keep: 'キープ', normal: '記録' }
@@ -121,6 +122,7 @@ export function SetInput({ day, slotId, go }: { day: DayKey; slotId: string; go:
       <button className="back" onClick={() => go({ name: 'training', day })}>
         ← メニューに戻る
       </button>
+      <MusicButtons />
       <h1 className="title">{ex.name}</h1>
       <p className="muted">
         {isBonus ? 'ボーナス枠・' : ''}

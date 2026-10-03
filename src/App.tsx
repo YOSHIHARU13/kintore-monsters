@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { onAuthStateChanged, type User } from 'firebase/auth'
 import { auth } from './lib/firebase'
 import { StoreProvider } from './store'
+import { MusicProvider } from './music'
 import type { View } from './nav'
 import { Login } from './features/Login'
 import { Home } from './features/Home'
@@ -14,6 +15,7 @@ import { MonsterDetail } from './features/MonsterDetail'
 import { Shop } from './features/Shop'
 import { Dex } from './features/Dex'
 import { MonsterForm } from './features/MonsterForm'
+import { Settings } from './features/Settings'
 
 const TABS: { label: string; icon: string; view: View; names: View['name'][] }[] = [
   { label: 'ホーム', icon: '🏠', view: { name: 'home' }, names: ['home', 'cardio'] },
@@ -21,6 +23,7 @@ const TABS: { label: string; icon: string; view: View; names: View['name'][] }[]
   { label: 'モンスター', icon: '🐣', view: { name: 'box' }, names: ['box', 'monster'] },
   { label: 'ショップ', icon: '🛒', view: { name: 'shop' }, names: ['shop'] },
   { label: '図鑑', icon: '📖', view: { name: 'dex' }, names: ['dex', 'monsterForm'] },
+  { label: '設定', icon: '⚙️', view: { name: 'settings' }, names: ['settings'] },
 ]
 
 function Screen({ view, go }: { view: View; go: (v: View) => void }) {
@@ -45,6 +48,8 @@ function Screen({ view, go }: { view: View; go: (v: View) => void }) {
       return <Dex go={go} />
     case 'monsterForm':
       return <MonsterForm key={view.id ?? 'new'} id={view.id} go={go} />
+    case 'settings':
+      return <Settings />
   }
 }
 
@@ -70,9 +75,11 @@ export function App() {
 
   return (
     <StoreProvider user={user}>
-      <main className="app">
-        <Screen view={view} go={go} />
-      </main>
+      <MusicProvider>
+        <main className="app">
+          <Screen view={view} go={go} />
+        </main>
+      </MusicProvider>
       <nav className="tabs">
         {TABS.map((tab) => (
           <button

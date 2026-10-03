@@ -663,6 +663,29 @@ h2 {
   line-height: 1.2;
 }
 
+/* 曲 */
+.song-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  background: var(--card2);
+  border-radius: 12px;
+  padding: 8px 8px 8px 12px;
+}
+.song-row span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.music-songs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+}
+.music-songs .chip {
+  flex: none;
+}
+
 .toast {
   position: fixed;
   left: 16px;

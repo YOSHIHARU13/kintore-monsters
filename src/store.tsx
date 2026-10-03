@@ -21,7 +21,7 @@ import { dateKey } from './lib/date'
 import { evolutionCost, isExpFull, planPour } from './lib/evolution'
 import { cardioGold } from './lib/rewards'
 import { compressImage } from './lib/imageCompress'
-import { investedFor, nodeAttr, type Activity, type GameState, type MonsterDef, type OwnedMonster, type SetRecord } from './types'
+import { investedFor, nodeAttr, type Activity, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
 
 const zeroExp = () => ({ trained: 0, bought: 0 })
 
@@ -65,6 +65,7 @@ interface Store {
   menu: Record<string, string>
   defs: MonsterDef[]
   owned: OwnedMonster[]
+  songs: Song[]
   today: string
   todaySets: SetRecord[]
   todayActivities: Activity[]
@@ -80,6 +81,7 @@ interface Store {
   setActive: (monsterId: string) => void
   saveMonsterDef: (input: MonsterDefInput) => Promise<void>
   loadImage: (imageId: string) => Promise<string | null>
+  saveSongs: (songs: Song[]) => void
 }
 
 const StoreContext = createContext<Store | null>(null)
@@ -98,6 +100,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
   const [menu, setMenu] = useState<Record<string, string>>({})
   const [defs, setDefs] = useState<MonsterDef[]>([])
   const [owned, setOwned] = useState<OwnedMonster[]>([])
+  const [songs, setSongs] = useState<Song[]>([])
   const [today, setToday] = useState(dateKey())
   const [todaySets, setTodaySets] = useState<SetRecord[]>([])
   const [todayActivities, setTodayActivities] = useState<Activity[]>([])
@@ -105,6 +108,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
 
   const stateRef = useMemo(() => doc(db, base, 'meta', 'state'), [base])
   const menuRef = useMemo(() => doc(db, base, 'meta', 'menu'), [base])
+  const musicRef = useMemo(() => doc(db, base, 'meta', 'music'), [base])
 
   const fail = useCallback((e: unknown) => {
     console.error(e)
@@ -138,6 +142,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         fail,
       ),
       onSnapshot(menuRef, (snap) => setMenu((snap.data() as Record<string, string>) ?? {}), fail),
+      onSnapshot(musicRef, (snap) => setSongs((snap.data()?.songs as Song[] | undefined) ?? []), fail),
       onSnapshot(
         collection(db, base, 'monsterDefs'),
         (snap) =>
@@ -160,7 +165,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       ),
     ]
     return () => unsubs.forEach((u) => u())
-  }, [base, stateRef, menuRef, fail])
+  }, [base, stateRef, menuRef, musicRef, fail])
 
   useEffect(() => {
     const unsubs = [
@@ -392,12 +397,17 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       return cached
     }
 
+    const saveSongs: Store['saveSongs'] = (next) => {
+      setDoc(musicRef, { songs: next }).catch(fail)
+    }
+
     return {
       user,
       state,
       menu,
       defs,
       owned,
+      songs,
       today,
       todaySets,
       todayActivities,
@@ -413,8 +423,9 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       setActive,
       saveMonsterDef,
       loadImage,
+      saveSongs,
     }
-  }, [user, base, state, menu, defs, owned, today, todaySets, todayActivities, stateRef, menuRef, fail])
+  }, [user, base, state, menu, defs, owned, songs, today, todaySets, todayActivities, stateRef, menuRef, musicRef, fail])
 
   if (!store) {
     return (
