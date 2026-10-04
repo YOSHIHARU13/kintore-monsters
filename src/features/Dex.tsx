@@ -11,10 +11,10 @@ export function Dex({ go }: { go: Go }) {
 
   const entries = defs.map((def) => {
     const template = getTemplate(def.templateId)
-    const mon = owned.find((o) => o.id === def.id)
-    // 進化は一方通行なので、今の姿までの道のりがそのまま「なったことのある姿」
-    const found = new Set(mon ? pathTo(template, mon.nodeId) : [])
-    return { def, template, found }
+    const mons = owned.filter((o) => o.defId === def.id)
+    // 進化は一方通行なので、持っている1体ずつの「今の姿までの道のり」を合わせたものが発見済み
+    const found = new Set(mons.flatMap((mon) => pathTo(template, mon.nodeId)))
+    return { def, template, found, count: mons.length }
   })
   const foundCount = entries.reduce((sum, e) => sum + e.found.size, 0)
   const formCount = entries.reduce((sum, e) => sum + e.template.nodes.length, 0)
@@ -25,19 +25,22 @@ export function Dex({ go }: { go: Go }) {
       <p className="muted">
         発見 {foundCount}／全 {formCount} 形態
       </p>
+      <p className="muted small">
+        分岐する進化先は、同じモンスターをもう1体タマゴから孵して、別の道に育てると埋まります。
+      </p>
       <button className="btn wide" onClick={() => go({ name: 'registry' })}>
         モンスターを登録・編集する
       </button>
       {defs.length === 0 && <p className="muted">まだモンスターが登録されていません。</p>}
 
-      {entries.map(({ def, template, found }, index) => (
+      {entries.map(({ def, template, found, count }, index) => (
         <section className="card" key={def.id}>
           <h2>
             <span className="muted small">No.{String(index + 1).padStart(3, '0')}</span>{' '}
             {found.size > 0 ? def.name : '？？？'}
             <span className="muted small">
               {' '}
-              {found.size}/{template.nodes.length}
+              {found.size}/{template.nodes.length}形態・所持{count}体
             </span>
           </h2>
           <div className="dex-forms">

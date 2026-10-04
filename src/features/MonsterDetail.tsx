@@ -13,7 +13,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
   const { owned, defs, state, pourExp, evolve, setActive } = useStore()
   const [evolved, setEvolved] = useState(0)
   const mon = owned.find((o) => o.id === id)
-  const def = defs.find((d) => d.id === id)
+  const def = mon && defs.find((d) => d.id === mon.defId)
 
   if (!mon || !def) {
     return (

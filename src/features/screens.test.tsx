@@ -40,7 +40,7 @@ const state: GameState = {
   beatCount: 4,
   weeklyClears: 2,
   lastClearWeek: '2026-09-21',
-  activeMonsterId: 'm1',
+  activeMonsterId: 'o1',
 }
 const defs: MonsterDef[] = [
   {
@@ -55,7 +55,7 @@ const defs: MonsterDef[] = [
   },
   { id: 'm2', name: 'アシガメ', attr: 'legs', templateId: 'linear3', images: {}, createdAt: 2 },
 ]
-const owned: OwnedMonster[] = [{ id: 'm1', nodeId: 'n2', invested: { trained: 250, bought: 250 }, obtainedAt: 1 }]
+const owned: OwnedMonster[] = [{ id: 'o1', defId: 'm1', nodeId: 'n2', invested: { trained: 250, bought: 250 }, obtainedAt: 1 }]
 
 const past = (setNo: number, reps: number, ts: number, date: string, slotId = 'mon2'): SetRecord => ({
   id: `${date}-${slotId}-${setNo}`,
@@ -116,7 +116,7 @@ beforeEach(() => {
     setSlot: vi.fn(),
     buyExp: vi.fn(),
     buyEgg: vi.fn(),
-    hatchEgg: vi.fn(() => defs[1]),
+    hatchEgg: vi.fn(() => ({ def: defs[1], monsterId: 'o2' })),
     pourExp: vi.fn(),
     evolve: vi.fn(),
     setActive: vi.fn(),
@@ -130,7 +130,9 @@ describe('画面の表示', () => {
     fake.store.weekSets = [past(1, 10, 1, TODAY, 'wed1'), past(2, 10, 2, TODAY, 'wed1')]
     const el = await render(<Home go={go} />)
     expect(el.textContent).toContain('今週の残りタスク：あと40セット')
-    expect(el.textContent).toContain('残り10') // 脚は12セット中2セット済み
+    expect(el.textContent).toContain('残り10セット') // 脚は12セット中2セット済み
+    expect(el.textContent).toContain('胸腕 0/5')
+    expect(el.textContent).toContain('脚 0/4') // 3セットやりきった種目の数
     expect(el.textContent).toContain('ブルガリアンスクワット2/3')
     expect(el.textContent).not.toContain('腹筋ローラー') // ボーナス枠はタスク外
     expect(el.textContent).toContain('累計 2週')
@@ -219,14 +221,23 @@ describe('画面の表示', () => {
     expect(dex.textContent).toContain('ムキドラゴ')
     expect(dex.textContent).not.toContain('ヤミムキドラ') // 進化していない形態の名前は伏せる
     expect(dex.textContent).not.toContain('アシガメ')
+    // 同じモンスターをもう1体、別の進化先に育てると、その形態も埋まる
+    fake.store.owned = [...owned, { id: 'o3', defId: 'm1', nodeId: 'n3b', obtainedAt: 2 }]
+    const dex2 = await render(<Dex go={go} />)
+    expect(dex2.textContent).toContain('発見 3／全 7 形態')
+    expect(dex2.textContent).toContain('ヤミムキドラ')
+    expect(dex2.textContent).toContain('所持2体')
+    expect((await render(<Box go={go} />)).textContent).toContain('所持 2体')
     const shop = await render(<Shop go={go} />)
     await click('タマゴを孵す')
     expect(shop.textContent).toContain('アシガメ')
     expect(shop.textContent).toContain('が生まれた！')
+    await click('会いに行く')
+    expect(go).toHaveBeenCalledWith({ name: 'monster', id: 'o2' })
   })
 
   it('モンスター詳細：進化先ごとに、その属性のEXPを注いで進化する', async () => {
-    const el = await render(<MonsterDetail id="m1" go={go} />)
+    const el = await render(<MonsterDetail id="o1" go={go} />)
     // 胸腕の進化先は満タン（旧形式のデータも通常ルートに数える）、脚の進化先はまだ0
     expect(el.textContent).toContain('胸腕EXPで進化')
     expect(el.textContent).toContain('500/500')
@@ -234,25 +245,25 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('0/500')
     expect(el.textContent).not.toContain('進化の石')
     await click('進化する（100G）')
-    expect(fake.store.evolve).toHaveBeenCalledWith('m1', 'n3a')
+    expect(fake.store.evolve).toHaveBeenCalledWith('o1', 'n3a')
   })
 
   it('モンスター詳細：手持ちのEXPがあれば進化先を選んで注げる', async () => {
     fake.store.state = { ...state, exp: { ...state.exp, legs: { trained: 80, bought: 0 } } }
-    await render(<MonsterDetail id="m1" go={go} />)
+    await render(<MonsterDetail id="o1" go={go} />)
     await click('EXPを注ぐ（+80）')
-    expect(fake.store.pourExp).toHaveBeenCalledWith('m1', 'n3b', 'legs')
+    expect(fake.store.pourExp).toHaveBeenCalledWith('o1', 'n3b', 'legs')
   })
 
   it('モンスター詳細：無属性の進化先には、どの属性のEXPでも注げる', async () => {
     fake.store.defs = [{ ...defs[0], attrs: { ...defs[0].attrs, n3b: 'none' } }, defs[1]]
     fake.store.state = { ...state, exp: { ...state.exp, backShoulders: { trained: 60, bought: 0 } } }
-    const el = await render(<MonsterDetail id="m1" go={go} />)
+    const el = await render(<MonsterDetail id="o1" go={go} />)
     expect(el.textContent).toContain('無属性：どのEXPでも進化')
     await click('背肩のEXPを注ぐ（+60）')
-    expect(fake.store.pourExp).toHaveBeenCalledWith('m1', 'n3b', 'backShoulders')
+    expect(fake.store.pourExp).toHaveBeenCalledWith('o1', 'n3b', 'backShoulders')
     await click('胸腕のEXPを注ぐ（+300・うち購入 100）')
-    expect(fake.store.pourExp).toHaveBeenCalledWith('m1', 'n3b', 'chestArms')
+    expect(fake.store.pourExp).toHaveBeenCalledWith('o1', 'n3b', 'chestArms')
   })
 
   it('モンスター編集：2種分岐のモンスターは3種分岐に増やせる', async () => {

@@ -8,15 +8,16 @@ import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { ATTR_COLOR, type Go } from '../nav'
 import { monsterName, type MonsterDef } from '../types'
 
+type Hatched = { def: MonsterDef; monsterId: string }
+
 export function Shop({ go }: { go: Go }) {
-  const { state, defs, owned, buyEgg, hatchEgg, buyExp } = useStore()
+  const { state, defs, buyEgg, hatchEgg, buyExp } = useStore()
   const [attr, setAttr] = useState<Attr>('chestArms')
   const [amount, setAmount] = useState(CONFIG.shop.expBuyStep)
-  const [hatched, setHatched] = useState<MonsterDef | null>(null)
+  const [hatched, setHatched] = useState<Hatched | null>(null)
 
-  const unownedCount = defs.filter((d) => !owned.some((o) => o.id === d.id)).length
-  const canBuyEgg = state.gold >= CONFIG.shop.eggPrice && unownedCount - state.eggs > 0
-  const canHatch = state.eggs > 0 && unownedCount > 0
+  const canBuyEgg = state.gold >= CONFIG.shop.eggPrice && defs.length > 0
+  const canHatch = state.eggs > 0 && defs.length > 0
   const expCost = amount * CONFIG.shop.goldPerExp
   const maxAmount = Math.max(
     CONFIG.shop.expBuyStep,
@@ -31,7 +32,7 @@ export function Shop({ go }: { go: Go }) {
       <section className="card">
         <h2>タマゴ</h2>
         <p className="muted small">
-          登録済みでまだ持っていないモンスターが、ランダムで1体生まれます（ダブりなし）。未入手 {unownedCount}体。
+          登録済みのモンスター（{defs.length}種）から、ランダムで1体生まれます。ダブりあり。同じモンスターを別の進化先に育てて、図鑑を埋められます。
         </p>
         <p>
           手持ちのタマゴ：<strong>{state.eggs}個</strong>
@@ -42,12 +43,8 @@ export function Shop({ go }: { go: Go }) {
         <button className="btn wide" disabled={!canBuyEgg} onClick={buyEgg}>
           タマゴを買う（{CONFIG.shop.eggPrice}G）
         </button>
-        {unownedCount - state.eggs <= 0 && (
-          <p className="warn small">
-            {unownedCount === 0
-              ? '生まれるモンスターがいません。図鑑で新しいモンスターを登録してください。'
-              : '未入手のモンスターの数だけタマゴを持っています。'}
-          </p>
+        {defs.length === 0 && (
+          <p className="warn small">生まれるモンスターがいません。図鑑で新しいモンスターを登録してください。</p>
         )}
       </section>
 
@@ -89,14 +86,14 @@ export function Shop({ go }: { go: Go }) {
         <div className="beat-overlay" onClick={() => setHatched(null)}>
           <div className="beat-burst" />
           <div className="beat-text">
-            <MonsterImage imageId={hatched.images[FIRST_NODE_ID]} size={180} />
-            <div className="beat-title">{monsterName(hatched, FIRST_NODE_ID)}</div>
+            <MonsterImage imageId={hatched.def.images[FIRST_NODE_ID]} size={180} />
+            <div className="beat-title">{monsterName(hatched.def, FIRST_NODE_ID)}</div>
             <div className="beat-sub">が生まれた！</div>
             <button
               className="btn primary"
               onClick={(e) => {
                 e.stopPropagation()
-                go({ name: 'monster', id: hatched.id })
+                go({ name: 'monster', id: hatched.monsterId })
               }}
             >
               会いに行く

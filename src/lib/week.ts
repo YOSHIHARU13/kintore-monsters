@@ -15,8 +15,10 @@ export function slotDone(weekSets: WeekItem[], slotId: string): number {
 }
 
 export interface Progress {
-  done: number
+  done: number // 消したセット数
   total: number
+  slotsDone: number // 基本セット数をやりきった種目の数
+  slots: number
 }
 
 /** 部位ごとの今週の進み具合 */
@@ -26,6 +28,8 @@ export function partProgress(weekSets: WeekItem[]): Record<DayKey, Progress> {
     return {
       done: slots.reduce((sum, slot) => sum + slotDone(weekSets, slot.id), 0),
       total: slots.length * CONFIG.sets.perExercise,
+      slotsDone: slots.filter((slot) => slotDone(weekSets, slot.id) >= CONFIG.sets.perExercise).length,
+      slots: slots.length,
     }
   }
   return Object.fromEntries(DAY_KEYS.map((day) => [day, of(day)])) as Record<DayKey, Progress>

@@ -70,7 +70,8 @@ export function monsterName(def: MonsterDef, nodeId: string): string {
 }
 
 export interface OwnedMonster {
-  id: string // MonsterDef の id と同じ（ダブりなし）
+  id: string // この1体のID（同じモンスターを何体でも持てる）
+  defId: string // どのモンスター（MonsterDef）か
   nodeId: string
   investedBy?: Record<string, AttrExp> // 進化先のnodeId → その進化に向けて注いだEXP
   investedFrom?: Record<string, Partial<Record<Attr, AttrExp>>> // 進化先 → どの属性の財布から注いだか（返却用）

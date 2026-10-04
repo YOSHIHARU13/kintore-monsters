@@ -79,7 +79,8 @@ interface Store {
   setSlot: (slotId: string, exerciseId: string) => void
   buyExp: (attr: Attr, amount: number) => void
   buyEgg: () => void
-  hatchEgg: () => MonsterDef | null
+  /** タマゴを孵す。登録済みのモンスターからランダムで1体（ダブりあり） */
+  hatchEgg: () => { def: MonsterDef; monsterId: string } | null
   pourExp: (monsterId: string, toNodeId: string, from: Attr) => void
   evolve: (monsterId: string, toNodeId: string) => void
   setActive: (monsterId: string) => void
@@ -162,7 +163,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         (snap) =>
           setOwned(
             snap.docs
-              .map((d) => ({ ...(d.data() as Omit<OwnedMonster, 'id'>), id: d.id }))
+              // ダブりなしだったころのデータは、ドキュメントIDがそのままモンスターのID
+              .map((d) => ({ defId: d.id, ...(d.data() as Omit<OwnedMonster, 'id' | 'defId'>), id: d.id }))
               .sort((a, b) => a.obtainedAt - b.obtainedAt),
           ),
         fail,
@@ -274,33 +276,33 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       updateState({ gold: increment(-cost), [`exp.${attr}.bought`]: increment(amount) })
     }
 
-    const unowned = defs.filter((d) => !owned.some((o) => o.id === d.id))
-
     const buyEgg: Store['buyEgg'] = () => {
-      if (state.gold < CONFIG.shop.eggPrice || unowned.length - state.eggs <= 0) return
+      if (state.gold < CONFIG.shop.eggPrice || defs.length === 0) return
       updateState({ gold: increment(-CONFIG.shop.eggPrice), eggs: increment(1) })
     }
 
     const hatchEgg: Store['hatchEgg'] = () => {
-      if (state.eggs <= 0 || unowned.length === 0) return null
-      const def = unowned[Math.floor(Math.random() * unowned.length)]
+      if (state.eggs <= 0 || defs.length === 0) return null
+      const def = defs[Math.floor(Math.random() * defs.length)]
+      const ref = doc(collection(db, base, 'ownedMonsters'))
       const batch = writeBatch(db)
-      batch.set(doc(db, base, 'ownedMonsters', def.id), {
+      batch.set(ref, {
+        defId: def.id,
         nodeId: FIRST_NODE_ID,
         investedBy: {},
         investedFrom: {},
         obtainedAt: Date.now(),
       })
       const update: DocumentData = { eggs: increment(-1) }
-      if (!state.activeMonsterId) update.activeMonsterId = def.id
+      if (!state.activeMonsterId) update.activeMonsterId = ref.id
       batch.update(stateRef, update)
       batch.commit().catch(fail)
-      return def
+      return { def, monsterId: ref.id }
     }
 
     const findMonster = (monsterId: string) => {
       const mon = owned.find((o) => o.id === monsterId)
-      const def = defs.find((d) => d.id === monsterId)
+      const def = mon && defs.find((d) => d.id === mon.defId)
       if (!mon || !def) return null
       const node = getNode(getTemplate(def.templateId), mon.nodeId)
       return { mon, def, node, cost: node.next.length > 0 ? evolutionCost(node.stage) : null }

@@ -14,7 +14,7 @@ export function Home({ go }: { go: Go }) {
   const { state, menu, weekSets, defs, owned } = useStore()
   const gaugeMax = Math.max(100, ...ATTRS.map((a) => state.lifetimeExp[a]))
   const active = owned.find((o) => o.id === state.activeMonsterId) ?? owned[0]
-  const activeDef = active && defs.find((d) => d.id === active.id)
+  const activeDef = active && defs.find((d) => d.id === active.defId)
   const progress = partProgress(weekSets)
   const remaining = DAY_KEYS.reduce((sum, day) => sum + progress[day].total - progress[day].done, 0)
 
@@ -26,14 +26,29 @@ export function Home({ go }: { go: Go }) {
           月曜はじまり。好きな日に、好きな順番で。全部消すと +{CONFIG.weekly.clearGold}G（全消し 累計{' '}
           <strong>{state.weeklyClears}</strong>週）
         </p>
+        <div className="part-summary">
+          {DAY_KEYS.map((day) => (
+            <span key={day} style={{ color: ATTR_COLOR[DAYS[day].attr] }}>
+              {DAYS[day].title}{' '}
+              <strong className="num">
+                {progress[day].slotsDone}/{progress[day].slots}
+              </strong>
+            </span>
+          ))}
+        </div>
         {DAY_KEYS.map((day) => {
-          const { done, total } = progress[day]
+          const { done, total, slotsDone, slots } = progress[day]
           return (
             <div key={day} className="part">
               <div className="gauge-row">
-                <span style={{ color: ATTR_COLOR[DAYS[day].attr] }}>{DAYS[day].title}</span>
+                <span style={{ color: ATTR_COLOR[DAYS[day].attr] }}>
+                  {DAYS[day].title}{' '}
+                  <strong className="num">
+                    {slotsDone}/{slots}
+                  </strong>
+                </span>
                 <Gauge value={done} max={total} color={ATTR_COLOR[DAYS[day].attr]} />
-                <span className="num">{done === total ? '✓ 完了' : `残り${total - done}`}</span>
+                <span className="num">{done === total ? '✓ 完了' : `残り${total - done}セット`}</span>
               </div>
               <ul className="slot-list">
                 {slotsOfDay(day).map((slot) => {

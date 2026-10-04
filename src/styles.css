@@ -249,6 +249,18 @@ h2 {
   flex-direction: column;
   gap: 6px;
 }
+.part .gauge-row > span:first-child {
+  width: auto;
+  white-space: nowrap;
+}
+.part-summary {
+  display: flex;
+  justify-content: space-around;
+  font-size: 1.05rem;
+  background: var(--card2);
+  border-radius: 12px;
+  padding: 8px;
+}
 .part-head {
   display: flex;
   align-items: center;
