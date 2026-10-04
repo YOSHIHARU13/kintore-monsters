@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { calcTarget, judgeSet, latestSession, suggestProgression } from './target'
+import { calcTarget, judgeSet, recentSessions, suggestProgression } from './target'
 import { calcSetReward, cardioGold } from './rewards'
 import { boughtCap, evolutionCost, isExpFull, planPour } from './evolution'
 import { CONFIG } from '../config/gameConfig'
-import { EXERCISES, SLOTS } from '../data/exercises'
-import { TEMPLATES, canChangeTemplate, getTemplate } from '../data/evolutionTemplates'
+import { EXERCISES, SLOTS, TASK_SLOTS } from '../data/exercises'
+import { weekStartKey } from './date'
+import { isWeekCleared, partProgress, slotDone } from './week'
+import { TEMPLATES, canChangeTemplate, getTemplate, pathTo } from '../data/evolutionTemplates'
 
 const rec = (setNo: number, weightKg: number, reps: number, ts: number, date = `d${ts}`) => ({
   setNo,
@@ -70,29 +72,66 @@ describe('セット報酬', () => {
 
 describe('次の一手の提案', () => {
   const curl = EXERCISES.curl
-  const session = (kg: number, reps: number[]) => reps.map((r, i) => rec(i + 1, kg, r, i, 'day'))
-  it('3セットとも上限なら+1kg', () => {
-    expect(suggestProgression(session(5, [15, 15, 16]), curl, 15)).toEqual({ kind: 'addWeight', fromKg: 5, toKg: 6 })
+  // 1回分（同じ日）の3セット。week が大きいほど新しい
+  const session = (week: number, kg: number, reps: number[]) =>
+    reps.map((r, i) => rec(i + 1, kg, r, week * 10 + i, `w${week}`))
+  it('2回連続で3セットとも上限なら+1kg', () => {
+    expect(suggestProgression([session(2, 5, [15, 15, 16]), session(1, 5, [15, 15, 15])], curl, 15)).toEqual({
+      kind: 'addWeight',
+      fromKg: 5,
+      toKg: 6,
+    })
   })
-  it('1セットでも届かなければ提案なし', () => {
-    expect(suggestProgression(session(5, [15, 15, 14]), curl, 15)).toBeNull()
-    expect(suggestProgression(session(5, [15, 15]), curl, 15)).toBeNull()
+  it('たまたま1回だけ上限に届いても提案しない', () => {
+    expect(suggestProgression([session(2, 5, [15, 15, 15])], curl, 15)).toBeNull()
+    expect(suggestProgression([session(2, 5, [15, 15, 15]), session(1, 5, [15, 15, 12])], curl, 15)).toBeNull()
+  })
+  it('1セットでも届かない・3セットに足りない回があれば提案なし', () => {
+    expect(suggestProgression([session(2, 5, [15, 15, 14]), session(1, 5, [15, 15, 15])], curl, 15)).toBeNull()
+    expect(suggestProgression([session(2, 5, [15, 15]), session(1, 5, [15, 15, 15])], curl, 15)).toBeNull()
+  })
+  it('重量を上げた直後は、その重量で連続達成するまで提案しない', () => {
+    expect(suggestProgression([session(2, 6, [15, 15, 15]), session(1, 5, [15, 15, 15])], curl, 15)).toBeNull()
   })
   it('10kgなら上位種目を提案', () => {
-    expect(suggestProgression(session(10, [15, 15, 15]), curl, 15)).toEqual({
+    expect(suggestProgression([session(2, 10, [15, 15, 15]), session(1, 10, [15, 15, 15])], curl, 15)).toEqual({
       kind: 'upgrade',
       toExerciseId: 'curlSlow',
     })
   })
   it('自重種目は上限回数で上位種目を提案', () => {
-    expect(suggestProgression(session(0, [20, 20, 20]), EXERCISES.pushup, 20)).toEqual({
-      kind: 'upgrade',
-      toExerciseId: 'pushupBar',
-    })
+    const sessions = [session(2, 0, [20, 20, 20]), session(1, 0, [20, 21, 20])]
+    expect(suggestProgression(sessions, EXERCISES.pushup, 20)).toEqual({ kind: 'upgrade', toExerciseId: 'pushupBar' })
   })
-  it('一番新しい日の記録だけを取り出す', () => {
-    const h = [rec(1, 5, 10, 1, 'a'), rec(1, 5, 11, 5, 'b'), rec(2, 5, 9, 6, 'b')]
-    expect(latestSession(h)).toHaveLength(2)
+  it('履歴を日付ごとにまとめて新しい順に取り出す', () => {
+    const h = [rec(1, 5, 10, 1, 'a'), rec(1, 5, 11, 5, 'b'), rec(2, 5, 9, 6, 'b'), rec(1, 5, 9, 9, 'c')]
+    const sessions = recentSessions(h, 2)
+    expect(sessions.map((s) => s[0].date)).toEqual(['c', 'b'])
+    expect(sessions[1]).toHaveLength(2)
+  })
+})
+
+describe('今週のタスク', () => {
+  const sets = (slotId: string, count: number) => Array.from({ length: count }, () => ({ slotId }))
+  it('週は月曜はじまり', () => {
+    expect(weekStartKey(new Date(2026, 9, 5))).toBe('2026-10-05') // 月曜
+    expect(weekStartKey(new Date(2026, 9, 7))).toBe('2026-10-05') // 水曜
+    expect(weekStartKey(new Date(2026, 9, 4))).toBe('2026-09-28') // 日曜は前の週
+  })
+  it('全種目×3セットがタスクで、腹筋ローラーは含まない', () => {
+    expect(TASK_SLOTS).toHaveLength(14)
+    const progress = partProgress([])
+    expect(progress.mon.total + progress.wed.total + progress.fri.total).toBe(42)
+  })
+  it('1枠で数えるのは3セットまで。別の日に分けても同じ枠に積み上がる', () => {
+    const week = [...sets('mon1', 5), ...sets('wed1', 2), ...sets('bonus', 3)]
+    expect(slotDone(week, 'mon1')).toBe(3)
+    expect(partProgress(week)).toMatchObject({ mon: { done: 3, total: 15 }, wed: { done: 2, total: 12 }, fri: { done: 0 } })
+  })
+  it('全枠が3セットに届いたら全消し', () => {
+    const all = TASK_SLOTS.flatMap((slot) => sets(slot.id, 3))
+    expect(isWeekCleared(all)).toBe(true)
+    expect(isWeekCleared(all.slice(1))).toBe(false)
   })
 })
 
@@ -138,6 +177,13 @@ describe('進化ツリー', () => {
         for (const next of node.next) expect(same?.next).toContain(next)
       }
     }
+  })
+})
+
+describe('図鑑', () => {
+  it('今の姿までにたどった形態が発見済みになる', () => {
+    expect(pathTo(getTemplate('earlyBranch3'), 'n3b')).toEqual(['n1', 'n2b', 'n3b'])
+    expect(pathTo(getTemplate('linear3'), 'n1')).toEqual(['n1'])
   })
 })
 

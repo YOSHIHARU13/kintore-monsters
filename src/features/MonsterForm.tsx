@@ -55,7 +55,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
         names: validNames,
         files: validFiles,
       })
-      go({ name: 'dex' })
+      go({ name: 'registry' })
     } catch (e) {
       console.error(e)
       setError('保存できませんでした。画像を変えてもう一度試してください。')
@@ -65,8 +65,8 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
 
   return (
     <div className="page">
-      <button className="back" onClick={() => go({ name: 'dex' })}>
-        ← 図鑑に戻る
+      <button className="back" onClick={() => go({ name: 'registry' })}>
+        ← 登録一覧に戻る
       </button>
       <h1 className="title">{existing ? 'モンスターの編集' : 'モンスターの登録'}</h1>
 

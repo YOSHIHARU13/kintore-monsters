@@ -14,6 +14,7 @@ import { Box } from './features/Box'
 import { MonsterDetail } from './features/MonsterDetail'
 import { Shop } from './features/Shop'
 import { Dex } from './features/Dex'
+import { MonsterRegistry } from './features/MonsterRegistry'
 import { MonsterForm } from './features/MonsterForm'
 import { Settings } from './features/Settings'
 
@@ -22,7 +23,7 @@ const TABS: { label: string; icon: string; view: View; names: View['name'][] }[]
   { label: 'トレーニング', icon: '💪', view: { name: 'training' }, names: ['training', 'set', 'menuEdit'] },
   { label: 'モンスター', icon: '🐣', view: { name: 'box' }, names: ['box', 'monster'] },
   { label: 'ショップ', icon: '🛒', view: { name: 'shop' }, names: ['shop'] },
-  { label: '図鑑', icon: '📖', view: { name: 'dex' }, names: ['dex', 'monsterForm'] },
+  { label: '図鑑', icon: '📖', view: { name: 'dex' }, names: ['dex', 'registry', 'monsterForm'] },
   { label: '設定', icon: '⚙️', view: { name: 'settings' }, names: ['settings'] },
 ]
 
@@ -31,9 +32,9 @@ function Screen({ view, go }: { view: View; go: (v: View) => void }) {
     case 'home':
       return <Home go={go} />
     case 'training':
-      return <Training day={view.day} go={go} />
+      return <Training go={go} />
     case 'set':
-      return <SetInput key={view.slotId} day={view.day} slotId={view.slotId} go={go} />
+      return <SetInput key={view.slotId} slotId={view.slotId} go={go} />
     case 'menuEdit':
       return <MenuEdit day={view.day} go={go} />
     case 'cardio':
@@ -46,6 +47,8 @@ function Screen({ view, go }: { view: View; go: (v: View) => void }) {
       return <Shop go={go} />
     case 'dex':
       return <Dex go={go} />
+    case 'registry':
+      return <MonsterRegistry go={go} />
     case 'monsterForm':
       return <MonsterForm key={view.id ?? 'new'} id={view.id} go={go} />
     case 'settings':

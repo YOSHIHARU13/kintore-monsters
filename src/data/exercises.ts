@@ -1,6 +1,7 @@
 import { CONFIG } from '../config/gameConfig'
 
 export type Attr = 'chestArms' | 'legs' | 'backShoulders'
+// 部位のキー。曜日固定だったころの名残で mon / wed / fri のまま（保存済みの記録がこのキーを使っている）
 export type DayKey = 'mon' | 'wed' | 'fri'
 
 export const ATTRS: Attr[] = ['chestArms', 'legs', 'backShoulders']
@@ -16,10 +17,10 @@ export const FORM_ATTRS: FormAttr[] = [...ATTRS, 'none']
 export const FORM_ATTR_LABEL: Record<FormAttr, string> = { ...ATTR_LABEL, none: '無' }
 
 export const DAY_KEYS: DayKey[] = ['mon', 'wed', 'fri']
-export const DAYS: Record<DayKey, { label: string; title: string; attr: Attr; weekday: number }> = {
-  mon: { label: '月', title: '胸腕', attr: 'chestArms', weekday: 1 },
-  wed: { label: '水', title: '脚', attr: 'legs', weekday: 3 },
-  fri: { label: '金', title: '背肩', attr: 'backShoulders', weekday: 5 },
+export const DAYS: Record<DayKey, { title: string; attr: Attr }> = {
+  mon: { title: '胸腕', attr: 'chestArms' },
+  wed: { title: '脚', attr: 'legs' },
+  fri: { title: '背肩', attr: 'backShoulders' },
 }
 
 export interface Exercise {
@@ -33,7 +34,7 @@ export interface Exercise {
 }
 
 const list: Exercise[] = [
-  // 月：胸腕
+  // 胸腕
   {
     id: 'pushup', name: 'プッシュアップ', weighted: false, next: 'pushupBar',
     how: 'バーを使わず、床に手をついて行う腕立て伏せ。手は肩幅より少し広く、体を一直線に保ったまま胸を床すれすれまで下ろす。',
@@ -110,7 +111,7 @@ const list: Exercise[] = [
     id: 'kickback', name: 'キックバック', weighted: true, dumbbells: 1, perSide: true,
     how: '片手を椅子などについて前かがみになり、肘を体の横に固定したまま、腕を後ろへ伸ばしきる。',
   },
-  // 水：脚
+  // 脚
   {
     id: 'bulgarian', name: 'ブルガリアンスクワット', weighted: true, next: 'bulgarianSlow', perSide: true,
     how: '後ろ足の甲を椅子に乗せ、前足1本でしゃがんで立つ。両手にダンベル。前足のお尻と太ももに効く。',
@@ -155,7 +156,7 @@ const list: Exercise[] = [
     id: 'calfOneLegStep', name: '片脚カーフレイズ（段差で深く）', weighted: true, dumbbells: 1, perSide: true,
     how: '段差につま先だけ乗せて片足で立ち、かかとを段より下まで下ろしてから高く上げる。',
   },
-  // 金：背肩
+  // 背肩
   {
     id: 'oneHandRow', name: 'ワンハンドロウ', weighted: true, dumbbells: 1, next: 'oneHandRowPause', perSide: true,
     how: '片手と片ひざを椅子などについて前かがみになり、反対の手のダンベルを脇腹へ引き上げる。背中の種目。',
@@ -251,6 +252,9 @@ export const SLOTS: Slot[] = [
 
 export const BONUS_SLOT = SLOTS.find((s) => s.day === 'bonus')!
 
+/** 今週のタスクになる枠（ボーナス枠以外） */
+export const TASK_SLOTS = SLOTS.filter((s) => s.day !== 'bonus')
+
 export function slotsOfDay(day: DayKey): Slot[] {
   return SLOTS.filter((s) => s.day === day)
 }
@@ -276,9 +280,4 @@ export function rangeText(exerciseId: string): string {
   const { min, max } = repRange(exerciseId)
   const text = min === null ? `上限${max}回` : `${min}〜${max}回`
   return EXERCISES[exerciseId]?.perSide ? `左右各${text}` : text
-}
-
-/** 今日が月水金ならその曜日キー、それ以外は null */
-export function dayKeyOfDate(d: Date): DayKey | null {
-  return DAY_KEYS.find((k) => DAYS[k].weekday === d.getDay()) ?? null
 }

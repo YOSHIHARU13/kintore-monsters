@@ -17,9 +17,10 @@ import { db } from './lib/firebase'
 import { CONFIG } from './config/gameConfig'
 import { ATTRS, DAYS, type Attr, type FormAttr } from './data/exercises'
 import { FIRST_NODE_ID, canChangeTemplate, getNode, getTemplate } from './data/evolutionTemplates'
-import { dateKey } from './lib/date'
+import { dateKey, weekStartKey } from './lib/date'
 import { evolutionCost, isExpFull, planPour } from './lib/evolution'
 import { cardioGold } from './lib/rewards'
+import { isWeekCleared } from './lib/week'
 import { compressImage } from './lib/imageCompress'
 import { investedFor, nodeAttr, type Activity, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
 
@@ -28,7 +29,6 @@ const zeroExp = () => ({ trained: 0, bought: 0 })
 function initialState(): GameState {
   return {
     gold: 0,
-    stones: 0,
     eggs: CONFIG.shop.starterEggs,
     exp: { chestArms: zeroExp(), legs: zeroExp(), backShoulders: zeroExp() },
     lifetimeExp: { chestArms: 0, legs: 0, backShoulders: 0 },
@@ -36,6 +36,8 @@ function initialState(): GameState {
     lastAttendanceDate: null,
     totalSets: 0,
     beatCount: 0,
+    weeklyClears: 0,
+    lastClearWeek: null,
     activeMonsterId: null,
   }
 }
@@ -67,10 +69,12 @@ interface Store {
   owned: OwnedMonster[]
   songs: Song[]
   today: string
+  weekSets: SetRecord[] // 今週（月曜はじまり）のセット記録
   todaySets: SetRecord[]
   todayActivities: Activity[]
   getHistory: (exerciseId: string) => Promise<SetRecord[]>
-  recordSet: (rec: Omit<SetRecord, 'id' | 'ts' | 'date'>, countsBeat: boolean) => SetRecord
+  /** セットを記録する。このセットで今週のタスクを全部消したら weekCleared が true */
+  recordSet: (rec: Omit<SetRecord, 'id' | 'ts' | 'date'>, countsBeat: boolean) => { record: SetRecord; weekCleared: boolean }
   recordCardio: (kind: string, label: string, minutes: number) => void
   setSlot: (slotId: string, exerciseId: string) => void
   buyExp: (attr: Attr, amount: number) => void
@@ -102,7 +106,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
   const [owned, setOwned] = useState<OwnedMonster[]>([])
   const [songs, setSongs] = useState<Song[]>([])
   const [today, setToday] = useState(dateKey())
-  const [todaySets, setTodaySets] = useState<SetRecord[]>([])
+  const [weekSets, setWeekSets] = useState<SetRecord[]>([])
   const [todayActivities, setTodayActivities] = useState<Activity[]>([])
   const [error, setError] = useState<string | null>(null)
 
@@ -167,16 +171,24 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     return () => unsubs.forEach((u) => u())
   }, [base, stateRef, menuRef, musicRef, fail])
 
+  const week = useMemo(() => weekStartKey(new Date(`${today}T12:00:00`)), [today])
+  const todaySets = useMemo(() => weekSets.filter((s) => s.date === today), [weekSets, today])
+
+  // 週が変わったら（月曜になったら）今週のタスクは空から始まる
+  useEffect(() => {
+    setWeekSets([])
+    return onSnapshot(
+      query(collection(db, base, 'sets'), where('date', '>=', week)),
+      (snap) =>
+        setWeekSets(
+          snap.docs.map((d) => ({ ...(d.data() as Omit<SetRecord, 'id'>), id: d.id })).sort((a, b) => a.ts - b.ts),
+        ),
+      fail,
+    )
+  }, [base, week, fail])
+
   useEffect(() => {
     const unsubs = [
-      onSnapshot(
-        query(collection(db, base, 'sets'), where('date', '==', today)),
-        (snap) =>
-          setTodaySets(
-            snap.docs.map((d) => ({ ...(d.data() as Omit<SetRecord, 'id'>), id: d.id })).sort((a, b) => a.ts - b.ts),
-          ),
-        fail,
-      ),
       onSnapshot(
         query(collection(db, base, 'activities'), where('date', '==', today)),
         (snap) =>
@@ -200,23 +212,34 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     const recordSet: Store['recordSet'] = (rec, countsBeat) => {
       const ref = doc(collection(db, base, 'sets'))
       const full = { ...rec, ts: Date.now(), date: dateKey() }
-      const attr = DAYS[rec.day].attr
       const update: DocumentData = { totalSets: increment(1) }
       if (state.lastAttendanceDate !== full.date) {
         update.attendance = increment(1)
         update.lastAttendanceDate = full.date
       }
-      if (rec.exp > 0) {
+      // EXPは、その種目の部位の属性に入る
+      if (rec.exp > 0 && rec.day !== 'bonus') {
+        const attr = DAYS[rec.day].attr
         update[`exp.${attr}.trained`] = increment(rec.exp)
         update[`lifetimeExp.${attr}`] = increment(rec.exp)
       }
       if (rec.gold > 0) update.gold = increment(rec.gold)
       if (countsBeat) update.beatCount = increment(1)
+      // このセットで今週のタスクを全部消したら、全消しボーナス（同じ週に2回は渡さない）
+      const thisWeek = weekStartKey()
+      const before = thisWeek === week ? weekSets : []
+      const weekCleared =
+        state.lastClearWeek !== thisWeek && !isWeekCleared(before) && isWeekCleared([...before, full])
+      if (weekCleared) {
+        update.gold = increment(rec.gold + CONFIG.weekly.clearGold)
+        update.weeklyClears = increment(1)
+        update.lastClearWeek = thisWeek
+      }
       const batch = writeBatch(db)
       batch.set(ref, full)
       batch.update(stateRef, update)
       batch.commit().catch(fail)
-      return { ...full, id: ref.id }
+      return { record: { ...full, id: ref.id }, weekCleared }
     }
 
     const recordCardio: Store['recordCardio'] = (kind, label, minutes) => {
@@ -409,6 +432,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       owned,
       songs,
       today,
+      weekSets,
       todaySets,
       todayActivities,
       getHistory,
@@ -425,7 +449,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       loadImage,
       saveSongs,
     }
-  }, [user, base, state, menu, defs, owned, songs, today, todaySets, todayActivities, stateRef, menuRef, musicRef, fail])
+  }, [user, base, state, menu, defs, owned, songs, today, week, weekSets, todaySets, todayActivities, stateRef, menuRef, musicRef, fail])
 
   if (!store) {
     return (

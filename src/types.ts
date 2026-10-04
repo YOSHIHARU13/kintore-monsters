@@ -1,4 +1,4 @@
-import type { Attr, DayKey, FormAttr } from './data/exercises'
+import type { Attr, FormAttr, Slot } from './data/exercises'
 
 export type Judge = 'beat' | 'keep' | 'normal'
 
@@ -9,7 +9,6 @@ export interface AttrExp {
 
 export interface GameState {
   gold: number
-  stones: number
   eggs: number
   exp: Record<Attr, AttrExp>
   lifetimeExp: Record<Attr, number>
@@ -17,6 +16,8 @@ export interface GameState {
   lastAttendanceDate: string | null
   totalSets: number
   beatCount: number
+  weeklyClears: number // 今週のタスクを全部消した週の累計
+  lastClearWeek: string | null // 最後に全消しした週（その週の月曜の日付）
   activeMonsterId: string | null
 }
 
@@ -24,10 +25,10 @@ export interface SetRecord {
   id: string
   exerciseId: string
   slotId: string
-  day: DayKey
+  day: Slot['day'] // 枠の部位
   date: string // YYYY-MM-DD
   ts: number
-  setNo: number
+  setNo: number // その日のうちで、その種目の何セット目か
   weightKg: number // 自重種目は0
   reps: number
   target: number | null

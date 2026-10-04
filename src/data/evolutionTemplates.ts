@@ -110,6 +110,16 @@ export function getNode(template: EvoTemplate, nodeId: string): EvoNode {
   return template.nodes.find((n) => n.id === nodeId) ?? template.nodes[0]
 }
 
+/** 第1段階から nodeId までにたどる形態（nodeId 自身を含む） */
+export function pathTo(template: EvoTemplate, nodeId: string): string[] {
+  const path = [getNode(template, nodeId).id]
+  for (;;) {
+    const parent = template.nodes.find((n) => n.next.includes(path[0]))
+    if (!parent) return path
+    path.unshift(parent.id)
+  }
+}
+
 /** 登録済みのモンスターを currentId から nextId のツリーへ変更してよいか（同じ、または分岐を増やす方向だけ） */
 export function canChangeTemplate(currentId: string, nextId: string): boolean {
   return currentId === nextId || TEMPLATES.some((t) => t.id === nextId && t.extends === currentId)

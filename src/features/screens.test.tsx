@@ -19,6 +19,7 @@ import { Box } from './Box'
 import { MonsterDetail } from './MonsterDetail'
 import { Shop } from './Shop'
 import { Dex } from './Dex'
+import { MonsterRegistry } from './MonsterRegistry'
 import { MonsterForm } from './MonsterForm'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -26,7 +27,6 @@ import { MonsterForm } from './MonsterForm'
 const TODAY = '2026-10-05' // 月曜
 const state: GameState = {
   gold: 500,
-  stones: 1,
   eggs: 1,
   exp: {
     chestArms: { trained: 200, bought: 100 },
@@ -38,6 +38,8 @@ const state: GameState = {
   lastAttendanceDate: '2026-10-02',
   totalSets: 60,
   beatCount: 4,
+  weeklyClears: 2,
+  lastClearWeek: '2026-09-21',
   activeMonsterId: 'm1',
 }
 const defs: MonsterDef[] = [
@@ -55,10 +57,10 @@ const defs: MonsterDef[] = [
 ]
 const owned: OwnedMonster[] = [{ id: 'm1', nodeId: 'n2', invested: { trained: 250, bought: 250 }, obtainedAt: 1 }]
 
-const past = (setNo: number, reps: number, ts: number, date: string): SetRecord => ({
-  id: `${date}-${setNo}`,
+const past = (setNo: number, reps: number, ts: number, date: string, slotId = 'mon2'): SetRecord => ({
+  id: `${date}-${slotId}-${setNo}`,
   exerciseId: 'floorPress',
-  slotId: 'mon2',
+  slotId,
   day: 'mon',
   date,
   ts,
@@ -101,11 +103,15 @@ beforeEach(() => {
     defs,
     owned,
     today: TODAY,
+    weekSets: [],
     todaySets: [],
     songs: [],
     todayActivities: [],
     getHistory: vi.fn(async () => [past(1, 10, 1000, '2026-09-28'), past(2, 9, 2000, '2026-09-28')]),
-    recordSet: vi.fn((rec: Omit<SetRecord, 'id' | 'ts' | 'date'>) => ({ ...rec, id: 'new', ts: Date.now(), date: TODAY })),
+    recordSet: vi.fn((rec: Omit<SetRecord, 'id' | 'ts' | 'date'>) => ({
+      record: { ...rec, id: `new${Date.now()}`, ts: Date.now(), date: TODAY },
+      weekCleared: false,
+    })),
     recordCardio: vi.fn(),
     setSlot: vi.fn(),
     buyExp: vi.fn(),
@@ -120,38 +126,74 @@ beforeEach(() => {
 })
 
 describe('画面の表示', () => {
-  it('ホーム：今日のメニュー・所持・累計・育成中モンスター', async () => {
+  it('ホーム：今週の残りタスク・所持・累計・育成中モンスター', async () => {
+    fake.store.weekSets = [past(1, 10, 1, TODAY, 'wed1'), past(2, 10, 2, TODAY, 'wed1')]
     const el = await render(<Home go={go} />)
-    expect(el.textContent).toContain('今日のメニュー：月曜・胸腕')
-    expect(el.textContent).toContain('プッシュアップ')
+    expect(el.textContent).toContain('今週の残りタスク：あと40セット')
+    expect(el.textContent).toContain('残り10') // 脚は12セット中2セット済み
+    expect(el.textContent).toContain('ブルガリアンスクワット2/3')
+    expect(el.textContent).not.toContain('腹筋ローラー') // ボーナス枠はタスク外
+    expect(el.textContent).toContain('累計 2週')
     expect(el.textContent).toContain('500G')
     expect(el.textContent).toContain('ムキドラゴ') // 第2段階の名前
-    await click('トレーニング開始')
-    expect(go).toHaveBeenCalledWith({ name: 'training', day: 'mon' })
+    await click('ブルガリアンスクワット')
+    expect(go).toHaveBeenCalledWith({ name: 'set', slotId: 'wed1' })
   })
 
-  it('トレーニング：その日の枠とボーナス枠', async () => {
-    const el = await render(<Training day="wed" go={go} />)
+  it('トレーニング：全部位の枠とボーナス枠が1画面に並ぶ', async () => {
+    const el = await render(<Training go={go} />)
+    expect(el.textContent).toContain('プッシュアップ')
     expect(el.textContent).toContain('ブルガリアンスクワット')
+    expect(el.textContent).toContain('ワンハンドロウ')
     expect(el.textContent).toContain('腹筋ローラー（膝つき）')
     await click('ブルガリアンスクワット')
-    expect(go).toHaveBeenCalledWith({ name: 'set', day: 'wed', slotId: 'wed1' })
+    expect(go).toHaveBeenCalledWith({ name: 'set', slotId: 'wed1' })
   })
 
   it('セット入力：目標が入っていて1タップで確定、前回超えの演出が出る', async () => {
-    const el = await render(<SetInput day="mon" slotId="mon2" go={go} />)
-    expect(el.textContent).toContain('1セット目')
+    const el = await render(<SetInput slotId="mon2" go={go} />)
+    expect(el.textContent).toContain('今週 1セット目')
     expect(el.textContent).toContain('目標 11回') // 前回10回 → +1
     await click('11回で確定')
     const recordSet = fake.store.recordSet as ReturnType<typeof vi.fn>
     expect(recordSet).toHaveBeenCalledWith(
-      expect.objectContaining({ exerciseId: 'floorPress', setNo: 1, weightKg: 5, reps: 11, judge: 'beat', exp: 15 }),
+      expect.objectContaining({
+        exerciseId: 'floorPress',
+        day: 'mon',
+        setNo: 1,
+        weightKg: 5,
+        reps: 11,
+        judge: 'beat',
+        exp: 15,
+      }),
       true,
     )
     expect(el.textContent).toContain('前回超え！！')
-    expect(el.textContent).toContain('2セット目')
+    expect(el.textContent).toContain('今週 2セット目')
     // 直後の2セット目は30秒ルールで報酬対象外
     expect(el.textContent).toContain('休むと報酬の対象になります')
+  })
+
+  it('セット入力：今週すでに3セット終えた種目は記録のみ', async () => {
+    fake.store.weekSets = [1, 2, 3].map((n) => past(n, 10, n, '2026-10-06'))
+    fake.store.today = '2026-10-07'
+    const el = await render(<SetInput slotId="mon2" go={go} />)
+    expect(el.textContent).toContain('今週 4セット目')
+    expect(el.textContent).toContain('記録のみ')
+    await click('回で確定')
+    expect(fake.store.recordSet).toHaveBeenCalledWith(expect.objectContaining({ eligible: false, exp: 0 }), false)
+  })
+
+  it('セット入力：全消しした瞬間に演出が出る', async () => {
+    fake.store.recordSet = vi.fn((rec: Omit<SetRecord, 'id' | 'ts' | 'date'>) => ({
+      record: { ...rec, id: 'last', ts: Date.now(), date: TODAY },
+      weekCleared: true,
+    }))
+    const el = await render(<SetInput slotId="mon2" go={go} />)
+    await click('回で確定')
+    expect(el.textContent).toContain('今週 全消し！！')
+    expect(el.textContent).toContain('+50G')
+    expect(el.textContent).toContain('累計 3週目')
   })
 
   it('メニュー編集：候補を選ぶと差し替わる', async () => {
@@ -168,9 +210,15 @@ describe('画面の表示', () => {
 
   it('BOX・図鑑・ショップ', async () => {
     expect((await render(<Box go={go} />)).textContent).toContain('ムキドラ')
+    const registry = await render(<MonsterRegistry go={go} />)
+    expect(registry.textContent).toContain('入手 1／登録 2')
+    expect(registry.textContent).toContain('未入手')
+    // 全体図鑑：ムキドラは第2段階まで（2形態）発見、アシガメは未入手
     const dex = await render(<Dex go={go} />)
-    expect(dex.textContent).toContain('入手 1／登録 2')
-    expect(dex.textContent).toContain('未入手')
+    expect(dex.textContent).toContain('発見 2／全 7 形態')
+    expect(dex.textContent).toContain('ムキドラゴ')
+    expect(dex.textContent).not.toContain('ヤミムキドラ') // 進化していない形態の名前は伏せる
+    expect(dex.textContent).not.toContain('アシガメ')
     const shop = await render(<Shop go={go} />)
     await click('タマゴを孵す')
     expect(shop.textContent).toContain('アシガメ')
@@ -253,6 +301,6 @@ describe('画面の表示', () => {
         names: { n2: 'テストモン改' },
       }),
     )
-    expect(go).toHaveBeenCalledWith({ name: 'dex' })
+    expect(go).toHaveBeenCalledWith({ name: 'registry' })
   })
 })

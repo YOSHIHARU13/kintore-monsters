@@ -19,6 +19,16 @@ export const CONFIG = {
     restSec: 90, // 休憩タイマーの目安
   },
 
+  // 今週のタスク（全種目×基本セット数）を全部消したときのボーナス
+  weekly: {
+    clearGold: 50,
+  },
+
+  // 重量アップ・上位種目の提案
+  progression: {
+    streak: 2, // 「基本セットがすべて回数上限」を何回連続で達成したら提案するか
+  },
+
   // 目標回数の決め方
   target: {
     recentCount: 3, // 直近何回の平均を使うか
@@ -73,7 +83,7 @@ export const CONFIG = {
 
   // 種目ごとの回数範囲 [下限, 上限]。下限 null は「上限だけ決まっている自重種目」
   repRanges: {
-    // 月：胸腕
+    // 胸腕
     pushup: [null, 20],
     pushupBar: [null, 20],
     pushupFeetUp: [null, 20],
@@ -93,7 +103,7 @@ export const CONFIG = {
     ohExtensionOneArm: [10, 15],
     lyingExtension: [10, 15],
     kickback: [10, 15],
-    // 水：脚
+    // 脚
     bulgarian: [8, 15],
     bulgarianSlow: [8, 15],
     reverseLunge: [8, 15],
@@ -105,7 +115,7 @@ export const CONFIG = {
     calfOneLeg: [12, 20],
     calfBoth: [12, 20],
     calfOneLegStep: [12, 20],
-    // 金：背肩
+    // 背肩
     oneHandRow: [8, 15],
     oneHandRowPause: [8, 15],
     bentOverRow: [8, 15],

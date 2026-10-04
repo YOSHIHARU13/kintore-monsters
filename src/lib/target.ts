@@ -28,15 +28,23 @@ export type Progression =
   | null
 
 /**
- * 1回分（同じ日）のセット記録から、次の一手を提案する。
- * 基本セットがすべて回数上限に達していれば +1kg、重量が上限なら（自重なら常に）上位種目へ。
+ * 直近の実施回（新しい順。1回＝同じ日のセット）から、次の一手を提案する。
+ * 決められた回数だけ連続で、基本セットがすべて回数上限に達していれば +1kg、
+ * 重量が上限なら（自重なら常に）上位種目へ。
  */
-export function suggestProgression(session: HistoryItem[], exercise: Exercise, maxReps: number): Progression {
-  const base = session.filter((s) => s.setNo <= CONFIG.sets.perExercise)
-  if (base.length < CONFIG.sets.perExercise) return null
-  if (!base.every((s) => s.reps >= maxReps)) return null
+export function suggestProgression(sessions: HistoryItem[][], exercise: Exercise, maxReps: number): Progression {
+  if (sessions.length < CONFIG.progression.streak) return null
+  const recent = sessions.slice(0, CONFIG.progression.streak)
+  const bases = recent.map((session) =>
+    [...session].sort((a, b) => a.ts - b.ts).slice(0, CONFIG.sets.perExercise),
+  )
+  if (!bases.every((base) => base.length >= CONFIG.sets.perExercise && base.every((s) => s.reps >= maxReps))) {
+    return null
+  }
   if (exercise.weighted) {
-    const kg = Math.min(...base.map((s) => s.weightKg))
+    // 連続達成のあいだに重量を変えていたら、今の重量ではまだ連続達成していない
+    const kg = Math.min(...bases[0].map((s) => s.weightKg))
+    if (!bases.every((base) => base.every((s) => s.weightKg >= kg))) return null
     if (kg < CONFIG.weight.maxKg) {
       return { kind: 'addWeight', fromKg: kg, toKg: Math.min(CONFIG.weight.maxKg, kg + CONFIG.weight.stepKg) }
     }
@@ -44,9 +52,11 @@ export function suggestProgression(session: HistoryItem[], exercise: Exercise, m
   return exercise.next ? { kind: 'upgrade', toExerciseId: exercise.next } : null
 }
 
-/** 履歴の中で一番新しい日付のセットだけを返す */
-export function latestSession<T extends HistoryItem>(history: T[]): T[] {
-  if (history.length === 0) return []
-  const latest = history.reduce((a, b) => (a.ts > b.ts ? a : b)).date
-  return history.filter((h) => h.date === latest)
+/** 履歴を日付ごとにまとめ、新しい順に最大 count 回分を返す */
+export function recentSessions<T extends HistoryItem>(history: T[], count: number): T[][] {
+  const byDate = new Map<string, T[]>()
+  for (const h of history) byDate.set(h.date, [...(byDate.get(h.date) ?? []), h])
+  return [...byDate.values()]
+    .sort((a, b) => Math.max(...b.map((h) => h.ts)) - Math.max(...a.map((h) => h.ts)))
+    .slice(0, count)
 }

@@ -239,6 +239,45 @@ h2 {
   padding: 12px;
   min-height: 56px;
 }
+.slot.task {
+  min-height: 44px;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+}
+.part {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.part-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.part-head h2 {
+  margin: 0;
+}
+.part-head .btn {
+  margin-left: auto;
+}
+.dex-forms {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.dex-form {
+  background: var(--card2);
+  border-radius: 12px;
+  padding: 8px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+}
+.dex-form.unknown {
+  color: var(--muted);
+}
 .slot.complete {
   opacity: 0.6;
 }
@@ -450,10 +489,53 @@ h2 {
   font-size: 1.4rem;
   font-weight: 700;
 }
-.beat-stone {
+/* 週の全消しの演出（前回超えより派手に） */
+.clear-overlay {
+  background: radial-gradient(circle, rgba(90, 40, 120, 0.92), rgba(10, 10, 18, 0.95));
+}
+.clear-overlay .beat-burst {
+  background: repeating-conic-gradient(
+    rgba(255, 209, 102, 0.3) 0 10deg,
+    rgba(239, 71, 111, 0.22) 10deg 20deg,
+    rgba(76, 201, 240, 0.22) 20deg 30deg,
+    transparent 30deg 40deg
+  );
+  animation-duration: 5s;
+}
+.clear-overlay .beat-burst.reverse {
+  animation-direction: reverse;
+  animation-duration: 8s;
+  opacity: 0.6;
+}
+.clear-overlay .beat-title {
+  font-size: 3.2rem;
+  animation: pulse 0.8s ease-in-out infinite alternate;
+}
+.clear-overlay .spark {
+  width: 14px;
+  height: 14px;
+  animation: spark 1.4s ease-out infinite;
+  animation-delay: calc(var(--i) * 0.035s);
+}
+.clear-crown {
+  font-size: 4.5rem;
+  line-height: 1;
+  animation: bounce 0.6s ease-in-out infinite alternate;
+}
+.clear-count {
   font-size: 1.1rem;
-  color: #4cc9f0;
   font-weight: 700;
+  color: var(--primary);
+}
+@keyframes pulse {
+  to {
+    transform: scale(1.08);
+  }
+}
+@keyframes bounce {
+  to {
+    transform: translateY(-14px);
+  }
 }
 .spark {
   position: absolute;

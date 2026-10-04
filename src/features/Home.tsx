@@ -1,73 +1,64 @@
 import { signOut } from 'firebase/auth'
 import { auth } from '../lib/firebase'
 import { useStore } from '../store'
-import {
-  ATTRS,
-  ATTR_LABEL,
-  FORM_ATTR_LABEL,
-  BONUS_SLOT,
-  DAYS,
-  DAY_KEYS,
-  dayKeyOfDate,
-  exerciseOfSlot,
-  slotsOfDay,
-} from '../data/exercises'
+import { ATTRS, ATTR_LABEL, FORM_ATTR_LABEL, DAYS, DAY_KEYS, exerciseOfSlot, slotsOfDay } from '../data/exercises'
 import { getNode, getTemplate } from '../data/evolutionTemplates'
 import { CONFIG } from '../config/gameConfig'
 import { Gauge } from '../components/Gauge'
 import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
 import { monsterName, nodeAttr } from '../types'
+import { isWeekCleared, partProgress, slotDone } from '../lib/week'
 
 export function Home({ go }: { go: Go }) {
-  const { state, menu, todaySets, defs, owned, today } = useStore()
-  const todayDay = dayKeyOfDate(new Date(`${today}T12:00:00`))
+  const { state, menu, weekSets, defs, owned } = useStore()
   const gaugeMax = Math.max(100, ...ATTRS.map((a) => state.lifetimeExp[a]))
-
   const active = owned.find((o) => o.id === state.activeMonsterId) ?? owned[0]
   const activeDef = active && defs.find((d) => d.id === active.id)
-
-  const doneCount = (exerciseId: string) =>
-    Math.min(CONFIG.sets.perExercise, todaySets.filter((s) => s.exerciseId === exerciseId).length)
+  const progress = partProgress(weekSets)
+  const remaining = DAY_KEYS.reduce((sum, day) => sum + progress[day].total - progress[day].done, 0)
 
   return (
     <div className="page">
       <section className="card">
-        {todayDay ? (
-          <>
-            <h2>
-              今日のメニュー：{DAYS[todayDay].label}曜・{DAYS[todayDay].title}
-            </h2>
-            <ul className="mini-list">
-              {[...slotsOfDay(todayDay), BONUS_SLOT].map((slot) => {
-                const ex = exerciseOfSlot(slot, menu)
-                return (
-                  <li key={slot.id}>
-                    <span>{ex.name}</span>
-                    <span className="muted">
-                      {doneCount(ex.id)}/{CONFIG.sets.perExercise}
-                    </span>
-                  </li>
-                )
-              })}
-            </ul>
-            <button className="btn primary wide" onClick={() => go({ name: 'training', day: todayDay })}>
-              トレーニング開始
-            </button>
-          </>
-        ) : (
-          <>
-            <h2>今日はお休みの日</h2>
-            <p className="muted">やりたい日は、好きなメニューを選べます。</p>
-            <div className="row">
-              {DAY_KEYS.map((day) => (
-                <button key={day} className="btn" onClick={() => go({ name: 'training', day })}>
-                  {DAYS[day].title}
-                </button>
-              ))}
+        <h2>今週の残りタスク：{isWeekCleared(weekSets) ? '全消し達成！' : `あと${remaining}セット`}</h2>
+        <p className="muted small">
+          月曜はじまり。好きな日に、好きな順番で。全部消すと +{CONFIG.weekly.clearGold}G（全消し 累計{' '}
+          <strong>{state.weeklyClears}</strong>週）
+        </p>
+        {DAY_KEYS.map((day) => {
+          const { done, total } = progress[day]
+          return (
+            <div key={day} className="part">
+              <div className="gauge-row">
+                <span style={{ color: ATTR_COLOR[DAYS[day].attr] }}>{DAYS[day].title}</span>
+                <Gauge value={done} max={total} color={ATTR_COLOR[DAYS[day].attr]} />
+                <span className="num">{done === total ? '✓ 完了' : `残り${total - done}`}</span>
+              </div>
+              <ul className="slot-list">
+                {slotsOfDay(day).map((slot) => {
+                  const ex = exerciseOfSlot(slot, menu)
+                  const slotSets = slotDone(weekSets, slot.id)
+                  const complete = slotSets >= CONFIG.sets.perExercise
+                  return (
+                    <li key={slot.id}>
+                      <button
+                        className={`slot task${complete ? ' complete' : ''}`}
+                        onClick={() => go({ name: 'set', slotId: slot.id })}
+                      >
+                        <span>{ex.name}</span>
+                        <span className="slot-count">
+                          {complete ? '✓ ' : ''}
+                          {slotSets}/{CONFIG.sets.perExercise}
+                        </span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
             </div>
-          </>
-        )}
+          )
+        })}
         <button className="btn wide" onClick={() => go({ name: 'cardio' })}>
           サブメニュー（有酸素）を記録
         </button>
@@ -134,6 +125,10 @@ export function Home({ go }: { go: Go }) {
           <div>
             <strong>{state.beatCount}</strong>
             <span className="muted">回 前回超え</span>
+          </div>
+          <div>
+            <strong>{state.weeklyClears}</strong>
+            <span className="muted">週 全消し</span>
           </div>
         </div>
         {ATTRS.map((attr) => (

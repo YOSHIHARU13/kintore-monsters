@@ -1,15 +1,16 @@
-import type { DayKey } from './data/exercises'
+import type { Slot } from './data/exercises'
 
 export type View =
   | { name: 'home' }
-  | { name: 'training'; day?: DayKey }
-  | { name: 'set'; day: DayKey; slotId: string }
-  | { name: 'menuEdit'; day: DayKey }
+  | { name: 'training' }
+  | { name: 'set'; slotId: string }
+  | { name: 'menuEdit'; day: Slot['day'] }
   | { name: 'cardio' }
   | { name: 'box' }
   | { name: 'monster'; id: string }
   | { name: 'shop' }
   | { name: 'dex' }
+  | { name: 'registry' }
   | { name: 'monsterForm'; id?: string }
   | { name: 'settings' }
 
