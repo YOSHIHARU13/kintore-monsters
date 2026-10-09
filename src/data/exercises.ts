@@ -242,13 +242,14 @@ const list: Exercise[] = [
     how: 'ひざをついてローラーを前へ転がし、無理のない範囲で体を伸ばして戻る。腰は反らさない。',
   },
   {
-    id: 'abWall', name: '腹筋ローラー（壁で止める）', weighted: false, next: 'abKneeFull',
+    id: 'abWall', name: '腹筋ローラー（壁で止める）', weighted: false, // 腰を守るため、ここから先の上位種目は提案しない
     how: 'ひざつきで、壁に当たって止まる距離まで転がして戻る。壁から少しずつ離れていく。',
   },
   {
-    id: 'abKneeFull', name: '腹筋ローラー（膝つきで最大まで）', weighted: false, next: 'abStanding',
-    how: 'ひざつきで、体が床すれすれになるまで伸ばしきってから戻る。',
+    id: 'abKneeFull', name: '腹筋ローラー（膝つきで最大まで）', weighted: false,
+    how: 'ひざつきで、体が床すれすれになるまで伸ばしきってから戻る。腰が反りやすいので、腰に不安があるときは選ばない。',
   },
+  // 立ちコロは腰が反りやすいので枠の候補から外してある（過去の記録用に定義だけ残す）
   {
     id: 'abStanding', name: '腹筋ローラー（立ちコロ）', weighted: false,
     how: '立った状態からローラーを前へ転がして戻る。いちばん難しい形。',
@@ -278,7 +279,7 @@ export const SLOTS: Slot[] = [
   { id: 'fri3', day: 'fri', candidates: ['sideLyingReverseFly', 'sideLyingReverseFlyPause'] },
   { id: 'fri4', day: 'fri', candidates: ['shoulderPress', 'arnoldPress', 'shoulderPressOneArm'] },
   { id: 'fri5', day: 'fri', candidates: ['sideRaise', 'sideRaiseSlow', 'frontRaise'] },
-  { id: 'bonus', day: 'bonus', candidates: ['abKnee', 'abWall', 'abKneeFull', 'abStanding'] },
+  { id: 'bonus', day: 'bonus', candidates: ['abKnee', 'abWall', 'abKneeFull'] },
 ]
 
 export const BONUS_SLOT = SLOTS.find((s) => s.day === 'bonus')!
