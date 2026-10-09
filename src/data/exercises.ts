@@ -97,7 +97,7 @@ const list: Exercise[] = [
   },
   {
     id: 'ohExtension', name: 'オーバーヘッドエクステンション', weighted: true, dumbbells: 1, next: 'ohExtensionOneArm',
-    how: 'ダンベル1個を両手で持って頭の上に上げ、肘を曲げて頭の後ろへ下ろし、伸ばして戻す。二の腕の裏側。',
+    how: 'ダンベル1個を両手で持って頭の上に上げ、肘を曲げて頭の後ろへ下ろし、伸ばして戻す。二の腕の裏側。腰を反らさない（椅子に座って行うと腰が楽）。',
   },
   {
     id: 'ohExtensionOneArm', name: '片手オーバーヘッドエクステンション', weighted: true, dumbbells: 1, perSide: true,
@@ -137,6 +137,19 @@ const list: Exercise[] = [
     how: 'ゴブレットスクワットを3秒かけてしゃがみ、いちばん下で2秒止めてから立つ。',
   },
   {
+    id: 'hipLift', name: 'ヒップリフト', weighted: true, dumbbells: 1, next: 'hipLiftFeetUp',
+    how: '仰向けでひざを立て、ダンベル1個を腰骨の上に乗せて手で支え、お尻を持ち上げて下ろす。上で腰を反らさず、お尻を締める。お尻と太ももの裏。',
+  },
+  {
+    id: 'hipLiftFeetUp', name: 'ヒップリフト（足を椅子に乗せる）', weighted: true, dumbbells: 1, next: 'hipLiftOneLeg',
+    how: '仰向けでかかとを椅子に乗せ、ダンベル1個を腰骨の上で支えて、お尻を持ち上げて下ろす。太ももの裏に強く効く。',
+  },
+  {
+    id: 'hipLiftOneLeg', name: '片脚ヒップリフト', weighted: true, dumbbells: 1, perSide: true,
+    how: '仰向けで片ひざを立て、反対の脚は伸ばして浮かせたまま、お尻を持ち上げて下ろす。ダンベル1個を腰骨の上で支える。腰が左右に傾かないようにする。',
+  },
+  // ここから2種目は腰への負担が大きいので枠の候補から外してある（過去の記録用に定義だけ残す）
+  {
     id: 'rdl', name: 'ルーマニアンデッドリフト', weighted: true, next: 'rdlOneLeg',
     how: '両手にダンベルを持ち、背すじを伸ばしたままお尻を後ろに引いて上体を倒し、戻す。太ももの裏とお尻。',
   },
@@ -166,6 +179,23 @@ const list: Exercise[] = [
     how: 'ワンハンドロウで、引ききったところで2秒止めてから下ろす。',
   },
   {
+    id: 'wideRow', name: 'ワンハンドロウ（肘を開いて引く）', weighted: true, dumbbells: 1, next: 'wideRowPause', perSide: true,
+    how: '片手と片ひざを椅子などについて体を支え、反対の手のダンベルを、肘を横に張り出しながら胸の横へ引き上げる。背中の上部と肩の後ろ。',
+  },
+  {
+    id: 'wideRowPause', name: 'ワンハンドロウ（肘を開いて引き、2秒止める）', weighted: true, dumbbells: 1, perSide: true,
+    how: '肘を開いて引くワンハンドロウで、引ききったところで2秒止めてから下ろす。',
+  },
+  {
+    id: 'sideLyingReverseFly', name: '寝ながらリバースフライ', weighted: true, dumbbells: 1, next: 'sideLyingReverseFlyPause', perSide: true,
+    how: '床に横向きに寝て、上の手にダンベルを持つ。肘を軽く曲げたまま、腕を胸の前から真上まで開いて下ろす。肩の後ろ側と背中の上部。',
+  },
+  {
+    id: 'sideLyingReverseFlyPause', name: '寝ながらリバースフライ（上で2秒止める）', weighted: true, dumbbells: 1, perSide: true,
+    how: '寝ながらリバースフライで、腕が真上にきたところで2秒止める。',
+  },
+  // ここから4種目は支えなしの前かがみで腰への負担が大きいので枠の候補から外してある（過去の記録用に定義だけ残す）
+  {
     id: 'bentOverRow', name: 'ベントオーバーロウ', weighted: true, next: 'bentOverRowReverse',
     how: '立って上体を前に倒し、両手のダンベルを同時におへその横へ引き上げる。背すじは丸めない。',
   },
@@ -181,9 +211,10 @@ const list: Exercise[] = [
     id: 'reverseFlyPause', name: 'リバースフライ（上で2秒止める）', weighted: true,
     how: 'リバースフライで、腕を開ききったところで2秒止める。',
   },
+  // ここから下は枠の候補
   {
     id: 'shoulderPress', name: 'ショルダープレス', weighted: true, next: 'arnoldPress',
-    how: 'ダンベルを両肩の横に構え、頭の上へまっすぐ押し上げる。肩の種目。',
+    how: 'ダンベルを両肩の横に構え、頭の上へまっすぐ押し上げる。肩の種目。腰を反らさない（椅子に座って行うと腰が楽）。',
   },
   {
     id: 'arnoldPress', name: 'アーノルドプレス', weighted: true, next: 'shoulderPressOneArm',
@@ -240,11 +271,11 @@ export const SLOTS: Slot[] = [
   { id: 'mon5', day: 'mon', candidates: ['ohExtension', 'ohExtensionOneArm', 'lyingExtension', 'kickback'] },
   { id: 'wed1', day: 'wed', candidates: ['bulgarian', 'bulgarianSlow', 'reverseLunge'] },
   { id: 'wed2', day: 'wed', candidates: ['gobletSlow', 'gobletPause', 'goblet'] },
-  { id: 'wed3', day: 'wed', candidates: ['rdl', 'rdlOneLeg'] },
+  { id: 'wed3', day: 'wed', candidates: ['hipLift', 'hipLiftFeetUp', 'hipLiftOneLeg'] },
   { id: 'wed4', day: 'wed', candidates: ['calfOneLeg', 'calfOneLegStep', 'calfBoth'] },
   { id: 'fri1', day: 'fri', candidates: ['oneHandRow', 'oneHandRowPause'] },
-  { id: 'fri2', day: 'fri', candidates: ['bentOverRow', 'bentOverRowReverse'] },
-  { id: 'fri3', day: 'fri', candidates: ['reverseFly', 'reverseFlyPause'] },
+  { id: 'fri2', day: 'fri', candidates: ['wideRow', 'wideRowPause'] },
+  { id: 'fri3', day: 'fri', candidates: ['sideLyingReverseFly', 'sideLyingReverseFlyPause'] },
   { id: 'fri4', day: 'fri', candidates: ['shoulderPress', 'arnoldPress', 'shoulderPressOneArm'] },
   { id: 'fri5', day: 'fri', candidates: ['sideRaise', 'sideRaiseSlow', 'frontRaise'] },
   { id: 'bonus', day: 'bonus', candidates: ['abKnee', 'abWall', 'abKneeFull', 'abStanding'] },
