@@ -103,6 +103,7 @@ export const CONFIG = {
     ohExtensionOneArm: [10, 15],
     lyingExtension: [10, 15],
     kickback: [10, 15],
+    kickbackPause: [10, 15],
     // 脚
     bulgarian: [8, 15],
     bulgarianSlow: [8, 15],

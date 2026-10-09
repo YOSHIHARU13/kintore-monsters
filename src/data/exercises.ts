@@ -95,6 +95,7 @@ const list: Exercise[] = [
     id: 'hammerCurl', name: 'ハンマーカール', weighted: true,
     how: '手のひらを内側（親指が上）に向けたまま、ダンベルを肩まで巻き上げる。',
   },
+  // ここから2種目は肘を深く曲げたところに負荷がかかり、肘への負担が大きいので枠の候補から外してある（過去の記録用に定義だけ残す）
   {
     id: 'ohExtension', name: 'オーバーヘッドエクステンション', weighted: true, dumbbells: 1, next: 'ohExtensionOneArm',
     how: 'ダンベル1個を両手で持って頭の上に上げ、肘を曲げて頭の後ろへ下ろし、伸ばして戻す。二の腕の裏側。腰を反らさない（椅子に座って行うと腰が楽）。',
@@ -103,13 +104,18 @@ const list: Exercise[] = [
     id: 'ohExtensionOneArm', name: '片手オーバーヘッドエクステンション', weighted: true, dumbbells: 1, perSide: true,
     how: '片手でダンベルを頭の上に上げ、肘を曲げて頭の後ろへ下ろし、伸ばして戻す。',
   },
+  // ここから下は枠の候補
   {
-    id: 'lyingExtension', name: 'ライイングエクステンション', weighted: true,
-    how: '仰向けで両手にダンベルを持って腕を真上に伸ばし、肘の位置を動かさずに頭の横まで下ろして戻す。',
+    id: 'kickback', name: 'キックバック', weighted: true, dumbbells: 1, next: 'kickbackPause', perSide: true,
+    how: '片手を椅子などについて前かがみになり、肘を体の横に固定したまま、腕を後ろへゆっくり伸ばす。勢いをつけず、軽めの重さで。二の腕の裏側。',
   },
   {
-    id: 'kickback', name: 'キックバック', weighted: true, dumbbells: 1, perSide: true,
-    how: '片手を椅子などについて前かがみになり、肘を体の横に固定したまま、腕を後ろへ伸ばしきる。',
+    id: 'kickbackPause', name: 'キックバック（伸ばして2秒止める）', weighted: true, dumbbells: 1, perSide: true,
+    how: 'キックバックで、腕を伸ばしたところで2秒止めてから戻す。重さを増やさずに効かせられる。',
+  },
+  {
+    id: 'lyingExtension', name: 'ライイングエクステンション', weighted: true,
+    how: '仰向けで両手にダンベルを持って腕を真上に伸ばし、肘の位置を動かさずに頭の横まで下ろして戻す。肘を深く曲げるので、肘に不安があるときは選ばない。',
   },
   // 脚
   {
@@ -269,7 +275,7 @@ export const SLOTS: Slot[] = [
   { id: 'mon2', day: 'mon', candidates: ['floorPress', 'floorPressSlow', 'floorPressOneArm', 'floorPressClose'] },
   { id: 'mon3', day: 'mon', candidates: ['fly', 'flySlow', 'squeezePress'] },
   { id: 'mon4', day: 'mon', candidates: ['curl', 'curlSlow', 'concentrationCurl', 'hammerCurl'] },
-  { id: 'mon5', day: 'mon', candidates: ['ohExtension', 'ohExtensionOneArm', 'lyingExtension', 'kickback'] },
+  { id: 'mon5', day: 'mon', candidates: ['kickback', 'kickbackPause', 'lyingExtension'] },
   { id: 'wed1', day: 'wed', candidates: ['bulgarian', 'bulgarianSlow', 'reverseLunge'] },
   { id: 'wed2', day: 'wed', candidates: ['gobletSlow', 'gobletPause', 'goblet'] },
   { id: 'wed3', day: 'wed', candidates: ['hipLift', 'hipLiftFeetUp', 'hipLiftOneLeg'] },
