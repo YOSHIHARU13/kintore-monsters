@@ -193,6 +193,15 @@ const list: Exercise[] = [
     how: '肘を開いて引くワンハンドロウで、引ききったところで2秒止めてから下ろす。',
   },
   {
+    id: 'seatedRearRaise', name: 'シーテッドリアレイズ', weighted: true, next: 'seatedRearRaisePause',
+    how: '椅子に浅く座って上体を倒し、胸を太ももにつける。両手のダンベルを、肘を90度くらいに曲げたまま横へ開いて肩の高さまで上げ、ゆっくり下ろす。肩をすくめない。肩の後ろ側と背中の上部。',
+  },
+  {
+    id: 'seatedRearRaisePause', name: 'シーテッドリアレイズ（上で2秒止める）', weighted: true,
+    how: 'シーテッドリアレイズで、腕を開ききったところで2秒止めてから下ろす。',
+  },
+  // ここから2種目は肘が痛むので枠の候補から外してある（過去の記録用に定義だけ残す）
+  {
     id: 'sideLyingReverseFly', name: '寝ながらリバースフライ', weighted: true, dumbbells: 1, next: 'sideLyingReverseFlyPause', perSide: true,
     how: '床に横向きに寝て、上の手にダンベルを持つ。肘を軽く曲げたまま、腕を胸の前から真上まで開いて下ろす。肩の後ろ側と背中の上部。',
   },
@@ -282,7 +291,7 @@ export const SLOTS: Slot[] = [
   { id: 'wed4', day: 'wed', candidates: ['calfOneLeg', 'calfOneLegStep', 'calfBoth'] },
   { id: 'fri1', day: 'fri', candidates: ['oneHandRow', 'oneHandRowPause'] },
   { id: 'fri2', day: 'fri', candidates: ['wideRow', 'wideRowPause'] },
-  { id: 'fri3', day: 'fri', candidates: ['sideLyingReverseFly', 'sideLyingReverseFlyPause'] },
+  { id: 'fri3', day: 'fri', candidates: ['seatedRearRaise', 'seatedRearRaisePause'] },
   { id: 'fri4', day: 'fri', candidates: ['shoulderPress', 'arnoldPress', 'shoulderPressOneArm'] },
   { id: 'fri5', day: 'fri', candidates: ['sideRaise', 'sideRaiseSlow', 'frontRaise'] },
   { id: 'bonus', day: 'bonus', candidates: ['abKnee', 'abWall', 'abKneeFull'] },

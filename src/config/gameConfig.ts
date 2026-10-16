@@ -124,6 +124,8 @@ export const CONFIG = {
     oneHandRowPause: [8, 15],
     wideRow: [8, 15],
     wideRowPause: [8, 15],
+    seatedRearRaise: [12, 20],
+    seatedRearRaisePause: [12, 20],
     sideLyingReverseFly: [12, 20],
     sideLyingReverseFlyPause: [12, 20],
     bentOverRow: [8, 15],
