@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { advantageAttr, affinity, defaultHp, questGold, questHits, setHit, standardSessionDamage } from './quest'
+import { defaultHp, questGold, questHits, setHit, standardSessionDamage } from './quest'
 import { isJogressReady, jogressNeed } from './stats'
+import { advantageElements, elementRate } from './element'
 import type { MonsterDef, OwnedMonster, Quest, SetRecord } from '../types'
 
 const def = (id: string, extra: Partial<MonsterDef> = {}): MonsterDef => ({
@@ -10,24 +11,33 @@ const mon = (id: string, defId: string, extra: Partial<OwnedMonster> = {}): Owne
   id, defId, nodeId: 'n1', obtainedAt: 0, ...extra,
 })
 const quest: Quest = {
-  id: 'q', name: 'q', bossDefId: 'b', attr: 'legs', weakSlots: ['mon4'], gimmicks: [],
+  id: 'q', name: 'q', bossDefId: 'b', attr: 'legs', element: 'wood', weakSlots: ['mon4'], gimmicks: [],
   hp: { easy: 1, normal: 1, hard: 1 }, catchphrase: '', theme: 'flame', createdAt: 0,
 }
 const set = (slotId: string, day: SetRecord['day'], extra: Partial<SetRecord> = {}) =>
   ({ slotId, day, date: '2026-10-05', judge: 'normal', eligible: true, ...extra }) as const
 
 describe('クエスト', () => {
-  it('相性：胸腕 → 脚 → 背肩 → 胸腕。無はいつも等倍', () => {
-    expect(affinity('chestArms', 'legs')).toBe(2)
-    expect(affinity('legs', 'chestArms')).toBe(0.5)
-    expect(affinity('none', 'legs')).toBe(1)
-    expect(affinity('legs', 'none')).toBe(1)
-    expect(advantageAttr('legs')).toBe('chestArms')
-    expect(advantageAttr('none')).toBeNull()
+  it('属性の相性：炎→木→水→炎、光⇔闇。無属性は等倍', () => {
+    const one = (e: 'fire' | 'water' | 'wood' | 'light' | 'dark') => ({ elements: [e], super: false })
+    expect(elementRate(one('fire'), 'wood')).toBe(2)
+    expect(elementRate(one('wood'), 'fire')).toBe(0.5)
+    expect(elementRate(one('light'), 'dark')).toBe(2)
+    expect(elementRate(one('dark'), 'light')).toBe(2)
+    expect(elementRate({ elements: [], super: false }, 'wood')).toBe(1)
+    expect(elementRate(one('fire'), undefined)).toBe(1)
+    expect(advantageElements('wood')).toEqual(['fire'])
+  })
+
+  it('超属性は有利な相手に×3、複合属性はどちらかで有利なら×2・片方の不利は打ち消し', () => {
+    expect(elementRate({ elements: ['fire'], super: true }, 'wood')).toBe(3)
+    expect(elementRate({ elements: ['fire', 'water'], super: false }, 'wood')).toBe(2) // 炎が有利
+    expect(elementRate({ elements: ['fire', 'light'], super: false }, 'water')).toBe(1) // 炎の不利を光が打ち消す
+    expect(elementRate({ elements: ['fire', 'wood'], super: false }, 'water')).toBe(2) // 木が有利
   })
 
   it('セットでは、その部位の属性のモンスターと無属性だけが攻撃する', () => {
-    const chest = { mon: mon('c', 'c'), def: def('c') } // ノーマルの★4：攻撃力4,500（強さ1.5）
+    const chest = { mon: mon('c', 'c'), def: def('c', { element: 'fire' }) } // 炎・ノーマルの★1：攻撃力4,500（強さ1.5）
     const legs = { mon: mon('l', 'l'), def: def('l', { attr: 'legs' }) }
     const none = { mon: mon('n', 'n'), def: def('n', { attr: 'none' }) }
     const party = [chest, legs, none]
@@ -40,7 +50,7 @@ describe('クエスト', () => {
   })
 
   it('弱点種目×2、得意種目×1.5', () => {
-    const fav = { mon: mon('c', 'c'), def: def('c', { favoriteSlot: 'mon4' }) }
+    const fav = { mon: mon('c', 'c'), def: def('c', { favoriteSlot: 'mon4', element: 'fire' }) }
     // 10 × 1.5（強さ）× 2（相性）× 2（弱点）× 1.5（得意）= 90
     expect(setHit(set('mon4', 'mon'), quest, [fav], '').damage).toBe(90)
   })
@@ -59,7 +69,7 @@ describe('クエスト', () => {
 
   it('持てるアビリティの数はレア度で決まる（ハズレは0個なので持たせても効かない）', () => {
     const boss = { ...quest, weakSlots: [], gimmicks: ['バリア'] }
-    const hazure = { mon: mon('h', 'h'), def: def('h', { rarity: 'hazure', abilities: ['バリア'] }) }
+    const hazure = { mon: mon('h', 'h'), def: def('h', { rarity: 'hazure', abilities: ['バリア'], element: 'fire' }) }
     const normal = { mon: mon('n', 'n'), def: def('n', { abilities: ['バリア'] }) }
     const rate = (m: typeof normal) => setHit(set('mon2', 'mon'), boss, [m], '').damage / setHit(set('mon2', 'mon'), { ...boss, gimmicks: [] }, [m], '').damage
     expect(rate(hazure)).toBeCloseTo(0.75, 1)

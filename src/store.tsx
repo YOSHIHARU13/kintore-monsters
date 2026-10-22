@@ -29,8 +29,9 @@ import { draw, isPickupRarity, isPity, isReady, rarityOf, rateTable } from './li
 import { isJogressReady } from './lib/stats'
 import { battleOf, questGold } from './lib/quest'
 import { rollBonusCore, rollCoreDrop } from './lib/cores'
+import { jogressElementOf } from './lib/element'
 import { jogressGradeOf } from './lib/gimmick'
-import { investedFor, isHidden, nodeAttr, type AttrExp, type Checkin, type Gacha, type Quest, type QuestDifficulty, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
+import { investedFor, isHidden, nodeAttr, type AttrExp, type Checkin, type Element, type Gacha, type Quest, type QuestDifficulty, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
 
 const zeroExp = () => ({ trained: 0, bought: 0 })
 
@@ -105,6 +106,7 @@ export interface MonsterDefInput {
   jogressBirthStars: number // 隠しモンスターが生まれるときの星
   jogressPlus: number // 隠しモンスターの素材に必要な＋
   fixedStars: number // 進化しない降臨モンスターの星
+  element: Element | '' // 属性（無属性は空）
   favoriteSlot: string // 得意種目の枠ID（なしは空）
   abilities: string[] // アビリティ（対応するギミック名）
 }
@@ -704,6 +706,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         gachas: input.gachas.slice(0, CONFIG.gacha.maxPerMonster),
         rarity: input.rarity,
         common: false,
+        element: input.element || null,
         favoriteSlot: input.favoriteSlot,
         questOnly: input.questOnly,
         fixedStars: input.fixedStars,
@@ -713,14 +716,23 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
               jogressBirthStars: input.jogressBirthStars,
               jogressPlus: input.jogressPlus,
               jogressGrade: jogressGradeOf(input.recipe, defs),
+              jogressElements: jogressElementOf(input.recipe, defs).elements,
+              jogressSuper: jogressElementOf(input.recipe, defs).super,
             }
           : {}),
         createdAt: existing?.createdAt ?? Date.now(),
       })
       // このモンスターを素材にする隠しモンスターの格を計算し直す（レア度を変えたとき）
-      const updated = defs.map((d) => (d.id === defRef.id ? { ...d, rarity: input.rarity } : d))
+      const updated = defs.map((d) =>
+        d.id === defRef.id ? { ...d, rarity: input.rarity, element: input.element || undefined } : d,
+      )
       for (const hidden of defs.filter((d) => isHidden(d) && d.recipe!.includes(defRef.id))) {
-        batch.update(doc(db, base, 'monsterDefs', hidden.id), { jogressGrade: jogressGradeOf(hidden.recipe!, updated) })
+        const el = jogressElementOf(hidden.recipe!, updated)
+        batch.update(doc(db, base, 'monsterDefs', hidden.id), {
+          jogressGrade: jogressGradeOf(hidden.recipe!, updated),
+          jogressElements: el.elements,
+          jogressSuper: el.super,
+        })
       }
       batch.commit().catch(fail)
     }

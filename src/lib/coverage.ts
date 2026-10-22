@@ -1,8 +1,8 @@
 import { ATTRS, SLOTS, type Attr, type FormAttr } from '../data/exercises'
 import { getTemplate } from '../data/evolutionTemplates'
 import { abilitySlots, unmatchedGimmicks } from './gimmick'
-import { advantageAttr, affinity } from './quest'
-import { isHidden, nodeAttr, type MonsterDef, type Quest } from '../types'
+import { ELEMENTS, advantageElements, elementInfo, elementRate } from './element'
+import { isHidden, nodeAttr, type Element, type MonsterDef, type Quest } from '../types'
 
 /**
  * 登録画面で「何が足りていて、何が余っているか」を見るための集計。
@@ -29,17 +29,26 @@ function others(defs: MonsterDef[], selfId: string | undefined): MonsterDef[] {
   return defs.filter((d) => d.id !== selfId)
 }
 
-export function attrSupply(defs: MonsterDef[], quests: Quest[], selfId?: string): Record<Attr, Supply> {
+/** 部位（胸腕・脚・背肩）の内訳。部位は「いつ攻撃するか」なので、相性の需要はない */
+export function attrSupply(defs: MonsterDef[], _quests: Quest[], selfId?: string): Record<Attr, Supply> {
   const list = others(defs, selfId)
   return Object.fromEntries(
-    ATTRS.map((a) => [
-      a,
+    ATTRS.map((a) => [a, { have: list.filter((d) => finalAttrs(d).includes(a)).length, need: 0 }]),
+  ) as Record<Attr, Supply>
+}
+
+/** 属性（炎・水・木・光・闇）の内訳：持っている数と、その属性が相性◎になるボスの数 */
+export function elementSupply(defs: MonsterDef[], quests: Quest[], selfId?: string): Record<Element, Supply> {
+  const list = others(defs, selfId)
+  return Object.fromEntries(
+    ELEMENTS.map((e) => [
+      e,
       {
-        have: list.filter((d) => finalAttrs(d).includes(a)).length,
-        need: quests.filter((q) => advantageAttr(q.attr) === a).length,
+        have: list.filter((d) => elementInfo(d).elements.includes(e)).length,
+        need: quests.filter((q) => advantageElements(q.element).includes(e)).length,
       },
     ]),
-  ) as Record<Attr, Supply>
+  ) as Record<Element, Supply>
 }
 
 export function abilitySupply(gimmick: string, defs: MonsterDef[], quests: Quest[], selfId?: string): Supply {
@@ -64,9 +73,8 @@ export interface Fit {
 
 /** 今の設定で、各クエストにどれくらい刺さるか */
 export function questFits(draft: MonsterDef, quests: Quest[], abilityLabel: (g: string) => string): Fit[] {
-  const attrs = finalAttrs(draft)
   return quests.map((quest) => {
-    const best = Math.max(...attrs.map((a) => affinity(a, quest.attr)))
+    const best = elementRate(elementInfo(draft), quest.element)
     const missing = unmatchedGimmicks(draft, quest)
     const covered = (quest.gimmicks ?? []).filter((g) => !missing.includes(g))
     const fav = !!draft.favoriteSlot && quest.weakSlots.includes(draft.favoriteSlot)
@@ -83,10 +91,10 @@ export function questFits(draft: MonsterDef, quests: Quest[], abilityLabel: (g: 
   })
 }
 
-/** 属性・得意種目・アビリティが全部同じモンスター */
+/** 部位・属性・得意種目・アビリティが全部同じモンスター */
 export function similarDefs(draft: MonsterDef, defs: MonsterDef[]): MonsterDef[] {
   const key = (d: MonsterDef) =>
-    [finalAttrs(d).sort().join(), d.favoriteSlot ?? '', [...(d.abilities ?? []).slice(0, abilitySlots(d))].sort().join()].join('|')
+    [finalAttrs(d).sort().join(), elementInfo(d).elements.join(), d.favoriteSlot ?? '', [...(d.abilities ?? []).slice(0, abilitySlots(d))].sort().join()].join('|')
   const mine = key(draft)
   return others(defs, draft.id).filter((d) => !isHidden(d) || isHidden(draft)).filter((d) => key(d) === mine)
 }
@@ -98,15 +106,15 @@ export function recommend(
   gimmicks: string[],
   slots: number,
   selfId?: string,
-): { attr: Attr; favoriteSlot: string; abilities: string[] } {
+): { element: Element; favoriteSlot: string; abilities: string[] } {
   const gap = (s: Supply) => s.need - s.have
   const byGap = <T>(items: T[], supply: (t: T) => Supply) =>
     [...items].sort(
       (a, b) => gap(supply(b)) - gap(supply(a)) || supply(b).need - supply(a).need || supply(a).have - supply(b).have,
     )
-  const attrs = attrSupply(defs, quests, selfId)
+  const els = elementSupply(defs, quests, selfId)
   return {
-    attr: byGap(ATTRS, (a) => attrs[a])[0],
+    element: byGap(ELEMENTS, (e) => els[e])[0],
     favoriteSlot: byGap(
       SLOTS.map((s) => s.id),
       (s) => slotSupply(s, defs, quests, selfId),

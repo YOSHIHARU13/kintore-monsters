@@ -825,6 +825,20 @@ details.fold[open] > summary {
   }
 }
 
+/* 属性 */
+.element-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 900;
+  padding: 1px 8px;
+  border-radius: 6px;
+  color: #10121a;
+}
+.element-badge.super {
+  box-shadow: 0 0 8px currentColor;
+  outline: 2px solid #fff;
+}
+
 /* アビリティとギミック */
 .abilities {
   display: inline-flex;

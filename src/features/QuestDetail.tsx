@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useStore } from '../store'
 import { CONFIG } from '../config/gameConfig'
-import { ATTR_LABEL, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot } from '../data/exercises'
+import { FORM_ATTR_LABEL, SLOTS, exerciseOfSlot } from '../data/exercises'
 import { MonsterImage } from '../components/MonsterImage'
 import { Stars } from '../components/Stars'
 import { QuestBanner } from '../components/QuestBanner'
-import { DIFFICULTIES, advantageAttr, affinity, attrOf, powerOf, questGold, rankOf, type Member } from '../lib/quest'
+import { DIFFICULTIES, affinityOf, attrOf, powerOf, questGold, rankOf, type Member } from '../lib/quest'
+import { ELEMENT_COLOR, ELEMENT_LABEL, advantageElements, elementInfo, elementName } from '../lib/element'
 import { ATTR_COLOR, type Go } from '../nav'
 import { attackOf } from '../lib/stats'
 import { abilityName, allGimmicks, gimmickRate, unmatchedGimmicks } from '../lib/gimmick'
@@ -44,7 +45,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
     const slot = SLOTS.find((s) => s.id === slotId)
     return slot ? exerciseOfSlot(slot, menu).name : '？'
   }
-  const adv = advantageAttr(quest.attr)
+  const adv = advantageElements(quest.element)
   // このボスへの効きやすさの目安：攻撃力 × 相性 × 得意種目が弱点か × 特攻が弱点か
   const members = owned
     .flatMap((mon): (Member & { score: number; tags: string[] })[] => {
@@ -52,7 +53,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
       if (!def) return []
       const m = { mon, def }
       const tags: string[] = []
-      const a = affinity(attrOf(m), quest.attr)
+      const a = affinityOf(m, quest)
       if (a > 1) tags.push('相性◎')
       if (a < 1) tags.push('相性×')
       const fav = !!def.favoriteSlot && quest.weakSlots.includes(def.favoriteSlot)
@@ -82,11 +83,21 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
         <ul className="mini-list">
           <li>
             <span>属性</span>
-            <span>{FORM_ATTR_LABEL[quest.attr]}</span>
+            <span style={quest.element ? { color: ELEMENT_COLOR[quest.element] } : undefined}>
+              {quest.element ? ELEMENT_LABEL[quest.element] : '無属性'}
+            </span>
           </li>
           <li>
             <span>適正（相性◎）</span>
-            <span style={adv ? { color: ATTR_COLOR[adv] } : undefined}>{adv ? ATTR_LABEL[adv] : 'なし（無属性）'}</span>
+            <span>
+              {adv.length === 0
+                ? 'なし'
+                : adv.map((e) => (
+                    <span key={e} style={{ color: ELEMENT_COLOR[e] }}>
+                      {ELEMENT_LABEL[e]}{' '}
+                    </span>
+                  ))}
+            </span>
           </li>
           <li>
             <span>弱点種目（ダメージ×{CONFIG.quest.weakSlot}）</span>
@@ -106,7 +117,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
           </li>
         </ul>
         <p className="muted small">
-          筋トレのセットでは、その部位の属性のモンスター（と無属性）が攻撃します。ローラーは全員で攻撃。
+          筋トレのセットでは、その部位（胸腕・脚・背肩）のモンスターと、部位が「無」のモンスターが攻撃します。ローラーは全員で攻撃。相性は属性（炎→木→水→炎、光⇔闇）で決まります。
         </p>
       </section>
 
@@ -160,6 +171,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
                       <span className="small" style={{ color: ATTR_COLOR[attrOf(m)] }}>
                         {FORM_ATTR_LABEL[attrOf(m)]}
                       </span>
+                      <span className="small"> {elementName(elementInfo(m.def))}</span>
                       <span className="small"> 攻撃力 {attackOf(m.mon, m.def).toLocaleString()}</span>
                       {m.tags.map((t) => (
                         <span key={t} className={`tag${t === '相性×' || t.endsWith('で弱体') ? ' warn' : ' keep'}`}>

@@ -7,6 +7,7 @@ import { boughtCap, evolutionCost, fusionCost, isExpFull, planPour } from '../li
 import { Gauge } from '../components/Gauge'
 import { Stars } from '../components/Stars'
 import { Abilities } from '../components/Abilities'
+import { ElementBadge } from '../components/ElementBadge'
 import { CORE_LABEL } from '../lib/cores'
 import { attackOf, isJogressReady, jogressNeed } from '../lib/stats'
 import { MonsterImage } from '../components/MonsterImage'
@@ -115,6 +116,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
         <Stars def={def} nodeId={mon.nodeId} />
         <p className="small">攻撃力 <strong>{attackOf(mon, def).toLocaleString()}</strong></p>
         <Abilities def={def} />
+        <ElementBadge def={def} />
         <p style={{ color: ATTR_COLOR[attr] }}>
           {FORM_ATTR_LABEL[attr]}属性
         </p>

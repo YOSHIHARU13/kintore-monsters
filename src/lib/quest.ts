@@ -1,5 +1,6 @@
 import { CONFIG } from '../config/gameConfig'
-import { DAYS, type Attr, type FormAttr } from '../data/exercises'
+import { DAYS, type FormAttr } from '../data/exercises'
+import { elementInfo, elementRate } from './element'
 import { attackOf } from './stats'
 import { gimmickRate, unmatchedGimmicks } from './gimmick'
 import { nodeAttr, type Challenge, type MonsterDef, type OwnedMonster, type Quest, type QuestDifficulty, type SetRecord } from '../types'
@@ -11,20 +12,9 @@ export interface Member {
   def: MonsterDef
 }
 
-/** 属性の相性：胸腕 → 脚 → 背肩 → 胸腕（矢印の先に強い）。無はいつも等倍 */
-export function affinity(attacker: FormAttr, boss: FormAttr): number {
-  if (attacker === 'none' || boss === 'none') return 1
-  const beats: Record<Attr, Attr> = { chestArms: 'legs', legs: 'backShoulders', backShoulders: 'chestArms' }
-  if (beats[attacker] === boss) return CONFIG.quest.advantage
-  if (beats[boss] === attacker) return CONFIG.quest.disadvantage
-  return 1
-}
-
-/** ボスに有利な属性（適正） */
-export function advantageAttr(boss: FormAttr): Attr | null {
-  if (boss === 'none') return null
-  const beatenBy: Record<Attr, Attr> = { legs: 'chestArms', backShoulders: 'legs', chestArms: 'backShoulders' }
-  return beatenBy[boss]
+/** 属性の相性の倍率（炎→木→水→炎、光⇔闇） */
+export function affinityOf(member: Member, quest: Pick<Quest, 'element'>): number {
+  return elementRate(elementInfo(member.def), quest.element)
 }
 
 /** ダメージの計算に使う強さ：攻撃力 ÷ attackUnit（★1の攻撃力で1） */
@@ -60,7 +50,8 @@ export function setHit(set: SetInfo, quest: Quest, party: Member[], label: strin
   }
   let damage = 0
   for (const m of attackers) {
-    let d = base * powerOf(m) * affinity(attrOf(m), quest.attr)
+    const a = affinityOf(m, quest)
+    let d = base * powerOf(m) * a
     if (weak) d *= q.weakSlot
     if (m.def.favoriteSlot === set.slotId) {
       d *= q.favorite
@@ -70,7 +61,6 @@ export function setHit(set: SetInfo, quest: Quest, party: Member[], label: strin
     const missing = unmatchedGimmicks(m.def, quest)
     d *= gimmickRate(m.def, quest)
     if (missing.length > 0) notes.add(`${m.def.name}は${missing.join('・')}で弱体`)
-    const a = affinity(attrOf(m), quest.attr)
     if (a > 1) notes.add(`${m.def.name}の相性◎`)
     if (a < 1) notes.add(`${m.def.name}の相性×`)
     damage += d

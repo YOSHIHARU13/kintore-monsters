@@ -653,14 +653,14 @@ describe('画面の表示', () => {
   it('クエスト詳細：効きやすい順にメンバーが並び、選んで挑戦できる', async () => {
     const { QuestDetail } = await import('./QuestDetail')
     const quest = {
-      id: 'q1', name: '脚竜の巣', bossDefId: 'm2', attr: 'legs' as const, weakSlots: ['mon4'], gimmicks: ['バリア'],
+      id: 'q1', name: '脚竜の巣', bossDefId: 'm2', attr: 'legs' as const, element: 'wood' as const, weakSlots: ['mon4'], gimmicks: ['バリア'],
       hp: { easy: 1000, normal: 3000, hard: 6000 }, catchphrase: '', theme: 'flame', createdAt: 1,
     }
     fake.store.quests = [quest]
-    fake.store.defs = [{ ...defs[0], favoriteSlot: 'mon4', abilities: ['バリア'] }, defs[1]]
+    fake.store.defs = [{ ...defs[0], favoriteSlot: 'mon4', abilities: ['バリア'], element: 'fire' }, defs[1]]
     fake.store.owned = [owned[0], { id: 'o2', defId: 'm2', nodeId: 'n1', obtainedAt: 2 }]
     const el = await render(<QuestDetail id="q1" go={go} />)
-    expect(el.textContent).toContain('適正（相性◎）胸腕')
+    expect(el.textContent).toContain('適正（相性◎）炎')
     expect(el.textContent).toContain('ダンベルカール')
     const names = [...el.querySelectorAll('button.choice')].map((b) => b.textContent)
     expect(names[0]).toContain('ムキドラゴ') // 胸腕（脚に強い）・得意種目と特攻が弱点
@@ -679,7 +679,7 @@ describe('画面の表示', () => {
   it('クエスト：出撃してからのセットがダメージになり、倒したらその場で報酬を受け取れる', async () => {
     const { Quests } = await import('./Quests')
     const quest = {
-      id: 'q1', name: '脚竜の巣', bossDefId: 'm2', attr: 'legs' as const, weakSlots: ['mon2'], gimmicks: [],
+      id: 'q1', name: '脚竜の巣', bossDefId: 'm2', attr: 'legs' as const, element: 'wood' as const, weakSlots: ['mon2'], gimmicks: [],
       hp: { easy: 100, normal: 3000, hard: 6000 }, catchphrase: '', theme: 'flame', createdAt: 1,
     }
     fake.store.quests = [quest]
@@ -687,7 +687,8 @@ describe('画面の表示', () => {
       ...state,
       challenge: { date: TODAY, questId: 'q1', difficulty: 'easy', party: ['o1'], startTs: 10 },
     }
-    // 開始前のセットは数えない。ムキドラゴ（胸腕・攻撃力7,500）がフロアプレス（弱点）を攻撃：10 × 2.5 × 2（相性）× 2（弱点）= 100
+    fake.store.defs = [{ ...defs[0], element: 'fire' }, defs[1]] // 炎は木のボスに強い
+    // 開始前のセットは数えない。ムキドラゴ（炎・攻撃力7,500）がフロアプレス（弱点）を攻撃：10 × 2.5 × 2（相性）× 2（弱点）= 100
     fake.store.weekSets = [past(1, 10, 5, TODAY), past(2, 10, 20, TODAY)]
     const el = await render(<Quests go={go} />)
     expect(el.textContent).toContain('与えたダメージ 100 ／ HP 100')
@@ -718,7 +719,7 @@ describe('画面の表示', () => {
     const { Quests } = await import('./Quests')
     const quest = {
       id: 'q2', name: '脚の修練場', kind: 'material' as const, bossDefId: 'm2', attr: 'legs' as const, weakSlots: [],
-      gimmicks: [], hp: { easy: 50, normal: 1500, hard: 3000 }, catchphrase: '', theme: 'forest', createdAt: 1,
+      gimmicks: [], hp: { easy: 20, normal: 1500, hard: 3000 }, catchphrase: '', theme: 'forest', createdAt: 1,
     }
     fake.store.quests = [quest]
     fake.store.state = { ...state, challenge: { date: TODAY, questId: 'q2', difficulty: 'easy', party: ['o1'], startTs: 0 } }
@@ -788,12 +789,13 @@ describe('画面の表示', () => {
   it('モンスター登録：足りないものが分かり、おすすめで埋められ、刺さるクエストが出る', async () => {
     fake.store.quests = [
       {
-        id: 'q1', name: '脚竜の巣', bossDefId: 'm2', attr: 'legs', weakSlots: ['wed1'], gimmicks: ['シールド'],
+        id: 'q1', name: '脚竜の巣', bossDefId: 'm2', attr: 'legs', element: 'wood', weakSlots: ['wed1'], gimmicks: ['シールド'],
         hp: { easy: 1, normal: 1, hard: 1 }, catchphrase: '', theme: 'flame', createdAt: 1,
       },
     ]
     const el = await render(<MonsterForm go={go} />)
-    expect(el.textContent).toContain('胸腕 1体／ボス1') // ムキドラ（最終形態に胸腕がある）
+    expect(el.textContent).toContain('胸腕 1体') // ムキドラ（最終形態に胸腕がある）
+    expect(el.textContent).toContain('炎 0体／ボス1不足')
     expect(el.textContent).toContain('シールドクラッシャー 0体／ボス1不足')
     expect(el.textContent).toContain('特に刺さるクエストはまだありません') // 刺さらないクエストは出さない
     await click('足りないもので埋める')

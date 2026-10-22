@@ -114,7 +114,8 @@ export const CONFIG = {
     attackUnit: 3000,
     setDamage: 10, // 筋トレ1セット（その部位の属性のモンスターと、無属性のモンスターが攻撃）
     rollerDamage: 4, // 腹筋ローラー1セット（全員で攻撃）
-    advantage: 2, // 相性が有利
+    advantage: 2, // 属性の相性が有利
+    superAdvantage: 3, // 超属性（同じ属性どうしのジョグレス）で有利
     disadvantage: 0.5, // 相性が不利
     weakSlot: 2, // ボスの弱点種目のセット
     favorite: 1.5, // 攻撃したモンスターの得意種目のセット

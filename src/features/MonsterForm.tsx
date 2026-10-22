@@ -6,7 +6,7 @@ import { evolutionCost } from '../lib/evolution'
 import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
 import { CONFIG } from '../config/gameConfig'
-import { isHidden, type MonsterDef, type RarityKey } from '../types'
+import { isHidden, type Element, type MonsterDef, type RarityKey } from '../types'
 import { RARITY_KEYS, formLabel, rarityOf } from '../lib/gacha'
 import { abilityName, abilitySlots, allGimmicks } from '../lib/gimmick'
 import {
@@ -17,8 +17,10 @@ import {
   recommend,
   similarDefs,
   slotSupply,
+  elementSupply,
   type Supply,
 } from '../lib/coverage'
+import { ELEMENTS, ELEMENT_COLOR, ELEMENT_LABEL, elementInfo, elementName, jogressElementOf } from '../lib/element'
 
 export function MonsterForm({ id, go }: { id?: string; go: Go }) {
   const { defs, gachas, menu, quests, saveMonsterDef } = useStore()
@@ -36,6 +38,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
   const [fixedStars, setFixedStars] = useState(existing?.fixedStars ?? CONFIG.gacha.fixedStarsDefault)
   const [jogressPlus, setJogressPlus] = useState(existing?.jogressPlus ?? CONFIG.fusion.maxPlus)
   const [questOnly, setQuestOnly] = useState(existing?.questOnly === true)
+  const [element, setElement] = useState<Element | ''>(existing?.element ?? '')
   const [favoriteSlot, setFavoriteSlot] = useState(existing?.favoriteSlot ?? '')
   const [abilities, setAbilities] = useState<string[]>(existing?.abilities ?? [])
   const [inGachas, setInGachas] = useState<string[]>(existing?.gachas ?? [])
@@ -72,16 +75,21 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
   const draftFull: MonsterDef = {
     ...draftDef,
     attrs: Object.fromEntries(template.nodes.map((n) => [n.id, attrOf(n.id)])),
+    element: element || undefined,
     favoriteSlot: favoriteSlot || undefined,
     abilities,
+    ...(recipe.length === 2
+      ? { jogressElements: jogressElementOf(recipe, defs).elements, jogressSuper: jogressElementOf(recipe, defs).super }
+      : {}),
   }
+  const elSup = elementSupply(defs, quests, existing?.id)
   const attrSup = attrSupply(defs, quests, existing?.id)
   const fits = questFits(draftFull, quests, (g) => abilityName(g, gimmickNames))
   const similar = similarDefs(draftFull, defs)
   const supplyText = (sup: Supply) => `${sup.have}体${sup.need > 0 ? `／ボス${sup.need}` : ''}`
   const applyRecommend = () => {
     const rec = recommend(defs, quests, Object.keys(gimmickNames), maxAbilities, existing?.id)
-    setAttrs(Object.fromEntries(template.nodes.map((n) => [n.id, rec.attr])))
+    if (recipe.length !== 2) setElement(rec.element)
     setFavoriteSlot(rec.favoriteSlot)
     setAbilities(rec.abilities)
   }
@@ -124,6 +132,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
         // 消したガチャのIDは残さない
         gachas: inGachas.filter((g) => gachas.some((x) => x.id === g && !x.builtin)),
         rarity,
+        element,
         favoriteSlot,
         abilities: abilities.slice(0, abilitySlots({ recipe, rarity })),
         questOnly: recipe.length !== 2 && questOnly,
@@ -185,7 +194,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
       <section className="card">
         <h2>各形態の属性・名前・画像</h2>
         <p className="small supply-row">
-          最終形態の属性の内訳：
+          部位の内訳（最終形態）：
           {ATTRS.map((a) => (
             <span key={a} className={`supply${isShort(attrSup[a]) ? ' short' : ''}`} style={{ color: ATTR_COLOR[a] }}>
               {FORM_ATTR_LABEL[a]} {supplyText(attrSup[a])}
@@ -193,7 +202,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
             </span>
           ))}
         </p>
-        <p className="muted small">「ボス」は、その属性が相性◎になるクエストの数です。</p>
+        <p className="muted small">部位は「どの部位のセットで攻撃するか」と「どのEXPで育つか」を決めます。相性は下の属性で決まります。</p>
         <p className="muted small">
           その形態に進化するには、その形態の属性のEXPが必要です。「無」はどの筋トレのEXPでも育ちます。
           {hasBranch && '分岐先を別々の属性にすると、どのEXPを注いだかで進化先が変わります。'}
@@ -249,10 +258,37 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
       </section>
 
       <section className="card">
-        <h2>得意種目とアビリティ</h2>
+        <h2>属性・得意種目・アビリティ</h2>
         <button type="button" className="btn small" onClick={applyRecommend}>
           ✨ 足りないもので埋める（属性・得意種目・アビリティ）
         </button>
+        {recipe.length === 2 ? (
+          <p className="small">
+            属性：<strong>{elementName(elementInfo(draftFull))}</strong>
+            <span className="muted small">（素材から決まります。同じ属性どうしなら超属性、違えば複合属性）</span>
+          </p>
+        ) : (
+          <div className="field">
+            属性（相性：炎→木→水→炎、光⇔闇）　数字は「持っているモンスター／相性◎になるボス」
+            <div className="chips" role="group" aria-label="属性">
+              <button type="button" className={`chip${element === '' ? ' on' : ''}`} onClick={() => setElement('')}>
+                無属性
+              </button>
+              {ELEMENTS.map((e) => (
+                <button
+                  key={e}
+                  type="button"
+                  className={`chip${element === e ? ' on' : ''}${isShort(elSup[e]) ? ' short' : ''}`}
+                  style={element === e ? { borderColor: ELEMENT_COLOR[e], color: ELEMENT_COLOR[e] } : undefined}
+                  onClick={() => setElement(e)}
+                >
+                  {ELEMENT_LABEL[e]} <span className="small">{supplyText(elSup[e])}</span>
+                  {isShort(elSup[e]) && <span className="short-badge">不足</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <label className="field">
           得意種目（この種目の相棒にすると、EXPがさらに ×{CONFIG.partner.favorite}）
           <select value={favoriteSlot} onChange={(e) => setFavoriteSlot(e.target.value)}>

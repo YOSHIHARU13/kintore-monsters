@@ -2,6 +2,9 @@ import type { Attr, FormAttr, Slot } from './data/exercises'
 
 export type Judge = 'beat' | 'keep' | 'normal'
 
+/** ソシャゲの属性（相性に使う）。部位（胸腕・脚・背肩）とは別 */
+export type Element = 'fire' | 'water' | 'wood' | 'light' | 'dark'
+
 /** EXPの財布：属性ごとの財布か、万能EXP */
 export type ExpSource = Attr | 'any'
 
@@ -85,6 +88,9 @@ export interface MonsterDef {
   names?: Record<string, string> // nodeId → その段階だけの名前（なければ name を使う）
   recipe?: string[] // 隠しモンスターのレシピ（2体の defId）。あればタマゴからは生まれず、ジョグレスでだけ生まれる
   gachas?: string[] // 入っているガチャのID（最大3つ）。なければ「いつものガチャ」
+  element?: Element // 属性（なければ無属性）。ジョグレスは素材から決まる
+  jogressElements?: Element[] // ジョグレスの属性（保存するときに素材から計算する）
+  jogressSuper?: boolean // 同じ属性どうしのジョグレスなら超属性
   favoriteSlot?: string // 得意種目（種目の枠ID）
   jogressBirthStars?: number // 隠しモンスターが生まれるときの星（素材はこの1つ下以上）
   jogressPlus?: number // 隠しモンスターの素材に必要な＋（なければ最大）
@@ -124,7 +130,8 @@ export interface Quest {
   name: string
   kind?: 'boss' | 'material' // ボスクエスト（ボスが手に入る）か、素材クエスト（核が落ちる）か。なければボス
   bossDefId: string // ボス（倒すと手に入るモンスター。素材クエストでは見た目だけ）
-  attr: FormAttr // ボスの属性（相性に使う）
+  attr: FormAttr // ボスの部位（素材クエストで落ちる核の種類）
+  element?: Element // ボスの属性（相性に使う。なければ無属性）
   weakSlots: string[] // 弱点種目（種目の枠ID）
   gimmicks?: string[] // ギミック名（対応するアビリティを持たないモンスターは攻撃が減る）
   customGimmicks?: Record<string, string> // このクエストで作ったギミック → 対応するアビリティ名
