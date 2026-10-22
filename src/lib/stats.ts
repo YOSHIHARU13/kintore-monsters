@@ -1,11 +1,16 @@
 import { CONFIG } from '../config/gameConfig'
-import { starsOf } from './gacha'
-import type { MonsterDef, OwnedMonster } from '../types'
+import { rarityOf, starsOf } from './gacha'
+import { isHidden, type MonsterDef, type OwnedMonster } from '../types'
 
-/** 攻撃力：星の数 × perStar ＋ ＋の数 × perPlus。クエストのダメージと相棒の倍率はこの数字で決まる */
+/**
+ * 攻撃力：形態の格 × perStar ＋ レア度の上乗せ ＋ ＋の数 × perPlus。クエストのダメージと相棒の倍率はこの数字で決まる。
+ * 形態の格は「星 − formStarBase」（1段目の★4で1、★5で2…）
+ */
 export function attackOf(mon: OwnedMonster, def: MonsterDef): number {
   const { perStar, perPlus } = CONFIG.attack
-  return starsOf(def, mon.nodeId) * perStar + (mon.plus ?? 0) * perPlus
+  const level = starsOf(def, mon.nodeId) - CONFIG.gacha.formStarBase
+  const bonus = isHidden(def) ? CONFIG.gacha.jogressAttackBonus : CONFIG.gacha.rarities[rarityOf(def)].attackBonus
+  return level * perStar + bonus + (mon.plus ?? 0) * perPlus
 }
 
 /** ジョグレスの条件：素材は「生まれるときの星の1つ下」以上で、レシピの＋以上 */

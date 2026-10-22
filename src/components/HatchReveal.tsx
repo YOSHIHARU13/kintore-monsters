@@ -51,7 +51,7 @@ export function HatchReveal({ hatched, onClose, onMeet }: { hatched: Hatched; on
   }
 
   const starRow = (
-    <div className={`hatch-stars rarity-${hatched.rarity}`} aria-label={`星${stars}`}>
+    <div className="hatch-stars" aria-label={`星${stars}`}>
       {Array.from({ length: stars }, (_, i) => (
         <span key={i} className={i < shownStars ? 'on' : ''}>
           ★

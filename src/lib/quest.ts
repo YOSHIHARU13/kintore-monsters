@@ -109,11 +109,11 @@ export function questHits(
 
 /**
  * HPの目安：1回のトレーニングで与えるダメージ。
- * ★4が6体（各属性2体）、相性・弱点なしで、1部位ぶん（5種目×3セット）＋ローラー3セット。
+ * 攻撃力9,000（ノーマルの★6くらい）が6体（各属性2体）、相性・弱点なしで、1部位ぶん（5種目×3セット）＋ローラー3セット。
  */
 export function standardSessionDamage(): number {
   const q = CONFIG.quest
-  const power = 4
+  const power = 9000 / q.attackUnit
   const sets = 5 * CONFIG.sets.perExercise * q.setDamage * power * 2 // その部位の属性の2体が攻撃
   const roller = CONFIG.sets.perExercise * q.rollerDamage * power * 6
   return Math.round(sets + roller)

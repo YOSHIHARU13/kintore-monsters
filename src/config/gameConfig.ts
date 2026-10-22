@@ -80,7 +80,7 @@ export const CONFIG = {
     starterEggs: 1, // 開始時にもらえるタマゴ
   },
 
-  // 攻撃力 = 星の数 × perStar ＋ ＋の数 × perPlus
+  // 攻撃力 = 形態の格（★4で1、★5で2…）× perStar ＋ レア度の上乗せ ＋ ＋の数 × perPlus
   attack: {
     perStar: 3000,
     perPlus: 1500,
@@ -183,21 +183,24 @@ export const CONFIG = {
     // レア度ごとの確率（合計1）。同じレア度のモンスターで山分けする
     // ハズレとノーマルはどのガチャからも出る。レアと激レアは選んだガチャだけ（ガチャの「顔」）
     rarities: {
-      hazure: { label: 'ハズレ', rate: 0.5, startStars: 1, everyGacha: true, hint: 'どのガチャからも出る。★1→★2で終わるような軽いやつ' },
-      normal: { label: 'ノーマル', rate: 0.35, startStars: 2, everyGacha: true, hint: 'どのガチャからも出る。★2→★4まで進化する普通のやつ' },
-      rare: { label: 'レア', rate: 0.12, startStars: 3, everyGacha: false, hint: '選んだガチャだけ。★3→★5、分岐ありのかっこいいやつ' },
+      hazure: { label: 'ハズレ', rate: 0.5, attackBonus: 0, everyGacha: true, hint: 'どのガチャからも出る。2段階で終わるような軽いやつ' },
+      normal: { label: 'ノーマル', rate: 0.35, attackBonus: 1500, everyGacha: true, hint: 'どのガチャからも出る。3段階まで進化する普通のやつ' },
+      rare: { label: 'レア', rate: 0.12, attackBonus: 3000, everyGacha: false, hint: '選んだガチャだけ。分岐ありのかっこいいやつ' },
       superRare: {
         label: '激レア',
         rate: 0.03,
-        startStars: 4,
+        attackBonus: 4500,
         everyGacha: false,
-        hint: '選んだガチャだけ（フェス限）。★4→★6、ジョグレスの素材になる、いちばんかっこいいやつ',
+        hint: '選んだガチャだけ（フェス限）。ジョグレスの素材になる、いちばんかっこいいやつ',
       },
     },
-    // 星：生まれたときはレア度の startStars、進化するたびに1つ増える
+    // 星は進化形態だけで決まる（レア度は関係ない）：1段目が★(formStarBase+1)、進化するたびに1つ増える
     // ジョグレスの隠しモンスターは、レシピで決めた「生まれるときの星」から（決めていなければ jogressDefaultBirth）
-    jogressDefaultBirth: 5,
-    jogressBirthChoices: [3, 4, 5, 6, 7],
+    // レア度は星には出さず、攻撃力の上乗せ（attackBonus）にだけ効く。ジョグレスは jogressAttackBonus
+    formStarBase: 3,
+    jogressDefaultBirth: 6,
+    jogressBirthChoices: [5, 6, 7, 8],
+    jogressAttackBonus: 4500,
     // 天井：同じガチャで、激レアが出ないままこの回数目を引くと激レア確定
     pity: { rarity: 'superRare' as const, pulls: 30 },
     shinyRateChoices: [1 / 50, 1 / 20, 1 / 10, 1 / 5], // ガチャごとに選べる色違いの確率

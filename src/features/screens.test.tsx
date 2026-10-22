@@ -222,9 +222,9 @@ describe('画面の表示', () => {
     fake.store.defs = [{ ...defs[0], favoriteSlot: 'mon2' }, defs[1]]
     fake.store.owned = [{ ...owned[0], plus: 2 }, { id: 'o2', defId: 'm2', nodeId: 'n1', obtainedAt: 2 }]
     const pick = await render(<PartnerPick slotId="mon2" go={go} />)
-    // ムキドラゴ：★3（ノーマルの第2段階）＋2 → 攻撃力 12,000 → (1 + 0.2) × 1.2（得意種目）= 1.44
-    expect(pick.textContent).toContain('攻撃力 12,000')
-    expect(pick.textContent).toContain('EXP×1.44')
+    // ムキドラゴ：ノーマルの★5＋2 → 攻撃力 2×3,000＋1,500＋2×1,500 = 10,500 → (1 + 0.175) × 1.2（得意種目）= 1.41
+    expect(pick.textContent).toContain('攻撃力 10,500')
+    expect(pick.textContent).toContain('EXP×1.41')
     expect(pick.textContent).toContain('得意種目！')
     await click('ムキドラゴ')
     expect(fake.store.setPartner).toHaveBeenCalledWith('mon2', 'o1')
@@ -232,7 +232,7 @@ describe('画面の表示', () => {
     const el = await render(<SetInput slotId="mon2" go={go} />)
     expect(el.textContent).toContain('相棒：ムキドラ')
     await click('11回で確定')
-    expect(fake.store.recordSet).toHaveBeenCalledWith(expect.objectContaining({ exp: 22 }), true) // 15 × 1.44
+    expect(fake.store.recordSet).toHaveBeenCalledWith(expect.objectContaining({ exp: 21 }), true) // 15 × 1.41
   })
 
   it('朝の記録：習慣を分数で記録する', async () => {
@@ -383,7 +383,7 @@ describe('画面の表示', () => {
     expect(fake.store.hatchEgg).toHaveBeenCalledWith('default')
     expect(shop.textContent).not.toContain('が生まれた！') // まずはタマゴが揺れる
     await click('スキップ')
-    expect(shop.textContent).toContain('★★') // ノーマルは★2で生まれる
+    expect(shop.querySelectorAll('.hatch-stars span')).toHaveLength(4) // 生まれたときは、レア度に関係なく★4
     expect(shop.textContent).toContain('アシガメ')
     expect(shop.textContent).toContain('が生まれた！')
     await click('会いに行く')
@@ -452,7 +452,7 @@ describe('画面の表示', () => {
       { id: 'o2', defId: 'm2', nodeId: 'n3', plus: 5, obtainedAt: 2 },
     ]
     const el = await render(<MonsterDetail id="o1" go={go} />)
-    expect(el.textContent).toContain('？？？（★5で誕生）← ムキドラ ＆ アシガメ：どちらも★4以上・＋5以上')
+    expect(el.textContent).toContain('？？？（★6で誕生）← ムキドラ ＆ アシガメ：どちらも★5以上・＋5以上')
     await click('アシガメ＋5とジョグレス')
     await click('本当にジョグレスする（1000G）')
     expect(fake.store.jogress).toHaveBeenCalledWith('o1', 'o2', 'h1')
@@ -470,7 +470,7 @@ describe('画面の表示', () => {
     fake.store.state = { ...state, dexFound: { m1: ['n1', 'n2', 'n3b'] }, dexShiny: { m1: true } }
     const dex = await render(<Dex go={go} />)
     expect(dex.textContent).toContain('ジョグレスのレシピ')
-    expect(dex.textContent).toContain('いちばん育っているのは★3')
+    expect(dex.textContent).toContain('いちばん育っているのは★5')
     expect(dex.textContent).toContain('アシガメ未所持')
     expect(dex.textContent).not.toContain('カイザードラ')
     expect(dex.textContent).toContain('ヤミムキドラ')
@@ -504,7 +504,7 @@ describe('画面の表示', () => {
       Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(select, 'lateBranch3')
       select.dispatchEvent(new Event('change', { bubbles: true }))
     })
-    expect(el.textContent).toContain('★4-C') // 分岐の3つ目（形態は星で表す）
+    expect(el.textContent).toContain('★6-C') // 分岐の3つ目（形態は星で表す）
     await click('保存する')
     expect(fake.store.saveMonsterDef).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -607,9 +607,9 @@ describe('画面の表示', () => {
       { id: 'j1', name: 'カイザードラ', attr: 'none', templateId: 'single', images: {}, recipe: ['s1', 'm1'], createdAt: 7 },
     ]
     const el = await render(<GachaForm id="g1" go={go} />)
-    const chip = [...el.querySelectorAll('button.chip')].find((b) => b.textContent === '★5 カイザードラ（ジョグレス）')!
+    const chip = [...el.querySelectorAll('button.chip')].find((b) => b.textContent === '★6 カイザードラ（ジョグレス）')!
     await act(async () => (chip as HTMLButtonElement).click())
-    expect(el.querySelector('.gacha-banner.auto')!.textContent).toContain('ジョグレスで★5')
+    expect(el.querySelector('.gacha-banner.auto')!.textContent).toContain('ジョグレスで★6')
     await click('保存する')
     expect(fake.store.saveGacha).toHaveBeenCalledWith(expect.objectContaining({ featured: ['j1'] }))
   })
@@ -675,10 +675,10 @@ describe('画面の表示', () => {
       ...state,
       challenge: { date: TODAY, questId: 'q1', difficulty: 'easy', party: ['o1'], startTs: 10 },
     }
-    // 開始前のセットは数えない。ムキドラゴ（胸腕★3）がフロアプレス（弱点）を攻撃：10 × 3 × 2（相性）× 2（弱点）= 120
+    // 開始前のセットは数えない。ムキドラゴ（胸腕・攻撃力7,500）がフロアプレス（弱点）を攻撃：10 × 2.5 × 2（相性）× 2（弱点）= 100
     fake.store.weekSets = [past(1, 10, 5, TODAY), past(2, 10, 20, TODAY)]
     const el = await render(<Quests go={go} />)
-    expect(el.textContent).toContain('与えたダメージ 120 ／ HP 100')
+    expect(el.textContent).toContain('与えたダメージ 100 ／ HP 100')
     expect(el.textContent).toContain('討伐できる！')
     await click('報酬を受け取る')
     expect(fake.store.claimQuest).toHaveBeenCalled()
@@ -750,7 +750,7 @@ describe('画面の表示', () => {
     const el = await render(<MonsterForm go={go} />)
     expect(el.textContent).not.toContain('ガチャ1') // ノーマルはどのガチャからも出るので選ばない
     await act(async () => el.querySelector('[aria-label="レア度"]')!.querySelectorAll('button')[2].click())
-    expect(el.textContent).toContain('★3→★5、分岐ありのかっこいいやつ')
+    expect(el.textContent).toContain('分岐ありのかっこいいやつ')
     for (const n of [1, 2, 3]) await click(`ガチャ${n}`)
     const g4 = [...el.querySelectorAll('button')].find((b) => b.textContent === 'ガチャ4')!
     expect(g4.disabled).toBe(true)

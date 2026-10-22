@@ -307,7 +307,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
                 ))}
               </div>
               <span className="muted small">
-                例：★3どうしで★4誕生 → そこから進化。★6の＋5どうしで★7誕生、なども作れます。進化するたびに★が1つ増えます。
+                例：★5どうしで★6誕生 → ★7に進化。★6の＋5どうしで★7誕生 → ★8、なども作れます。進化するたびに★が1つ増えます。
               </span>
             </div>
             <div className="field">

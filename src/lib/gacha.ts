@@ -97,7 +97,7 @@ export function percent(rate: number): string {
   return `${p >= 10 ? p.toFixed(1).replace(/\.0$/, '') : p.toFixed(2).replace(/\.?0+$/, '')}%`
 }
 
-/** その形態の星の数。生まれたときはレア度で決まり、進化するたびに1つ増える */
+/** その形態の星の数。進化形態だけで決まる（レア度は関係ない）。ジョグレスはレシピの「生まれるときの星」から */
 export function starsOf(def: MonsterDef, nodeId: string): number {
   const template = getTemplate(def.templateId)
   const stage = getNode(template, nodeId).stage
@@ -105,7 +105,7 @@ export function starsOf(def: MonsterDef, nodeId: string): number {
     // 隠しモンスターは、レシピで決めた「生まれるときの星」から数える
     return (def.jogressBirthStars ?? CONFIG.gacha.jogressDefaultBirth) + stage - 1
   }
-  return CONFIG.gacha.rarities[rarityOf(def)].startStars + stage - 1
+  return CONFIG.gacha.formStarBase + stage
 }
 
 /** 形態の呼び名：星の数（分岐があれば A・B・C を添える）。例：★5、★6-B */
