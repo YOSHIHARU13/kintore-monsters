@@ -637,7 +637,7 @@ describe('画面の表示', () => {
 
   it('クエスト作成：ボス・弱点・HPを決めて保存（HPには目安が入っている）', async () => {
     const { QuestForm } = await import('./QuestForm')
-    // ムキドラはバリアブレイカーを持っている（誰かが持っているギミックだけが、おまかせの条件になる）
+    // ムキドラはアークを持っている（誰かが持っているギミックだけが、おまかせの条件になる）
     fake.store.defs = [{ ...defs[0], abilities: ['バリア'] }, defs[1], { id: 'b1', name: 'アシリュウ', attr: 'legs', templateId: 'linear3', images: {}, questOnly: true, createdAt: 9 }]
     const el = await render(<QuestForm go={go} />)
     const type = async (input: HTMLInputElement, value: string) =>
@@ -654,8 +654,7 @@ describe('画面の表示', () => {
     await click('胸腕：ダンベルカール')
     expect(el.textContent).not.toContain('おまかせ中') // 手で変えたら止まる
     // 新しいアビリティは、ギミック名とセットで作る
-    await type(el.querySelector<HTMLInputElement>('input[aria-label="新しいギミック"]')!, 'ゾーン')
-    await type(el.querySelector<HTMLInputElement>('input[aria-label="対応するアビリティ"]')!, 'ゾーンブレイク')
+    await type(el.querySelector<HTMLInputElement>('input[aria-label="新しいスキル"]')!, 'ゾーン')
     await click('追加')
     await click('クエストを作る')
     expect(fake.store.saveQuest).toHaveBeenCalledWith(
@@ -663,7 +662,7 @@ describe('画面の表示', () => {
         name: '脚竜の巣', bossDefId: 'b1', attr: 'legs',
         weakSlots: [expect.stringMatching(/^wed/), 'mon4'],
         requirements: expect.arrayContaining([expect.objectContaining({ tag: expect.stringMatching(/^ab:/), count: 2 }), { tag: 'ab:ゾーン', count: 2 }]),
-        customGimmicks: { ゾーン: 'ゾーンブレイク' },
+        customGimmicks: { ゾーン: 'ゾーン' },
         hp: { easy: expect.any(Number), normal: expect.any(Number), hard: expect.any(Number) },
       }),
     )
@@ -677,19 +676,19 @@ describe('画面の表示', () => {
     await act(async () => [...group.querySelectorAll('button')].find((b) => b.textContent === 'ムキドラ')!.click())
     await click('体が刺さる条件にする')
     expect(el.textContent).toContain('🔥炎')
-    expect(el.textContent).toContain('バリアブレイカー')
+    expect(el.textContent).toContain('アーク')
     expect(el.textContent).toContain('持っている 1（今の手持ちだと×1.0に届かない）') // 炎3に対して手持ちは1
   })
 
   it('クエスト作成：ガチャのキャラがいなくても、ギミック2つや属性2つから条件を作れる', async () => {
     const { QuestForm } = await import('./QuestForm')
     const el = await render(<QuestForm go={go} />)
-    await click('🧩 ギミックを接待')
-    const gim = el.querySelector('[aria-label="接待するギミック"]')!
-    for (const name of ['バリアブレイカー', 'ミラーシャッター'])
+    await click('🧩 スキルを接待')
+    const gim = el.querySelector('[aria-label="接待するスキル"]')!
+    for (const name of ['アーク', 'ルーン'])
       await act(async () => [...gim.querySelectorAll('button')].find((b) => b.textContent === name)!.click())
-    await click('このギミックの条件にする')
-    expect(el.textContent).toContain('バリアブレイカーとミラーシャッターを両方')
+    await click('このスキルの条件にする')
+    expect(el.textContent).toContain('アークとルーンを両方')
     await click('🎨 属性')
     const els = el.querySelector('[aria-label="求める属性"]')!
     for (const name of ['炎', '水']) await act(async () => [...els.querySelectorAll('button')].find((b) => b.textContent === name)!.click())
@@ -708,19 +707,19 @@ describe('画面の表示', () => {
     fake.store.defs = [{ ...defs[0], rarity: 'rare', favoriteSlot: 'mon4', abilities: ['バリア'], element: 'fire' }, defs[1]]
     fake.store.owned = [owned[0], { id: 'o2', defId: 'm2', nodeId: 'n1', obtainedAt: 2 }]
     const el = await render(<QuestDetail id="q1" go={go} />)
-    expect(el.textContent).toContain('バリアブレイカー0/2')
+    expect(el.textContent).toContain('アーク0/2')
     expect(el.textContent).toContain('編成倍率 ×0.40')
     expect(el.textContent).toContain('ダンベルカール')
     const names = [...el.querySelectorAll('button.choice')].map((b) => b.textContent)
     expect(names[0]).toContain('ムキドラゴ') // 胸腕（脚に強い）・得意種目と特攻が弱点
     expect(names[0]).toContain('得意種目が弱点')
-    expect(names[0]).toContain('バリアブレイカー') // ボスのギミックに対応している
-    expect(names[1]).not.toContain('バリアブレイカー')
+    expect(names[0]).toContain('アーク') // ボスのギミックに対応している
+    expect(names[1]).not.toContain('アーク')
     // ボスクエストは難易度を選ばない。格（決めていなければ極）でHPと報酬が決まる
     expect(el.querySelector('[aria-label="難易度"]')).toBeNull()
     expect(el.textContent).toContain('HP 3,000・80Gドロップ アシガメ・たまに')
     await click('ムキドラゴ')
-    expect(el.textContent).toContain('バリアブレイカー1/2') // 選ぶとメーターが埋まる
+    expect(el.textContent).toContain('アーク1/2') // 選ぶとメーターが埋まる
     await click('出撃する')
     expect(fake.store.startChallenge).toHaveBeenCalledWith('q1', 'normal', ['o1'])
   })
@@ -906,7 +905,7 @@ describe('画面の表示', () => {
     await act(async () => el.querySelector('[aria-label="レア度"]')!.querySelectorAll('button')[2].click()) // レア（アビリティ1個）
     expect(el.textContent).toContain('胸腕 1体') // ムキドラ（最終形態に胸腕がある）
     expect(el.textContent).toContain('炎 0体／クエスト1不足')
-    expect(el.textContent).toContain('シールドクラッシャー 0体／クエスト1不足')
+    expect(el.textContent).toContain('ノヴァ 0体／クエスト1不足')
     // 新しく登録するときは、最初からおまかせで足りないものが選ばれている
     expect(el.textContent).toContain('おまかせ中')
     expect(el.textContent).toContain('◎ 脚竜の巣')
@@ -919,7 +918,7 @@ describe('画面の表示', () => {
     const favorite = [...el.querySelectorAll('select')].find((x) => x.textContent?.includes('プッシュアップ')) as HTMLSelectElement
     expect(favorite.value).toBe('mon4') // 弱点種目なのに得意なモンスターがいない（胸腕のモンスターなので胸腕の種目から）
     expect(favorite.textContent).not.toContain('ブルガリアンスクワット') // 部位の違う種目は選べない
-    expect(el.querySelector('.fit-good')).not.toBeNull() // 胸腕・シールドクラッシャー・得意種目が弱点 → ◎
+    expect(el.querySelector('.fit-good')).not.toBeNull() // 胸腕・ノヴァ・得意種目が弱点 → ◎
     expect(el.textContent).toContain('脚竜の巣')
   })
 
@@ -964,7 +963,7 @@ describe('画面の表示', () => {
     })
     const on = [...el.querySelectorAll('button.chip.on')].map((b) => b.textContent)
     expect(on.some((t) => t?.startsWith('水'))).toBe(true)
-    expect(on.some((t) => t?.startsWith('シールドクラッシャー'))).toBe(true)
+    expect(on.some((t) => t?.startsWith('ノヴァ'))).toBe(true)
     expect(el.textContent).toContain('◎ 脚竜の巣')
   })
 

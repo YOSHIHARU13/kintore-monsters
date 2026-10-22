@@ -37,7 +37,6 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
   const [weakSlots, setWeakSlots] = useState<string[]>(existing?.weakSlots ?? [])
   const [requirements, setRequirements] = useState<Requirement[]>(existing ? requirementsOf(existing) : [])
   const [newGimmick, setNewGimmick] = useState('')
-  const [newAbility, setNewAbility] = useState('')
   const [customGimmicks, setCustomGimmicks] = useState<Record<string, string>>(existing?.customGimmicks ?? {})
   const gimmickNames = { ...allGimmicks(quests), ...customGimmicks }
   const allAbilities = [...new Set([...selectableGimmicks(quests), ...Object.keys(customGimmicks)])]
@@ -275,7 +274,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
             {(
               [
                 ['hero', '🎯 刺さるキャラ（3体まで）'],
-                ['gimmicks', '🧩 ギミックを接待'],
+                ['gimmicks', '🧩 スキルを接待'],
                 ['elements', '🎨 属性'],
               ] as const
             ).map(([k, label]) => (
@@ -307,7 +306,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
             </div>
           )}
           {basisKind === 'gimmicks' && (
-            <div className="chips" role="group" aria-label="接待するギミック">
+            <div className="chips" role="group" aria-label="接待するスキル">
               {allAbilities.map((g) => {
                 const on = pickedGimmicks.includes(g)
                 return (
@@ -344,10 +343,10 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
             </div>
           )}
           <button type="button" className="btn small" disabled={!basis} onClick={() => basis && editRequirements(basisRequirements(basis, grade, boss, leastUsed))}>
-            {basisKind === 'hero' ? `選んだ${stars.length || ''}体が刺さる条件にする` : basisKind === 'gimmicks' ? 'このギミックの条件にする' : 'この属性の条件にする'}
+            {basisKind === 'hero' ? `選んだ${stars.length || ''}体が刺さる条件にする` : basisKind === 'gimmicks' ? 'このスキルの条件にする' : 'この属性の条件にする'}
           </button>
           <span className="muted small">
-            ガチャのキャラがまだいなくても、ギミックや属性から作っておけます。あとで作ったキャラは、モンスター登録の「🎯 このクエスト用にする」で合わせられます。
+            ガチャのキャラがまだいなくても、スキルや属性から作っておけます。あとで作ったキャラは、モンスター登録の「🎯 このクエスト用にする」で合わせられます。
           </span>
         </div>
         {requirements.length === 0 && <p className="muted small">まだ条件がありません（いつでも×1.0）。下から足してください。</p>}
@@ -414,32 +413,18 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
               </button>
             ))}
         </div>
-        <span className="muted small">新しいアビリティを作る（ギミック名と、アビリティ名をセットで）</span>
+        <span className="muted small">新しいスキルを作る（短くて抽象的な名前がおすすめ）</span>
         <span className="row wrap">
-          <input
-            value={newGimmick}
-            onChange={(e) => setNewGimmick(e.target.value)}
-            maxLength={8}
-            placeholder="例：ゾーン"
-            aria-label="新しいギミック"
-          />
-          <input
-            value={newAbility}
-            onChange={(e) => setNewAbility(e.target.value)}
-            maxLength={12}
-            placeholder="例：ゾーンブレイク"
-            aria-label="対応するアビリティ"
-          />
+          <input value={newGimmick} onChange={(e) => setNewGimmick(e.target.value)} maxLength={8} placeholder="例：ゼニス" aria-label="新しいスキル" />
           <button
             type="button"
             className="btn small"
-            disabled={!newGimmick.trim() || !newAbility.trim() || requirements.length >= CONFIG.formation.maxRequirements}
+            disabled={!newGimmick.trim() || requirements.length >= CONFIG.formation.maxRequirements}
             onClick={() => {
               const g = newGimmick.trim()
-              if (!(g in gimmickNames)) setCustomGimmicks({ ...customGimmicks, [g]: newAbility.trim() })
+              if (!(g in gimmickNames)) setCustomGimmicks({ ...customGimmicks, [g]: g })
               if (!requirements.some((r) => r.tag === abilityTag(g))) editRequirements([...requirements, { tag: abilityTag(g), count: 2 }])
               setNewGimmick('')
-              setNewAbility('')
             }}
           >
             追加

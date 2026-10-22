@@ -40,10 +40,10 @@ describe('登録画面の被り・不足', () => {
 
   it('刺さるクエスト：編成の条件に貢献できるか', () => {
     const draft = def('new', { recipe: ['x', 'y'], jogressElements: ['fire'], abilities: ['バリア', 'シールド'], favoriteSlot: 'wed1' })
-    const fits = questFits(draft, quests, { バリア: 'バリアブレイカー', シールド: 'シールドクラッシャー' })
+    const fits = questFits(draft, quests, { バリア: 'アーク', シールド: 'ノヴァ' })
     expect(fits[0].grade).toBe('◎')
-    expect(fits[0].reasons).toEqual(['🔥炎', 'バリアブレイカー', 'シールドクラッシャー', '得意種目が弱点'])
-    expect(fits[1].reasons).toEqual(['シールドクラッシャー'])
+    expect(fits[0].reasons).toEqual(['🔥炎', 'アーク', 'ノヴァ', '得意種目が弱点'])
+    expect(fits[1].reasons).toEqual(['ノヴァ'])
     expect(questFits(def('x', { element: 'light' }), quests, {}).every((f) => f.grade === '×')).toBe(true)
   })
 

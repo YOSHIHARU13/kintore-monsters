@@ -118,7 +118,7 @@ export interface MonsterDef {
   jogressGrade?: number // 素材のうち激レアの数（0〜2）。保存するときに計算する。強さとアビリティの数に効く
   questOnly?: boolean // クエスト限定（ガチャには出ない。クエストのボスとして倒すと手に入る）
   tower?: boolean // 試練の塔の報酬（降臨のうち。5階・10階で月替わりにもらえる）
-  abilities?: string[] // アビリティ：対応するギミック名で持つ（例：'バリア' ならバリアブレイカー）
+  abilities?: string[] // アビリティ：対応するギミック名で持つ（例：'バリア' ならアーク）
   rarity?: RarityKey | 'rare' // レア度（なければノーマル。以前の「レア」は激レアとして扱う）
   common?: boolean // 旧形式：ハズレ枠（レア度ができる前のデータ）
   createdAt: number

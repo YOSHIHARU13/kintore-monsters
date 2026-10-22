@@ -4,7 +4,7 @@ import { abilityName, abilitySlots } from './gimmick'
 import type { Element, MonsterDef, Quest, Requirement } from '../types'
 
 /**
- * 編成：クエストは「求められる人材の条件」（炎が3、バリアブレイカーが3…）を持ち、
+ * 編成：クエストは「求められる人材の条件」（炎が3、アークが3…）を持ち、
  * 出撃する6体の合計でそれを満たしにいく。誰が何を持っていてもよい。
  * タグは「el:炎などの属性」か「ab:アビリティ（ギミック名で持つ）」。
  */
@@ -38,7 +38,7 @@ export function requirementsOf(quest: Pick<Quest, 'requirements' | 'gimmicks'>):
   return (quest.gimmicks ?? []).map((g) => ({ tag: abilityTag(g), count: 2 }))
 }
 
-/** タグの表示名（🔥炎、バリアブレイカー など） */
+/** タグの表示名（🔥炎、アーク など） */
 export function tagLabel(tag: Tag, names: Record<string, string>): string {
   if (tag.startsWith('el:')) {
     const e = tag.slice(3) as Element

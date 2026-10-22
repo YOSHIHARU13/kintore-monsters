@@ -12,9 +12,9 @@ export function selectableGimmicks(quests: Pick<Quest, 'customGimmicks'>[]): str
   return [...new Set([...Object.keys(CONFIG.gimmicks.defaults), ...quests.flatMap((q) => Object.keys(q.customGimmicks ?? {}))])]
 }
 
-/** アビリティの名前（ギミックに対応するもの。見つからなければ「○○ブレイカー」） */
+/** アビリティ（スキル）の名前。見つからなければ内部の名前のまま */
 export function abilityName(gimmick: string, names: Record<string, string> = CONFIG.gimmicks.defaults): string {
-  return names[gimmick] ?? `${gimmick}ブレイカー`
+  return names[gimmick] ?? gimmick
 }
 
 /** そのモンスターが持てるアビリティの数（レア度の格） */
