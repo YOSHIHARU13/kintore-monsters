@@ -4,12 +4,13 @@ import { CONFIG } from '../config/gameConfig'
 import { DAYS, FORM_ATTRS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type FormAttr } from '../data/exercises'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { QuestBanner } from '../components/QuestBanner'
-import { DIFFICULTIES, GRADES, defaultBossHp, defaultHp, gradeOf, questGold, standardSessionDamage } from '../lib/quest'
+import { COLLAB_GRADES, DIFFICULTIES, GRADES, defaultBossHp, defaultHp, gradeOf, questGold, standardSessionDamage } from '../lib/quest'
 import { allGimmicks, selectableGimmicks } from '../lib/gimmick'
 import { ELEMENTS, ELEMENT_COLOR, ELEMENT_LABEL, advantageElements, elementInfo } from '../lib/element'
 import { abilityTag, elementTag, ownedSupply, requirementsFromMonsters, requirementsOf, tagLabel } from '../lib/formation'
 import { CORE_LABEL } from '../lib/cores'
 import { autoQuestSetup } from '../lib/questAuto'
+import { seriesOf } from '../lib/series'
 import { ATTR_COLOR, type Go } from '../nav'
 import { nodeAttr, type Element, type Quest, type QuestDifficulty, type QuestGrade, type Requirement } from '../types'
 
@@ -358,7 +359,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
         <section className="card">
           <h2>格とHP</h2>
           <div className="chips" role="group" aria-label="クエストの格">
-            {GRADES.map((g) => (
+            {GRADES.filter((g) => !COLLAB_GRADES.includes(g) || seriesOf(boss) !== '' || grade === g).map((g) => (
               <button
                 key={g}
                 type="button"

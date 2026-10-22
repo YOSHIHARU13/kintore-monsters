@@ -43,7 +43,7 @@ export function setHit(set: SetInfo, quest: Quest, party: Member[], label: strin
     return { label, damage: Math.round(base * (weak ? q.weakSlot : 1)), notes: [...notes, '素手'] }
   }
   // 超絶では、ボスの属性に有利な属性を持たないモンスターの攻撃が半減
-  const strict = quest.kind !== 'material' && gradeOf(quest) === 'chozetsu' && !!quest.element
+  const strict = isStrict(quest)
   let damage = 0
   for (const m of party) {
     let d = base * powerOf(m)
@@ -148,7 +148,16 @@ export function rankOf(quest: Pick<Quest, 'rank'>) {
   return ranks[Math.min(ranks.length - 1, Math.max(0, quest.rank ?? 1))]
 }
 
-export const GRADES: QuestGrade[] = ['jokyu', 'kiwami', 'kyukyoku', 'chozetsu']
+export const GRADES: QuestGrade[] = ['jokyu', 'kiwami', 'kyukyoku', 'chozetsu', 'chokyukyoku']
+
+/** 超究極はコラボ（シリーズのあるボス）だけ */
+export const COLLAB_GRADES: QuestGrade[] = ['chokyukyoku']
+
+/** 適正の属性以外が半減する格（超絶・超究極） */
+export function isStrict(quest: Pick<Quest, 'kind' | 'grade' | 'rank' | 'element'>): boolean {
+  const g = gradeOf(quest)
+  return quest.kind !== 'material' && (g === 'chozetsu' || g === 'chokyukyoku') && !!quest.element
+}
 
 /** ボスクエストは難易度が1つだけ（内部では normal を使う） */
 export const BOSS_DIFFICULTY: QuestDifficulty = 'normal'

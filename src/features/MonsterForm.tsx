@@ -130,7 +130,8 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
     setAuto(false)
     const reqs = requirementsOf(quest)
     const elementReqs = reqs.filter((r) => r.tag.startsWith('el:'))
-    if (recipe.length !== 2 && elementReqs.length > 0) {
+    // 属性が決まっていれば変えない（空のときだけ、足りない属性に合わせる）
+    if (recipe.length !== 2 && elementReqs.length > 0 && !element) {
       const gap = (tag: string) => {
         const sup = elSup[tag.slice(3) as Element]
         return (elementReqs.find((r) => r.tag === tag)?.count ?? 0) - sup.have
@@ -459,7 +460,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
           </button>
           {quests.some((q) => q.kind !== 'material') && (
             <label className="field">
-              🎯 このクエスト用にする（そのクエストの条件に合わせて、属性・アビリティ・得意種目を選びます）
+              🎯 このクエスト用にする（そのクエストの条件に合わせて、アビリティ・得意種目を選びます。属性は空のときだけ）
               <select value="" onChange={(e) => applyQuest(e.target.value)}>
                 <option value="">クエストを選ぶ…</option>
                 {quests

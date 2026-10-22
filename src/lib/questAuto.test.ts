@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { autoGradeOf, autoQuestSetup } from './questAuto'
+import { isStrict } from './quest'
 import type { MonsterDef } from '../types'
 
 const boss = { id: 'b1', name: 'アシリュウ', templateId: 'single', attrs: { n1: 'legs' }, images: {}, element: 'water', questOnly: true, rarity: 'superRare', createdAt: 0 } as unknown as MonsterDef
@@ -16,7 +17,14 @@ describe('おまかせのクエスト', () => {
     const r = autoQuestSetup(boss, 'kyukyoku', 'boss', used, ['バリア', 'シールド', 'リジェネ', 'ミラー'])
     expect(r.requirements.find((x) => x.tag.startsWith('ab:'))?.tag).toBe('ab:ミラー')
   })
-  it('まとめて作るときの格はレア度から', () => {
+  it('まとめて作るときの格はレア度から（コラボの激レアは超究極）', () => {
     expect(autoGradeOf(boss)).toBe('chozetsu')
+    expect(autoGradeOf({ ...boss, series: '鬼退治コラボ' })).toBe('chokyukyoku')
+  })
+  it('超究極も超絶と同じく、適正の属性以外は半減', () => {
+    const q = { kind: 'boss' as const, element: 'fire' as const }
+    expect(isStrict({ ...q, grade: 'chokyukyoku' })).toBe(true)
+    expect(isStrict({ ...q, grade: 'chozetsu' })).toBe(true)
+    expect(isStrict({ ...q, grade: 'kyukyoku' })).toBe(false)
   })
 })

@@ -993,6 +993,9 @@ details.tuning[open] > summary {
   color: #fff;
   text-shadow: 0 1px 3px #000;
 }
+.head-chokyukyoku {
+  background: linear-gradient(90deg, #3a0d5c, #b14cff 45%, #ff4fa3 75%, #ffd166);
+}
 .head-chozetsu {
   background: linear-gradient(90deg, #8a1c1c, #ff8a3d 60%, #ffd166);
 }
@@ -1010,6 +1013,10 @@ details.tuning[open] > summary {
 }
 .quest-banner {
   border-width: 3px;
+}
+.quest-banner.frame-chokyukyoku {
+  border-color: #d58cff;
+  box-shadow: 0 0 16px rgba(190, 90, 255, 0.7);
 }
 .quest-banner.frame-chozetsu {
   border-color: #ffb347;
@@ -1039,6 +1046,9 @@ details.tuning[open] > summary {
   color: #fff;
   clip-path: polygon(12px 0, 100% 0, 100% 100%, 0 100%);
   text-shadow: 0 1px 3px #000;
+}
+.frame-chokyukyoku .grade-ribbon {
+  background: linear-gradient(90deg, #6a1fb0, #ff4fa3, #ffd166);
 }
 .frame-chozetsu .grade-ribbon {
   background: linear-gradient(90deg, #c0392b, #ffd166);
@@ -1078,6 +1088,10 @@ details.tuning[open] > summary {
 }
 .quest-icon.on {
   outline: 2px solid var(--primary);
+}
+.quest-icon.frame-chokyukyoku {
+  border-color: #d58cff;
+  box-shadow: 0 0 12px rgba(190, 90, 255, 0.65);
 }
 .quest-icon.frame-chozetsu {
   border-color: #ffb347;
@@ -1284,10 +1298,15 @@ details.tuning[open] > summary {
   background: linear-gradient(120deg, #1f3d6b, #4cc9f0);
   color: #fff;
 }
+.grade-chokyukyoku {
+  background: linear-gradient(120deg, #6a1fb0, #ff4fa3, #ffd166);
+  color: #fff;
+}
 .grade-chozetsu {
   background: linear-gradient(120deg, #8a1c1c, #ffd166);
   color: #1b1400;
 }
+.grade-chip.on.grade-chokyukyoku,
 .grade-chip.on.grade-chozetsu,
 .grade-chip.on.grade-kyukyoku,
 .grade-chip.on.grade-jokyu,

@@ -4,6 +4,7 @@ import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { advantageElements, elementInfo } from './element'
 import { abilityTag, elementTag, requirementsOf } from './formation'
 import { rarityOf } from './gacha'
+import { seriesOf } from './series'
 import { nodeAttr, type MonsterDef, type Quest, type QuestGrade, type RarityKey, type Requirement } from '../types'
 
 /** 文字列から決まる数（同じボスなら毎回同じ結果に） */
@@ -52,5 +53,7 @@ export function autoQuestSetup(
 const GRADE_BY_RARITY: Record<RarityKey, QuestGrade> = { hazure: 'jokyu', normal: 'kyukyoku', superRare: 'chozetsu' }
 
 export function autoGradeOf(def: MonsterDef): QuestGrade {
+  // コラボの激レアは超究極
+  if (rarityOf(def) === 'superRare' && seriesOf(def) !== '') return 'chokyukyoku'
   return GRADE_BY_RARITY[rarityOf(def)]
 }

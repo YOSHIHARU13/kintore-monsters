@@ -135,7 +135,7 @@ export interface Gacha {
 }
 
 export type QuestDifficulty = 'easy' | 'normal' | 'hard'
-export type QuestGrade = 'jokyu' | 'kiwami' | 'kyukyoku' | 'chozetsu'
+export type QuestGrade = 'jokyu' | 'kiwami' | 'kyukyoku' | 'chozetsu' | 'chokyukyoku'
 
 /** クエストが求める人材の条件（タグ：'el:fire' のような属性か、'ab:バリア' のようなアビリティ） */
 export interface Requirement {

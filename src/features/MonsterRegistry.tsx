@@ -31,6 +31,8 @@ export function todosOf(def: MonsterDef): string[] {
   if (!imageOf(def, FIRST_NODE_ID)) todos.push('画像なし')
   if (!isHidden(def) && elementInfo(def).elements.length === 0) todos.push('属性なし')
   if (!isHidden(def) && !def.rarity && !def.common) todos.push('レア度未設定')
+  // 激レアはガチャに入れないと手に入らない（いつものガチャはなくなった）
+  if (!isHidden(def) && !def.questOnly && rarityOf(def) === 'superRare' && !(def.gachas ?? []).length) todos.push('ガチャ未所属')
   return todos
 }
 

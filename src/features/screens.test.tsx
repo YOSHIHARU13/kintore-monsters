@@ -930,7 +930,7 @@ describe('画面の表示', () => {
 
   it('登録・編集の一覧：未入手でも絵と名前が見え、未設定がバッジで出て、まとめておまかせできる', async () => {
     fake.store.defs = [
-      { ...defs[0], element: 'fire', rarity: 'rare', images: { n1: 'img1' } }, // 設定済み
+      { ...defs[0], element: 'fire', rarity: 'rare', images: { n1: 'img1' }, gachas: ['g1'] }, // 設定済み（ガチャにも入っている）
       defs[1], // アシガメ：未入手・画像なし・属性なし・レア度未設定
     ]
     const el = await render(<MonsterRegistry go={go} />)

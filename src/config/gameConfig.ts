@@ -138,6 +138,7 @@ export const CONFIG = {
       kiwami: { label: '極', hpRatio: 0.9, gold: 80, plus: 0 },
       kyukyoku: { label: '究極', hpRatio: 1.5, gold: 150, plus: 0 },
       chozetsu: { label: '超絶', hpRatio: 2.5, gold: 300, plus: 1 },
+      chokyukyoku: { label: '超究極', hpRatio: 2.5, gold: 300, plus: 1 }, // コラボ限定。強さと報酬は超絶と同じ
     },
     difficulties: {
       // hpRatio：1回のトレーニングで与えるダメージの目安に対するHPの倍率
@@ -153,6 +154,7 @@ export const CONFIG = {
     kiwami: { element: 2, abilities: 1, abilityCount: 1, weak: 1 },
     kyukyoku: { element: 3, abilities: 1, abilityCount: 2, weak: 1 },
     chozetsu: { element: 3, abilities: 2, abilityCount: 2, weak: 2 },
+    chokyukyoku: { element: 3, abilities: 2, abilityCount: 2, weak: 2 },
     material: { element: 2, abilities: 0, abilityCount: 0, weak: 1 },
   },
   // ブースター：回数制の道具。使うと次の1回（EXPは次の数セット）だけ効く。期限なし

@@ -6,7 +6,7 @@ import { DAYS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot } from '../data/exercises'
 import { MonsterImage } from '../components/MonsterImage'
 import { Stars } from '../components/Stars'
 import { QuestBanner } from '../components/QuestBanner'
-import { BOSS_DIFFICULTY, DIFFICULTIES, sessionEstimate, attrOf, dropPlus, gradeOf, powerOf, questGold, questHp, rankOf, type Member } from '../lib/quest'
+import { BOSS_DIFFICULTY, DIFFICULTIES, isStrict, sessionEstimate, attrOf, dropPlus, gradeOf, powerOf, questGold, questHp, rankOf, type Member } from '../lib/quest'
 import { formationOf, requirementsOf, shortfallHelp, tagLabel, tagsOf } from '../lib/formation'
 import { FormationPanel } from '../components/FormationPanel'
 import { luckBonus } from '../lib/fusion'
@@ -73,7 +73,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
         .map((r) => `${tagLabel(r.tag, names)}${own[r.tag] > 1 ? `×${own[r.tag]}` : ''}`)
       if (def.favoriteSlot && quest.weakSlots.includes(def.favoriteSlot)) tags.push('得意種目が弱点')
       if (quest.element && hasAdvantage(def, quest.element)) tags.unshift('属性◎')
-      else if (quest.kind !== 'material' && gradeOf(quest) === 'chozetsu' && quest.element) tags.push('半減')
+      else if (isStrict(quest)) tags.push('半減')
       return [{ mon, def, help: shortfallHelp(def, formation.rows), tags }]
     })
     .sort((a, b) => {
@@ -140,9 +140,9 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
             <span>{quest.weakSlots.map(exerciseName).join('・') || 'なし'}</span>
           </li>
         </ul>
-        {quest.kind !== 'material' && gradeOf(quest) === 'chozetsu' && quest.element && (
+        {isStrict(quest) && (
           <p className="warn small">
-            超絶：適正の属性を持たないモンスターの攻撃は半減します。
+            {CONFIG.quest.grades[gradeOf(quest)].label}：適正の属性を持たないモンスターの攻撃は半減します。
           </p>
         )}
         <p className="muted small">
