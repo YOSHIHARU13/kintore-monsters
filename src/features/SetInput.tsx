@@ -24,6 +24,7 @@ interface Result {
   reps: number
   key: number
   weekCleared: boolean
+  boosted: boolean
 }
 
 export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
@@ -102,7 +103,7 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
     const base = calcSetReward({ isBonus, setNo: rewardNo, judge, intervalOk })
     // 相棒がいれば、その倍率でEXPが増える（ゴールドは増えない）
     const reward = partner ? { ...base, exp: Math.round(base.exp * partner.rate) } : base
-    const { record: rec, weekCleared } = store.recordSet(
+    const { record: rec, weekCleared, boosted } = store.recordSet(
       {
         exerciseId: ex.id,
         slotId,
@@ -120,7 +121,7 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
     )
     setHistory([...history, rec])
     setNow(Date.now())
-    setResult({ judge, eligible: reward.eligible, exp: reward.exp, gold: reward.gold, reps, key: rec.ts, weekCleared })
+    setResult({ judge, eligible: reward.eligible, exp: rec.exp, gold: reward.gold, reps, key: rec.ts, weekCleared, boosted })
     if (weekCleared) navigator.vibrate?.([120, 60, 120, 60, 320])
     else if (judge === 'beat') navigator.vibrate?.([80, 40, 160])
   }
@@ -255,6 +256,7 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
       {result && result.judge !== 'beat' && (
         <div className={`result ${result.judge}`}>
           {JUDGE_LABEL[result.judge]}！ {rewardText(result)}
+          {result.boosted && ' 💪EXP2倍'}
         </div>
       )}
 

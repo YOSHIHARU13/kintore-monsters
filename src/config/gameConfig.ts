@@ -142,6 +142,12 @@ export const CONFIG = {
     },
     partySize: 6, // 出撃できる数
   },
+  // ブースター：回数制の道具。使うと次の1回（EXPは次の数セット）だけ効く。期限なし
+  boosters: {
+    habit: { icon: '🧘', label: 'ブースター', price: 150, text: '次の記録のGが2倍、その日の上限もなし' },
+    exp: { icon: '💪', label: '筋トレブースター', price: 300, text: '次の10セットのEXPが2倍', sets: 10 },
+    quest: { icon: '⚔️', label: '討伐ブースター', price: 250, text: '次のクエスト報酬（Gと核）が2倍' },
+  },
   // 試練の塔：毎月10階を自動で作る。下から1階ずつ挑戦し、各階の報酬は月に1回だけ
   tower: {
     floors: 10,
@@ -149,7 +155,8 @@ export const CONFIG = {
     hpRatio: [0.6, 0.8, 1.0, 1.2, 1.4, 1.7, 2.0, 2.3, 2.7, 3.2],
     gold: [100, 120, 150, 180, 220, 260, 300, 350, 400, 500],
     eggs: { 2: 1, 4: 1, 7: 1, 8: 1 } as Record<number, number>, // その階で卵
-    cores: { 3: 3, 6: 3, 9: 3 } as Record<number, number>, // その階でボスの部位の核
+    cores: {} as Record<number, number>, // その階でボスの部位の核
+    boosters: { 3: 'habit', 6: 'exp', 9: 'quest' } as Record<number, 'habit' | 'exp' | 'quest'>, // その階でブースター
     monsterFloors: [5, 10], // 塔限定モンスターがもらえる階
     eggsInsteadOfMonster: 2, // 塔限定モンスターが登録されていないときは卵
     elementReqFrom: 3, // この階から「適正の属性」の編成条件

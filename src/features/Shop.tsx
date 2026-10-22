@@ -14,6 +14,7 @@ import type { HatchResult } from '../store'
 const MULTI_MAX = 10
 import { CORE_KEYS, CORE_LABEL } from '../lib/cores'
 import { Stars } from '../components/Stars'
+import { BoosterPanel } from '../components/BoosterPanel'
 import { GachaBanner, featuredOf, pickupsOf } from '../components/GachaBanner'
 import { isReady, percent, pickupCount, rarityOf, rateTable, tierRates } from '../lib/gacha'
 
@@ -147,6 +148,8 @@ export function Shop({ go }: { go: Go }) {
           </>
         )}
       </section>
+
+      <BoosterPanel />
 
       <section className="card">
         <h2>💎 核の交換所</h2>

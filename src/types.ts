@@ -13,6 +13,8 @@ export interface AttrExp {
   bought: number // ゴールドで買ったEXP
 }
 
+export type BoosterKey = 'habit' | 'exp' | 'quest'
+
 export interface GameState {
   gold: number
   eggs: number
@@ -43,6 +45,8 @@ export interface GameState {
   questClears: number // クエストをクリアした回数
   clearedQuests: Record<string, number> // クエストごとのクリア回数（一覧の✓に使う）
   tower: { month: string; cleared: number } | null // 試練の塔：その月にクリアした階の数
+  boosters: Partial<Record<BoosterKey, number>> // 持っているブースターの数
+  boosts: { habit?: boolean; quest?: boolean; expSets?: number } // 使用中のブースター（EXPは残りセット数）
 }
 
 export interface SetRecord {

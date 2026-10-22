@@ -58,6 +58,8 @@ const state: GameState = {
   questClears: 0,
   clearedQuests: {},
   tower: null,
+  boosters: {},
+  boosts: {},
   cores: { chestArms: 2, none: 2 },
   coreMisses: {},
 }

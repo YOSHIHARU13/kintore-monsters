@@ -52,6 +52,7 @@ export function HabitCard() {
   return (
     <section className="card">
       <h2>🧘 {label}</h2>
+      {state.boosts?.habit && <p className="tag keep small">⚡ブースター使用中：次の記録はG2倍・上限なし</p>}
       <p className="muted small">
         {state.habitStreak}日連続（自己ベスト {state.bestHabitStreak}日）
         {byMinutes && `・今日 ${todayMinutes}分（Gは${max}分まで）`}

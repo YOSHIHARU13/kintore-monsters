@@ -175,7 +175,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
             {misses > 0 && `・いま${misses}回連続で落ちていない（${CONFIG.cores.pityMisses}回続くと次は確定）`}
           </p>
         ) : towerFloor ? (
-          <p className="small">報酬（月に1回）：{towerRewardText(towerFloor, defs)}</p>
+          <p className="small">報酬（月に1回）：{towerRewardText(towerFloor, defs, state)}</p>
         ) : (
           <p className="small">
             ドロップ {boss?.name ?? '？'}

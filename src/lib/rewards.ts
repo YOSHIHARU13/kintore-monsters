@@ -45,6 +45,11 @@ export function habitLabelOf(state: GameState): string {
 /** 習慣を今 minutes 分記録したらもらえるゴールド。分数なら1日の合計が上限まで、○×なら1日1回 */
 export function habitGoldNow(state: GameState, today: string, minutes: number): number {
   const sameDay = state.habitDate === today
+  // ブースター使用中：Gが2倍で、その日の上限もなし
+  if (state.boosts?.habit) {
+    if (state.habitMode === 'minutes') return Math.max(0, Math.floor(minutes)) * CONFIG.morning.habitGoldPerMinute * 2
+    return sameDay ? 0 : CONFIG.morning.habitGold * 2
+  }
   if (state.habitMode === 'minutes') {
     const before = sameDay ? state.habitMinutesToday : 0
     const room = Math.max(0, CONFIG.morning.habitMaxMinutes - before)

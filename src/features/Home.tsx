@@ -8,6 +8,7 @@ import { ATTR_COLOR, type Go } from '../nav'
 import { plusName } from '../types'
 import { isWeekCleared, partProgress, slotDone } from '../lib/week'
 import { nearGoals } from '../lib/progress'
+import { BoosterPanel } from '../components/BoosterPanel'
 import { HabitCard } from '../components/HabitCard'
 
 export function Home({ go }: { go: Go }) {
@@ -42,6 +43,7 @@ export function Home({ go }: { go: Go }) {
       </section>
 
       <HabitCard />
+      <BoosterPanel compact />
 
       <section className="card">
         <h2>今週の残りタスク：{isWeekCleared(weekSets) ? '全消し達成！' : `あと${remaining}セット`}</h2>

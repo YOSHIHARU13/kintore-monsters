@@ -7,14 +7,16 @@ import { CORE_LABEL } from '../lib/cores'
 import { gradeOf } from '../lib/quest'
 import { towerCleared, towerMonth, type TowerFloor } from '../lib/tower'
 import type { Go } from '../nav'
-import type { MonsterDef } from '../types'
+import type { GameState, MonsterDef } from '../types'
+import { boosterName } from '../lib/boosters'
 
 /** 報酬の説明（例：300G・卵1・胸腕の核×3・🗼アシリュウ） */
-export function towerRewardText(floor: TowerFloor, defs: MonsterDef[]): string {
+export function towerRewardText(floor: TowerFloor, defs: MonsterDef[], state: GameState): string {
   const r = floor.reward
   const parts = [`${r.gold}G`]
   if (r.eggs > 0) parts.push(`🥚卵×${r.eggs}`)
   if (r.cores > 0) parts.push(`💎${CORE_LABEL[floor.quest.attr]}×${r.cores}`)
+  if (r.booster) parts.push(boosterName(state, r.booster))
   if (r.monsterDefId) parts.push(`🗼${defs.find((d) => d.id === r.monsterDefId)?.name ?? '塔限定モンスター'}`)
   return parts.join('・')
 }
@@ -70,7 +72,7 @@ export function Tower({ go }: { go: Go }) {
                       {CONFIG.quest.grades[gradeOf(f.quest)].label}
                     </span>
                   </strong>
-                  <span className="small">{towerRewardText(f, defs)}</span>
+                  <span className="small">{towerRewardText(f, defs, state)}</span>
                 </span>
                 {prize && <MonsterImage imageId={prize.images[bannerNodeOf(prize)]} size={40} silhouette={!done} />}
                 <span className="tower-state">{done ? '✓' : next ? '挑戦' : '🔒'}</span>

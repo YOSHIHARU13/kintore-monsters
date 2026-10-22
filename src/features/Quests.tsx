@@ -23,6 +23,7 @@ import { CONFIG } from '../config/gameConfig'
 import { CORE_LABEL } from '../lib/cores'
 import { towerCleared, towerMonth } from '../lib/tower'
 import { towerRewardText } from './Tower'
+import { boosterName } from '../lib/boosters'
 import type { QuestReward } from '../store'
 import type { Go } from '../nav'
 import { plusName, type MonsterDef } from '../types'
@@ -65,7 +66,11 @@ export function Quests({ go }: { go: Go }) {
           <h2>
             {got.towerFloor ? `試練の塔 ${got.towerFloor}階 突破！` : '討伐成功！'} +{got.gold}G
           </h2>
+          {got.boosted && <p className="tag keep">⚔️ 討伐ブースターで報酬2倍！</p>}
           {got.eggs > 0 && <p>🥚 卵 ×{got.eggs} を手に入れた！</p>}
+          {got.booster && (
+            <p>{boosterName(state, got.booster)} を手に入れた！</p>
+          )}
           {got.monsterId && got.boss && (
             <>
               <MonsterImage imageId={got.boss.images[bannerNodeOf(got.boss)]} size={140} plus={got.plus} />
@@ -136,7 +141,7 @@ export function Quests({ go }: { go: Go }) {
             >
               報酬を受け取る（
               {towerFloor
-                ? towerRewardText(towerFloor, defs)
+                ? towerRewardText(towerFloor, defs, state)
                 : battle.quest.kind === 'material'
                   ? `${CORE_LABEL[battle.quest.attr]}のチャンス`
                   : `${battle.boss?.name}${dropPlus(battle.quest) > 0 ? `＋${dropPlus(battle.quest)}` : ''}`}

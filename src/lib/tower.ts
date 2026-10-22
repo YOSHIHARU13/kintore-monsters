@@ -12,6 +12,7 @@ import {
   type Quest,
   type QuestGrade,
   type Requirement,
+  type BoosterKey,
 } from '../types'
 
 /** 試練の塔：月ごとに10階ぶんを自動で作る。下から1階ずつ、各階の報酬は1回だけ */
@@ -25,6 +26,7 @@ export interface TowerReward {
   gold: number
   eggs: number
   cores: number // ボスの部位の核
+  booster: BoosterKey | null // ブースター
   monsterDefId: string | null // 塔限定モンスター
 }
 
@@ -117,6 +119,7 @@ export function towerFloors(month: string, defs: MonsterDef[], gimmicks: string[
       gold: t.gold[i],
       eggs: (t.eggs[floor] ?? 0) + (mi >= 0 && !prize ? t.eggsInsteadOfMonster : 0),
       cores: t.cores[floor] ?? 0,
+      booster: t.boosters[floor] ?? null,
       monsterDefId: prize?.id ?? null,
     }
     return { floor, quest, reward }

@@ -33,9 +33,10 @@ import { canFeed, fusionGain, isLuckMax, luckAfter, luckBonus } from './lib/fusi
 import { autoPartners } from './lib/partner'
 import { finalAttrs, recommend } from './lib/coverage'
 import { abilitySlots, jogressGradeOf, selectableGimmicks } from './lib/gimmick'
+import { boostActive } from './lib/boosters'
 import { towerCleared, towerFloors, towerMonth, type TowerFloor } from './lib/tower'
 import { elementInfo, jogressElementOf } from './lib/element'
-import { investedFor, isHidden, nodeAttr, type AttrExp, type BannerSlide, type Checkin, type Element, type Gacha, type Quest, type QuestDifficulty, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
+import { investedFor, isHidden, nodeAttr, type AttrExp, type BannerSlide, type BoosterKey, type Checkin, type Element, type Gacha, type Quest, type QuestDifficulty, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
 
 const zeroExp = () => ({ trained: 0, bought: 0 })
 
@@ -68,6 +69,8 @@ function initialState(): GameState {
     questClears: 0,
     clearedQuests: {},
     tower: null,
+    boosters: {},
+    boosts: {},
     cores: {},
     coreMisses: {},
   }
@@ -132,6 +135,8 @@ export interface QuestReward {
   defId: string | null // 手に入ったモンスターの種類（塔では塔限定モンスター）
   eggs: number // 試練の塔でもらえた卵
   towerFloor: number | null // 試練の塔の何階をクリアしたか
+  booster?: BoosterKey | null // 試練の塔でもらえたブースター
+  boosted?: boolean // 討伐ブースターで2倍になったか
   cores: number // 落ちた核の数
   coreKey: FormAttr
   corePity: boolean // 天井で確定したか
@@ -185,7 +190,10 @@ interface Store {
   yesterdayCheckin: Checkin | null // 前日分の朝の記録（まだなら null）
   getHistory: (exerciseId: string) => Promise<SetRecord[]>
   /** セットを記録する。このセットで今週のタスクを全部消したら weekCleared が true */
-  recordSet: (rec: Omit<SetRecord, 'id' | 'ts' | 'date'>, countsBeat: boolean) => { record: SetRecord; weekCleared: boolean }
+  recordSet: (
+    rec: Omit<SetRecord, 'id' | 'ts' | 'date'>,
+    countsBeat: boolean,
+  ) => { record: SetRecord; weekCleared: boolean; boosted: boolean }
   /** 前日の歩数と習慣を記録する。1日1回だけ */
   /** habit は○×のときの結果、minutes は分数で記録するときの分数 */
   recordMorning: (steps: number) => Checkin | null
@@ -209,6 +217,8 @@ interface Store {
   setSlot: (slotId: string, exerciseId: string) => void
   buyExp: (attr: Attr, amount: number) => void
   buyEgg: () => void
+  buyBooster: (key: BoosterKey) => void
+  useBooster: (key: BoosterKey) => void
   /** タマゴを孵す。選んだガチャから、確率どおりに1体（ダブりあり） */
   hatchEgg: (gachaId: string) => HatchResult | null
   /** まとめて引く（タマゴの数まで）。引けた分だけ返す */
@@ -388,10 +398,14 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       return snap.docs.map((d) => ({ ...(d.data() as Omit<SetRecord, 'id'>), id: d.id }))
     }
 
-    const recordSet: Store['recordSet'] = (rec, countsBeat) => {
+    const recordSet: Store['recordSet'] = (input, countsBeat) => {
       const ref = doc(collection(db, base, 'sets'))
+      // 筋トレブースター使用中：EXPが2倍（残りセット数を1つ減らす）
+      const boosted = input.exp > 0 && (state.boosts?.expSets ?? 0) > 0
+      const rec = boosted ? { ...input, exp: input.exp * 2 } : input
       const full = { ...rec, ts: Date.now(), date: dateKey() }
       const update: DocumentData = { totalSets: increment(1) }
+      if (boosted) update['boosts.expSets'] = increment(-1)
       if (state.lastAttendanceDate !== full.date) {
         update.attendance = increment(1)
         update.lastAttendanceDate = full.date
@@ -420,7 +434,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       batch.set(ref, full)
       batch.update(stateRef, update)
       batch.commit().catch(fail)
-      return { record: { ...full, id: ref.id }, weekCleared }
+      return { record: { ...full, id: ref.id }, weekCleared, boosted }
     }
 
     const recordMorning: Store['recordMorning'] = (steps) => {
@@ -458,6 +472,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         bestHabitStreak: Math.max(state.bestHabitStreak, streak),
       }
       if (gold > 0) update.gold = increment(gold)
+      if (gold > 0 && state.boosts?.habit) update['boosts.habit'] = false
       updateState(update)
       return gold
     }
@@ -494,6 +509,21 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const cost = amount * CONFIG.shop.goldPerExp
       if (amount <= 0 || state.gold < cost) return
       updateState({ gold: increment(-cost), [`exp.${attr}.bought`]: increment(amount) })
+    }
+
+    const buyBooster: Store['buyBooster'] = (key) => {
+      const price = CONFIG.boosters[key].price
+      if (state.gold < price) return
+      updateState({ gold: increment(-price), [`boosters.${key}`]: increment(1) })
+    }
+
+    /** ブースターを使う。同じ種類が使用中なら重ねない */
+    const useBooster: Store['useBooster'] = (key) => {
+      if ((state.boosters?.[key] ?? 0) < 1 || boostActive(state, key)) return
+      updateState({
+        [`boosters.${key}`]: increment(-1),
+        [`boosts.${key === 'exp' ? 'expSets' : key}`]: key === 'exp' ? CONFIG.boosters.exp.sets : true,
+      })
     }
 
     const buyEgg: Store['buyEgg'] = () => {
@@ -960,10 +990,12 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const c = battle.challenge
       const material = battle.quest.kind === 'material'
       const bonus = luckBonus(battle.party.map((m) => m.mon))
-      const gold = Math.round(questGold(battle.quest, c.difficulty) * bonus.goldRate)
+      const boost = state.boosts?.quest ? 2 : 1
+      const gold = Math.round(questGold(battle.quest, c.difficulty) * bonus.goldRate * boost)
       const coreKey = battle.quest.attr
       const batch = writeBatch(db)
       const update: DocumentData = {
+        ...(boost > 1 ? { 'boosts.quest': false } : {}),
         gold: increment(gold),
         questClears: increment(1),
         [`clearedQuests.${battle.quest.id}`]: increment(1),
@@ -996,10 +1028,12 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         monsterId = ref.id
         cores = rollBonusCore(Math.random)
       }
+      cores *= boost
       if (cores > 0) update[`cores.${coreKey}`] = increment(cores)
       batch.update(stateRef, update)
       batch.commit().catch(fail)
       return {
+        boosted: boost > 1,
         monsterId,
         defId: battle.boss?.id ?? null,
         cores,
@@ -1016,16 +1050,20 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const month = towerMonth(dateKey())
       if (floor.floor !== towerCleared(state, month) + 1) return null
       const bonus = luckBonus(party)
-      const gold = Math.round(floor.reward.gold * bonus.goldRate)
+      const boost = state.boosts?.quest ? 2 : 1
+      const gold = Math.round(floor.reward.gold * bonus.goldRate * boost)
+      const cores = floor.reward.cores * boost
       const batch = writeBatch(db)
       const update: DocumentData = {
+        ...(boost > 1 ? { 'boosts.quest': false } : {}),
         gold: increment(gold),
         questClears: increment(1),
         tower: { month, cleared: floor.floor },
         challenge: null,
       }
       if (floor.reward.eggs > 0) update.eggs = increment(floor.reward.eggs)
-      if (floor.reward.cores > 0) update[`cores.${floor.quest.attr}`] = increment(floor.reward.cores)
+      if (cores > 0) update[`cores.${floor.quest.attr}`] = increment(cores)
+      if (floor.reward.booster) update[`boosters.${floor.reward.booster}`] = increment(1)
       let monsterId: string | null = null
       if (floor.reward.monsterDefId) {
         const shiny = Math.random() < CONFIG.shop.shinyRate
@@ -1047,8 +1085,10 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       return {
         monsterId,
         defId: floor.reward.monsterDefId,
-        cores: floor.reward.cores,
+        cores,
         coreKey: floor.quest.attr,
+        booster: floor.reward.booster,
+        boosted: boost > 1,
         corePity: false,
         gold,
         eggs: floor.reward.eggs,
@@ -1089,6 +1129,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       setSlot,
       buyExp,
       buyEgg,
+      buyBooster,
+      useBooster,
       hatchEgg,
       hatchMany,
       pourExp,
