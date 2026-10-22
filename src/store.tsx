@@ -99,7 +99,7 @@ export interface MonsterDefInput {
   jogressBirthStars: number // 隠しモンスターが生まれるときの星
   jogressPlus: number // 隠しモンスターの素材に必要な＋
   favoriteSlot: string // 得意種目の枠ID（なしは空）
-  skill: string // 特攻スキル（なしは空）
+  abilities: string[] // アビリティ（対応するギミック名）
 }
 
 export type QuestInput = Omit<Quest, 'id' | 'createdAt'> & { id?: string }
@@ -675,7 +675,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         common: false,
         favoriteSlot: input.favoriteSlot,
         questOnly: input.questOnly,
-        skill: input.skill,
+        abilities: input.abilities,
         ...(input.recipe.length === 2 ? { jogressBirthStars: input.jogressBirthStars, jogressPlus: input.jogressPlus } : {}),
         createdAt: existing?.createdAt ?? Date.now(),
       })

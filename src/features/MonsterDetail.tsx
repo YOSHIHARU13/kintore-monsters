@@ -6,6 +6,7 @@ import { CONFIG } from '../config/gameConfig'
 import { boughtCap, evolutionCost, fusionCost, isExpFull, planPour } from '../lib/evolution'
 import { Gauge } from '../components/Gauge'
 import { Stars } from '../components/Stars'
+import { Abilities } from '../components/Abilities'
 import { attackOf, isJogressReady, jogressNeed } from '../lib/stats'
 import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
@@ -112,13 +113,14 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
         <h1 className="title">{plusName(def, mon)}</h1>
         <Stars def={def} nodeId={mon.nodeId} />
         <p className="small">攻撃力 <strong>{attackOf(mon, def).toLocaleString()}</strong></p>
+        <Abilities def={def} />
         <p style={{ color: ATTR_COLOR[attr] }}>
           {FORM_ATTR_LABEL[attr]}属性
         </p>
         <p className="muted small">{template.name}</p>
         <p className="small">
           得意種目：{favoriteName ?? '未設定'}
-          {def.skill && CONFIG.skills[def.skill] && <>・特攻：{CONFIG.skills[def.skill]}</>}
+
         </p>
         {partnerSlot && <span className="badge">「{slotName(partnerSlot)}」の相棒</span>}
       </section>

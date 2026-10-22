@@ -1,7 +1,7 @@
 import { CONFIG } from '../config/gameConfig'
 import { DAYS, type Attr, type FormAttr } from '../data/exercises'
-import { prevDateKey } from './date'
 import { attackOf } from './stats'
+import { gimmickRate, unmatchedGimmicks } from './gimmick'
 import { nodeAttr, type Challenge, type MonsterDef, type OwnedMonster, type Quest, type QuestDifficulty, type SetRecord } from '../types'
 
 export const DIFFICULTIES: QuestDifficulty[] = ['easy', 'normal', 'hard']
@@ -39,30 +39,18 @@ export function attrOf(member: Member): FormAttr {
 export interface Hit {
   label: string // 何の攻撃か（例：アームカール 3セット目）
   damage: number
-  notes: string[] // 効いた補正（弱点・得意種目・特攻・相性）
+  notes: string[] // 効いた補正（弱点・得意種目・相性・ギミック）
 }
 
-type SetInfo = Pick<SetRecord, 'slotId' | 'day' | 'date' | 'judge' | 'eligible'> & {
-  weightUp?: boolean
-  extra?: boolean
-}
+type SetInfo = Pick<SetRecord, 'slotId' | 'day' | 'eligible'>
 
 /** 1セットぶんのダメージ。その部位の属性のモンスターと無属性のモンスターが攻撃する（ローラーは全員） */
-export function setHit(set: SetInfo, quest: Quest, party: Member[], trainedDates: Set<string>, label: string): Hit {
+export function setHit(set: SetInfo, quest: Quest, party: Member[], label: string): Hit {
   const q = CONFIG.quest
   const roller = set.day === 'bonus'
   const partAttr = roller ? null : DAYS[set.day as keyof typeof DAYS].attr
   const attackers = party.filter((m) => roller || attrOf(m) === 'none' || attrOf(m) === partAttr)
   const weak = quest.weakSlots.includes(set.slotId)
-  const streak = trainedDates.has(prevDateKey(set.date))
-  // 特攻スキルの条件：このセットが、そのやり方だったか
-  const skillMet: Record<string, boolean> = {
-    beat: set.judge === 'beat',
-    weightUp: set.weightUp === true,
-    extra: set.extra === true,
-    streak,
-    roller,
-  }
   const base = roller ? q.rollerDamage : q.setDamage
   const notes = new Set<string>()
   if (weak) notes.add('弱点種目')
@@ -78,10 +66,10 @@ export function setHit(set: SetInfo, quest: Quest, party: Member[], trainedDates
       d *= q.favorite
       notes.add(`${m.def.name}の得意種目`)
     }
-    if (m.def.skill && m.def.skill === quest.weakSkill && skillMet[m.def.skill]) {
-      d *= q.skill
-      notes.add(`${m.def.name}の${CONFIG.skills[m.def.skill]}`)
-    }
+    // ボスのギミックに対応できていなければ、そのぶん攻撃が減る
+    const missing = unmatchedGimmicks(m.def, quest)
+    d *= gimmickRate(m.def, quest)
+    if (missing.length > 0) notes.add(`${m.def.name}は${missing.join('・')}で弱体`)
     const a = affinity(attrOf(m), quest.attr)
     if (a > 1) notes.add(`${m.def.name}の相性◎`)
     if (a < 1) notes.add(`${m.def.name}の相性×`)
@@ -90,20 +78,14 @@ export function setHit(set: SetInfo, quest: Quest, party: Member[], trainedDates
   return { label, damage: Math.round(damage), notes: [...notes] }
 }
 
-/** 挑戦を始めてからの攻撃（報酬が出るセットだけ数える）。trainedDates は連日特攻の判定に使う、トレーニングした日 */
-export function questHits(
-  quest: Quest,
-  party: Member[],
-  sets: (SetRecord & { weightUp?: boolean; extra?: boolean })[],
-  trainedDates: Set<string>,
-  exerciseName: (slotId: string) => string,
-): Hit[] {
+/** 挑戦を始めてからの攻撃（報酬が出るセットだけ数える） */
+export function questHits(quest: Quest, party: Member[], sets: SetRecord[], exerciseName: (slotId: string) => string): Hit[] {
   const perSlot: Record<string, number> = {}
   return sets
     .filter((s) => s.eligible)
     .map((s) => {
       perSlot[s.slotId] = (perSlot[s.slotId] ?? 0) + 1
-      return setHit(s, quest, party, trainedDates, `${exerciseName(s.slotId)} ${perSlot[s.slotId]}セット目`)
+      return setHit(s, quest, party, `${exerciseName(s.slotId)} ${perSlot[s.slotId]}セット目`)
     })
 }
 
@@ -148,9 +130,8 @@ export function battleOf(
     const def = mon && defs.find((d) => d.id === mon.defId)
     return mon && def ? [{ mon, def }] : []
   })
-  const dates = new Set(weekSets.map((s) => s.date))
   const sets = weekSets.filter((s) => s.ts >= challenge.startTs && s.date === today)
-  const hits = questHits(quest, party, sets, dates, exerciseName)
+  const hits = questHits(quest, party, sets, exerciseName)
   const damage = hits.reduce((sum, h) => sum + h.damage, 0)
   const hp = quest.hp[challenge.difficulty]
   return { challenge, quest, boss: defs.find((d) => d.id === quest.bossDefId), party, hits, damage, hp, defeated: damage >= hp }

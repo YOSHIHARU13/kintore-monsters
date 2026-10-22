@@ -825,6 +825,43 @@ details.fold[open] > summary {
   }
 }
 
+/* アビリティとギミック */
+.abilities {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+}
+.ability {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: linear-gradient(120deg, #3a2a6b, #1f3d6b);
+  border: 1px solid #b388ff;
+  color: #fff;
+}
+.ability.empty {
+  background: none;
+  border-style: dashed;
+  border-color: var(--line);
+  color: var(--muted);
+}
+.gimmicks {
+  display: inline-flex;
+  gap: 4px;
+}
+.gimmick {
+  font-weight: 800;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: #3a1f24;
+  border: 1px solid #ef476f;
+}
+.tag.warn {
+  color: var(--warn);
+}
+
 /* クエスト */
 .battle-bar {
   position: sticky;

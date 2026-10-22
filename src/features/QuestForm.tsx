@@ -5,6 +5,7 @@ import { DAYS, FORM_ATTRS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type FormAttr
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { QuestBanner } from '../components/QuestBanner'
 import { DIFFICULTIES, defaultHp, questGold, standardSessionDamage } from '../lib/quest'
+import { allGimmicks } from '../lib/gimmick'
 import { ATTR_COLOR, type Go } from '../nav'
 import { nodeAttr, type Quest, type QuestDifficulty } from '../types'
 
@@ -22,7 +23,11 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
     existing?.attr ?? (bossChoices[0] ? nodeAttr(bossChoices[0], FIRST_NODE_ID) : 'none'),
   )
   const [weakSlots, setWeakSlots] = useState<string[]>(existing?.weakSlots ?? [])
-  const [weakSkill, setWeakSkill] = useState(existing?.weakSkill ?? '')
+  const [gimmicks, setGimmicks] = useState<string[]>(existing?.gimmicks ?? [])
+  const [newGimmick, setNewGimmick] = useState('')
+  const [newAbility, setNewAbility] = useState('')
+  const [customGimmicks, setCustomGimmicks] = useState<Record<string, string>>(existing?.customGimmicks ?? {})
+  const gimmickNames = { ...allGimmicks(quests), ...customGimmicks }
   const [rank, setRank] = useState(existing?.rank ?? 1)
   const [hp, setHp] = useState<Record<QuestDifficulty, number>>(existing?.hp ?? defaultHp(existing?.rank ?? 1))
   const [catchphrase, setCatchphrase] = useState(existing?.catchphrase ?? '')
@@ -37,7 +42,8 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
     bossDefId,
     attr,
     weakSlots,
-    weakSkill,
+    gimmicks,
+    customGimmicks,
     hp,
     rank,
     catchphrase,
@@ -49,7 +55,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
     if (!name.trim()) return setError('クエストの名前を入力してください')
     if (!boss) return setError('ボスにするモンスターを選んでください')
     if (DIFFICULTIES.some((d) => !(hp[d] > 0))) return setError('HPは1以上にしてください')
-    saveQuest({ id: existing?.id, name, bossDefId, attr, weakSlots, weakSkill, hp, rank, catchphrase, theme })
+    saveQuest({ id: existing?.id, name, bossDefId, attr, weakSlots, gimmicks, customGimmicks, hp, rank, catchphrase, theme })
     go({ name: 'quests' })
   }
 
@@ -149,17 +155,57 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
             })}
           </div>
         </div>
-        <label className="field">
-          弱点のやり方（この特攻スキルのモンスターが、そのやり方をするとダメージ×{CONFIG.quest.skill}）
-          <select value={weakSkill} onChange={(e) => setWeakSkill(e.target.value)}>
-            <option value="">なし</option>
-            {Object.entries(CONFIG.skills).map(([key, label]) => (
-              <option key={key} value={key}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="field">
+          ギミック（{CONFIG.gimmicks.maxPerBoss}つまで）：対応するアビリティがないモンスターは、1つにつき攻撃が
+          {Math.round(CONFIG.gimmicks.penaltyPerGimmick * 100)}%減ります
+          <div className="chips" role="group" aria-label="ギミック">
+            {Object.keys(gimmickNames).map((g) => {
+              const on = gimmicks.includes(g)
+              return (
+                <button
+                  key={g}
+                  type="button"
+                  className={`chip${on ? ' on' : ''}`}
+                  disabled={!on && gimmicks.length >= CONFIG.gimmicks.maxPerBoss}
+                  onClick={() => setGimmicks(on ? gimmicks.filter((x) => x !== g) : [...gimmicks, g])}
+                >
+                  {g}
+                </button>
+              )
+            })}
+          </div>
+          <span className="muted small">新しいギミックを作る（ギミック名と、それに対応するアビリティ名をセットで）</span>
+          <span className="row wrap">
+            <input
+              value={newGimmick}
+              onChange={(e) => setNewGimmick(e.target.value)}
+              maxLength={8}
+              placeholder="例：ゾーン"
+              aria-label="新しいギミック"
+            />
+            <input
+              value={newAbility}
+              onChange={(e) => setNewAbility(e.target.value)}
+              maxLength={12}
+              placeholder="例：ゾーンブレイク"
+              aria-label="対応するアビリティ"
+            />
+            <button
+              type="button"
+              className="btn small"
+              disabled={!newGimmick.trim() || !newAbility.trim() || gimmicks.length >= CONFIG.gimmicks.maxPerBoss}
+              onClick={() => {
+                const g = newGimmick.trim()
+                if (!(g in gimmickNames)) setCustomGimmicks({ ...customGimmicks, [g]: newAbility.trim() })
+                if (!gimmicks.includes(g)) setGimmicks([...gimmicks, g])
+                setNewGimmick('')
+                setNewAbility('')
+              }}
+            >
+              追加
+            </button>
+          </span>
+        </div>
       </section>
 
       <section className="card">

@@ -4,6 +4,7 @@ import { getNode, getTemplate } from '../data/evolutionTemplates'
 import { MonsterImage } from '../components/MonsterImage'
 import { CONFIG } from '../config/gameConfig'
 import { Stars } from '../components/Stars'
+import { Abilities } from '../components/Abilities'
 import { MonsterTabs } from '../components/MonsterTabs'
 import { ATTR_COLOR, type Go } from '../nav'
 import { nodeAttr, plusName, type MonsterDef, type OwnedMonster } from '../types'
@@ -38,6 +39,7 @@ export function Box({ go }: { go: Go }) {
               <MonsterImage imageId={def.images[mon.nodeId]} size={96} plus={mon.plus} shiny={mon.shiny} />
               <strong>{plusName(def, mon)}</strong>
               <Stars def={def} nodeId={mon.nodeId} />
+              <Abilities def={def} />
               <span className="small" style={{ color: ATTR_COLOR[nodeAttr(def, mon.nodeId)] }}>
                 {FORM_ATTR_LABEL[nodeAttr(def, mon.nodeId)]}属性
               </span>

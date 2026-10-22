@@ -8,6 +8,7 @@ import { QuestBanner } from '../components/QuestBanner'
 import { DIFFICULTIES, advantageAttr, affinity, attrOf, powerOf, questGold, rankOf, type Member } from '../lib/quest'
 import { ATTR_COLOR, type Go } from '../nav'
 import { attackOf } from '../lib/stats'
+import { abilityName, allGimmicks, gimmickRate, unmatchedGimmicks } from '../lib/gimmick'
 import { plusName, type QuestDifficulty } from '../types'
 
 /** クエストの詳細：ボスの弱点を見て、難易度と出撃メンバーを選んで挑戦する */
@@ -36,6 +37,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
 
   const boss = defs.find((d) => d.id === quest.bossDefId)
   const rank = rankOf(quest)
+  const names = allGimmicks(quests)
   const exerciseName = (slotId: string) => {
     const slot = SLOTS.find((s) => s.id === slotId)
     return slot ? exerciseOfSlot(slot, menu).name : '？'
@@ -53,9 +55,10 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
       if (a < 1) tags.push('相性×')
       const fav = !!def.favoriteSlot && quest.weakSlots.includes(def.favoriteSlot)
       if (fav) tags.push('得意種目が弱点')
-      const skill = !!def.skill && def.skill === quest.weakSkill
-      if (skill) tags.push(CONFIG.skills[def.skill!])
-      const score = powerOf(m) * a * (fav ? CONFIG.quest.favorite : 1) * (skill ? CONFIG.quest.skill : 1)
+      const missing = unmatchedGimmicks(def, quest)
+      for (const g of quest.gimmicks ?? []) if (!missing.includes(g)) tags.push(abilityName(g, names))
+      if (missing.length > 0) tags.push(`${missing.join('・')}で弱体`)
+      const score = powerOf(m) * a * (fav ? CONFIG.quest.favorite : 1) * gimmickRate(def, quest)
       return [{ ...m, score, tags }]
     })
     .sort((a, b) => b.score - a.score)
@@ -88,8 +91,16 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
             <span>{quest.weakSlots.map(exerciseName).join('・') || 'なし'}</span>
           </li>
           <li>
-            <span>弱点のやり方（特攻×{CONFIG.quest.skill}）</span>
-            <span>{quest.weakSkill ? CONFIG.skills[quest.weakSkill] : 'なし'}</span>
+            <span>ギミック（対応がないと1つにつき攻撃 -{Math.round(CONFIG.gimmicks.penaltyPerGimmick * 100)}%）</span>
+            <span className="gimmicks">
+              {(quest.gimmicks ?? []).length === 0
+                ? 'なし'
+                : (quest.gimmicks ?? []).map((g) => (
+                    <span key={g} className="gimmick">
+                      {g}
+                    </span>
+                  ))}
+            </span>
           </li>
         </ul>
         <p className="muted small">
@@ -138,7 +149,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
                       </span>
                       <span className="small"> 攻撃力 {attackOf(m.mon, m.def).toLocaleString()}</span>
                       {m.tags.map((t) => (
-                        <span key={t} className={`tag${t === '相性×' ? '' : ' keep'}`}>
+                        <span key={t} className={`tag${t === '相性×' || t.endsWith('で弱体') ? ' warn' : ' keep'}`}>
                           {' '}
                           {t}
                         </span>

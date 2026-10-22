@@ -45,8 +45,6 @@ export interface SetRecord {
   ts: number
   setNo: number // その日のうちで、その種目の何セット目か
   weightKg: number // 自重種目は0
-  weightUp?: boolean // 前回より重いダンベルでやったか（重量アップ特攻）
-  extra?: boolean // 2周目のセットか（追い込み特攻）
   reps: number
   target: number | null
   judge: Judge
@@ -87,7 +85,7 @@ export interface MonsterDef {
   jogressBirthStars?: number // 隠しモンスターが生まれるときの星（素材はこの1つ下以上）
   jogressPlus?: number // 隠しモンスターの素材に必要な＋（なければ最大）
   questOnly?: boolean // クエスト限定（ガチャには出ない。クエストのボスとして倒すと手に入る）
-  skill?: string // 特攻スキル（CONFIG.skills のキー）
+  abilities?: string[] // アビリティ：対応するギミック名で持つ（例：'バリア' ならバリアブレイカー）
   rarity?: RarityKey // レア度（なければノーマル）
   common?: boolean // 旧形式：ハズレ枠（レア度ができる前のデータ）
   createdAt: number
@@ -121,7 +119,8 @@ export interface Quest {
   bossDefId: string // ボス（倒すと手に入るモンスター）
   attr: FormAttr // ボスの属性（相性に使う）
   weakSlots: string[] // 弱点種目（種目の枠ID）
-  weakSkill: string // 弱点のやり方（CONFIG.skills のキー。なしは空）
+  gimmicks?: string[] // ギミック名（対応するアビリティを持たないモンスターは攻撃が減る）
+  customGimmicks?: Record<string, string> // このクエストで作ったギミック → 対応するアビリティ名
   hp: Record<QuestDifficulty, number>
   rank?: number // ボスの格（CONFIG.quest.ranks の番号。なければ「普通」）
   catchphrase: string

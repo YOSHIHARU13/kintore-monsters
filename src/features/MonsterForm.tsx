@@ -8,9 +8,10 @@ import { ATTR_COLOR, type Go } from '../nav'
 import { CONFIG } from '../config/gameConfig'
 import { isHidden, type RarityKey } from '../types'
 import { RARITY_KEYS, formLabel, rarityOf } from '../lib/gacha'
+import { abilityName, abilitySlots, allGimmicks } from '../lib/gimmick'
 
 export function MonsterForm({ id, go }: { id?: string; go: Go }) {
-  const { defs, gachas, menu, saveMonsterDef } = useStore()
+  const { defs, gachas, menu, quests, saveMonsterDef } = useStore()
   const existing = id ? defs.find((d) => d.id === id) : undefined
   // 登録済みのモンスターは、ツリーを変えられないか、分岐を増やす方向にだけ変えられる
   const selectable = TEMPLATES.filter((t) =>
@@ -25,7 +26,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
   const [jogressPlus, setJogressPlus] = useState(existing?.jogressPlus ?? CONFIG.fusion.maxPlus)
   const [questOnly, setQuestOnly] = useState(existing?.questOnly === true)
   const [favoriteSlot, setFavoriteSlot] = useState(existing?.favoriteSlot ?? '')
-  const [skill, setSkill] = useState(existing?.skill ?? '')
+  const [abilities, setAbilities] = useState<string[]>(existing?.abilities ?? [])
   const [inGachas, setInGachas] = useState<string[]>(existing?.gachas ?? [])
   const [rarity, setRarity] = useState<RarityKey>(existing ? rarityOf(existing) : 'normal')
   const [recipe, setRecipe] = useState<string[]>(existing?.recipe?.length === 2 ? existing.recipe : [])
@@ -92,7 +93,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
         gachas: inGachas.filter((g) => gachas.some((x) => x.id === g && !x.builtin)),
         rarity,
         favoriteSlot,
-        skill,
+        abilities: abilities.slice(0, abilitySlots({ recipe, rarity })),
         questOnly: recipe.length !== 2 && questOnly,
         jogressBirthStars: birthStars,
         jogressPlus,
@@ -205,7 +206,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
       </section>
 
       <section className="card">
-        <h2>得意種目と特攻スキル</h2>
+        <h2>得意種目とアビリティ</h2>
         <label className="field">
           得意種目（この種目の相棒にすると、EXPがさらに ×{CONFIG.partner.favorite}）
           <select value={favoriteSlot} onChange={(e) => setFavoriteSlot(e.target.value)}>
@@ -218,17 +219,30 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
             ))}
           </select>
         </label>
-        <label className="field">
-          特攻スキル（クエストで、ボスの弱点のやり方と同じなら大ダメージ）
-          <select value={skill} onChange={(e) => setSkill(e.target.value)}>
-            <option value="">なし</option>
-            {Object.entries(CONFIG.skills).map(([key, label]) => (
-              <option key={key} value={key}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="field">
+          アビリティ（{abilitySlots({ recipe, rarity })}個まで・レア度で決まる）
+          <div className="chips" role="group" aria-label="アビリティ">
+            {Object.keys(allGimmicks(quests)).map((g) => {
+              const on = abilities.includes(g)
+              const max = abilitySlots({ recipe, rarity })
+              return (
+                <button
+                  key={g}
+                  type="button"
+                  className={`chip${on ? ' on' : ''}`}
+                  disabled={!on && abilities.length >= max}
+                  onClick={() => setAbilities(on ? abilities.filter((x) => x !== g) : [...abilities, g])}
+                >
+                  {abilityName(g, allGimmicks(quests))}
+                </button>
+              )
+            })}
+          </div>
+          <span className="muted small">
+            クエストのボスのギミック（例：バリア）に対応するアビリティ（バリアブレイカー）がないと、ギミック1つにつき攻撃が
+            {Math.round(CONFIG.gimmicks.penaltyPerGimmick * 100)}%減ります。
+          </span>
+        </div>
       </section>
 
       {recipe.length !== 2 && (
