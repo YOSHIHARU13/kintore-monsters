@@ -99,6 +99,7 @@ export function recommend(
   gimmicks: string[],
   slots: number,
   selfId?: string,
+  slotIds: string[] = SLOTS.map((s) => s.id), // 得意種目にできる種目（モンスターの部位で決まる）
 ): { element: Element; favoriteSlot: string; abilities: string[] } {
   const gap = (s: Supply) => s.need - s.have
   const byGap = <T>(items: T[], supply: (t: T) => Supply) =>
@@ -108,10 +109,7 @@ export function recommend(
   const els = elementSupply(defs, quests, selfId)
   return {
     element: byGap(ELEMENTS, (e) => els[e])[0],
-    favoriteSlot: byGap(
-      SLOTS.map((s) => s.id),
-      (s) => slotSupply(s, defs, quests, selfId),
-    )[0],
+    favoriteSlot: byGap(slotIds, (s) => slotSupply(s, defs, quests, selfId))[0] ?? '',
     abilities: byGap(gimmicks, (g) => abilitySupply(g, defs, quests, selfId)).slice(0, slots),
   }
 }

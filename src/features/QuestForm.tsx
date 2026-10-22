@@ -5,7 +5,7 @@ import { DAYS, FORM_ATTRS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type FormAttr
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { QuestBanner } from '../components/QuestBanner'
 import { DIFFICULTIES, GRADES, defaultBossHp, defaultHp, gradeOf, questGold, standardSessionDamage } from '../lib/quest'
-import { allGimmicks } from '../lib/gimmick'
+import { allGimmicks, selectableGimmicks } from '../lib/gimmick'
 import { ELEMENTS } from '../lib/element'
 import { abilityTag, elementTag, requirementsOf, tagLabel } from '../lib/formation'
 import { CORE_LABEL } from '../lib/cores'
@@ -219,7 +219,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
           ))}
         </ul>
         <div className="chips" role="group" aria-label="条件を足す">
-          {[...ELEMENTS.map(elementTag), ...Object.keys(gimmickNames).map(abilityTag)]
+          {[...ELEMENTS.map(elementTag), ...[...new Set([...selectableGimmicks(quests), ...Object.keys(customGimmicks)])].map(abilityTag)]
             .filter((tag) => !requirements.some((r) => r.tag === tag))
             .map((tag) => (
               <button

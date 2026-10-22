@@ -14,18 +14,20 @@ describe('編成', () => {
   ]
 
   it('タグ：超属性は2、複合属性は両方に1、アビリティは持てる数まで', () => {
-    expect(tagsOf(def('a', { element: 'fire', abilities: ['バリア'] }))).toEqual({ 'el:fire': 1, 'ab:バリア': 1 })
+    expect(tagsOf(def('a', { rarity: 'rare', element: 'fire', abilities: ['バリア'] }))).toEqual({ 'el:fire': 1, 'ab:バリア': 1 })
     expect(tagsOf(def('s', { recipe: ['x', 'y'], jogressElements: ['fire'], jogressSuper: true }))).toEqual({ 'el:fire': 2 })
     expect(tagsOf(def('d', { recipe: ['x', 'y'], jogressElements: ['fire', 'water'] }))).toEqual({ 'el:fire': 1, 'el:water': 1 })
-    expect(tagsOf(def('h', { rarity: 'hazure', abilities: ['バリア'] }))).toEqual({}) // ハズレはアビリティ0個
+    expect(tagsOf(def('h', { rarity: 'hazure', abilities: ['バリア'] }))).toEqual({}) // ハズレ・ノーマルはアビリティ0個
+    expect(tagsOf(def('n', { abilities: ['バリア'] }))).toEqual({})
+    expect(tagsOf(def('j', { recipe: ['x', 'y'], abilities: ['バリア', 'シールド', 'ミラー'] }))).toEqual({ 'ab:バリア': 1, 'ab:シールド': 1 }) // ジョグレスは2個まで
   })
 
   it('何もそろっていないと×0.4、ちょうどそろうと×1.0、超えた分は1つ+0.15', () => {
     expect(formationOf([], reqs).rate).toBe(0.4)
     const exact = [
-      def('1', { element: 'fire', abilities: ['バリア'] }),
-      def('2', { element: 'fire', abilities: ['バリア'] }),
-      def('3', { element: 'fire', abilities: ['バリア'] }),
+      def('1', { rarity: 'rare', element: 'fire', abilities: ['バリア'] }),
+      def('2', { rarity: 'rare', element: 'fire', abilities: ['バリア'] }),
+      def('3', { rarity: 'rare', element: 'fire', abilities: ['バリア'] }),
       def('4', { element: 'water' }),
       def('5', { element: 'water' }),
       def('6', { element: 'water' }),
@@ -42,7 +44,7 @@ describe('編成', () => {
 
   it('足りていない条件への貢献度（候補の並び順に使う）', () => {
     const rows = formationOf([def('a', { element: 'fire' })], reqs).rows
-    expect(shortfallHelp(def('b', { element: 'fire', abilities: ['バリア'] }), rows)).toBe(2)
+    expect(shortfallHelp(def('b', { rarity: 'rare', element: 'fire', abilities: ['バリア'] }), rows)).toBe(2)
     expect(shortfallHelp(def('c', { element: 'light' }), rows)).toBe(0)
   })
 

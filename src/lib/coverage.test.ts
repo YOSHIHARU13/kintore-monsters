@@ -12,7 +12,7 @@ const quest = (id: string, extra: Partial<Quest> = {}): Quest => ({
 
 describe('登録画面の被り・不足', () => {
   const defs = [
-    def('a', { abilities: ['バリア'], favoriteSlot: 'mon4', element: 'fire' }),
+    def('a', { rarity: 'rare', abilities: ['バリア'], favoriteSlot: 'mon4', element: 'fire' }),
     def('b', { attr: 'legs', attrs: { n1: 'legs', n2: 'legs', n3: 'legs' } }),
   ]
   const quests = [
@@ -39,7 +39,7 @@ describe('登録画面の被り・不足', () => {
   })
 
   it('刺さるクエスト：編成の条件に貢献できるか', () => {
-    const draft = def('new', { rarity: 'superRare', element: 'fire', abilities: ['バリア', 'シールド'], favoriteSlot: 'wed1' })
+    const draft = def('new', { recipe: ['x', 'y'], jogressElements: ['fire'], abilities: ['バリア', 'シールド'], favoriteSlot: 'wed1' })
     const fits = questFits(draft, quests, { バリア: 'バリアブレイカー', シールド: 'シールドクラッシャー' })
     expect(fits[0].grade).toBe('◎')
     expect(fits[0].reasons).toEqual(['🔥炎', 'バリアブレイカー', 'シールドクラッシャー', '得意種目が弱点'])
@@ -48,7 +48,7 @@ describe('登録画面の被り・不足', () => {
   })
 
   it('同じ構成のモンスターを見つける', () => {
-    const draft = def('new', { abilities: ['バリア'], favoriteSlot: 'mon4', element: 'fire' })
+    const draft = def('new', { rarity: 'rare', abilities: ['バリア'], favoriteSlot: 'mon4', element: 'fire' })
     expect(similarDefs(draft, defs).map((d) => d.id)).toEqual(['a'])
   })
 

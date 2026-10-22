@@ -8,7 +8,7 @@ import { ATTR_COLOR, type Go } from '../nav'
 import { CONFIG } from '../config/gameConfig'
 import { isHidden, type Element, type MonsterDef, type RarityKey } from '../types'
 import { RARITY_KEYS, formLabel, rarityOf } from '../lib/gacha'
-import { abilityName, abilitySlots, allGimmicks } from '../lib/gimmick'
+import { abilityName, abilitySlots, allGimmicks, selectableGimmicks } from '../lib/gimmick'
 import {
   abilitySupply,
   attrSupply,
@@ -18,6 +18,7 @@ import {
   similarDefs,
   slotSupply,
   elementSupply,
+  finalAttrs,
   type Supply,
 } from '../lib/coverage'
 import { ELEMENTS, ELEMENT_COLOR, ELEMENT_LABEL, elementInfo, elementName, jogressElementOf } from '../lib/element'
@@ -78,18 +79,31 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
     attrs: Object.fromEntries(template.nodes.map((n) => [n.id, attrOf(n.id)])),
     element: element || undefined,
     favoriteSlot: favoriteSlot || undefined,
-    abilities,
+    abilities: abilities.slice(0, abilitySlots({ recipe, rarity })),
     ...(recipe.length === 2
       ? { jogressElements: jogressElementOf(recipe, defs).elements, jogressSuper: jogressElementOf(recipe, defs).super }
       : {}),
   }
   const elSup = elementSupply(defs, quests, existing?.id)
+  // 得意種目は、このモンスターの部位（最終形態）の種目とローラーから選ぶ。部位が「無」なら全部から
+  const parts = finalAttrs(draftFull)
+  const favoriteChoices = SLOTS.filter(
+    (slot) => slot.day === 'bonus' || parts.includes('none') || parts.includes(DAYS[slot.day].attr),
+  )
+  const validFavorite = favoriteChoices.some((slot) => slot.id === favoriteSlot) ? favoriteSlot : ''
   const attrSup = attrSupply(defs, quests, existing?.id)
   const fits = questFits(draftFull, quests, gimmickNames)
   const similar = similarDefs(draftFull, defs)
   const supplyText = (sup: Supply) => `${sup.have}体${sup.need > 0 ? `／クエスト${sup.need}` : ''}`
   const applyRecommend = () => {
-    const rec = recommend(defs, quests, Object.keys(gimmickNames), maxAbilities, existing?.id)
+    const rec = recommend(
+      defs,
+      quests,
+      selectableGimmicks(quests),
+      maxAbilities,
+      existing?.id,
+      favoriteChoices.map((s) => s.id),
+    )
     if (recipe.length !== 2) setElement(rec.element)
     setFavoriteSlot(rec.favoriteSlot)
     setAbilities(rec.abilities)
@@ -111,7 +125,9 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
     }
     const abilityReqs = reqs.filter((r) => r.tag.startsWith('ab:')).map((r) => r.tag.slice(3))
     if (abilityReqs.length > 0) setAbilities(abilityReqs.slice(0, maxAbilities))
-    if (quest.weakSlots[0]) setFavoriteSlot(quest.weakSlots[0])
+    // 弱点種目のうち、このモンスターの部位で選べるもの
+    const weak = quest.weakSlots.find((w) => favoriteChoices.some((slot) => slot.id === w))
+    if (weak) setFavoriteSlot(weak)
   }
 
   const stages = [...new Set(template.nodes.filter((n) => n.next.length > 0).map((n) => n.stage))]
@@ -153,7 +169,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
         gachas: inGachas.filter((g) => gachas.some((x) => x.id === g && !x.builtin)),
         rarity,
         element,
-        favoriteSlot,
+        favoriteSlot: validFavorite,
         abilities: abilities.slice(0, abilitySlots({ recipe, rarity })),
         questOnly: recipe.length !== 2 && questOnly,
         jogressBirthStars: birthStars,
@@ -278,25 +294,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
       </section>
 
       <section className="card">
-        <h2>属性・得意種目・アビリティ</h2>
-        <button type="button" className="btn small" onClick={applyRecommend}>
-          ✨ 足りないもので埋める（属性・得意種目・アビリティ）
-        </button>
-        {quests.some((q) => q.kind !== 'material') && (
-          <label className="field">
-            🎯 このクエスト用にする（そのクエストの条件に合わせて、属性・アビリティ・得意種目を選びます）
-            <select value="" onChange={(e) => applyQuest(e.target.value)}>
-              <option value="">クエストを選ぶ…</option>
-              {quests
-                .filter((q) => q.kind !== 'material')
-                .map((q) => (
-                  <option key={q.id} value={q.id}>
-                    {q.name}
-                  </option>
-                ))}
-            </select>
-          </label>
-        )}
+        <h2>属性</h2>
         {recipe.length === 2 ? (
           <p className="small">
             属性：<strong>{elementName(elementInfo(draftFull))}</strong>
@@ -324,11 +322,31 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
             </div>
           </div>
         )}
+        <details className="tuning" open={!!existing && (!!existing.favoriteSlot || (existing.abilities ?? []).length > 0)}>
+          <summary>こだわり設定（あとからでOK）：得意種目・アビリティ</summary>
+          <button type="button" className="btn small" onClick={applyRecommend}>
+            ✨ 足りないもので埋める（属性・得意種目・アビリティ）
+          </button>
+          {quests.some((q) => q.kind !== 'material') && (
+            <label className="field">
+              🎯 このクエスト用にする（そのクエストの条件に合わせて、属性・アビリティ・得意種目を選びます）
+              <select value="" onChange={(e) => applyQuest(e.target.value)}>
+                <option value="">クエストを選ぶ…</option>
+                {quests
+                  .filter((q) => q.kind !== 'material')
+                  .map((q) => (
+                    <option key={q.id} value={q.id}>
+                      {q.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+          )}
         <label className="field">
-          得意種目（この種目の相棒にすると、EXPがさらに ×{CONFIG.partner.favorite}）
-          <select value={favoriteSlot} onChange={(e) => setFavoriteSlot(e.target.value)}>
+          得意種目（このモンスターの部位の種目から。相棒にするとEXPがさらに ×{CONFIG.partner.favorite}）
+          <select value={validFavorite} onChange={(e) => setFavoriteSlot(e.target.value)}>
             <option value="">なし</option>
-            {SLOTS.map((slot) => (
+            {favoriteChoices.map((slot) => (
               <option key={slot.id} value={slot.id}>
                 {slot.day === 'bonus' ? 'ボーナス：' : `${DAYS[slot.day].title}：`}
                 {exerciseOfSlot(slot, menu).name}（{supplyText(slotSupply(slot.id, defs, quests, existing?.id))}）
@@ -338,9 +356,10 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
           </select>
         </label>
         <div className="field">
-          アビリティ（{maxAbilities}個まで・レア度で決まる）　数字は「持っているモンスター／それを求めるクエスト」
+          アビリティ（{maxAbilities}個まで）　数字は「持っているモンスター／それを求めるクエスト」
           <div className="chips" role="group" aria-label="アビリティ">
-            {Object.keys(gimmickNames).map((g) => {
+            {maxAbilities === 0 && <span className="muted small">このレア度ではアビリティを持てません。</span>}
+            {maxAbilities > 0 && selectableGimmicks(quests).map((g) => {
               const on = abilities.includes(g)
               const sup = abilitySupply(g, defs, quests, existing?.id)
               return (
@@ -358,9 +377,10 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
             })}
           </div>
           <span className="muted small">
-            クエストの「求められる編成」の条件になります。条件に合うモンスターが多いほど、編成倍率が上がります。
+            クエストの「求められる編成」の条件になります。持てる数はレア度で決まります（ハズレ・ノーマル0、レア・激レア1、ジョグレス2）。
           </span>
         </div>
+        </details>
       </section>
 
       {recipe.length !== 2 && (
@@ -441,7 +461,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
         <p className="muted small">
           隠しモンスターはタマゴからは生まれません。レシピの2体がどちらも条件を満たしたら、ジョグレスで生まれます（
           {CONFIG.jogress.gold}G＋無垢の核×{CONFIG.jogress.cores}、2体はいなくなります）。同じモンスター2体でもOK。
-          素材に激レアが入ると、アビリティが1つ増えて、攻撃力も上がります（激レア1体につき +
+          素材に激レアが入ると、攻撃力が上がります（激レア1体につき +
           {CONFIG.jogress.superRareBonus.toLocaleString()}）。
         </p>
         {recipe.length === 2 && (

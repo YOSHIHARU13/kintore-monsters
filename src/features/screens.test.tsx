@@ -681,7 +681,7 @@ describe('画面の表示', () => {
       hp: { easy: 1000, normal: 3000, hard: 6000 }, catchphrase: '', theme: 'flame', createdAt: 1,
     }
     fake.store.quests = [quest]
-    fake.store.defs = [{ ...defs[0], favoriteSlot: 'mon4', abilities: ['バリア'], element: 'fire' }, defs[1]]
+    fake.store.defs = [{ ...defs[0], rarity: 'rare', favoriteSlot: 'mon4', abilities: ['バリア'], element: 'fire' }, defs[1]]
     fake.store.owned = [owned[0], { id: 'o2', defId: 'm2', nodeId: 'n1', obtainedAt: 2 }]
     const el = await render(<QuestDetail id="q1" go={go} />)
     expect(el.textContent).toContain('バリアブレイカー0/2')
@@ -813,19 +813,21 @@ describe('画面の表示', () => {
   it('モンスター登録：足りないものが分かり、おすすめで埋められ、刺さるクエストが出る', async () => {
     fake.store.quests = [
       {
-        id: 'q1', name: '脚竜の巣', bossDefId: 'm2', attr: 'legs', weakSlots: ['wed1'],
+        id: 'q1', name: '脚竜の巣', bossDefId: 'm2', attr: 'legs', weakSlots: ['mon4'],
         requirements: [{ tag: 'el:fire', count: 3 }, { tag: 'ab:シールド', count: 2 }],
         hp: { easy: 1, normal: 1, hard: 1 }, catchphrase: '', theme: 'flame', createdAt: 1,
       },
     ]
     const el = await render(<MonsterForm go={go} />)
+    await act(async () => el.querySelector('[aria-label="レア度"]')!.querySelectorAll('button')[2].click()) // レア（アビリティ1個）
     expect(el.textContent).toContain('胸腕 1体') // ムキドラ（最終形態に胸腕がある）
     expect(el.textContent).toContain('炎 0体／クエスト1不足')
     expect(el.textContent).toContain('シールドクラッシャー 0体／クエスト1不足')
     expect(el.textContent).toContain('特に刺さるクエストはまだありません') // 刺さらないクエストは出さない
     await click('足りないもので埋める')
     const favorite = [...el.querySelectorAll('select')].find((x) => x.textContent?.includes('プッシュアップ')) as HTMLSelectElement
-    expect(favorite.value).toBe('wed1') // 弱点種目なのに得意なモンスターがいない
+    expect(favorite.value).toBe('mon4') // 弱点種目なのに得意なモンスターがいない（胸腕のモンスターなので胸腕の種目から）
+    expect(favorite.textContent).not.toContain('ブルガリアンスクワット') // 部位の違う種目は選べない
     expect(el.querySelector('.fit-good')).not.toBeNull() // 胸腕・シールドクラッシャー・得意種目が弱点 → ◎
     expect(el.textContent).toContain('脚竜の巣')
   })
@@ -863,6 +865,7 @@ describe('画面の表示', () => {
       },
     ]
     const el = await render(<MonsterForm go={go} />)
+    await act(async () => el.querySelector('[aria-label="レア度"]')!.querySelectorAll('button')[2].click()) // レア（アビリティ1個）
     const picker = [...el.querySelectorAll('select')].find((x) => x.textContent?.includes('クエストを選ぶ'))!
     await act(async () => {
       Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(picker, 'q1')

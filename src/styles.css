@@ -881,6 +881,23 @@ details.fold[open] > summary {
   font-weight: 700;
 }
 
+/* 登録画面のこだわり設定（たたんでおく） */
+details.tuning {
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+details.tuning > summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--muted);
+}
+details.tuning[open] > summary {
+  margin-bottom: 8px;
+}
+
 /* 登録画面の被り・不足 */
 .supply-row {
   display: flex;
