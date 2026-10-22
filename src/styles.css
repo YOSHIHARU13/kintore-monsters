@@ -460,6 +460,62 @@ h2 {
   flex-direction: column;
   gap: 6px;
 }
+/* ガチャ */
+.rarity-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.gacha-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gacha-banner {
+  position: relative;
+  min-height: 84px;
+  border-radius: 14px;
+  border: 2px solid transparent;
+  background: linear-gradient(120deg, #3a2a6b, #1f3d6b 55%, #6b2a4f);
+  background-size: cover;
+  background-position: center;
+  padding: 0;
+  overflow: hidden;
+  text-align: left;
+  display: flex;
+  align-items: flex-end;
+}
+.gacha-banner.has-image {
+  aspect-ratio: 3 / 1;
+}
+.gacha-banner.on {
+  border-color: var(--primary);
+  box-shadow: 0 0 12px rgba(255, 209, 102, 0.5);
+}
+.gacha-banner-text {
+  width: 100%;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+  color: #fff;
+}
+.tag.rarity-rare {
+  color: #4cc9f0;
+  font-weight: 700;
+}
+.tag.rarity-superRare,
+.beat-title.rarity-superRare {
+  color: #ffd166;
+  font-weight: 800;
+}
+.beat-title.rarity-rare {
+  color: #4cc9f0;
+}
+.tag.rarity-common {
+  color: var(--muted);
+}
 .bonus-reward {
   color: var(--primary);
   font-weight: 700;

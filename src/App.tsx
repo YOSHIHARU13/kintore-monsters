@@ -13,6 +13,7 @@ import { Morning } from './features/Morning'
 import { Box } from './features/Box'
 import { MonsterDetail } from './features/MonsterDetail'
 import { Shop } from './features/Shop'
+import { GachaForm } from './features/GachaForm'
 import { Dex } from './features/Dex'
 import { MonsterRegistry } from './features/MonsterRegistry'
 import { MonsterForm } from './features/MonsterForm'
@@ -22,7 +23,7 @@ const TABS: { label: string; icon: string; view: View; names: View['name'][] }[]
   { label: 'ホーム', icon: '🏠', view: { name: 'home' }, names: ['home', 'morning'] },
   { label: 'トレーニング', icon: '💪', view: { name: 'training' }, names: ['training', 'set', 'menuEdit'] },
   { label: 'モンスター', icon: '🐣', view: { name: 'box' }, names: ['box', 'monster'] },
-  { label: 'ショップ', icon: '🛒', view: { name: 'shop' }, names: ['shop'] },
+  { label: 'ショップ', icon: '🛒', view: { name: 'shop' }, names: ['shop', 'gachaForm'] },
   { label: '図鑑', icon: '📖', view: { name: 'dex' }, names: ['dex', 'registry', 'monsterForm'] },
   { label: '設定', icon: '⚙️', view: { name: 'settings' }, names: ['settings'] },
 ]
@@ -45,6 +46,8 @@ function Screen({ view, go }: { view: View; go: (v: View) => void }) {
       return <MonsterDetail key={view.id} id={view.id} go={go} />
     case 'shop':
       return <Shop go={go} />
+    case 'gachaForm':
+      return <GachaForm key={view.id ?? 'new'} id={view.id} go={go} />
     case 'dex':
       return <Dex go={go} />
     case 'registry':

@@ -74,6 +74,8 @@ export interface MonsterDef {
   images: Record<string, string> // nodeId → 画像ドキュメントID
   names?: Record<string, string> // nodeId → その段階だけの名前（なければ name を使う）
   recipe?: string[] // 隠しモンスターのレシピ（2体の defId）。あればタマゴからは生まれず、ジョグレスでだけ生まれる
+  gachas?: string[] // 入っているガチャのID（最大3つ）。なければ「いつものガチャ」
+  common?: boolean // ハズレ枠：どのガチャからも出る
   createdAt: number
 }
 
@@ -81,6 +83,18 @@ export interface MonsterDef {
 export function plusName(def: MonsterDef, mon: OwnedMonster): string {
   const name = `${mon.shiny ? '✨' : ''}${monsterName(def, mon.nodeId)}`
   return mon.plus ? `${name}＋${mon.plus}` : name
+}
+
+export type RarityKey = 'normal' | 'rare' | 'superRare'
+
+export interface Gacha {
+  id: string
+  name: string
+  bannerImageId: string | null
+  shinyRate: number
+  rarity: Record<string, RarityKey> // defId → そのガチャでのレア度（なければノーマル）
+  createdAt: number
+  builtin: boolean // 「いつものガチャ」（消せない）
 }
 
 /** ジョグレスで生まれる隠しモンスターか */

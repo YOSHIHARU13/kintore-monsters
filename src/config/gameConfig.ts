@@ -108,6 +108,21 @@ export const CONFIG = {
   image: {
     maxSidePx: 512,
     targetBytes: 100_000,
+    bannerMaxSidePx: 1024, // ガチャのバナー画像
+  },
+
+  // ガチャ：いくつでも作れる。モンスターは最大3つのガチャに入れられる
+  gacha: {
+    maxPerMonster: 3,
+    defaultId: 'default', // どのガチャにも入れていないモンスターが入るガチャ（消せない）
+    defaultName: 'いつものガチャ',
+    // レア度ごとの重み。出る確率は「そのモンスターの重み ÷ ガチャ全体の重みの合計」
+    rarities: {
+      normal: { label: 'ノーマル', weight: 10 },
+      rare: { label: 'レア', weight: 3 },
+      superRare: { label: '激レア', weight: 1 },
+    },
+    shinyRateChoices: [1 / 50, 1 / 20, 1 / 10, 1 / 5], // ガチャごとに選べる色違いの確率
   },
 
   // 種目ごとの回数範囲 [下限, 上限]。下限 null は「上限だけ決まっている自重種目」

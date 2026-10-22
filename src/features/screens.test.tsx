@@ -2,7 +2,7 @@
 import { act, type ReactElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { GameState, MonsterDef, OwnedMonster, SetRecord } from '../types'
+import type { Gacha, GameState, MonsterDef, OwnedMonster, SetRecord } from '../types'
 
 // Firebaseにはつながず、画面だけをニセのデータで動かして確認する
 const fake = vi.hoisted(() => ({ store: {} as Record<string, unknown> }))
@@ -21,6 +21,7 @@ import { Shop } from './Shop'
 import { Dex } from './Dex'
 import { MonsterRegistry } from './MonsterRegistry'
 import { MonsterForm } from './MonsterForm'
+import { GachaForm } from './GachaForm'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -62,6 +63,10 @@ const defs: MonsterDef[] = [
   },
   { id: 'm2', name: 'アシガメ', attr: 'legs', templateId: 'linear3', images: {}, createdAt: 2 },
 ]
+const gacha = (id: string, name: string, extra: Partial<Gacha> = {}): Gacha => ({
+  id, name, bannerImageId: null, shinyRate: 1 / 20, rarity: {}, createdAt: 0, builtin: id === 'default', ...extra,
+})
+const gachas: Gacha[] = [gacha('default', 'いつものガチャ')]
 const owned: OwnedMonster[] = [{ id: 'o1', defId: 'm1', nodeId: 'n2', invested: { trained: 250, bought: 250 }, obtainedAt: 1 }]
 
 const past = (setNo: number, reps: number, ts: number, date: string, slotId = 'mon2'): SetRecord => ({
@@ -113,6 +118,9 @@ beforeEach(() => {
     weekSets: [],
     todaySets: [],
     songs: [],
+    gachas,
+    saveGacha: vi.fn(async () => 'g9'),
+    deleteGacha: vi.fn(),
     yesterday: '2026-10-04',
     yesterdayCheckin: null,
     getHistory: vi.fn(async () => [past(1, 10, 1000, '2026-09-28'), past(2, 9, 2000, '2026-09-28')]),
@@ -267,8 +275,8 @@ describe('画面の表示', () => {
   it('ショップ：色違いが生まれると特別な演出', async () => {
     fake.store.hatchEgg = vi.fn(() => ({ def: defs[1], monsterId: 'o2', shiny: true }))
     const shop = await render(<Shop go={go} />)
-    expect(shop.textContent).toContain('20回に1回くらい')
-    await click('タマゴを孵す')
+    expect(shop.textContent).toContain('色違い 1/20')
+    await click('を引く')
     expect(shop.textContent).toContain('色違い！！')
     expect(shop.querySelector('.shiny')).not.toBeNull()
   })
@@ -292,7 +300,8 @@ describe('画面の表示', () => {
     expect(dex2.textContent).toContain('所持2体')
     expect((await render(<Box go={go} />)).textContent).toContain('所持 2体')
     const shop = await render(<Shop go={go} />)
-    await click('タマゴを孵す')
+    await click('「いつものガチャ」を引く')
+    expect(fake.store.hatchEgg).toHaveBeenCalledWith('default')
     expect(shop.textContent).toContain('アシガメ')
     expect(shop.textContent).toContain('が生まれた！')
     await click('会いに行く')
@@ -424,6 +433,54 @@ describe('画面の表示', () => {
     )
   })
 
+  it('ショップ：ガチャを選ぶと中身と確率が出る。ハズレ枠はどのガチャにも入る', async () => {
+    fake.store.gachas = [gachas[0], gacha('g1', '脚まつり', { rarity: { m2: 'superRare' }, createdAt: 1 })]
+    fake.store.defs = [
+      { ...defs[0], gachas: ['g1'] },
+      { ...defs[1], gachas: ['g1'] },
+      { id: 'c1', name: 'ザコスラ', attr: 'none', templateId: 'linear3', images: {}, common: true, createdAt: 3 },
+    ]
+    const el = await render(<Shop go={go} />)
+    // 中身がいる、いちばん新しいガチャが選ばれている
+    expect(el.textContent).toContain('「脚まつり」を引く')
+    expect(el.textContent).toContain('全3種')
+    expect(el.textContent).toContain('激レア 4.76%') // 1 ÷ (10 + 1 + 10)
+    expect(el.textContent).toContain('ハズレ枠 47.6%')
+    expect(el.textContent).toContain('？？？') // まだ会っていないモンスターは名前を伏せる
+    await click('いつものガチャ')
+    expect(el.textContent).toContain('全1種') // ハズレ枠だけ
+    await click('「いつものガチャ」を引く')
+    expect(fake.store.hatchEgg).toHaveBeenCalledWith('default')
+  })
+
+  it('ガチャ編集：レア度を変えると確率が変わり、保存できる', async () => {
+    fake.store.gachas = [gachas[0], gacha('g1', '脚まつり', { createdAt: 1 })]
+    fake.store.defs = [{ ...defs[0], gachas: ['g1'] }, { ...defs[1], gachas: ['g1'] }]
+    const el = await render(<GachaForm id="g1" go={go} />)
+    expect(el.textContent).toContain('全2種')
+    expect(el.textContent).toContain('50%')
+    const row = [...el.querySelectorAll('.rarity-row')].find((r) => r.textContent?.includes('アシガメ'))!
+    await act(async () => [...row.querySelectorAll('button')].find((b) => b.textContent === '激レア')!.click())
+    expect(el.textContent).toContain('90.9%')
+    expect(el.textContent).toContain('9.09%')
+    await click('1/10')
+    await click('保存する')
+    expect(fake.store.saveGacha).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'g1', name: '脚まつり', shinyRate: 1 / 10, rarity: { m2: 'superRare' } }),
+    )
+    await click('このガチャを消す')
+    await click('本当に消す')
+    expect(fake.store.deleteGacha).toHaveBeenCalledWith('g1')
+  })
+
+  it('モンスター登録：入るガチャは3つまで', async () => {
+    fake.store.gachas = [gachas[0], ...[1, 2, 3, 4].map((n) => gacha(`g${n}`, `ガチャ${n}`, { createdAt: n }))]
+    const el = await render(<MonsterForm go={go} />)
+    for (const n of [1, 2, 3]) await click(`ガチャ${n}`)
+    const g4 = [...el.querySelectorAll('button')].find((b) => b.textContent === 'ガチャ4')!
+    expect(g4.disabled).toBe(true)
+  })
+
   it('モンスター登録：名前を入れて保存', async () => {
     const el = await render(<MonsterForm go={go} />)
     expect(el.textContent).toContain('1→2 150EXP＋100G')
@@ -448,6 +505,8 @@ describe('画面の表示', () => {
         templateId: 'linear3',
         attrs: { n1: 'chestArms', n2: 'legs', n3: 'none' },
         names: { n2: 'テストモン改' },
+        gachas: [],
+        common: false,
       }),
     )
     expect(go).toHaveBeenCalledWith({ name: 'registry' })

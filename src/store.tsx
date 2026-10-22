@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { User } from 'firebase/auth'
 import {
+  arrayRemove,
   arrayUnion,
   collection,
   doc,
@@ -23,7 +24,8 @@ import { evolutionCost, fusionCost, isExpFull, planPour } from './lib/evolution'
 import { habitLabelOf, stepsGold } from './lib/rewards'
 import { isWeekCleared } from './lib/week'
 import { compressImage } from './lib/imageCompress'
-import { investedFor, isHidden, nodeAttr, type AttrExp, type Checkin, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
+import { pickFrom, rateTable } from './lib/gacha'
+import { investedFor, isHidden, nodeAttr, type Gacha, type RarityKey, type AttrExp, type Checkin, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
 
 const zeroExp = () => ({ trained: 0, bought: 0 })
 
@@ -82,6 +84,29 @@ export interface MonsterDefInput {
   names: Record<string, string> // nodeId → その段階だけの名前
   files: Record<string, File> // nodeId → 新しくアップロードする画像
   recipe: string[] // 隠しモンスターのレシピ（2体の defId）。普通のモンスターは空
+  gachas: string[] // 入るガチャのID（最大3つ。空なら「いつものガチャ」）
+  common: boolean // ハズレ枠（どのガチャからも出る）
+}
+
+export interface GachaInput {
+  id?: string
+  name: string
+  shinyRate: number
+  rarity: Record<string, RarityKey>
+  banner?: File // 新しいバナー画像
+}
+
+function toGacha(id: string, data: DocumentData | undefined): Gacha {
+  const builtin = id === CONFIG.gacha.defaultId
+  return {
+    id,
+    name: data?.name?.trim() || (builtin ? CONFIG.gacha.defaultName : '名前のないガチャ'),
+    bannerImageId: data?.bannerImageId ?? null,
+    shinyRate: data?.shinyRate ?? CONFIG.shop.shinyRate,
+    rarity: data?.rarity ?? {},
+    createdAt: data?.createdAt ?? 0,
+    builtin,
+  }
 }
 
 interface Store {
@@ -91,6 +116,7 @@ interface Store {
   defs: MonsterDef[]
   owned: OwnedMonster[]
   songs: Song[]
+  gachas: Gacha[] // 先頭が「いつものガチャ」、あとは作った順
   today: string
   weekSets: SetRecord[] // 今週（月曜はじまり）のセット記録
   todaySets: SetRecord[]
@@ -105,8 +131,12 @@ interface Store {
   setSlot: (slotId: string, exerciseId: string) => void
   buyExp: (attr: Attr, amount: number) => void
   buyEgg: () => void
-  /** タマゴを孵す。登録済みのモンスターからランダムで1体（ダブりあり） */
-  hatchEgg: () => { def: MonsterDef; monsterId: string; shiny: boolean } | null
+  /** タマゴを孵す。選んだガチャから、確率どおりに1体（ダブりあり） */
+  hatchEgg: (gachaId: string) => { def: MonsterDef; monsterId: string; shiny: boolean } | null
+  /** ガチャを作る・編集する。保存したガチャのID */
+  saveGacha: (input: GachaInput) => Promise<string>
+  /** ガチャを消す（入っていたモンスターはそのガチャから外れる）。「いつものガチャ」は消せない */
+  deleteGacha: (id: string) => void
   pourExp: (monsterId: string, toNodeId: string, from: ExpSource) => void
   evolve: (monsterId: string, toNodeId: string) => void
   /** 最終形態のモンスターに、次の＋に向けてEXPを注ぐ */
@@ -138,6 +168,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
   const [defs, setDefs] = useState<MonsterDef[]>([])
   const [owned, setOwned] = useState<OwnedMonster[]>([])
   const [songs, setSongs] = useState<Song[]>([])
+  const [gachaDocs, setGachaDocs] = useState<Gacha[]>([])
   const [today, setToday] = useState(dateKey())
   const [weekSets, setWeekSets] = useState<SetRecord[]>([])
   const [yesterdayCheckin, setYesterdayCheckin] = useState<Checkin | null>(null)
@@ -181,6 +212,11 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       onSnapshot(menuRef, (snap) => setMenu((snap.data() as Record<string, string>) ?? {}), fail),
       onSnapshot(musicRef, (snap) => setSongs((snap.data()?.songs as Song[] | undefined) ?? []), fail),
       onSnapshot(
+        collection(db, base, 'gachas'),
+        (snap) => setGachaDocs(snap.docs.map((d) => toGacha(d.id, d.data()))),
+        fail,
+      ),
+      onSnapshot(
         collection(db, base, 'monsterDefs'),
         (snap) =>
           setDefs(
@@ -204,6 +240,13 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     ]
     return () => unsubs.forEach((u) => u())
   }, [base, stateRef, menuRef, musicRef, fail])
+
+  // 「いつものガチャ」は、保存していなくても必ずある
+  const gachas = useMemo(() => {
+    const builtin = gachaDocs.find((g) => g.builtin) ?? toGacha(CONFIG.gacha.defaultId, undefined)
+    const others = gachaDocs.filter((g) => !g.builtin).sort((a, b) => a.createdAt - b.createdAt)
+    return [builtin, ...others]
+  }, [gachaDocs])
 
   const week = useMemo(() => weekStartKey(new Date(`${today}T12:00:00`)), [today])
   const todaySets = useMemo(() => weekSets.filter((s) => s.date === today), [weekSets, today])
@@ -324,12 +367,13 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       updateState({ gold: increment(-CONFIG.shop.eggPrice), eggs: increment(1) })
     }
 
-    const hatchEgg: Store['hatchEgg'] = () => {
-      // 隠しモンスターはタマゴからは生まれない
-      const pool = defs.filter((d) => !isHidden(d))
-      if (state.eggs <= 0 || pool.length === 0) return null
-      const def = pool[Math.floor(Math.random() * pool.length)]
-      const shiny = Math.random() < CONFIG.shop.shinyRate
+    const hatchEgg: Store['hatchEgg'] = (gachaId) => {
+      const gacha = gachas.find((g) => g.id === gachaId)
+      if (!gacha || state.eggs <= 0) return null
+      // 隠しモンスターはタマゴからは生まれない（rateTable が外す）
+      const def = pickFrom(rateTable(gacha, defs), Math.random())
+      if (!def) return null
+      const shiny = Math.random() < gacha.shinyRate
       const ref = doc(collection(db, base, 'ownedMonsters'))
       const batch = writeBatch(db)
       batch.set(ref, {
@@ -561,6 +605,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         images,
         names: input.names,
         recipe: input.recipe,
+        gachas: input.gachas.slice(0, CONFIG.gacha.maxPerMonster),
+        common: input.common,
         createdAt: existing?.createdAt ?? Date.now(),
       })
       batch.commit().catch(fail)
@@ -578,6 +624,42 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         imageCache.set(imageId, cached)
       }
       return cached
+    }
+
+    const saveGacha: Store['saveGacha'] = async (input) => {
+      const current = input.id ? gachas.find((g) => g.id === input.id) : undefined
+      const ref = input.id ? doc(db, base, 'gachas', input.id) : doc(collection(db, base, 'gachas'))
+      const batch = writeBatch(db)
+      let bannerImageId = current?.bannerImageId ?? null
+      if (input.banner) {
+        const data = await compressImage(input.banner, CONFIG.image.bannerMaxSidePx)
+        const imageRef = doc(collection(db, base, 'images'))
+        batch.set(imageRef, { data, createdAt: Date.now() })
+        imageCache.set(imageRef.id, Promise.resolve(data))
+        if (bannerImageId) batch.delete(doc(db, base, 'images', bannerImageId))
+        bannerImageId = imageRef.id
+      }
+      batch.set(ref, {
+        name: input.name.trim(),
+        bannerImageId,
+        shinyRate: input.shinyRate,
+        rarity: input.rarity,
+        createdAt: current?.createdAt || Date.now(),
+      })
+      batch.commit().catch(fail)
+      return ref.id
+    }
+
+    const deleteGacha: Store['deleteGacha'] = (id) => {
+      const gacha = gachas.find((g) => g.id === id)
+      if (!gacha || gacha.builtin) return
+      const batch = writeBatch(db)
+      batch.delete(doc(db, base, 'gachas', id))
+      if (gacha.bannerImageId) batch.delete(doc(db, base, 'images', gacha.bannerImageId))
+      for (const def of defs.filter((d) => d.gachas?.includes(id))) {
+        batch.update(doc(db, base, 'monsterDefs', def.id), { gachas: arrayRemove(id) })
+      }
+      batch.commit().catch(fail)
     }
 
     const saveSongs: Store['saveSongs'] = (next) => {
@@ -613,8 +695,11 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       saveMonsterDef,
       loadImage,
       saveSongs,
+      gachas,
+      saveGacha,
+      deleteGacha,
     }
-  }, [user, base, state, menu, defs, owned, songs, today, yesterday, yesterdayCheckin, week, weekSets, todaySets, stateRef, menuRef, musicRef, fail])
+  }, [user, base, state, menu, defs, owned, songs, gachas, today, yesterday, yesterdayCheckin, week, weekSets, todaySets, stateRef, menuRef, musicRef, fail])
 
   if (!store) {
     return (

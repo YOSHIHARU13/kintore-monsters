@@ -9,7 +9,7 @@ import { CONFIG } from '../config/gameConfig'
 import { isHidden } from '../types'
 
 export function MonsterForm({ id, go }: { id?: string; go: Go }) {
-  const { defs, saveMonsterDef } = useStore()
+  const { defs, gachas, saveMonsterDef } = useStore()
   const existing = id ? defs.find((d) => d.id === id) : undefined
   // 登録済みのモンスターは、ツリーを変えられないか、分岐を増やす方向にだけ変えられる
   const selectable = TEMPLATES.filter((t) =>
@@ -20,6 +20,8 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
   const [attrs, setAttrs] = useState<Record<string, FormAttr>>(existing?.attrs ?? {})
   const [names, setNames] = useState<Record<string, string>>(existing?.names ?? {})
   const [files, setFiles] = useState<Record<string, File>>({})
+  const [inGachas, setInGachas] = useState<string[]>(existing?.gachas ?? [])
+  const [common, setCommon] = useState(existing?.common === true)
   const [recipe, setRecipe] = useState<string[]>(existing?.recipe?.length === 2 ? existing.recipe : [])
   // レシピに使えるのは、タマゴから生まれる普通のモンスター（自分以外）
   const parents = defs.filter((d) => d.id !== existing?.id && !isHidden(d))
@@ -64,6 +66,9 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
         names: validNames,
         files: validFiles,
         recipe,
+        // 消したガチャのIDは残さない
+        gachas: inGachas.filter((g) => gachas.some((x) => x.id === g && !x.builtin)),
+        common,
       })
       go({ name: 'registry' })
     } catch (e) {
@@ -170,6 +175,41 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
           </div>
         ))}
       </section>
+
+      {recipe.length !== 2 && (
+        <section className="card">
+          <h2>入るガチャ（{CONFIG.gacha.maxPerMonster}つまで）</h2>
+          <label className="row">
+            <input type="checkbox" checked={common} onChange={(e) => setCommon(e.target.checked)} />
+            ハズレ枠にする（どのガチャからも出る）
+          </label>
+          {!common && (
+            <>
+              <div className="chips">
+                {gachas
+                  .filter((g) => !g.builtin)
+                  .map((g) => {
+                    const on = inGachas.includes(g.id)
+                    return (
+                      <button
+                        key={g.id}
+                        type="button"
+                        className={`chip${on ? ' on' : ''}`}
+                        disabled={!on && inGachas.length >= CONFIG.gacha.maxPerMonster}
+                        onClick={() => setInGachas(on ? inGachas.filter((x) => x !== g.id) : [...inGachas, g.id])}
+                      >
+                        {g.name}
+                      </button>
+                    )
+                  })}
+              </div>
+              <p className="muted small">
+                どれも選ばなければ「{gachas[0].name}」に入ります。ガチャはショップで作れます。レア度はガチャの編集画面で決めます。
+              </p>
+            </>
+          )}
+        </section>
+      )}
 
       <section className="card">
         <h2>隠しモンスター（ジョグレス）</h2>

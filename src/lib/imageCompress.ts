@@ -24,9 +24,9 @@ function dataUrlBytes(dataUrl: string): number {
  * 長辺を縮めてWebPに圧縮し、data URL で返す。
  * WebPで書き出せないブラウザではPNG/JPEGになるので、その場合はサイズを落として収める。
  */
-export async function compressImage(file: File): Promise<string> {
+export async function compressImage(file: File, maxSidePx: number = CONFIG.image.maxSidePx): Promise<string> {
   const img = await loadImage(file)
-  let side: number = CONFIG.image.maxSidePx
+  let side = maxSidePx
   let best = ''
   for (let attempt = 0; attempt < 4; attempt++) {
     const scale = Math.min(1, side / Math.max(img.width, img.height))
