@@ -43,14 +43,22 @@ export const CONFIG = {
     beat: 15,
   },
 
-  // 腹筋ローラー（ボーナス枠）。1日3セットまで
+  // 腹筋ローラー（ボーナス枠）。1日3セットまで（日付が変わるとまた3セットできる）
   bonus: {
     goldPerSet: 15,
+    anyExpPerSet: 10, // 万能EXP：どの属性の進化にも注げる
   },
 
   // 朝の記録（前日の歩数と禁欲）
   morning: {
     stepsPerGold: 500, // この歩数ごとに1G（5000歩で10G＝禁欲1日目と同じ）
+    // 歩数ボーナス：その歩数に届いたら上乗せ（届いた段は全部もらえる）
+    stepBonuses: [
+      { steps: 5000, gold: 10 },
+      { steps: 8000, gold: 20 },
+      { steps: 10000, gold: 30 },
+      { steps: 15000, gold: 40 },
+    ],
     maxSteps: 100_000, // 入力できる歩数の上限
     abstinenceGoldPerDay: 10, // 禁欲n日目は n × この値（1日目10G、2日目20G…）
     abstinenceMaxDays: 10, // ここで頭打ち（10日目以降は毎日100G）

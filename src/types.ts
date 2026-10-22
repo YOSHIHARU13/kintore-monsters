@@ -2,6 +2,9 @@ import type { Attr, FormAttr, Slot } from './data/exercises'
 
 export type Judge = 'beat' | 'keep' | 'normal'
 
+/** EXPの財布：属性ごとの財布か、万能EXP */
+export type ExpSource = Attr | 'any'
+
 export interface AttrExp {
   trained: number // 筋トレで稼いだEXP
   bought: number // ゴールドで買ったEXP
@@ -12,6 +15,7 @@ export interface GameState {
   eggs: number
   exp: Record<Attr, AttrExp>
   lifetimeExp: Record<Attr, number>
+  anyExp: number // 万能EXP（腹筋ローラーで稼ぐ。どの属性の進化にも注げる）
   attendance: number
   lastAttendanceDate: string | null
   totalSets: number
@@ -78,7 +82,7 @@ export interface OwnedMonster {
   defId: string // どのモンスター（MonsterDef）か
   nodeId: string
   investedBy?: Record<string, AttrExp> // 進化先のnodeId → その進化に向けて注いだEXP
-  investedFrom?: Record<string, Partial<Record<Attr, AttrExp>>> // 進化先 → どの属性の財布から注いだか（返却用）
+  investedFrom?: Record<string, Partial<Record<ExpSource, AttrExp>>> // 進化先 → どの財布から注いだか（返却用）
   invested?: AttrExp // 旧形式（通常ルートに注いだEXP）
   obtainedAt: number
 }

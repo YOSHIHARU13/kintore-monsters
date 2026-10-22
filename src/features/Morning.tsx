@@ -1,9 +1,25 @@
 import { useState } from 'react'
 import { useStore } from '../store'
 import { CONFIG } from '../config/gameConfig'
-import { abstinenceGold, stepsGold } from '../lib/rewards'
+import { abstinenceGold, nextStepBonus, stepsGold } from '../lib/rewards'
 import type { Go } from '../nav'
 import type { Checkin } from '../types'
+
+/** 歩数ごとにもらえるゴールドの早見表 */
+export function StepTable() {
+  return (
+    <ul className="mini-list">
+      {CONFIG.morning.stepBonuses.map((b) => (
+        <li key={b.steps}>
+          <span>{b.steps.toLocaleString()}歩</span>
+          <span className="tag keep">
+            +{stepsGold(b.steps)}G（ボーナス+{b.gold}G込み）
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}
 
 /** YYYY-MM-DD → 「10/21」 */
 const shortDate = (key: string) => `${Number(key.slice(5, 7))}/${Number(key.slice(8, 10))}`
@@ -76,9 +92,16 @@ export function Morning({ go }: { go: Go }) {
                 onChange={(e) => setStepsText(e.target.value)}
               />
             </label>
-            <p className="muted small">
-              {CONFIG.morning.stepsPerGold}歩ごとに1G（5000歩で{stepsGold(5000)}G）→ <strong>+{stepsGold(steps)}G</strong>
+            <p>
+              → <strong>+{stepsGold(steps)}G</strong>
+              {nextStepBonus(steps) && (
+                <span className="muted small">
+                  （あと{(nextStepBonus(steps)!.steps - steps).toLocaleString()}歩で +
+                  {stepsGold(nextStepBonus(steps)!.steps)}G だった）
+                </span>
+              )}
             </p>
+            <StepTable />
           </section>
 
           <section className="card">

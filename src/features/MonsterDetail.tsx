@@ -98,7 +98,8 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
                         進化する（{cost.gold}G）
                       </button>
                     ) : (
-                      sources.map((src) => {
+                      <>
+                      {sources.map((src) => {
                         const wallet = state.exp[src]
                         const pour = planPour(cost, invested, wallet)
                         const pourTotal = pour.trained + pour.bought
@@ -121,7 +122,23 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
                             </span>
                           </div>
                         )
-                      })
+                      })}
+                      {(() => {
+                        const pour = planPour(cost, invested, { trained: state.anyExp, bought: 0 })
+                        return (
+                          <div className="pour">
+                            <button
+                              className="btn small"
+                              disabled={pour.trained <= 0}
+                              onClick={() => pourExp(id, nextId, 'any')}
+                            >
+                              {pour.trained > 0 ? `万能EXPを注ぐ（+${pour.trained}）` : '万能EXPがありません'}
+                            </button>
+                            <span className="small muted">手持ち：万能 {state.anyExp}（腹筋ローラーで貯まる）</span>
+                          </div>
+                        )
+                      })()}
+                      </>
                     )}
                   </div>
                 </div>

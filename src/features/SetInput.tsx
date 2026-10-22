@@ -127,7 +127,11 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
   const streakText = `${streak > 1 ? `${streak}回連続で` : dayDone ? '' : '前回は'}3セットとも上限達成！`
 
   const rewardText = (r: { exp: number; gold: number; eligible: boolean }) =>
-    !r.eligible ? '記録のみ' : r.gold > 0 ? `+${r.gold}G` : `+${r.exp}EXP`
+    !r.eligible
+      ? '記録のみ'
+      : r.gold > 0
+        ? `+${r.gold}G${r.exp > 0 ? `・万能EXP +${r.exp}` : ''}`
+        : `+${r.exp}EXP`
 
   return (
     <div className="page">
@@ -137,7 +141,7 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
       <MusicButtons />
       <h1 className="title">{ex.name}</h1>
       <p className="muted">
-        {isBonus ? `ボーナス枠・1セット+${CONFIG.bonus.goldPerSet}G・` : ''}
+        {isBonus ? `ボーナス枠・1セット +${CONFIG.bonus.goldPerSet}G＆万能EXP +${CONFIG.bonus.anyExpPerSet}・` : ''}
         {rangeText(ex.id)}
       </p>
       <p className="small how">{ex.how}</p>

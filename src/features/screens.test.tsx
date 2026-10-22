@@ -34,6 +34,7 @@ const state: GameState = {
     backShoulders: { trained: 0, bought: 0 },
   },
   lifetimeExp: { chestArms: 300, legs: 120, backShoulders: 40 },
+  anyExp: 30,
   attendance: 7,
   lastAttendanceDate: '2026-10-02',
   totalSets: 60,
@@ -121,7 +122,7 @@ beforeEach(() => {
       steps,
       abstained,
       streak: abstained ? 4 : 0,
-      stepsGold: Math.floor(steps / 500),
+      stepsGold: 23,
       abstinenceGold: abstained ? 40 : 0,
       ts: 1,
     })),
@@ -227,11 +228,12 @@ describe('画面の表示', () => {
       setValue.call(input, '6500')
       input.dispatchEvent(new Event('input', { bubbles: true }))
     })
-    expect(el.textContent).toContain('+13G')
+    expect(el.textContent).toContain('+23G')
+    expect(el.textContent).toContain('あと1,500歩で +46G')
     await click('してない（禁欲4日目 +40G）')
-    await click('記録する（+53G）')
+    await click('記録する（+63G）')
     expect(fake.store.recordMorning).toHaveBeenCalledWith(6500, true)
-    expect(el.textContent).toContain('記録しました：+53G')
+    expect(el.textContent).toContain('記録しました：+63G')
   })
 
   it('朝の記録：「した」を選ぶと連続がリセットされる注意が出る', async () => {

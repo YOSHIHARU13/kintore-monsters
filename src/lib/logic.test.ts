@@ -58,18 +58,20 @@ describe('セット報酬', () => {
     })
     expect(calcSetReward({ isBonus: false, setNo: 2, judge: 'beat', intervalOk: false }).exp).toBe(0)
   })
-  it('腹筋ローラーは15G', () => {
+  it('腹筋ローラーは15G＋万能EXP10', () => {
     expect(calcSetReward({ isBonus: true, setNo: 3, judge: 'normal', intervalOk: true })).toMatchObject({
-      exp: 0,
+      exp: 10,
       gold: 15,
     })
     expect(calcSetReward({ isBonus: true, setNo: 4, judge: 'normal', intervalOk: true }).gold).toBe(0)
   })
-  it('歩数は500歩ごとに1G（5000歩＝禁欲1日目と同じ10G）', () => {
-    expect(stepsGold(5000)).toBe(10)
-    expect(stepsGold(6499)).toBe(12)
+  it('歩数は500歩ごとに1G＋届いた段のボーナス', () => {
+    expect(stepsGold(4999)).toBe(9)
+    expect(stepsGold(5000)).toBe(20) // 10 + 5000歩ボーナス10
+    expect(stepsGold(8000)).toBe(46) // 16 + 10 + 20
+    expect(stepsGold(10000)).toBe(80) // 20 + 10 + 20 + 30
+    expect(stepsGold(15000)).toBe(130) // 30 + 10 + 20 + 30 + 40
     expect(stepsGold(-1)).toBe(0)
-    expect(stepsGold(5000)).toBe(abstinenceGold(1))
   })
   it('禁欲はn日目×10G、10日目で頭打ち', () => {
     expect(abstinenceGold(1)).toBe(10)

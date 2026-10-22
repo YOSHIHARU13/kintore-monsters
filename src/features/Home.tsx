@@ -10,6 +10,7 @@ import { ATTR_COLOR, type Go } from '../nav'
 import { monsterName, nodeAttr } from '../types'
 import { isWeekCleared, partProgress, slotDone } from '../lib/week'
 import { abstinenceGold } from '../lib/rewards'
+import { StepTable } from './Morning'
 
 export function Home({ go }: { go: Go }) {
   const { state, menu, weekSets, defs, owned, yesterday, yesterdayCheckin } = useStore()
@@ -29,6 +30,8 @@ export function Home({ go }: { go: Go }) {
           禁欲 <strong className="num">{state.abstinenceStreak}</strong>日継続中
           <span className="muted small">（自己ベスト {state.bestAbstinenceStreak}日）</span>
         </p>
+        <p className="muted small">今日歩いた分は、明日の朝に記録します。歩くほどボーナスが乗ります：</p>
+        <StepTable />
         {morningDone ? (
           <p className="muted small">前日の分は記録済み。また明日の朝に。</p>
         ) : (
@@ -107,6 +110,10 @@ export function Home({ go }: { go: Go }) {
               {state.exp[attr].bought > 0 && <span className="muted small">うち購入 {state.exp[attr].bought}</span>}
             </div>
           ))}
+          <div className="wallet-item">
+            <span className="label">万能EXP</span>
+            <strong>{state.anyExp}</strong>
+          </div>
           <div className="wallet-item">
             <span className="label gold">ゴールド</span>
             <strong>{state.gold}G</strong>
