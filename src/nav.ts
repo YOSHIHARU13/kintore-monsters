@@ -13,6 +13,7 @@ export type View =
   | { name: 'gachaForm'; id?: string }
   | { name: 'quests' }
   | { name: 'quest'; id: string }
+  | { name: 'tower' }
   | { name: 'questForm'; id?: string }
   | { name: 'dex' }
   | { name: 'registry' }

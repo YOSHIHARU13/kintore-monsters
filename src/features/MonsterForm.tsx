@@ -42,6 +42,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
   const [fixedStars, setFixedStars] = useState(existing?.fixedStars ?? CONFIG.gacha.fixedStarsDefault)
   const [jogressPlus] = useState(existing?.jogressPlus ?? 0)
   const [questOnly, setQuestOnly] = useState(existing?.questOnly === true || questPreset)
+  const [tower, setTower] = useState(existing?.tower === true)
   const [element, setElement] = useState<Element | ''>(existing?.element ?? '')
   const [favoriteSlot, setFavoriteSlot] = useState(existing?.favoriteSlot ?? '')
   const [abilities, setAbilities] = useState<string[]>(existing?.abilities ?? [])
@@ -184,6 +185,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
         favoriteSlot: validFavorite,
         abilities: abilities.slice(0, abilitySlots({ recipe, rarity })),
         questOnly: recipe.length !== 2 && questOnly,
+        tower: recipe.length !== 2 && questOnly && tower,
         jogressBirthStars: birthStars,
         jogressPlus,
         fixedStars,
@@ -336,6 +338,12 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
             <input type="checkbox" checked={questOnly} onChange={(e) => setQuestOnly(e.target.checked)} />
             クエスト限定にする（ガチャには出ず、クエストのボスとして倒すと手に入る）
           </label>
+          {questOnly && (
+            <label className="row">
+              <input type="checkbox" checked={tower} onChange={(e) => setTower(e.target.checked)} />
+              🗼 試練の塔の報酬にする（5階・10階で、月替わりに順番にもらえる）
+            </label>
+          )}
           {questOnly && templateId === 'single' && (
             <div className="field">
               進化しないので、星を決めます

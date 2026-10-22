@@ -21,14 +21,18 @@ import { luckBonus } from '../lib/fusion'
 import { ELEMENT_COLOR } from '../lib/element'
 import { CONFIG } from '../config/gameConfig'
 import { CORE_LABEL } from '../lib/cores'
+import { towerCleared, towerMonth } from '../lib/tower'
+import { towerRewardText } from './Tower'
 import type { QuestReward } from '../store'
 import type { Go } from '../nav'
 import { plusName, type MonsterDef } from '../types'
 
 /** クエストのタブ：今日の戦いと、クエストの一覧 */
 export function Quests({ go }: { go: Go }) {
-  const { state, quests, defs, today, quitChallenge, claimQuest } = useStore()
+  const { state, quests, tower, defs, today, quitChallenge, claimQuest } = useStore()
+  const towerDone = towerCleared(state, towerMonth(today))
   const battle = useBattle()
+  const towerFloor = battle ? tower.find((f) => f.quest.id === battle.quest.id) : undefined
   const [confirmQuit, setConfirmQuit] = useState(false)
   const [view, setView] = useState<'icon' | 'banner'>(() => {
     try {
@@ -47,7 +51,10 @@ export function Quests({ go }: { go: Go }) {
   }
   const [got, setGot] = useState<(QuestReward & { boss: MonsterDef | undefined; plus: number }) | null>(null)
   // 出撃した日のうちに倒せなかった戦い
-  const expired = state.challenge && state.challenge.date !== today ? quests.find((q) => q.id === state.challenge!.questId) : null
+  const expired =
+    state.challenge && state.challenge.date !== today
+      ? [...quests, ...tower.map((f) => f.quest)].find((q) => q.id === state.challenge!.questId)
+      : null
 
   return (
     <div className="page">
@@ -55,7 +62,10 @@ export function Quests({ go }: { go: Go }) {
 
       {got && (
         <section className="card center">
-          <h2>討伐成功！ +{got.gold}G</h2>
+          <h2>
+            {got.towerFloor ? `試練の塔 ${got.towerFloor}階 突破！` : '討伐成功！'} +{got.gold}G
+          </h2>
+          {got.eggs > 0 && <p>🥚 卵 ×{got.eggs} を手に入れた！</p>}
           {got.monsterId && got.boss && (
             <>
               <MonsterImage imageId={got.boss.images[bannerNodeOf(got.boss)]} size={140} plus={got.plus} />
@@ -70,7 +80,10 @@ export function Quests({ go }: { go: Go }) {
               💎 {CORE_LABEL[got.coreKey]} ×{got.cores} がドロップ！{got.corePity ? '（確定ドロップ）' : ''}
             </p>
           ) : (
-            !got.monsterId && <p className="muted">今回は核が落ちなかった…（続けて落ちないと、そのうち確定で落ちます）</p>
+            !got.monsterId &&
+            !got.towerFloor && (
+              <p className="muted">今回は核が落ちなかった…（続けて落ちないと、そのうち確定で落ちます）</p>
+            )
           )}
           {got.monsterId && (
             <button className="btn primary wide" onClick={() => go({ name: 'monster', id: got.monsterId! })}>
@@ -112,15 +125,22 @@ export function Quests({ go }: { go: Go }) {
               onClick={() => {
                 const reward = claimQuest()
                 if (reward) {
-                  setGot({ ...reward, boss: battle.boss, plus: dropPlus(battle.quest) })
+                  const def = defs.find((d) => d.id === reward.defId)
+                  setGot({
+                    ...reward,
+                    boss: def,
+                    plus: reward.towerFloor ? 0 : dropPlus(battle.quest),
+                  })
                 }
               }}
             >
               報酬を受け取る（
-              {battle.quest.kind === 'material'
-                ? `${CORE_LABEL[battle.quest.attr]}のチャンス`
-                : `${battle.boss?.name}${dropPlus(battle.quest) > 0 ? `＋${dropPlus(battle.quest)}` : ''}`}
-              ・{questGold(battle.quest, battle.challenge.difficulty)}G）
+              {towerFloor
+                ? towerRewardText(towerFloor, defs)
+                : battle.quest.kind === 'material'
+                  ? `${CORE_LABEL[battle.quest.attr]}のチャンス`
+                  : `${battle.boss?.name}${dropPlus(battle.quest) > 0 ? `＋${dropPlus(battle.quest)}` : ''}`}
+              {!towerFloor && `・${questGold(battle.quest, battle.challenge.difficulty)}G`}）
             </button>
           ) : (
             <button className="btn primary wide" onClick={() => go({ name: 'training' })}>
@@ -170,6 +190,19 @@ export function Quests({ go }: { go: Go }) {
           </p>
         )
       )}
+
+      <button className="card tower-entry" onClick={() => go({ name: 'tower' })}>
+        <span style={{ fontSize: '2rem' }}>🗼</span>
+        <span className="tower-body">
+          <strong>試練の塔</strong>
+          <span className="small muted">
+            {towerDone >= CONFIG.tower.floors
+              ? '今月は踏破！来月また新しい塔が出ます'
+              : `${towerDone}／${CONFIG.tower.floors}階・次は${towerDone + 1}階（5階・10階で塔限定モンスター）`}
+          </span>
+        </span>
+        <span>›</span>
+      </button>
 
       <section className="card">
         <div className="part-head">

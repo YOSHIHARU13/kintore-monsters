@@ -141,6 +141,22 @@ export const CONFIG = {
     },
     partySize: 6, // 出撃できる数
   },
+  // 試練の塔：毎月10階を自動で作る。下から1階ずつ挑戦し、各階の報酬は月に1回だけ
+  tower: {
+    floors: 10,
+    // HP：1回のトレーニングで与えるダメージの目安に対する倍率
+    hpRatio: [0.6, 0.8, 1.0, 1.2, 1.4, 1.7, 2.0, 2.3, 2.7, 3.2],
+    gold: [100, 120, 150, 180, 220, 260, 300, 350, 400, 500],
+    eggs: { 2: 1, 4: 1, 7: 1, 8: 1 } as Record<number, number>, // その階で卵
+    cores: { 3: 3, 6: 3, 9: 3 } as Record<number, number>, // その階でボスの部位の核
+    monsterFloors: [5, 10], // 塔限定モンスターがもらえる階
+    eggsInsteadOfMonster: 2, // 塔限定モンスターが登録されていないときは卵
+    elementReqFrom: 3, // この階から「適正の属性」の編成条件
+    abilityReqFrom: 6, // この階からアビリティの編成条件
+    twoWeakFrom: 6, // この階から弱点種目が2つ
+    kyukyokuFrom: 4, // この階から究極
+    chozetsuFrom: 8, // この階から超絶（適正の属性以外は半減）
+  },
 
   // 編成：クエストの条件（炎が3、バリアブレイカーが3…）を出撃する6体の合計で満たす
   // 編成倍率 = base ＋（1 − base）× そろい具合 ＋ 条件を超えた数 × perExtra（上限 max）

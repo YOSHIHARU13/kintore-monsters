@@ -14,12 +14,17 @@ import { ATTR_COLOR, type Go } from '../nav'
 import { attackOf } from '../lib/stats'
 import { allGimmicks } from '../lib/gimmick'
 import { CORE_LABEL } from '../lib/cores'
+import { towerCleared, towerMonth } from '../lib/tower'
+import { towerRewardText } from './Tower'
 import { plusName, type QuestDifficulty } from '../types'
 
 /** クエストの詳細：ボスの弱点を見て、難易度と出撃メンバーを選んで挑戦する */
 export function QuestDetail({ id, go }: { id: string; go: Go }) {
-  const { state, quests, defs, owned, menu, today, startChallenge } = useStore()
-  const quest = quests.find((q) => q.id === id)
+  const { state, quests, tower, defs, owned, menu, today, startChallenge } = useStore()
+  const towerFloor = tower.find((f) => f.quest.id === id)
+  const quest = quests.find((q) => q.id === id) ?? towerFloor?.quest
+  const backTo = towerFloor ? ({ name: 'tower' } as const) : ({ name: 'quests' } as const)
+  const towerLocked = !!towerFloor && towerFloor.floor !== towerCleared(state, towerMonth(today)) + 1
   const current = state.challenge?.date === today ? state.challenge : null
   const [difficulty, setDifficulty] = useState<QuestDifficulty>(
     current?.questId === id ? current.difficulty : BOSS_DIFFICULTY,
@@ -85,8 +90,8 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
 
   return (
     <div className="page">
-      <button className="back" onClick={() => go({ name: 'quests' })}>
-        ← クエストに戻る
+      <button className="back" onClick={() => go(backTo)}>
+        {towerFloor ? '← 試練の塔に戻る' : '← クエストに戻る'}
       </button>
       <QuestBanner quest={quest} boss={boss} />
 
@@ -158,7 +163,8 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
               <span className={`grade-badge grade-${gradeOf(quest)}`}>{CONFIG.quest.grades[gradeOf(quest)].label}</span>
             </h2>
             <p className="small">
-              HP {questHp(quest, difficulty).toLocaleString()}・{questGold(quest, difficulty)}G
+              HP {questHp(quest, difficulty).toLocaleString()}
+              {!towerFloor && `・${questGold(quest, difficulty)}G`}
             </p>
           </>
         )}
@@ -168,6 +174,8 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
             {CONFIG.cores.drop[difficulty].double > 0 && `（${Math.round(CONFIG.cores.drop[difficulty].double * 100)}%で2個）`}
             {misses > 0 && `・いま${misses}回連続で落ちていない（${CONFIG.cores.pityMisses}回続くと次は確定）`}
           </p>
+        ) : towerFloor ? (
+          <p className="small">報酬（月に1回）：{towerRewardText(towerFloor, defs)}</p>
         ) : (
           <p className="small">
             ドロップ {boss?.name ?? '？'}
@@ -220,21 +228,29 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
 
       <button
         className="btn primary wide"
-        disabled={party.length === 0}
+        disabled={party.length === 0 || towerLocked}
         onClick={() => {
           startChallenge(quest.id, quest.kind === 'material' ? difficulty : BOSS_DIFFICULTY, party)
           go({ name: 'quests' })
         }}
       >
-        {switching ? '今の戦いをやめて、これに出撃する' : current?.questId === id ? 'この内容で出撃し直す' : '出撃する'}
+        {towerLocked
+          ? '下の階をクリアすると挑戦できます'
+          : switching
+            ? '今の戦いをやめて、これに出撃する'
+            : current?.questId === id
+              ? 'この内容で出撃し直す'
+              : '出撃する'}
       </button>
       {(switching || current?.questId === id) && (
         <p className="warn small center">出撃し直すと、それまでのダメージは0に戻ります。</p>
       )}
       <p className="muted small center">出撃したら、その日のうちに倒そう。倒すまでのセットがダメージになります。</p>
-      <button className="btn small" onClick={() => go({ name: 'questForm', id: quest.id })}>
-        このクエストを編集
-      </button>
+      {!towerFloor && (
+        <button className="btn small" onClick={() => go({ name: 'questForm', id: quest.id })}>
+          このクエストを編集
+        </button>
+      )}
     </div>
   )
 }

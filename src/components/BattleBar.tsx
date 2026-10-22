@@ -8,12 +8,12 @@ import { bannerNodeOf } from './GachaBanner'
 import type { Go } from '../nav'
 
 export function useBattle() {
-  const { state, today, quests, defs, owned, weekSets, menu } = useStore()
+  const { state, today, quests, tower, defs, owned, weekSets, menu } = useStore()
   const exerciseName = (slotId: string) => {
     const slot = SLOTS.find((s) => s.id === slotId)
     return slot ? exerciseOfSlot(slot, menu).name : '？'
   }
-  return battleOf(state.challenge, today, quests, defs, owned, weekSets, exerciseName)
+  return battleOf(state.challenge, today, [...quests, ...tower.map((f) => f.quest)], defs, owned, weekSets, exerciseName)
 }
 
 /** 出撃中に、トレーニング画面とセット入力画面の上に出すボスのHP。ダメージが入ると数字が飛ぶ */

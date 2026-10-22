@@ -57,6 +57,7 @@ const state: GameState = {
   challenge: null,
   questClears: 0,
   clearedQuests: {},
+  tower: null,
   cores: { chestArms: 2, none: 2 },
   coreMisses: {},
 }
@@ -162,6 +163,7 @@ beforeEach(() => {
     recordHabit: vi.fn(() => 20),
     setPartner: vi.fn(),
     quests: [],
+    tower: [],
     week: TODAY,
     saveQuest: vi.fn(),
     deleteQuest: vi.fn(),

@@ -2165,3 +2165,70 @@ details.tuning[open] > summary {
   padding: 12px;
   text-align: center;
 }
+
+/* 試練の塔 */
+.tower {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tower-floor {
+  --el: var(--line);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--el);
+  background: var(--card);
+  color: inherit;
+  text-align: left;
+}
+.tower-floor:disabled {
+  opacity: 0.55;
+}
+.tower-floor.next {
+  border-color: var(--el);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--el) 40%, transparent);
+}
+.tower-floor.done {
+  opacity: 0.75;
+}
+.tower-no {
+  font-weight: 900;
+  min-width: 34px;
+  font-size: 1.05rem;
+}
+.tower-blank {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--card2);
+}
+.tower-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tower-state {
+  font-weight: 800;
+  white-space: nowrap;
+}
+.tower-entry {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  color: inherit;
+}
