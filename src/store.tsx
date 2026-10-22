@@ -27,7 +27,7 @@ import { isWeekCleared } from './lib/week'
 import { compressImage } from './lib/imageCompress'
 import { draw, isPickupRarity, isPity, isReady, rarityOf, rateTable } from './lib/gacha'
 import { isJogressReady } from './lib/stats'
-import { battleOf, questGold } from './lib/quest'
+import { battleOf, dropPlus, questGold } from './lib/quest'
 import { rollBonusCore, rollCoreDrop } from './lib/cores'
 import { canFeed, fusionGain } from './lib/fusion'
 import { jogressElementOf } from './lib/element'
@@ -840,7 +840,6 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       if (!battle?.defeated) return null
       const c = battle.challenge
       const material = battle.quest.kind === 'material'
-      const diff = CONFIG.quest.difficulties[c.difficulty]
       const gold = questGold(battle.quest, c.difficulty)
       const coreKey = battle.quest.attr
       const batch = writeBatch(db)
@@ -868,7 +867,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
           nodeId: FIRST_NODE_ID,
           investedBy: {},
           investedFrom: {},
-          plus: diff.plus,
+          plus: dropPlus(battle.quest),
           shiny,
           obtainedAt: Date.now(),
         })

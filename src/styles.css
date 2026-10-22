@@ -918,6 +918,32 @@ details.fold[open] > summary {
   color: var(--beat);
 }
 
+/* クエストの格 */
+.grade-badge {
+  display: inline-block;
+  padding: 2px 14px;
+  border-radius: 8px;
+  font-weight: 900;
+  letter-spacing: 2px;
+}
+.grade-kiwami {
+  background: linear-gradient(120deg, #4b5563, #9ca3af);
+  color: #fff;
+}
+.grade-kyukyoku {
+  background: linear-gradient(120deg, #1f3d6b, #4cc9f0);
+  color: #fff;
+}
+.grade-chozetsu {
+  background: linear-gradient(120deg, #8a1c1c, #ffd166);
+  color: #1b1400;
+}
+.grade-chip.on.grade-chozetsu,
+.grade-chip.on.grade-kyukyoku,
+.grade-chip.on.grade-kiwami {
+  color: #fff;
+}
+
 /* クエスト */
 .battle-bar {
   position: sticky;

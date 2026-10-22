@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { defaultHp, questGold, questHits, setHit, standardSessionDamage } from './quest'
+import { defaultBossHp, dropPlus, gradeOf, questHp, defaultHp, questGold, questHits, setHit, standardSessionDamage } from './quest'
 import { isJogressReady, jogressNeed } from './stats'
 import type { MonsterDef, OwnedMonster, Quest, SetRecord } from '../types'
 
@@ -61,13 +61,25 @@ describe('クエスト', () => {
   })
 
 
-  it('ボスの格で、初級〜上級のHPとGがまとめて変わる', () => {
-    const weak = defaultHp(0)
-    const strong = defaultHp(4)
-    expect(strong.easy).toBeGreaterThan(weak.hard) // 極の初級は、雑魚の上級より硬い
-    expect(weak.easy).toBeLessThan(weak.normal)
-    expect(questGold({ rank: 4 }, 'easy')).toBeGreaterThan(questGold({ rank: 0 }, 'easy'))
-    expect(questGold({}, 'normal')).toBe(120) // 格を決めていなければ「普通」
+  it('ボスクエストは格（極・究極・超絶）でHP・G・ドロップの＋が決まる', () => {
+    expect(defaultBossHp('chozetsu')).toBeGreaterThan(defaultBossHp('kyukyoku'))
+    expect(defaultBossHp('kyukyoku')).toBeGreaterThan(defaultBossHp('kiwami'))
+    expect(questGold({ grade: 'chozetsu' }, 'normal')).toBe(300)
+    expect(dropPlus({ grade: 'chozetsu' })).toBe(1)
+    expect(dropPlus({ grade: 'kyukyoku' })).toBe(0)
+    // 格を決める前のクエストは、以前の「雑魚〜極」から読み替える
+    expect(gradeOf({ rank: 4 })).toBe('chozetsu')
+    expect(gradeOf({})).toBe('kiwami')
+    // ボスクエストのHPは1つだけ
+    expect(questHp({ hp: { easy: 1, normal: 2, hard: 3 } }, 'hard')).toBe(2)
+  })
+
+  it('素材クエストは初級〜上級と格（雑魚〜極）のまま', () => {
+    const weak = defaultHp(0, 'material')
+    const strong = defaultHp(4, 'material')
+    expect(strong.easy).toBeGreaterThan(weak.hard)
+    expect(questGold({ kind: 'material', rank: 4 }, 'easy')).toBeGreaterThan(questGold({ kind: 'material', rank: 0 }, 'easy'))
+    expect(questHp({ kind: 'material', hp: { easy: 1, normal: 2, hard: 3 } }, 'hard')).toBe(3)
   })
 
   it('ジョグレス：途中の段階どうしでもOK（★2どうしで★3誕生）。＋の条件もレシピで決める', () => {

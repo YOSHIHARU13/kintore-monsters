@@ -2,7 +2,7 @@ import { CONFIG } from '../config/gameConfig'
 import { DAYS, type FormAttr } from '../data/exercises'
 import { attackOf } from './stats'
 import { formationOf, requirementsOf } from './formation'
-import { nodeAttr, type Challenge, type MonsterDef, type OwnedMonster, type Quest, type QuestDifficulty, type SetRecord } from '../types'
+import { nodeAttr, type Challenge, type MonsterDef, type OwnedMonster, type Quest, type QuestDifficulty, type QuestGrade, type SetRecord } from '../types'
 
 export const DIFFICULTIES: QuestDifficulty[] = ['easy', 'normal', 'hard']
 
@@ -115,7 +115,7 @@ export function battleOf(
   const sets = weekSets.filter((s) => s.ts >= challenge.startTs && s.date === today)
   const hits = questHits(quest, party, sets, exerciseName)
   const damage = hits.reduce((sum, h) => sum + h.damage, 0)
-  const hp = quest.hp[challenge.difficulty]
+  const hp = questHp(quest, challenge.difficulty)
   return { challenge, quest, boss: defs.find((d) => d.id === quest.bossDefId), party, hits, damage, hp, defeated: damage >= hp }
 }
 
@@ -125,10 +125,41 @@ export function rankOf(quest: Pick<Quest, 'rank'>) {
   return ranks[Math.min(ranks.length - 1, Math.max(0, quest.rank ?? 1))]
 }
 
-/** 倒したときのゴールド：難易度のゴールド × ボスの格（素材クエストは少なめ） */
-export function questGold(quest: Pick<Quest, 'rank' | 'kind'>, difficulty: QuestDifficulty): number {
-  const ratio = quest.kind === 'material' ? CONFIG.cores.materialGoldRatio : 1
-  return Math.round(CONFIG.quest.difficulties[difficulty].gold * rankOf(quest).gold * ratio)
+export const GRADES: QuestGrade[] = ['kiwami', 'kyukyoku', 'chozetsu']
+
+/** ボスクエストは難易度が1つだけ（内部では normal を使う） */
+export const BOSS_DIFFICULTY: QuestDifficulty = 'normal'
+
+/** ボスクエストの格。格を決める前のクエストは、以前の「雑魚〜極」から読み替える */
+export function gradeOf(quest: Pick<Quest, 'grade' | 'rank'>): QuestGrade {
+  if (quest.grade) return quest.grade
+  const rank = quest.rank ?? 1
+  return rank <= 1 ? 'kiwami' : rank === 2 ? 'kyukyoku' : 'chozetsu'
+}
+
+export function questHp(quest: Pick<Quest, 'kind' | 'hp'>, difficulty: QuestDifficulty): number {
+  return quest.kind === 'material' ? quest.hp[difficulty] : quest.hp[BOSS_DIFFICULTY]
+}
+
+/** 倒したときのゴールド：ボスクエストは格で、素材クエストは難易度 × 格（少なめ） */
+export function questGold(quest: Pick<Quest, 'rank' | 'kind' | 'grade'>, difficulty: QuestDifficulty): number {
+  if (quest.kind !== 'material') return CONFIG.quest.grades[gradeOf(quest)].gold
+  return Math.round(CONFIG.quest.difficulties[difficulty].gold * rankOf(quest).gold * CONFIG.cores.materialGoldRatio)
+}
+
+/** ボスクエストで手に入るボスの＋ */
+export function dropPlus(quest: Pick<Quest, 'grade' | 'rank'>): number {
+  return CONFIG.quest.grades[gradeOf(quest)].plus
+}
+
+/** クエストの格や難易度の表示（例：超絶、素材・中級） */
+export function questLevelLabel(quest: Pick<Quest, 'kind' | 'grade' | 'rank'>, difficulty: QuestDifficulty): string {
+  return quest.kind === 'material' ? CONFIG.quest.difficulties[difficulty].label : CONFIG.quest.grades[gradeOf(quest)].label
+}
+
+/** ボスクエストのHPの初期値：1回のトレーニングで与えるダメージの目安 × 格 */
+export function defaultBossHp(grade: QuestGrade): number {
+  return Math.max(100, Math.round((standardSessionDamage() * CONFIG.quest.grades[grade].hpRatio) / 100) * 100)
 }
 
 /** HPの初期値：1回のトレーニングで与えるダメージの目安 × ボスの格 × 難易度（100の位で丸める） */

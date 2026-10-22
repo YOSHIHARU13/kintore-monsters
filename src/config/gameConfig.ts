@@ -122,6 +122,13 @@ export const CONFIG = {
       { label: '凶悪', hp: 2.5, gold: 2.2 },
       { label: '極', hp: 4, gold: 3.5 },
     ],
+    // ボスクエストの格：難易度は1つだけで、クエストそのものに格がある（素材クエストは初級〜上級のまま）
+    // hpRatio：1回のトレーニングで与えるダメージの目安に対するHPの倍率
+    grades: {
+      kiwami: { label: '極', hpRatio: 0.9, gold: 80, plus: 0 },
+      kyukyoku: { label: '究極', hpRatio: 1.5, gold: 150, plus: 0 },
+      chozetsu: { label: '超絶', hpRatio: 2.5, gold: 300, plus: 1 },
+    },
     difficulties: {
       // hpRatio：1回のトレーニングで与えるダメージの目安に対するHPの倍率
       easy: { label: '初級', plus: 0, gold: 50, hpRatio: 0.9 },

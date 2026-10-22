@@ -1,12 +1,11 @@
 import { useState } from 'react'
 import { useStore } from '../store'
-import { CONFIG } from '../config/gameConfig'
 import { Gauge } from '../components/Gauge'
 import { MonsterImage } from '../components/MonsterImage'
 import { QuestBanner } from '../components/QuestBanner'
 import { bannerNodeOf } from '../components/GachaBanner'
 import { useBattle } from '../components/BattleBar'
-import { questGold } from '../lib/quest'
+import { dropPlus, questGold, questLevelLabel } from '../lib/quest'
 import { formationOf, requirementsOf } from '../lib/formation'
 import { CORE_LABEL } from '../lib/cores'
 import type { QuestReward } from '../store'
@@ -56,7 +55,7 @@ export function Quests({ go }: { go: Go }) {
       {battle ? (
         <section className="card">
           <h2>
-            戦闘中：{battle.quest.name}（{CONFIG.quest.difficulties[battle.challenge.difficulty].label}）
+            戦闘中：{battle.quest.name}（{questLevelLabel(battle.quest, battle.challenge.difficulty)}）
           </h2>
           <div className="monster-row">
             {battle.boss && (
@@ -83,14 +82,14 @@ export function Quests({ go }: { go: Go }) {
               onClick={() => {
                 const reward = claimQuest()
                 if (reward) {
-                  setGot({ ...reward, boss: battle.boss, plus: CONFIG.quest.difficulties[battle.challenge.difficulty].plus })
+                  setGot({ ...reward, boss: battle.boss, plus: dropPlus(battle.quest) })
                 }
               }}
             >
               報酬を受け取る（
               {battle.quest.kind === 'material'
                 ? `${CORE_LABEL[battle.quest.attr]}のチャンス`
-                : `${battle.boss?.name}＋${CONFIG.quest.difficulties[battle.challenge.difficulty].plus}`}
+                : `${battle.boss?.name}${dropPlus(battle.quest) > 0 ? `＋${dropPlus(battle.quest)}` : ''}`}
               ・{questGold(battle.quest, battle.challenge.difficulty)}G）
             </button>
           ) : (

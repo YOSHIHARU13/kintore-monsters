@@ -5,7 +5,7 @@ import { FORM_ATTR_LABEL, SLOTS, exerciseOfSlot } from '../data/exercises'
 import { MonsterImage } from '../components/MonsterImage'
 import { Stars } from '../components/Stars'
 import { QuestBanner } from '../components/QuestBanner'
-import { DIFFICULTIES, attrOf, powerOf, questGold, rankOf, type Member } from '../lib/quest'
+import { BOSS_DIFFICULTY, DIFFICULTIES, attrOf, dropPlus, gradeOf, powerOf, questGold, questHp, rankOf, type Member } from '../lib/quest'
 import { formationOf, requirementsOf, shortfallHelp, tagLabel, tagsOf } from '../lib/formation'
 import { FormationPanel } from '../components/FormationPanel'
 import { elementInfo, elementName } from '../lib/element'
@@ -21,7 +21,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
   const quest = quests.find((q) => q.id === id)
   const current = state.challenge?.date === today ? state.challenge : null
   const [difficulty, setDifficulty] = useState<QuestDifficulty>(
-    current?.questId === id ? current.difficulty : 'normal',
+    current?.questId === id ? current.difficulty : BOSS_DIFFICULTY,
   )
   // 前回の出撃メンバーを最初から選んでおく（同じメンバーで周回しやすいように）
   const [party, setParty] = useState<string[]>(
@@ -103,17 +103,30 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
       </section>
 
       <section className="card">
-        <h2>難易度</h2>
-        <div className="chips" role="group" aria-label="難易度">
-          {DIFFICULTIES.map((d) => (
-            <button key={d} type="button" className={`chip${difficulty === d ? ' on' : ''}`} onClick={() => setDifficulty(d)}>
-              {CONFIG.quest.difficulties[d].label}
-            </button>
-          ))}
-        </div>
-        <p className="small">
-          ボスの格：{rank.label}・HP {quest.hp[difficulty].toLocaleString()}・{questGold(quest, difficulty)}G
-        </p>
+        {quest.kind === 'material' ? (
+          <>
+            <h2>難易度</h2>
+            <div className="chips" role="group" aria-label="難易度">
+              {DIFFICULTIES.map((d) => (
+                <button key={d} type="button" className={`chip${difficulty === d ? ' on' : ''}`} onClick={() => setDifficulty(d)}>
+                  {CONFIG.quest.difficulties[d].label}
+                </button>
+              ))}
+            </div>
+            <p className="small">
+              格：{rank.label}・HP {questHp(quest, difficulty).toLocaleString()}・{questGold(quest, difficulty)}G
+            </p>
+          </>
+        ) : (
+          <>
+            <h2>
+              <span className={`grade-badge grade-${gradeOf(quest)}`}>{CONFIG.quest.grades[gradeOf(quest)].label}</span>
+            </h2>
+            <p className="small">
+              HP {questHp(quest, difficulty).toLocaleString()}・{questGold(quest, difficulty)}G
+            </p>
+          </>
+        )}
         {quest.kind === 'material' ? (
           <p className="small core-drop">
             💎 {CORE_LABEL[quest.attr]}：{Math.round(CONFIG.cores.drop[difficulty].rate * 100)}%で落ちる
@@ -122,7 +135,8 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
           </p>
         ) : (
           <p className="small">
-            ドロップ {boss?.name ?? '？'}＋{CONFIG.quest.difficulties[difficulty].plus}・たまに{CORE_LABEL[quest.attr]}（
+            ドロップ {boss?.name ?? '？'}
+            {dropPlus(quest) > 0 ? `＋${dropPlus(quest)}` : ''}・たまに{CORE_LABEL[quest.attr]}（
             {Math.round(CONFIG.cores.bossBonusRate * 100)}%）
           </p>
         )}
@@ -173,7 +187,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
         className="btn primary wide"
         disabled={party.length === 0}
         onClick={() => {
-          startChallenge(quest.id, difficulty, party)
+          startChallenge(quest.id, quest.kind === 'material' ? difficulty : BOSS_DIFFICULTY, party)
           go({ name: 'quests' })
         }}
       >

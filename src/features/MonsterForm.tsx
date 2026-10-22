@@ -21,6 +21,7 @@ import {
   type Supply,
 } from '../lib/coverage'
 import { ELEMENTS, ELEMENT_COLOR, ELEMENT_LABEL, elementInfo, elementName, jogressElementOf } from '../lib/element'
+import { requirementsOf } from '../lib/formation'
 
 export function MonsterForm({ id, go }: { id?: string; go: Go }) {
   const { defs, gachas, menu, quests, saveMonsterDef } = useStore()
@@ -92,6 +93,25 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
     if (recipe.length !== 2) setElement(rec.element)
     setFavoriteSlot(rec.favoriteSlot)
     setAbilities(rec.abilities)
+  }
+
+  // 選んだクエストの条件に合わせる：属性はその条件の中でいちばん足りていないもの、アビリティは条件にあるもの
+  const applyQuest = (questId: string) => {
+    const quest = quests.find((q) => q.id === questId)
+    if (!quest) return
+    const reqs = requirementsOf(quest)
+    const elementReqs = reqs.filter((r) => r.tag.startsWith('el:'))
+    if (recipe.length !== 2 && elementReqs.length > 0) {
+      const gap = (tag: string) => {
+        const sup = elSup[tag.slice(3) as Element]
+        return (elementReqs.find((r) => r.tag === tag)?.count ?? 0) - sup.have
+      }
+      const best = [...elementReqs].sort((a, b) => gap(b.tag) - gap(a.tag))[0]
+      setElement(best.tag.slice(3) as Element)
+    }
+    const abilityReqs = reqs.filter((r) => r.tag.startsWith('ab:')).map((r) => r.tag.slice(3))
+    if (abilityReqs.length > 0) setAbilities(abilityReqs.slice(0, maxAbilities))
+    if (quest.weakSlots[0]) setFavoriteSlot(quest.weakSlots[0])
   }
 
   const stages = [...new Set(template.nodes.filter((n) => n.next.length > 0).map((n) => n.stage))]
@@ -262,6 +282,21 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
         <button type="button" className="btn small" onClick={applyRecommend}>
           ✨ 足りないもので埋める（属性・得意種目・アビリティ）
         </button>
+        {quests.some((q) => q.kind !== 'material') && (
+          <label className="field">
+            🎯 このクエスト用にする（そのクエストの条件に合わせて、属性・アビリティ・得意種目を選びます）
+            <select value="" onChange={(e) => applyQuest(e.target.value)}>
+              <option value="">クエストを選ぶ…</option>
+              {quests
+                .filter((q) => q.kind !== 'material')
+                .map((q) => (
+                  <option key={q.id} value={q.id}>
+                    {q.name}
+                  </option>
+                ))}
+            </select>
+          </label>
+        )}
         {recipe.length === 2 ? (
           <p className="small">
             属性：<strong>{elementName(elementInfo(draftFull))}</strong>

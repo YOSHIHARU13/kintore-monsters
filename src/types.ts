@@ -124,6 +124,7 @@ export interface Gacha {
 }
 
 export type QuestDifficulty = 'easy' | 'normal' | 'hard'
+export type QuestGrade = 'kiwami' | 'kyukyoku' | 'chozetsu'
 
 /** クエストが求める人材の条件（タグ：'el:fire' のような属性か、'ab:バリア' のようなアビリティ） */
 export interface Requirement {
@@ -143,7 +144,8 @@ export interface Quest {
   gimmicks?: string[] // 旧：ギミック名（条件ができる前のクエスト。対応アビリティ2体の条件として読む）
   customGimmicks?: Record<string, string> // このクエストで作ったギミック → 対応するアビリティ名
   hp: Record<QuestDifficulty, number>
-  rank?: number // ボスの格（CONFIG.quest.ranks の番号。なければ「普通」）
+  rank?: number // 素材クエストの格（CONFIG.quest.ranks の番号。なければ「普通」）
+  grade?: QuestGrade // ボスクエストの格（極・究極・超絶）。HPは hp.normal を使う
   catchphrase: string
   theme: string
   createdAt: number

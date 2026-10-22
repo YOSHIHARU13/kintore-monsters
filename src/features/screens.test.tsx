@@ -680,19 +680,20 @@ describe('画面の表示', () => {
     expect(names[0]).toContain('得意種目が弱点')
     expect(names[0]).toContain('バリアブレイカー') // ボスのギミックに対応している
     expect(names[1]).not.toContain('バリアブレイカー')
-    await act(async () => el.querySelector('[aria-label="難易度"]')!.querySelectorAll('button')[2].click())
-    expect(el.textContent).toContain('HP 6,000・250Gドロップ アシガメ＋2')
+    // ボスクエストは難易度を選ばない。格（決めていなければ極）でHPと報酬が決まる
+    expect(el.querySelector('[aria-label="難易度"]')).toBeNull()
+    expect(el.textContent).toContain('HP 3,000・80Gドロップ アシガメ・たまに')
     await click('ムキドラゴ')
     expect(el.textContent).toContain('バリアブレイカー1/2') // 選ぶとメーターが埋まる
     await click('出撃する')
-    expect(fake.store.startChallenge).toHaveBeenCalledWith('q1', 'hard', ['o1'])
+    expect(fake.store.startChallenge).toHaveBeenCalledWith('q1', 'normal', ['o1'])
   })
 
   it('クエスト：出撃してからのセットがダメージになり、倒したらその場で報酬を受け取れる', async () => {
     const { Quests } = await import('./Quests')
     const quest = {
       id: 'q1', name: '脚竜の巣', bossDefId: 'm2', attr: 'legs' as const, element: 'wood' as const, weakSlots: ['mon2'], gimmicks: [],
-      hp: { easy: 25, normal: 3000, hard: 6000 }, catchphrase: '', theme: 'flame', createdAt: 1,
+      hp: { easy: 25, normal: 25, hard: 25 }, catchphrase: '', theme: 'flame', createdAt: 1,
     }
     fake.store.quests = [quest]
     fake.store.state = {
@@ -716,7 +717,7 @@ describe('画面の表示', () => {
     const { Quests } = await import('./Quests')
     const quest = {
       id: 'q1', name: '脚竜の巣', bossDefId: 'm2', attr: 'legs' as const, weakSlots: [], gimmicks: [],
-      hp: { easy: 500, normal: 3000, hard: 6000 }, catchphrase: '', theme: 'flame', createdAt: 1,
+      hp: { easy: 500, normal: 500, hard: 500 }, catchphrase: '', theme: 'flame', createdAt: 1,
     }
     fake.store.quests = [quest]
     fake.store.state = { ...state, challenge: { date: '2026-10-04', questId: 'q1', difficulty: 'easy', party: ['o1'], startTs: 0 } }
@@ -811,8 +812,8 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('シールドクラッシャー 0体／クエスト1不足')
     expect(el.textContent).toContain('特に刺さるクエストはまだありません') // 刺さらないクエストは出さない
     await click('足りないもので埋める')
-    const select = el.querySelectorAll('select')[1] as HTMLSelectElement
-    expect(select.value).toBe('wed1') // 弱点種目なのに得意なモンスターがいない
+    const favorite = [...el.querySelectorAll('select')].find((x) => x.textContent?.includes('プッシュアップ')) as HTMLSelectElement
+    expect(favorite.value).toBe('wed1') // 弱点種目なのに得意なモンスターがいない
     expect(el.querySelector('.fit-good')).not.toBeNull() // 胸腕・シールドクラッシャー・得意種目が弱点 → ◎
     expect(el.textContent).toContain('脚竜の巣')
   })
@@ -839,6 +840,26 @@ describe('画面の表示', () => {
     expect(fake.store.saveMonsterDef).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'コウリンオー', templateId: 'single', questOnly: true, fixedStars: 2 }),
     )
+  })
+
+  it('モンスター登録：🎯このクエスト用にすると、条件に合わせて属性・アビリティ・得意種目が入る', async () => {
+    fake.store.quests = [
+      {
+        id: 'q1', name: '脚竜の巣', bossDefId: 'm2', attr: 'legs', weakSlots: ['wed1'],
+        requirements: [{ tag: 'el:water', count: 3 }, { tag: 'ab:シールド', count: 2 }],
+        hp: { easy: 1, normal: 1, hard: 1 }, catchphrase: '', theme: 'flame', createdAt: 1,
+      },
+    ]
+    const el = await render(<MonsterForm go={go} />)
+    const picker = [...el.querySelectorAll('select')].find((x) => x.textContent?.includes('クエストを選ぶ'))!
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(picker, 'q1')
+      picker.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    const on = [...el.querySelectorAll('button.chip.on')].map((b) => b.textContent)
+    expect(on.some((t) => t?.startsWith('水'))).toBe(true)
+    expect(on.some((t) => t?.startsWith('シールドクラッシャー'))).toBe(true)
+    expect(el.textContent).toContain('◎ 脚竜の巣')
   })
 
   it('モンスター登録：入るガチャは3つまで', async () => {

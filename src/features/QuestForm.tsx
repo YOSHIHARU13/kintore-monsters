@@ -4,13 +4,13 @@ import { CONFIG } from '../config/gameConfig'
 import { DAYS, FORM_ATTRS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type FormAttr } from '../data/exercises'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { QuestBanner } from '../components/QuestBanner'
-import { DIFFICULTIES, defaultHp, questGold, standardSessionDamage } from '../lib/quest'
+import { DIFFICULTIES, GRADES, defaultBossHp, defaultHp, gradeOf, questGold, standardSessionDamage } from '../lib/quest'
 import { allGimmicks } from '../lib/gimmick'
 import { ELEMENTS } from '../lib/element'
 import { abilityTag, elementTag, requirementsOf, tagLabel } from '../lib/formation'
 import { CORE_LABEL } from '../lib/cores'
 import { ATTR_COLOR, type Go } from '../nav'
-import { nodeAttr, type Quest, type QuestDifficulty, type Requirement } from '../types'
+import { nodeAttr, type Quest, type QuestDifficulty, type QuestGrade, type Requirement } from '../types'
 
 /** クエストを作る・編集する。ボス・弱点・HPを決める */
 export function QuestForm({ id, go }: { id?: string; go: Go }) {
@@ -33,6 +33,8 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
   const gimmickNames = { ...allGimmicks(quests), ...customGimmicks }
   const [kind, setKind] = useState<'boss' | 'material'>(existing?.kind ?? 'boss')
   const [rank, setRank] = useState(existing?.rank ?? 1)
+  const [grade, setGrade] = useState<QuestGrade>(existing ? gradeOf(existing) : 'kyukyoku')
+  const [bossHp, setBossHp] = useState(existing?.hp.normal ?? defaultBossHp(existing ? gradeOf(existing) : 'kyukyoku'))
   const [hp, setHp] = useState<Record<QuestDifficulty, number>>(existing?.hp ?? defaultHp(existing?.rank ?? 1, existing?.kind))
   const [catchphrase, setCatchphrase] = useState(existing?.catchphrase ?? '')
   const [theme, setTheme] = useState(existing?.theme ?? 'flame')
@@ -49,8 +51,9 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
     kind,
     requirements,
     customGimmicks,
-    hp,
+    hp: kind === 'boss' ? { easy: bossHp, normal: bossHp, hard: bossHp } : hp,
     rank,
+    grade,
     catchphrase,
     theme,
     createdAt: existing?.createdAt ?? 0,
@@ -59,8 +62,8 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
   const save = () => {
     if (!name.trim()) return setError('クエストの名前を入力してください')
     if (!boss) return setError('ボスにするモンスターを選んでください')
-    if (DIFFICULTIES.some((d) => !(hp[d] > 0))) return setError('HPは1以上にしてください')
-    saveQuest({ id: existing?.id, name, kind, bossDefId, attr, weakSlots, requirements, customGimmicks, hp, rank, catchphrase, theme })
+    if (DIFFICULTIES.some((d) => !(draft.hp[d] > 0))) return setError('HPは1以上にしてください')
+    saveQuest({ id: existing?.id, name, kind, bossDefId, attr, weakSlots, requirements, customGimmicks, hp: draft.hp, rank, grade, catchphrase, theme })
     go({ name: 'quests' })
   }
 
@@ -164,8 +167,8 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
             ))}
           </div>
         </div>
-        <div className="field">
-          弱点種目（なくてもOK・{CONFIG.quest.maxWeakSlots}つまで・ダメージ×{CONFIG.quest.weakSlot}）
+        <details className="field">
+          <summary>弱点種目（なくてもOK・{CONFIG.quest.maxWeakSlots}つまで・ダメージ×{CONFIG.quest.weakSlot}）</summary>
           <div className="chips">
             {SLOTS.map((slot) => {
               const on = weakSlots.includes(slot.id)
@@ -183,7 +186,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
               )
             })}
           </div>
-        </div>
+        </details>
       </section>
 
       <section className="card">
@@ -277,43 +280,75 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
         </span>
       </section>
 
-      <section className="card">
-        <h2>ボスの格とHP</h2>
-        <div className="chips" role="group" aria-label="ボスの格">
-          {CONFIG.quest.ranks.map((r, i) => (
-            <button
-              key={r.label}
-              type="button"
-              className={`chip${rank === i ? ' on' : ''}`}
-              onClick={() => {
-                setRank(i)
-                setHp(defaultHp(i, kind))
-              }}
-            >
-              {r.label}
-            </button>
-          ))}
-        </div>
-        <p className="muted small">格を選ぶと、初級・中級・上級のHPが入り直します（HPは手で書き換えてもOK）。格が高いほど報酬のGも増えます。</p>
-        <p className="muted small">
-          目安：攻撃力9,000くらい（ノーマルの★3）が6体（各属性2体）、相性・弱点なしで、1回のトレーニング（1部位5種目×3セット＋ローラー3セット）で約
-          <strong>{session.toLocaleString()}</strong>ダメージ。相性・弱点・特攻を突いたり、2周目まで追い込んだりすると大きく増えます。
-        </p>
-        {DIFFICULTIES.map((d) => (
-          <label key={d} className="field">
-            {CONFIG.quest.difficulties[d].label}（ドロップ＋{CONFIG.quest.difficulties[d].plus}・{questGold({ rank }, d)}G）
+      {kind === 'boss' ? (
+        <section className="card">
+          <h2>格とHP</h2>
+          <div className="chips" role="group" aria-label="クエストの格">
+            {GRADES.map((g) => (
+              <button
+                key={g}
+                type="button"
+                className={`chip grade-chip grade-${g}${grade === g ? ' on' : ''}`}
+                onClick={() => {
+                  setGrade(g)
+                  setBossHp(defaultBossHp(g))
+                }}
+              >
+                {CONFIG.quest.grades[g].label}
+              </button>
+            ))}
+          </div>
+          <p className="muted small">
+            {CONFIG.quest.grades[grade].label}：報酬 {CONFIG.quest.grades[grade].gold}G・ボス
+            {CONFIG.quest.grades[grade].plus > 0 ? `＋${CONFIG.quest.grades[grade].plus}` : ''}がドロップ。格を選ぶとHPが入り直します（手で書き換えてもOK）。
+          </p>
+          <label className="field">
+            HP（編成がちょうどそろっていて、1回のトレーニングで約{session.toLocaleString()}ダメージが目安）
             <input
               type="number"
               inputMode="numeric"
               min={1}
-              value={hp[d]}
-              onChange={(e) => setHp({ ...hp, [d]: Math.max(0, Math.floor(Number(e.target.value) || 0)) })}
-              aria-label={`${CONFIG.quest.difficulties[d].label}のHP`}
+              value={bossHp}
+              onChange={(e) => setBossHp(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+              aria-label="HP"
             />
-            <span className="muted small">1回ぶんの {Math.round((hp[d] / session) * 10) / 10}倍</span>
+            <span className="muted small">1回ぶんの {Math.round((bossHp / session) * 10) / 10}倍</span>
           </label>
-        ))}
-      </section>
+        </section>
+      ) : (
+        <section className="card">
+          <h2>格とHP</h2>
+          <div className="chips" role="group" aria-label="ボスの格">
+            {CONFIG.quest.ranks.map((r, i) => (
+              <button
+                key={r.label}
+                type="button"
+                className={`chip${rank === i ? ' on' : ''}`}
+                onClick={() => {
+                  setRank(i)
+                  setHp(defaultHp(i, kind))
+                }}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
+          <p className="muted small">格を選ぶと、初級・中級・上級のHPが入り直します（HPは手で書き換えてもOK）。</p>
+          {DIFFICULTIES.map((d) => (
+            <label key={d} className="field">
+              {CONFIG.quest.difficulties[d].label}（{questGold({ rank, kind }, d)}G）
+              <input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                value={hp[d]}
+                onChange={(e) => setHp({ ...hp, [d]: Math.max(0, Math.floor(Number(e.target.value) || 0)) })}
+                aria-label={`${CONFIG.quest.difficulties[d].label}のHP`}
+              />
+            </label>
+          ))}
+        </section>
+      )}
 
       {error && <p className="error">{error}</p>}
       <button className="btn primary wide" onClick={save}>
