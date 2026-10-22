@@ -3,6 +3,7 @@ import { FORM_ATTR_LABEL } from '../data/exercises'
 import { getNode, getTemplate, pathTo } from '../data/evolutionTemplates'
 import { MonsterImage } from '../components/MonsterImage'
 import { Stars } from '../components/Stars'
+import { MonsterTabs } from '../components/MonsterTabs'
 import { ATTR_COLOR, type Go } from '../nav'
 import { isHidden, monsterName, nodeAttr } from '../types'
 import { CONFIG } from '../config/gameConfig'
@@ -44,7 +45,7 @@ export function Dex({ go }: { go: Go }) {
 
   return (
     <div className="page">
-      <h1 className="title">図鑑</h1>
+      <MonsterTabs on="dex" go={go} />
       <p className="muted">
         発見 {foundCount}／全 {formCount} 形態
       </p>

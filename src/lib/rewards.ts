@@ -42,6 +42,14 @@ export function habitLabelOf(state: GameState): string {
   return state.habitLabel?.trim() || CONFIG.morning.habitDefaultLabel
 }
 
+/** 習慣のゴールド。○×ならできた日に一定、分数なら1分ごと（上限あり） */
+export function habitGoldOf(mode: GameState['habitMode'], checked: boolean, minutes: number): number {
+  if (mode === 'minutes') {
+    return Math.min(Math.max(0, Math.floor(minutes)), CONFIG.morning.habitMaxMinutes) * CONFIG.morning.habitGoldPerMinute
+  }
+  return checked ? CONFIG.morning.habitGold : 0
+}
+
 export function stepsGold(steps: number): number {
   const base = Math.floor(Math.max(0, steps) / CONFIG.morning.stepsPerGold)
   return base + CONFIG.morning.stepBonuses.reduce((sum, b) => sum + (steps >= b.steps ? b.gold : 0), 0)

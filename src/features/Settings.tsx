@@ -1,11 +1,14 @@
 import { useState, type FormEvent } from 'react'
+import { signOut } from 'firebase/auth'
+import { auth } from '../lib/firebase'
 import { useStore } from '../store'
+import type { Go } from '../nav'
 import { habitLabelOf } from '../lib/rewards'
 import { CONFIG } from '../config/gameConfig'
 import { isSunoShortLink, parseSunoSongId } from '../lib/suno'
 
-export function Settings() {
-  const { songs, saveSongs, state, setHabitLabel } = useStore()
+export function Settings({ go }: { go: Go }) {
+  const { songs, saveSongs, state, setHabitLabel, setHabitMode } = useStore()
   const [habit, setHabit] = useState(habitLabelOf(state))
   const [url, setUrl] = useState('')
   const [title, setTitle] = useState('')
@@ -34,6 +37,9 @@ export function Settings() {
 
   return (
     <div className="page">
+      <button className="back" onClick={() => go({ name: 'home' })}>
+        ← ホームに戻る
+      </button>
       <h1 className="title">設定</h1>
 
       <form
@@ -45,7 +51,7 @@ export function Settings() {
       >
         <h2>朝の記録の習慣</h2>
         <label className="field">
-          毎朝「前日、これができたか」を聞きます（できたら +{CONFIG.morning.habitGold}G）
+          毎朝「前日、これができたか」を聞きます
           <input
             type="text"
             maxLength={30}
@@ -57,6 +63,25 @@ export function Settings() {
         <button className="btn primary wide" type="submit" disabled={habit.trim() === habitLabelOf(state)}>
           習慣の名前を保存
         </button>
+        <div className="field">
+          記録のしかた
+          <div className="chips" role="group" aria-label="記録のしかた">
+            <button
+              type="button"
+              className={`chip${state.habitMode !== 'minutes' ? ' on' : ''}`}
+              onClick={() => setHabitMode('check')}
+            >
+              ○×（できたら +{CONFIG.morning.habitGold}G）
+            </button>
+            <button
+              type="button"
+              className={`chip${state.habitMode === 'minutes' ? ' on' : ''}`}
+              onClick={() => setHabitMode('minutes')}
+            >
+              分数（1分 +{CONFIG.morning.habitGoldPerMinute}G・{CONFIG.morning.habitMaxMinutes}分まで）
+            </button>
+          </div>
+        </div>
       </form>
 
       <section className="card">
@@ -101,6 +126,9 @@ export function Settings() {
           追加する
         </button>
       </form>
+      <button className="btn ghost wide" onClick={() => signOut(auth)}>
+        ログアウト
+      </button>
     </div>
   )
 }

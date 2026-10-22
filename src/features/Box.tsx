@@ -4,11 +4,13 @@ import { getNode, getTemplate } from '../data/evolutionTemplates'
 import { MonsterImage } from '../components/MonsterImage'
 import { CONFIG } from '../config/gameConfig'
 import { Stars } from '../components/Stars'
+import { MonsterTabs } from '../components/MonsterTabs'
 import { ATTR_COLOR, type Go } from '../nav'
 import { nodeAttr, plusName, type MonsterDef, type OwnedMonster } from '../types'
 
 export function Box({ go }: { go: Go }) {
   const { owned, defs, state } = useStore()
+  const partnerSlots = new Set(Object.values(state.partners))
   // 図鑑の順に並べ、同じモンスターは進化が進んでいる順
   const stageOf = (mon: OwnedMonster, def: MonsterDef) => getNode(getTemplate(def.templateId), mon.nodeId).stage
   const list = owned
@@ -20,7 +22,7 @@ export function Box({ go }: { go: Go }) {
 
   return (
     <div className="page">
-      <h1 className="title">BOX</h1>
+      <MonsterTabs on="box" go={go} />
       <p className="muted small">
         所持 {list.length}体。同じモンスターを何体でも持てるので、別の進化先にも育てられます。ダブったら合体させて＋を上げることもできます（最大＋{CONFIG.fusion.maxPlus}）。
       </p>
@@ -40,7 +42,7 @@ export function Box({ go }: { go: Go }) {
               <span className="small" style={{ color: ATTR_COLOR[nodeAttr(def, mon.nodeId)] }}>
                 {FORM_ATTR_LABEL[nodeAttr(def, mon.nodeId)]}・{node.stage}段階
               </span>
-              {state.activeMonsterId === mon.id && <span className="badge">育成中</span>}
+              {partnerSlots.has(mon.id) && <span className="badge">相棒</span>}
             </button>
           )
         })}

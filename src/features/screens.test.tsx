@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, type ReactElement } from 'react'
+import { act, useState, type ReactElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Gacha, GameState, MonsterDef, OwnedMonster, SetRecord } from '../types'
@@ -45,11 +45,13 @@ const state: GameState = {
   habitStreak: 3,
   bestHabitStreak: 5,
   habitLabel: null,
+  habitMode: 'check',
   lastCheckinDate: '2026-10-03',
   dexFound: {},
   dexShiny: {},
   pity: {},
   activeMonsterId: 'o1',
+  partners: {},
 }
 const defs: MonsterDef[] = [
   {
@@ -141,6 +143,8 @@ beforeEach(() => {
       ts: 1,
     })),
     setHabitLabel: vi.fn(),
+    setHabitMode: vi.fn(),
+    setPartner: vi.fn(),
     setSlot: vi.fn(),
     buyExp: vi.fn(),
     buyEgg: vi.fn(),
@@ -157,22 +161,84 @@ beforeEach(() => {
 })
 
 describe('画面の表示', () => {
-  it('ホーム：今週の残りタスク・所持・累計・育成中モンスター', async () => {
+  it('ホーム：今週の進み具合と次にやる種目、もうすぐ進化', async () => {
     fake.store.weekSets = [past(1, 10, 1, TODAY, 'wed1'), past(2, 10, 2, TODAY, 'wed1')]
     const el = await render(<Home go={go} />)
     expect(el.textContent).toContain('今週の残りタスク：あと40セット')
-    expect(el.textContent).toContain('残り10セット') // 脚は12セット中2セット済み
+    expect(el.textContent).toContain('残り10') // 脚は12セット中2セット済み
     expect(el.textContent).toContain('胸腕 0/5')
-    expect(el.textContent).toContain('脚 0/4') // 3セットやりきった種目の数
-    expect(el.textContent).toContain('ブルガリアンスクワット2/3')
     expect(el.textContent).not.toContain('腹筋ローラー') // ボーナス枠はタスク外
     expect(el.textContent).toContain('累計 2週')
-    expect(el.textContent).toContain('500G')
+    expect(el.textContent).toContain('もうすぐ進化')
     expect(el.textContent).toContain('ムキドラゴ') // 第2段階の名前
+    expect(el.textContent).toContain('進化まで あと0EXP')
     expect(el.textContent).toContain('ベッドでスマホを見なかった：3日連続')
-    expect(el.textContent).toContain('前日の歩数と習慣を記録する')
-    await click('ブルガリアンスクワット')
+    // 途中の種目を先に片付ける
+    await click('次にやる：ブルガリアンスクワット（2/3）')
     expect(go).toHaveBeenCalledWith({ name: 'set', slotId: 'wed1' })
+    await click('前日の歩数と習慣を記録する')
+    expect(go).toHaveBeenCalledWith({ name: 'morning' })
+  })
+
+  it('ホーム：朝の記録が済んだら1行にまとまる', async () => {
+    fake.store.state = { ...state, lastCheckinDate: '2026-10-04' }
+    fake.store.yesterdayCheckin = {
+      date: '2026-10-04', steps: 8200, habit: true, habitLabel: '瞑想', streak: 4, stepsGold: 46, habitGold: 20, habitMinutes: 10, ts: 1,
+    }
+    const el = await render(<Home go={go} />)
+    expect(el.textContent).toContain('昨日 8,200歩・ベッドでスマホを見なかった 10分・+66G')
+    expect(el.textContent).not.toContain('前日の歩数と習慣を記録する')
+  })
+
+  it('上の所持：G・タマゴ・EXPがいつも見えて、増えると +N が浮かぶ', async () => {
+    const { TopBar } = await import('../components/TopBar')
+    let rerender = () => {}
+    function Harness() {
+      const [, setTick] = useState(0)
+      rerender = () => setTick((t) => t + 1)
+      return <TopBar go={go} />
+    }
+    const el = await render(<Harness />)
+    expect(el.textContent).toContain('500')
+    expect(el.textContent).toContain('300') // 胸腕（筋トレ200＋購入100）
+    fake.store.state = { ...state, gold: 520 }
+    await act(async () => rerender())
+    expect(el.querySelector('.topbar-pop')?.textContent).toBe('+20')
+    await click('⚙️')
+    expect(go).toHaveBeenCalledWith({ name: 'settings' })
+  })
+
+  it('相棒：枠ごとにセットでき、セット入力のEXPに倍率がかかる', async () => {
+    const { PartnerPick } = await import('./PartnerPick')
+    fake.store.defs = [{ ...defs[0], favoriteSlot: 'mon2' }, defs[1]]
+    fake.store.owned = [{ ...owned[0], plus: 2 }, { id: 'o2', defId: 'm2', nodeId: 'n1', obtainedAt: 2 }]
+    const pick = await render(<PartnerPick slotId="mon2" go={go} />)
+    // ムキドラゴ：★3（ノーマルの第2段階）＋2、得意種目 → (1 + 0.15 + 0.1) × 1.2 = 1.5
+    expect(pick.textContent).toContain('EXP×1.5')
+    expect(pick.textContent).toContain('得意種目！')
+    await click('ムキドラゴ')
+    expect(fake.store.setPartner).toHaveBeenCalledWith('mon2', 'o1')
+    fake.store.state = { ...state, partners: { mon2: 'o1' } }
+    const el = await render(<SetInput slotId="mon2" go={go} />)
+    expect(el.textContent).toContain('相棒：ムキドラ')
+    await click('11回で確定')
+    expect(fake.store.recordSet).toHaveBeenCalledWith(expect.objectContaining({ exp: 23 }), true) // 15 × 1.5
+  })
+
+  it('朝の記録：習慣を分数で記録する', async () => {
+    fake.store.state = { ...state, habitMode: 'minutes', habitLabel: '瞑想' }
+    const el = await render(<Morning go={go} />)
+    expect(el.textContent).toContain('前日：瞑想、何分？')
+    const set = async (input: HTMLInputElement, value: string) =>
+      act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value)
+        input.dispatchEvent(new Event('input', { bubbles: true }))
+      })
+    await set(el.querySelector('input')!, '5000')
+    await set(el.querySelector<HTMLInputElement>('input[aria-label="習慣の分数"]')!, '45')
+    expect(el.textContent).toContain('+60G') // 30分まで
+    await click('記録する（+80G）')
+    expect(fake.store.recordMorning).toHaveBeenCalledWith(5000, false, 45)
   })
 
   it('トレーニング：全部位の枠とボーナス枠が1画面に並ぶ', async () => {
@@ -260,7 +326,7 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('前日：ベッドでスマホを見なかった？')
     await click('できた（+10G）')
     await click('記録する（+33G）')
-    expect(fake.store.recordMorning).toHaveBeenCalledWith(6500, true)
+    expect(fake.store.recordMorning).toHaveBeenCalledWith(6500, true, 0)
     expect(el.textContent).toContain('記録しました：+33G')
     expect(el.textContent).toContain('○（4日連続）')
   })
@@ -421,7 +487,7 @@ describe('画面の表示', () => {
 
   it('モンスター編集：2種分岐のモンスターは3種分岐に増やせる', async () => {
     const el = await render(<MonsterForm id="m1" go={go} />)
-    const options = [...el.querySelectorAll('option')].map((o) => o.value)
+    const options = [...el.querySelector('select')!.querySelectorAll('option')].map((o) => o.value)
     expect(options).toEqual(['lateBranch', 'lateBranch3'])
     const select = el.querySelector('select')!
     await act(async () => {

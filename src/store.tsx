@@ -4,6 +4,7 @@ import {
   arrayRemove,
   arrayUnion,
   collection,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -21,7 +22,7 @@ import { ATTRS, DAYS, type Attr, type FormAttr } from './data/exercises'
 import { FIRST_NODE_ID, canChangeTemplate, getNode, getTemplate, pathTo } from './data/evolutionTemplates'
 import { dateKey, prevDateKey, weekStartKey } from './lib/date'
 import { evolutionCost, fusionCost, isExpFull, planPour } from './lib/evolution'
-import { habitLabelOf, stepsGold } from './lib/rewards'
+import { habitGoldOf, habitLabelOf, stepsGold } from './lib/rewards'
 import { isWeekCleared } from './lib/week'
 import { compressImage } from './lib/imageCompress'
 import { draw, isPickupRarity, isPity, isReady, rarityOf, rateTable } from './lib/gacha'
@@ -45,11 +46,13 @@ function initialState(): GameState {
     habitStreak: 0,
     bestHabitStreak: 0,
     habitLabel: null,
+    habitMode: 'check',
     lastCheckinDate: null,
     dexFound: {},
     dexShiny: {},
     pity: {},
     activeMonsterId: null,
+    partners: {},
   }
 }
 
@@ -73,6 +76,7 @@ function toCheckin(data: DocumentData): Checkin {
     streak: data.streak ?? 0,
     stepsGold: data.stepsGold ?? 0,
     habitGold: data.habitGold ?? data.abstinenceGold ?? 0,
+    ...(data.habitMinutes !== undefined ? { habitMinutes: data.habitMinutes } : {}),
     ts: data.ts ?? 0,
   }
 }
@@ -87,6 +91,8 @@ export interface MonsterDefInput {
   recipe: string[] // 隠しモンスターのレシピ（2体の defId）。普通のモンスターは空
   gachas: string[] // 入るガチャのID（最大3つ。空なら「いつものガチャ」）
   rarity: RarityKey
+  favoriteSlot: string // 得意種目の枠ID（なしは空）
+  skill: string // 特攻スキル（なしは空）
 }
 
 export interface GachaInput {
@@ -133,8 +139,12 @@ interface Store {
   /** セットを記録する。このセットで今週のタスクを全部消したら weekCleared が true */
   recordSet: (rec: Omit<SetRecord, 'id' | 'ts' | 'date'>, countsBeat: boolean) => { record: SetRecord; weekCleared: boolean }
   /** 前日の歩数と習慣を記録する。1日1回だけ */
-  recordMorning: (steps: number, habit: boolean) => Checkin | null
+  /** habit は○×のときの結果、minutes は分数で記録するときの分数 */
+  recordMorning: (steps: number, habit: boolean, minutes?: number) => Checkin | null
   setHabitLabel: (label: string) => void
+  setHabitMode: (mode: GameState['habitMode']) => void
+  /** 種目の枠に相棒をセットする（null で外す）。同じモンスターは1つの枠にしか入れない */
+  setPartner: (slotId: string, monsterId: string | null) => void
   setSlot: (slotId: string, exerciseId: string) => void
   buyExp: (attr: Attr, amount: number) => void
   buyEgg: () => void
@@ -152,7 +162,6 @@ interface Store {
   fuse: (monsterId: string, foodId: string) => void
   /** ＋5の2体を合わせて隠しモンスターを生む。生まれた個体のID */
   jogress: (monsterId: string, partnerId: string, hiddenDefId: string) => string | null
-  setActive: (monsterId: string) => void
   saveMonsterDef: (input: MonsterDefInput) => Promise<void>
   loadImage: (imageId: string) => Promise<string | null>
   saveSongs: (songs: Song[]) => void
@@ -325,8 +334,11 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       return { record: { ...full, id: ref.id }, weekCleared }
     }
 
-    const recordMorning: Store['recordMorning'] = (steps, habit) => {
+    const recordMorning: Store['recordMorning'] = (steps, checked, minutes) => {
       if (state.lastCheckinDate === yesterday || yesterdayCheckin) return null
+      const byMinutes = state.habitMode === 'minutes'
+      const mins = Math.max(0, Math.floor(minutes ?? 0))
+      const habit = byMinutes ? mins >= 1 : checked
       // 朝の記録をつけ忘れた日があっても、連続日数は途切れない（つけ忘れた日の分のゴールドは出ない）
       const streak = habit ? state.habitStreak + 1 : 0
       const record: Checkin = {
@@ -336,7 +348,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         habitLabel: habitLabelOf(state),
         streak,
         stepsGold: stepsGold(steps),
-        habitGold: habit ? CONFIG.morning.habitGold : 0,
+        habitGold: habitGoldOf(state.habitMode, checked, mins),
+        ...(byMinutes ? { habitMinutes: mins } : {}),
         ts: Date.now(),
       }
       const batch = writeBatch(db)
@@ -352,6 +365,18 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     }
 
     const setHabitLabel: Store['setHabitLabel'] = (label) => updateState({ habitLabel: label.trim() || null })
+
+    const setHabitMode: Store['setHabitMode'] = (mode) => updateState({ habitMode: mode })
+
+    const setPartner: Store['setPartner'] = (slotId, monsterId) => {
+      const update: DocumentData = {}
+      // 同じモンスターがほかの枠にいたら外す
+      for (const [slot, id] of Object.entries(state.partners)) {
+        if (monsterId && id === monsterId && slot !== slotId) update[`partners.${slot}`] = deleteField()
+      }
+      update[`partners.${slotId}`] = monsterId ?? deleteField()
+      updateState(update)
+    }
 
     const setSlot: Store['setSlot'] = (slotId, exerciseId) => {
       setDoc(menuRef, { [slotId]: exerciseId }, { merge: true }).catch(fail)
@@ -398,7 +423,6 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const update: DocumentData = { eggs: increment(-1) }
       if (shiny) update[`dexShiny.${def.id}`] = true
       update[`pity.${gacha.id}`] = rarityOf(def) === CONFIG.gacha.pity.rarity ? 0 : pulls + 1
-      if (!state.activeMonsterId) update.activeMonsterId = ref.id
       batch.update(stateRef, update)
       batch.commit().catch(fail)
       return { def, monsterId: ref.id, shiny, pity }
@@ -493,7 +517,6 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       if (!cost || !isExpFull(cost, found.mon.plusExp ?? zeroExp()) || state.gold < cost.gold) return
       const update: DocumentData = { gold: increment(-cost.gold) }
       consume(update, [food])
-      if (state.activeMonsterId === foodId) update.activeMonsterId = monsterId
       const batch = writeBatch(db)
       batch.update(doc(db, base, 'ownedMonsters', monsterId), {
         plus: Math.min(CONFIG.fusion.maxPlus, plus + 1 + (food.mon.plus ?? 0)),
@@ -520,9 +543,6 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const update: DocumentData = { gold: increment(-CONFIG.jogress.gold) }
       consume(update, [a, b])
       if (shiny) update[`dexShiny.${hidden.id}`] = true
-      if (!state.activeMonsterId || state.activeMonsterId === monsterId || state.activeMonsterId === partnerId) {
-        update.activeMonsterId = ref.id
-      }
       const batch = writeBatch(db)
       batch.set(ref, { defId: hidden.id, nodeId: FIRST_NODE_ID, investedBy: {}, investedFrom: {}, shiny, obtainedAt: Date.now() })
       batch.delete(doc(db, base, 'ownedMonsters', monsterId))
@@ -548,6 +568,11 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       }
       applyRefund(update, refund)
       for (const [defId, nodes] of Object.entries(found)) update[`dexFound.${defId}`] = arrayUnion(...nodes)
+      // いなくなる個体は相棒の枠から外す
+      const goneIds = new Set(gone.map((g) => g.mon.id))
+      for (const [slot, id] of Object.entries(state.partners)) {
+        if (goneIds.has(id)) update[`partners.${slot}`] = deleteField()
+      }
     }
 
     type Refund = Record<ExpSource, AttrExp>
@@ -591,8 +616,6 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       }
     }
 
-    const setActive: Store['setActive'] = (monsterId) => updateState({ activeMonsterId: monsterId })
-
     const saveMonsterDef: Store['saveMonsterDef'] = async (input) => {
       const existing = input.id ? defs.find((d) => d.id === input.id) : undefined
       const defRef = existing ? doc(db, base, 'monsterDefs', existing.id) : doc(collection(db, base, 'monsterDefs'))
@@ -620,6 +643,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         gachas: input.gachas.slice(0, CONFIG.gacha.maxPerMonster),
         rarity: input.rarity,
         common: false,
+        favoriteSlot: input.favoriteSlot,
+        skill: input.skill,
         createdAt: existing?.createdAt ?? Date.now(),
       })
       batch.commit().catch(fail)
@@ -712,6 +737,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       recordSet,
       recordMorning,
       setHabitLabel,
+      setHabitMode,
+      setPartner,
       setSlot,
       buyExp,
       buyEgg,
@@ -721,7 +748,6 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       pourPlusExp,
       fuse,
       jogress,
-      setActive,
       saveMonsterDef,
       loadImage,
       saveSongs,

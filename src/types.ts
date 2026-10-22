@@ -25,11 +25,13 @@ export interface GameState {
   habitStreak: number // 朝の記録で習慣を守れた日の連続日数
   bestHabitStreak: number
   habitLabel: string | null // 習慣の名前（null なら初期の名前）
+  habitMode: 'check' | 'minutes' // 習慣の記録のしかた：○× か 分数
   lastCheckinDate: string | null // 最後に朝の記録をつけた「前日」の日付
   dexFound: Record<string, string[]> // 合体・ジョグレスでいなくなった個体が見つけていた形態（defId → nodeId）
   dexShiny: Record<string, boolean> // 色違いを見つけたモンスター（defId）
   pity: Record<string, number> // ガチャごとの、激レアが出ないまま引いた回数（天井用）
-  activeMonsterId: string | null
+  activeMonsterId: string | null // 旧：育成中のモンスター（今は使っていない）
+  partners: Record<string, string> // 種目の枠ID → 相棒のモンスター（OwnedMonster.id）
 }
 
 export interface SetRecord {
@@ -53,8 +55,9 @@ export interface SetRecord {
 export interface Checkin {
   date: string // 記録の対象日（前日）
   steps: number
-  habit: boolean // 前日、習慣を守れたか
+  habit: boolean // 前日、習慣を守れたか（分数なら1分以上）
   habitLabel: string
+  habitMinutes?: number // 分数で記録したときの分数
   streak: number // この日を含めた習慣の連続日数（守れなかった日は0）
   stepsGold: number
   habitGold: number
@@ -76,6 +79,8 @@ export interface MonsterDef {
   names?: Record<string, string> // nodeId → その段階だけの名前（なければ name を使う）
   recipe?: string[] // 隠しモンスターのレシピ（2体の defId）。あればタマゴからは生まれず、ジョグレスでだけ生まれる
   gachas?: string[] // 入っているガチャのID（最大3つ）。なければ「いつものガチャ」
+  favoriteSlot?: string // 得意種目（種目の枠ID）
+  skill?: string // 特攻スキル（CONFIG.skills のキー）
   rarity?: RarityKey // レア度（なければノーマル）
   common?: boolean // 旧形式：ハズレ枠（レア度ができる前のデータ）
   createdAt: number

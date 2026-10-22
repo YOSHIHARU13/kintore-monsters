@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useStore } from '../store'
 import { CONFIG } from '../config/gameConfig'
-import { habitLabelOf, nextStepBonus, stepsGold } from '../lib/rewards'
+import { habitGoldOf, habitLabelOf, nextStepBonus, stepsGold } from '../lib/rewards'
 import type { Go } from '../nav'
 import type { Checkin } from '../types'
 
@@ -28,17 +28,21 @@ export function Morning({ go }: { go: Go }) {
   const { state, yesterday, yesterdayCheckin, recordMorning } = useStore()
   const [stepsText, setStepsText] = useState('')
   const [habit, setHabit] = useState<boolean | null>(null)
+  const [minutesText, setMinutesText] = useState('')
+  const byMinutes = state.habitMode === 'minutes'
+  const minutes = Math.min(600, Math.max(0, Math.floor(Number(minutesText) || 0)))
   const [justRecorded, setJustRecorded] = useState<Checkin | null>(null)
 
   const steps = Math.min(CONFIG.morning.maxSteps, Math.max(0, Math.floor(Number(stepsText) || 0)))
   const next = nextStepBonus(steps)
   const label = habitLabelOf(state)
   const done = justRecorded ?? yesterdayCheckin
-  const canRecord = stepsText !== '' && habit !== null
+  const canRecord = stepsText !== '' && (byMinutes ? minutesText !== '' : habit !== null)
+  const habitGold = habitGoldOf(state.habitMode, habit === true, minutes)
 
   const record = () => {
-    if (habit === null) return
-    const rec = recordMorning(steps, habit)
+    if (!canRecord) return
+    const rec = recordMorning(steps, habit === true, minutes)
     if (rec) {
       setJustRecorded(rec)
       navigator.vibrate?.(rec.habit ? [80, 40, 160] : 80)
@@ -63,7 +67,9 @@ export function Morning({ go }: { go: Go }) {
             </li>
             <li>
               <span>
-                {done.habitLabel || label}：{done.habit ? `○（${done.streak}日連続）` : '×'}
+                {done.habitLabel || label}：
+                {done.habitMinutes !== undefined ? `${done.habitMinutes}分` : done.habit ? '○' : '×'}
+                {done.habit && `（${done.streak}日連続）`}
               </span>
               <span className="tag keep">+{done.habitGold}G</span>
             </li>
@@ -100,7 +106,25 @@ export function Morning({ go }: { go: Go }) {
           </section>
 
           <section className="card">
-            <h2>前日：{label}？</h2>
+            <h2>前日：{label}{byMinutes ? '、何分？' : '？'}</h2>
+            {byMinutes ? (
+              <label className="field">
+                分数（やらなかった日は 0）
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  placeholder="例：10"
+                  value={minutesText}
+                  onChange={(e) => setMinutesText(e.target.value)}
+                  aria-label="習慣の分数"
+                />
+                <span>
+                  → <strong>+{habitGold}G</strong>（1分 +{CONFIG.morning.habitGoldPerMinute}G・{CONFIG.morning.habitMaxMinutes}
+                  分まで）
+                </span>
+              </label>
+            ) : (
             <div className="row wrap">
               <button className={`btn${habit === true ? ' primary' : ''}`} onClick={() => setHabit(true)}>
                 できた（+{CONFIG.morning.habitGold}G）
@@ -109,13 +133,14 @@ export function Morning({ go }: { go: Go }) {
                 できなかった
               </button>
             </div>
+            )}
             <p className="muted small">
               いま {state.habitStreak}日連続（自己ベスト {state.bestHabitStreak}日）。習慣の名前は設定で変えられます。
             </p>
           </section>
 
           <button className="btn primary wide" disabled={!canRecord} onClick={record}>
-            記録する（+{stepsGold(steps) + (habit ? CONFIG.morning.habitGold : 0)}G）
+            記録する（+{stepsGold(steps) + habitGold}G）
           </button>
         </>
       )}

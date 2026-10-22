@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../store'
-import { ATTRS, ATTR_LABEL, FORM_ATTR_LABEL, type Attr } from '../data/exercises'
+import { ATTRS, ATTR_LABEL, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type Attr } from '../data/exercises'
 import { FIRST_NODE_ID, getNode, getTemplate } from '../data/evolutionTemplates'
 import { CONFIG } from '../config/gameConfig'
 import { boughtCap, evolutionCost, fusionCost, isExpFull, planPour } from '../lib/evolution'
@@ -11,7 +11,7 @@ import { ATTR_COLOR, type Go } from '../nav'
 import { investedFor, isHidden, monsterName, nodeAttr, plusName, type MonsterDef, type OwnedMonster } from '../types'
 
 export function MonsterDetail({ id, go }: { id: string; go: Go }) {
-  const { owned, defs, state, pourExp, pourPlusExp, evolve, fuse, jogress, setActive } = useStore()
+  const { owned, defs, state, menu, pourExp, pourPlusExp, evolve, fuse, jogress } = useStore()
   const [evolved, setEvolved] = useState(0)
   const [foodId, setFoodId] = useState<string | null>(null)
   const [partnerKey, setPartnerKey] = useState<string | null>(null)
@@ -87,6 +87,12 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
       }
     })
   const attrSources: Attr[] = attr === 'none' ? ATTRS : [attr]
+  const slotName = (slotId: string) => {
+    const slot = SLOTS.find((s) => s.id === slotId)
+    return slot ? exerciseOfSlot(slot, menu).name : '？'
+  }
+  const favoriteName = def.favoriteSlot ? slotName(def.favoriteSlot) : null
+  const partnerSlot = Object.entries(state.partners).find(([, monId]) => monId === id)?.[0]
 
   const doEvolve = (toNodeId: string) => {
     evolve(id, toNodeId)
@@ -110,13 +116,11 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
           {FORM_ATTR_LABEL[attr]}属性・{node.label}
         </p>
         <p className="muted small">{template.name}</p>
-        {state.activeMonsterId === id ? (
-          <span className="badge">育成中</span>
-        ) : (
-          <button className="btn small" onClick={() => setActive(id)}>
-            育成中にする
-          </button>
-        )}
+        <p className="small">
+          得意種目：{favoriteName ?? '未設定'}
+          {def.skill && CONFIG.skills[def.skill] && <>・特攻：{CONFIG.skills[def.skill]}</>}
+        </p>
+        {partnerSlot && <span className="badge">「{slotName(partnerSlot)}」の相棒</span>}
       </section>
 
       {cost ? (
@@ -208,17 +212,14 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
             {branching && '選ばなかった進化先に注いだEXPは、進化したときに戻ってきます。'}
           </p>
         </section>
-      ) : (
-        <section className="card center">
-          <h2>最終段階</h2>
-          <p className="muted">これ以上は進化しません。おつかれさま！</p>
-        </section>
-      )}
+      ) : null}
 
-      <section className="card">
-        <h2>
-          合体（＋{plus}／{CONFIG.fusion.maxPlus}）
-        </h2>
+      <details className="card fold" open={isFinal}>
+        <summary>
+          <h2>
+            合体（＋{plus}／{CONFIG.fusion.maxPlus}）
+          </h2>
+        </summary>
         {!isFinal ? (
           <p className="muted small">
             最終形態まで進化すると、同じモンスターを食べさせて＋を上げられます（最大＋{CONFIG.fusion.maxPlus}
@@ -293,11 +294,13 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
             )}
           </>
         )}
-      </section>
+      </details>
 
       {recipes.length > 0 && (
-        <section className="card">
-          <h2>ジョグレス</h2>
+        <details className="card fold" open={isMax}>
+          <summary>
+            <h2>ジョグレス</h2>
+          </summary>
           <p className="muted small">
             最終形態の＋{CONFIG.fusion.maxPlus}どうしを合わせると、隠しモンスターが生まれます（{CONFIG.jogress.gold}
             G、2体はいなくなります。図鑑の発見は残ります）。
@@ -344,7 +347,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
               </li>
             ))}
           </ul>
-        </section>
+        </details>
       )}
     </div>
   )

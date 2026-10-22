@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useStore } from '../store'
-import { FORM_ATTRS, FORM_ATTR_LABEL, type FormAttr } from '../data/exercises'
+import { DAYS, FORM_ATTRS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type FormAttr } from '../data/exercises'
 import { TEMPLATES, canChangeTemplate, getTemplate } from '../data/evolutionTemplates'
 import { evolutionCost } from '../lib/evolution'
 import { MonsterImage } from '../components/MonsterImage'
@@ -10,7 +10,7 @@ import { isHidden, type RarityKey } from '../types'
 import { RARITY_KEYS, rarityOf } from '../lib/gacha'
 
 export function MonsterForm({ id, go }: { id?: string; go: Go }) {
-  const { defs, gachas, saveMonsterDef } = useStore()
+  const { defs, gachas, menu, saveMonsterDef } = useStore()
   const existing = id ? defs.find((d) => d.id === id) : undefined
   // 登録済みのモンスターは、ツリーを変えられないか、分岐を増やす方向にだけ変えられる
   const selectable = TEMPLATES.filter((t) =>
@@ -21,6 +21,8 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
   const [attrs, setAttrs] = useState<Record<string, FormAttr>>(existing?.attrs ?? {})
   const [names, setNames] = useState<Record<string, string>>(existing?.names ?? {})
   const [files, setFiles] = useState<Record<string, File>>({})
+  const [favoriteSlot, setFavoriteSlot] = useState(existing?.favoriteSlot ?? '')
+  const [skill, setSkill] = useState(existing?.skill ?? '')
   const [inGachas, setInGachas] = useState<string[]>(existing?.gachas ?? [])
   const [rarity, setRarity] = useState<RarityKey>(existing ? rarityOf(existing) : 'normal')
   const [recipe, setRecipe] = useState<string[]>(existing?.recipe?.length === 2 ? existing.recipe : [])
@@ -74,6 +76,8 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
         // 消したガチャのIDは残さない
         gachas: inGachas.filter((g) => gachas.some((x) => x.id === g && !x.builtin)),
         rarity,
+        favoriteSlot,
+        skill,
       })
       go({ name: 'registry' })
     } catch (e) {
@@ -180,6 +184,33 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
             </div>
           </div>
         ))}
+      </section>
+
+      <section className="card">
+        <h2>得意種目と特攻スキル</h2>
+        <label className="field">
+          得意種目（この種目の相棒にすると、EXPがさらに ×{CONFIG.partner.favorite}）
+          <select value={favoriteSlot} onChange={(e) => setFavoriteSlot(e.target.value)}>
+            <option value="">なし</option>
+            {SLOTS.map((slot) => (
+              <option key={slot.id} value={slot.id}>
+                {slot.day === 'bonus' ? 'ボーナス：' : `${DAYS[slot.day].title}：`}
+                {exerciseOfSlot(slot, menu).name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          特攻スキル（クエストで、ボスの弱点のやり方と同じなら大ダメージ）
+          <select value={skill} onChange={(e) => setSkill(e.target.value)}>
+            <option value="">なし</option>
+            {Object.entries(CONFIG.skills).map(([key, label]) => (
+              <option key={key} value={key}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
       </section>
 
       {recipe.length !== 2 && (

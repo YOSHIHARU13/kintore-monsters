@@ -97,7 +97,8 @@ export function Shop({ go }: { go: Go }) {
                 {CONFIG.gacha.rarities[CONFIG.gacha.pity.rarity].label}確定まで あと{pityLeft}回
               </p>
             )}
-            <h3 className="small">提供割合（✨色違い 1/{Math.round(1 / gacha.shinyRate)}）</h3>
+            <details>
+              <summary className="small">提供割合を見る（✨色違い 1/{Math.round(1 / gacha.shinyRate)}）</summary>
             {[...tierRates(table)].reverse().map(({ rarity, rate, count }) => (
               <div key={rarity}>
                 <h3 className={`small rarity-title rarity-${rarity}`}>
@@ -122,6 +123,7 @@ export function Shop({ go }: { go: Go }) {
                 </ul>
               </div>
             ))}
+            </details>
           </>
         )}
       </section>

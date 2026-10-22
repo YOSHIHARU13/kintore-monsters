@@ -1,150 +1,120 @@
-import { signOut } from 'firebase/auth'
-import { auth } from '../lib/firebase'
 import { useStore } from '../store'
 import { habitLabelOf } from '../lib/rewards'
-import { ATTRS, ATTR_LABEL, FORM_ATTR_LABEL, DAYS, DAY_KEYS, exerciseOfSlot, slotsOfDay } from '../data/exercises'
-import { getNode, getTemplate } from '../data/evolutionTemplates'
+import { ATTRS, ATTR_LABEL, DAYS, DAY_KEYS, TASK_SLOTS, exerciseOfSlot } from '../data/exercises'
 import { CONFIG } from '../config/gameConfig'
 import { Gauge } from '../components/Gauge'
 import { MonsterImage } from '../components/MonsterImage'
+import { Stars } from '../components/Stars'
 import { ATTR_COLOR, type Go } from '../nav'
-import { nodeAttr, plusName } from '../types'
+import { plusName } from '../types'
 import { isWeekCleared, partProgress, slotDone } from '../lib/week'
+import { nearGoals } from '../lib/progress'
 import { StepTable } from './Morning'
 
 export function Home({ go }: { go: Go }) {
   const { state, menu, weekSets, defs, owned, yesterday, yesterdayCheckin } = useStore()
   const gaugeMax = Math.max(100, ...ATTRS.map((a) => state.lifetimeExp[a]))
-  const active = owned.find((o) => o.id === state.activeMonsterId) ?? owned[0]
-  const activeDef = active && defs.find((d) => d.id === active.defId)
   const progress = partProgress(weekSets)
   const remaining = DAY_KEYS.reduce((sum, day) => sum + progress[day].total - progress[day].done, 0)
+  // 次にやる種目：まだ3セット終わっていない枠のうち、いちばん進んでいるもの（途中の種目を先に片付ける）
+  const nextSlot = TASK_SLOTS.filter((s) => slotDone(weekSets, s.id) < CONFIG.sets.perExercise).sort(
+    (a, b) => slotDone(weekSets, b.id) - slotDone(weekSets, a.id),
+  )[0]
+  const goals = nearGoals(owned, defs, 3)
 
   const morningDone = state.lastCheckinDate === yesterday || yesterdayCheckin !== null
+  const habitText =
+    yesterdayCheckin?.habitMinutes !== undefined
+      ? `${yesterdayCheckin.habitMinutes}分`
+      : yesterdayCheckin?.habit
+        ? '○'
+        : '×'
 
   return (
     <div className="page">
       <section className="card">
         <h2>☀️ 朝の記録</h2>
-        <p>
-          {habitLabelOf(state)}：<strong className="num">{state.habitStreak}</strong>日連続
-          <span className="muted small">（自己ベスト {state.bestHabitStreak}日）</span>
-        </p>
-        <p className="muted small">今日歩いた分は、明日の朝に記録します。歩くほどボーナスが乗ります：</p>
-        <StepTable />
         {morningDone ? (
-          <p className="muted small">前日の分は記録済み。また明日の朝に。</p>
+          <p>
+            {yesterdayCheckin
+              ? `昨日 ${yesterdayCheckin.steps.toLocaleString()}歩・${habitLabelOf(state)} ${habitText}・+${yesterdayCheckin.stepsGold + yesterdayCheckin.habitGold}G`
+              : '前日の分は記録済み'}
+            <span className="muted small">（{habitLabelOf(state)} {state.habitStreak}日連続）</span>
+          </p>
         ) : (
-          <button className="btn primary wide" onClick={() => go({ name: 'morning' })}>
-            前日の歩数と習慣を記録する
-          </button>
+          <>
+            <button className="btn primary wide" onClick={() => go({ name: 'morning' })}>
+              前日の歩数と習慣を記録する
+            </button>
+            <p className="muted small">
+              {habitLabelOf(state)}：{state.habitStreak}日連続（自己ベスト {state.bestHabitStreak}日）
+            </p>
+          </>
         )}
+        <details>
+          <summary className="muted small">歩数のボーナス表</summary>
+          <StepTable />
+        </details>
       </section>
 
       <section className="card">
         <h2>今週の残りタスク：{isWeekCleared(weekSets) ? '全消し達成！' : `あと${remaining}セット`}</h2>
-        <p className="muted small">
-          月曜はじまり。好きな日に、好きな順番で。全部消すと +{CONFIG.weekly.clearGold}G（全消し 累計{' '}
-          <strong>{state.weeklyClears}</strong>週）
-        </p>
-        <div className="part-summary">
-          {DAY_KEYS.map((day) => (
-            <span key={day} style={{ color: ATTR_COLOR[DAYS[day].attr] }}>
-              {DAYS[day].title}{' '}
-              <strong className="num">
-                {progress[day].slotsDone}/{progress[day].slots}
-              </strong>
-            </span>
-          ))}
-        </div>
         {DAY_KEYS.map((day) => {
           const { done, total, slotsDone, slots } = progress[day]
           return (
-            <div key={day} className="part">
-              <div className="gauge-row">
-                <span style={{ color: ATTR_COLOR[DAYS[day].attr] }}>
-                  {DAYS[day].title}{' '}
-                  <strong className="num">
-                    {slotsDone}/{slots}
-                  </strong>
-                </span>
-                <Gauge value={done} max={total} color={ATTR_COLOR[DAYS[day].attr]} />
-                <span className="num">{done === total ? '✓ 完了' : `残り${total - done}セット`}</span>
-              </div>
-              <ul className="slot-list">
-                {slotsOfDay(day).map((slot) => {
-                  const ex = exerciseOfSlot(slot, menu)
-                  const slotSets = slotDone(weekSets, slot.id)
-                  const complete = slotSets >= CONFIG.sets.perExercise
-                  return (
-                    <li key={slot.id}>
-                      <button
-                        className={`slot task${complete ? ' complete' : ''}`}
-                        onClick={() => go({ name: 'set', slotId: slot.id })}
-                      >
-                        <span>{ex.name}</span>
-                        <span className="slot-count">
-                          {complete ? '✓ ' : ''}
-                          {slotSets}/{CONFIG.sets.perExercise}
-                        </span>
-                      </button>
-                    </li>
-                  )
-                })}
-              </ul>
+            <div key={day} className="gauge-row">
+              <span style={{ color: ATTR_COLOR[DAYS[day].attr] }}>
+                {DAYS[day].title}{' '}
+                <strong className="num">
+                  {slotsDone}/{slots}
+                </strong>
+              </span>
+              <Gauge value={done} max={total} color={ATTR_COLOR[DAYS[day].attr]} />
+              <span className="num">{done === total ? '✓ 完了' : `残り${total - done}`}</span>
             </div>
           )
         })}
-      </section>
-
-      <section className="card">
-        <h2>所持</h2>
-        <div className="wallet">
-          {ATTRS.map((attr) => (
-            <div key={attr} className="wallet-item">
-              <span className="label" style={{ color: ATTR_COLOR[attr] }}>
-                {ATTR_LABEL[attr]}EXP
-              </span>
-              <strong>{state.exp[attr].trained + state.exp[attr].bought}</strong>
-              {state.exp[attr].bought > 0 && <span className="muted small">うち購入 {state.exp[attr].bought}</span>}
-            </div>
-          ))}
-          <div className="wallet-item">
-            <span className="label">万能EXP</span>
-            <strong>{state.anyExp}</strong>
-          </div>
-          <div className="wallet-item">
-            <span className="label gold">ゴールド</span>
-            <strong>{state.gold}G</strong>
-          </div>
-          <div className="wallet-item">
-            <span className="label">タマゴ</span>
-            <strong>{state.eggs}個</strong>
-          </div>
-        </div>
-        {state.eggs > 0 && (
-          <button className="btn wide" onClick={() => go({ name: 'shop' })}>
-            タマゴを孵す
-          </button>
-        )}
-      </section>
-
-      <section className="card">
-        <h2>育成中のモンスター</h2>
-        {active && activeDef ? (
-          <button className="monster-row" onClick={() => go({ name: 'monster', id: active.id })}>
-            <MonsterImage imageId={activeDef.images[active.nodeId]} size={88} plus={active.plus} shiny={active.shiny} />
-            <div>
-              <strong>{plusName(activeDef, active)}</strong>
-              <div className="muted">
-                {FORM_ATTR_LABEL[nodeAttr(activeDef, active.nodeId)]}・{getNode(getTemplate(activeDef.templateId), active.nodeId).label}
-              </div>
-            </div>
+        {nextSlot ? (
+          <button className="btn primary wide" onClick={() => go({ name: 'set', slotId: nextSlot.id })}>
+            次にやる：{exerciseOfSlot(nextSlot, menu).name}（{slotDone(weekSets, nextSlot.id)}/
+            {CONFIG.sets.perExercise}）
           </button>
         ) : (
+          <button className="btn wide" onClick={() => go({ name: 'training' })}>
+            余力があれば2周目へ
+          </button>
+        )}
+        <p className="muted small">
+          月曜はじまり。全部消すと +{CONFIG.weekly.clearGold}G（全消し 累計 <strong>{state.weeklyClears}</strong>週）
+        </p>
+      </section>
+
+      <section className="card">
+        <h2>もうすぐ進化</h2>
+        {goals.length === 0 ? (
           <p className="muted">
-            まだモンスターがいません。図鑑でモンスターを登録してから、ショップでタマゴを孵しましょう。
+            {owned.length === 0
+              ? 'まだモンスターがいません。図鑑でモンスターを登録してから、ショップでタマゴを孵しましょう。'
+              : 'みんな育ちきっています！ ショップで新しい仲間を探そう。'}
           </p>
+        ) : (
+          goals.map(({ mon, def, kind, have, need }) => (
+            <button key={mon.id} className="monster-row goal-row" onClick={() => go({ name: 'monster', id: mon.id })}>
+              <MonsterImage imageId={def.images[mon.nodeId]} size={56} plus={mon.plus} shiny={mon.shiny} />
+              <span className="goal-body">
+                <strong>{plusName(def, mon)}</strong> <Stars def={def} nodeId={mon.nodeId} />
+                <Gauge value={have} max={need} />
+                <span className="muted small">
+                  {kind === 'evolve' ? '進化' : `＋${(mon.plus ?? 0) + 1}`}まで あと{Math.max(0, need - have)}EXP
+                </span>
+              </span>
+            </button>
+          ))
+        )}
+        {state.eggs > 0 && (
+          <button className="btn wide" onClick={() => go({ name: 'shop' })}>
+            タマゴを孵す（{state.eggs}個）
+          </button>
         )}
       </section>
 
@@ -177,10 +147,6 @@ export function Home({ go }: { go: Go }) {
         ))}
         <p className="muted small">属性ごとの累計獲得EXP（筋トレで稼いだ分）</p>
       </section>
-
-      <button className="btn ghost wide" onClick={() => signOut(auth)}>
-        ログアウト
-      </button>
     </div>
   )
 }

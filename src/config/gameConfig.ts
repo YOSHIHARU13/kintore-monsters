@@ -64,7 +64,9 @@ export const CONFIG = {
       { steps: 15000, gold: 40 },
     ],
     maxSteps: 100_000, // 入力できる歩数の上限
-    habitGold: 10, // 習慣を守れた日のゴールド
+    habitGold: 10, // 習慣を守れた日のゴールド（○×で記録するとき）
+    habitGoldPerMinute: 2, // 習慣を分数で記録するときの、1分あたりのゴールド
+    habitMaxMinutes: 30, // 分数で記録するとき、ゴールドが出るのはこの分数まで
     habitDefaultLabel: 'ベッドでスマホを見なかった', // 習慣の名前（設定で変えられる）
   },
 
@@ -77,6 +79,25 @@ export const CONFIG = {
     shinyRate: 1 / 20, // タマゴから色違いが生まれる確率
     starterEggs: 1, // 開始時にもらえるタマゴ
   },
+
+  // 種目の相棒：枠ごとに1体セットすると、その種目のEXPが増える
+  // 倍率 = 1 + 星 × perStar + ＋の数 × perPlus（得意種目の枠なら、さらに × favorite）
+  partner: {
+    perStar: 0.05,
+    perPlus: 0.05,
+    favorite: 1.2,
+  },
+
+  // 特攻スキル：クエストで、ボスの弱点のやり方と同じなら大ダメージ（筋トレのやり方に結びつけてある）
+  skills: {
+    beat: '前回超え特攻',
+    weightUp: '重量アップ特攻',
+    extra: '追い込み特攻',
+    streak: '連日特攻',
+    steps: '歩数特攻',
+    roller: 'ローラー特攻',
+    habit: '習慣特攻',
+  } as Record<string, string>,
 
   // 合体：最終形態に同じモンスター（段階は問わない）を食べさせると＋1。＋が上がるほど枠が豪華になる
   // ＋ごとに、本体の属性のEXPを注いでゲージを満タンにしてから、ゴールドを払って食べさせる

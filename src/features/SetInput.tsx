@@ -4,6 +4,8 @@ import { EXERCISES, SLOTS, dumbbellText, exerciseOfSlot, rangeText, repRange } f
 import { CONFIG } from '../config/gameConfig'
 import { calcTarget, judgeSet, recentSessions, suggestProgression } from '../lib/target'
 import { calcSetReward, isExtraSet, maxRewardSet } from '../lib/rewards'
+import { partnerOf, rateText } from '../lib/partner'
+import { MonsterImage } from '../components/MonsterImage'
 import { formatClock, weekStartKey } from '../lib/date'
 import { Stepper } from '../components/Stepper'
 import { Gauge } from '../components/Gauge'
@@ -85,6 +87,7 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
     )
   }
 
+  const partner = partnerOf(slotId, store.state.partners, store.owned, store.defs)
   const lastTs = history.length ? Math.max(...history.map((h) => h.ts)) : null
   const elapsedSec = lastTs ? (now - lastTs) / 1000 : Infinity
   const intervalOk = elapsedSec >= CONFIG.sets.minIntervalSec
@@ -95,7 +98,9 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
 
   const confirm = () => {
     const judge = judgeSet(reps, target)
-    const reward = calcSetReward({ isBonus, setNo: rewardNo, judge, intervalOk })
+    const base = calcSetReward({ isBonus, setNo: rewardNo, judge, intervalOk })
+    // 相棒がいれば、その倍率でEXPが増える（ゴールドは増えない）
+    const reward = partner ? { ...base, exp: Math.round(base.exp * partner.rate) } : base
     const { record: rec, weekCleared } = store.recordSet(
       {
         exerciseId: ex.id,
@@ -147,6 +152,19 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
         {rangeText(ex.id)}
       </p>
       <p className="small how">{ex.how}</p>
+      <button className="partner-banner" onClick={() => go({ name: 'partner', slotId })}>
+        {partner ? (
+          <>
+            <MonsterImage imageId={partner.def.images[partner.mon.nodeId]} size={40} plus={partner.mon.plus} />
+            <span>
+              相棒：{partner.def.name}　<strong className="bonus-reward">EXP{rateText(partner.rate)}</strong>
+              {partner.def.favoriteSlot === slotId && <span className="tag keep"> 得意種目</span>}
+            </span>
+          </>
+        ) : (
+          <span className="muted small">相棒をセットすると、この種目のEXPが増えます →</span>
+        )}
+      </button>
       {ex.perSide && (
         <p className="small how">
           ↔️ 左右の種目です。右と左を同じ回数ずつやって1セット。回数は<strong>片側ぶん</strong>を入れます（右10回＋左10回なら「10回」）。

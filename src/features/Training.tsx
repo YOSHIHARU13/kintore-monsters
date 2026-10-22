@@ -4,9 +4,11 @@ import { CONFIG } from '../config/gameConfig'
 import { partProgress, slotDone, weekCount } from '../lib/week'
 import { ATTR_COLOR, type Go } from '../nav'
 import { MusicButtons } from '../music'
+import { MonsterImage } from '../components/MonsterImage'
+import { partnerOf, rateText } from '../lib/partner'
 
 export function Training({ go }: { go: Go }) {
-  const { menu, weekSets, todaySets, songs } = useStore()
+  const { menu, weekSets, todaySets, songs, state, owned, defs } = useStore()
   const progress = partProgress(weekSets)
 
   // タスクの枠は今週こなしたセット数、ボーナス枠は今日こなしたセット数
@@ -18,8 +20,24 @@ export function Training({ go }: { go: Go }) {
       : slotDone(weekSets, slot.id)
     const complete = done >= CONFIG.sets.perExercise
     const extraDone = isBonus ? 0 : Math.min(CONFIG.sets.perExercise, weekCount(weekSets, slot.id) - CONFIG.sets.perExercise)
+    const partner = partnerOf(slot.id, state.partners, owned, defs)
     return (
-      <li key={slot.id}>
+      <li key={slot.id} className="slot-with-partner">
+        <button
+          className="partner-btn"
+          onClick={() => go({ name: 'partner', slotId: slot.id })}
+          aria-label={`${ex.name}の相棒`}
+        >
+          {partner ? (
+            <>
+              <MonsterImage imageId={partner.def.images[partner.mon.nodeId]} size={40} plus={partner.mon.plus} />
+              <span className="small bonus-reward">{rateText(partner.rate)}</span>
+            </>
+          ) : (
+            <span className="small muted">相棒
+              <br />＋</span>
+          )}
+        </button>
         <button className={`slot${complete ? ' complete' : ''}`} onClick={() => go({ name: 'set', slotId: slot.id })}>
           <div>
             <strong>{ex.name}</strong>

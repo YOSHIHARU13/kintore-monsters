@@ -57,7 +57,176 @@ h2 {
 .app {
   max-width: 480px;
   margin: 0 auto;
-  padding: calc(12px + env(safe-area-inset-top)) 16px calc(84px + env(safe-area-inset-bottom));
+  padding: 12px 16px calc(84px + env(safe-area-inset-bottom));
+}
+
+/* 上に固定する所持（G・タマゴ・EXP） */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: calc(6px + env(safe-area-inset-top)) 8px 6px;
+  background: rgba(18, 20, 28, 0.96);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(6px);
+}
+.topbar-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.78rem;
+}
+.topbar-item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+}
+.topbar-icon {
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+.topbar-pop {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  font-weight: 800;
+  font-size: 0.8rem;
+  color: var(--keep);
+  text-shadow: 0 1px 3px #000;
+  pointer-events: none;
+  animation: topbar-pop 1.6s ease-out forwards;
+}
+@keyframes topbar-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -4px) scale(0.8);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, 2px) scale(1.15);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, 18px) scale(1);
+  }
+}
+.topbar-gear {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  padding: 2px 4px;
+}
+.topbar-detail {
+  position: absolute;
+  top: 100%;
+  left: 8px;
+  right: 8px;
+  background: var(--card2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* BOX／図鑑の切り替え */
+.segmented {
+  display: flex;
+  background: var(--card);
+  border-radius: 12px;
+  padding: 4px;
+  gap: 4px;
+}
+.segmented button {
+  flex: 1;
+  background: none;
+  border: none;
+  border-radius: 9px;
+  padding: 8px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.segmented button.on {
+  background: var(--card2);
+  color: var(--text);
+}
+
+/* たためるカード */
+details.fold > summary {
+  list-style: none;
+  cursor: pointer;
+}
+details.fold > summary::-webkit-details-marker {
+  display: none;
+}
+details.fold > summary h2::after {
+  content: ' ▾';
+  color: var(--muted);
+  font-size: 0.8em;
+}
+details.fold[open] > summary h2::after {
+  content: ' ▴';
+}
+details.fold[open] > summary {
+  margin-bottom: 10px;
+}
+
+/* 種目の相棒 */
+.slot-with-partner {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+.slot-with-partner .slot {
+  flex: 1;
+  min-width: 0;
+}
+.partner-btn {
+  width: 56px;
+  flex-shrink: 0;
+  background: var(--card2);
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px;
+  line-height: 1.2;
+}
+.partner-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card);
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  padding: 6px 10px;
+  text-align: left;
+}
+.goal-row {
+  width: 100%;
+  margin-top: 6px;
+}
+.goal-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .page {

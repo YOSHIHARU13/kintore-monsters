@@ -18,14 +18,14 @@ import { Dex } from './features/Dex'
 import { MonsterRegistry } from './features/MonsterRegistry'
 import { MonsterForm } from './features/MonsterForm'
 import { Settings } from './features/Settings'
+import { PartnerPick } from './features/PartnerPick'
+import { TopBar } from './components/TopBar'
 
 const TABS: { label: string; icon: string; view: View; names: View['name'][] }[] = [
-  { label: 'ホーム', icon: '🏠', view: { name: 'home' }, names: ['home', 'morning'] },
-  { label: 'トレーニング', icon: '💪', view: { name: 'training' }, names: ['training', 'set', 'menuEdit'] },
-  { label: 'モンスター', icon: '🐣', view: { name: 'box' }, names: ['box', 'monster'] },
+  { label: 'ホーム', icon: '🏠', view: { name: 'home' }, names: ['home', 'morning', 'settings'] },
+  { label: 'トレーニング', icon: '💪', view: { name: 'training' }, names: ['training', 'set', 'menuEdit', 'partner'] },
+  { label: 'モンスター', icon: '🐣', view: { name: 'box' }, names: ['box', 'monster', 'dex', 'registry', 'monsterForm'] },
   { label: 'ショップ', icon: '🛒', view: { name: 'shop' }, names: ['shop', 'gachaForm'] },
-  { label: '図鑑', icon: '📖', view: { name: 'dex' }, names: ['dex', 'registry', 'monsterForm'] },
-  { label: '設定', icon: '⚙️', view: { name: 'settings' }, names: ['settings'] },
 ]
 
 function Screen({ view, go }: { view: View; go: (v: View) => void }) {
@@ -38,6 +38,8 @@ function Screen({ view, go }: { view: View; go: (v: View) => void }) {
       return <SetInput key={view.slotId} slotId={view.slotId} go={go} />
     case 'menuEdit':
       return <MenuEdit day={view.day} go={go} />
+    case 'partner':
+      return <PartnerPick slotId={view.slotId} go={go} />
     case 'morning':
       return <Morning go={go} />
     case 'box':
@@ -55,7 +57,7 @@ function Screen({ view, go }: { view: View; go: (v: View) => void }) {
     case 'monsterForm':
       return <MonsterForm key={view.id ?? 'new'} id={view.id} go={go} />
     case 'settings':
-      return <Settings />
+      return <Settings go={go} />
   }
 }
 
@@ -82,6 +84,7 @@ export function App() {
   return (
     <StoreProvider user={user}>
       <MusicProvider>
+        <TopBar go={go} />
         <main className="app">
           <Screen view={view} go={go} />
         </main>
