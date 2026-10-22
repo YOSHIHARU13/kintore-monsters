@@ -843,6 +843,16 @@ details.fold[open] > summary {
   }
 }
 
+/* クエスト */
+.party-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.quest-banner .auto-monster.m0 {
+  right: 8%;
+}
+
 /* ガチャ */
 .rarity-row {
   display: flex;

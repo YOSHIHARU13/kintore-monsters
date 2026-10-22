@@ -88,6 +88,9 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
   }
 
   const partner = partnerOf(slotId, store.state.partners, store.owned, store.defs)
+  // 前回（今日より前）までにやった、いちばん重いダンベル。これより重ければ重量アップ
+  const earlier = history.filter((h) => h.date < store.today)
+  const prevMaxKg = earlier.length ? Math.max(...earlier.map((h) => h.weightKg)) : null
   const lastTs = history.length ? Math.max(...history.map((h) => h.ts)) : null
   const elapsedSec = lastTs ? (now - lastTs) / 1000 : Infinity
   const intervalOk = elapsedSec >= CONFIG.sets.minIntervalSec
@@ -114,6 +117,8 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
         eligible: reward.eligible,
         exp: reward.exp,
         gold: reward.gold,
+        weightUp: ex.weighted && prevMaxKg !== null && weight > prevMaxKg,
+        extra: isExtraSet(isBonus, rewardNo),
       },
       reward.countsBeat,
     )

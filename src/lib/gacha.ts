@@ -16,7 +16,7 @@ export function gachasOf(def: MonsterDef): string[] {
 
 /** そのガチャから出るか。ハズレとノーマルはどのガチャからも出る */
 export function inGacha(def: MonsterDef, gachaId: string): boolean {
-  if (isHidden(def)) return false
+  if (isHidden(def) || def.questOnly) return false
   return CONFIG.gacha.rarities[rarityOf(def)].everyGacha || gachasOf(def).includes(gachaId)
 }
 

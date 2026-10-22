@@ -99,6 +99,29 @@ export const CONFIG = {
     habit: '習慣特攻',
   } as Record<string, string>,
 
+  // クエスト：週に1つ選んで挑戦。挑戦を始めてからの筋トレ・ローラー・歩数・習慣がそのままダメージになる
+  quest: {
+    // 1回ぶんのダメージ = 基本値 × 攻撃するモンスターの攻撃力（星 ×（1 + ＋ × powerPerPlus））× 補正
+    setDamage: 10, // 筋トレ1セット（その部位の属性のモンスターと、無属性のモンスターが攻撃）
+    rollerDamage: 4, // 腹筋ローラー1セット（全員で攻撃）
+    stepsDamagePer1000: 1, // 歩数1000歩ごと（全員で攻撃）
+    habitDamagePerPoint: 0.5, // 習慣1分ごと（○×なら「できた」で habitCheckPoints 分）（全員で攻撃）
+    habitCheckPoints: 10,
+    powerPerPlus: 0.1,
+    advantage: 2, // 相性が有利
+    disadvantage: 0.5, // 相性が不利
+    weakSlot: 2, // ボスの弱点種目のセット
+    favorite: 1.5, // 攻撃したモンスターの得意種目のセット
+    skill: 2, // 特攻スキルがボスの弱点のやり方と同じで、そのやり方ができたとき
+    maxWeakSlots: 2,
+    difficulties: {
+      easy: { label: '初級', plus: 0, gold: 100, hpRatio: 0.4 },
+      normal: { label: '中級', plus: 1, gold: 300, hpRatio: 1 },
+      hard: { label: '上級', plus: 2, gold: 600, hpRatio: 2 },
+    },
+    partySize: 6, // 出撃できる数
+  },
+
   // 合体：最終形態に同じモンスター（段階は問わない）を食べさせると＋1。＋が上がるほど枠が豪華になる
   // ＋ごとに、本体の属性のEXPを注いでゲージを満タンにしてから、ゴールドを払って食べさせる
   fusion: {

@@ -32,6 +32,8 @@ export interface GameState {
   pity: Record<string, number> // ガチャごとの、激レアが出ないまま引いた回数（天井用）
   activeMonsterId: string | null // 旧：育成中のモンスター（今は使っていない）
   partners: Record<string, string> // 種目の枠ID → 相棒のモンスター（OwnedMonster.id）
+  challenge: Challenge | null // 今週挑戦しているクエスト
+  questClears: number // クエストをクリアした回数
 }
 
 export interface SetRecord {
@@ -43,6 +45,8 @@ export interface SetRecord {
   ts: number
   setNo: number // その日のうちで、その種目の何セット目か
   weightKg: number // 自重種目は0
+  weightUp?: boolean // 前回より重いダンベルでやったか（重量アップ特攻）
+  extra?: boolean // 2周目のセットか（追い込み特攻）
   reps: number
   target: number | null
   judge: Judge
@@ -80,6 +84,7 @@ export interface MonsterDef {
   recipe?: string[] // 隠しモンスターのレシピ（2体の defId）。あればタマゴからは生まれず、ジョグレスでだけ生まれる
   gachas?: string[] // 入っているガチャのID（最大3つ）。なければ「いつものガチャ」
   favoriteSlot?: string // 得意種目（種目の枠ID）
+  questOnly?: boolean // クエスト限定（ガチャには出ない。クエストのボスとして倒すと手に入る）
   skill?: string // 特攻スキル（CONFIG.skills のキー）
   rarity?: RarityKey // レア度（なければノーマル）
   common?: boolean // 旧形式：ハズレ枠（レア度ができる前のデータ）
@@ -104,6 +109,30 @@ export interface Gacha {
   featured: string[] // 自動バナーに出すモンスター（defId）。空ならピックアップから自動で
   createdAt: number
   builtin: boolean // 「いつものガチャ」（消せない）
+}
+
+export type QuestDifficulty = 'easy' | 'normal' | 'hard'
+
+export interface Quest {
+  id: string
+  name: string
+  bossDefId: string // ボス（倒すと手に入るモンスター）
+  attr: FormAttr // ボスの属性（相性に使う）
+  weakSlots: string[] // 弱点種目（種目の枠ID）
+  weakSkill: string // 弱点のやり方（CONFIG.skills のキー。なしは空）
+  hp: Record<QuestDifficulty, number>
+  catchphrase: string
+  theme: string
+  createdAt: number
+}
+
+export interface Challenge {
+  week: string // 挑戦した週（その週の月曜の日付）
+  questId: string
+  difficulty: QuestDifficulty
+  party: string[] // 出撃したモンスター（OwnedMonster.id）
+  startTs: number // この時刻からの記録がダメージになる
+  cleared: boolean // 報酬を受け取ったか
 }
 
 /** ジョグレスで生まれる隠しモンスターか */

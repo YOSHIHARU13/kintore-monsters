@@ -26,7 +26,8 @@ import { habitGoldOf, habitLabelOf, stepsGold } from './lib/rewards'
 import { isWeekCleared } from './lib/week'
 import { compressImage } from './lib/imageCompress'
 import { draw, isPickupRarity, isPity, isReady, rarityOf, rateTable } from './lib/gacha'
-import { investedFor, isHidden, nodeAttr, type AttrExp, type Checkin, type Gacha, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
+import { questHits } from './lib/quest'
+import { investedFor, isHidden, nodeAttr, type AttrExp, type Checkin, type Gacha, type Quest, type QuestDifficulty, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
 
 const zeroExp = () => ({ trained: 0, bought: 0 })
 
@@ -53,6 +54,8 @@ function initialState(): GameState {
     pity: {},
     activeMonsterId: null,
     partners: {},
+    challenge: null,
+    questClears: 0,
   }
 }
 
@@ -91,9 +94,12 @@ export interface MonsterDefInput {
   recipe: string[] // 隠しモンスターのレシピ（2体の defId）。普通のモンスターは空
   gachas: string[] // 入るガチャのID（最大3つ。空なら「いつものガチャ」）
   rarity: RarityKey
+  questOnly: boolean
   favoriteSlot: string // 得意種目の枠ID（なしは空）
   skill: string // 特攻スキル（なしは空）
 }
+
+export type QuestInput = Omit<Quest, 'id' | 'createdAt'> & { id?: string }
 
 export interface GachaInput {
   id?: string
@@ -130,6 +136,9 @@ interface Store {
   owned: OwnedMonster[]
   songs: Song[]
   gachas: Gacha[] // 先頭が「いつものガチャ」、あとは作った順
+  quests: Quest[] // 作った順
+  weekCheckins: Checkin[] // 今週（月曜0時から）つけた朝の記録
+  week: string // 今週の月曜の日付
   today: string
   weekSets: SetRecord[] // 今週（月曜はじまり）のセット記録
   todaySets: SetRecord[]
@@ -145,6 +154,13 @@ interface Store {
   setHabitMode: (mode: GameState['habitMode']) => void
   /** 種目の枠に相棒をセットする（null で外す）。同じモンスターは1つの枠にしか入れない */
   setPartner: (slotId: string, monsterId: string | null) => void
+  saveQuest: (input: QuestInput) => void
+  deleteQuest: (id: string) => void
+  /** 今週のクエストに挑戦する（挑戦中のものがあれば、やめて選び直す） */
+  startChallenge: (questId: string, difficulty: QuestDifficulty, party: string[]) => void
+  quitChallenge: () => void
+  /** 討伐の報酬を受け取る。手に入ったモンスターのID */
+  claimQuest: () => string | null
   setSlot: (slotId: string, exerciseId: string) => void
   buyExp: (attr: Attr, amount: number) => void
   buyEgg: () => void
@@ -185,6 +201,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
   const [owned, setOwned] = useState<OwnedMonster[]>([])
   const [songs, setSongs] = useState<Song[]>([])
   const [gachaDocs, setGachaDocs] = useState<Gacha[]>([])
+  const [quests, setQuests] = useState<Quest[]>([])
+  const [weekCheckins, setWeekCheckins] = useState<Checkin[]>([])
   const [today, setToday] = useState(dateKey())
   const [weekSets, setWeekSets] = useState<SetRecord[]>([])
   const [yesterdayCheckin, setYesterdayCheckin] = useState<Checkin | null>(null)
@@ -227,6 +245,16 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       ),
       onSnapshot(menuRef, (snap) => setMenu((snap.data() as Record<string, string>) ?? {}), fail),
       onSnapshot(musicRef, (snap) => setSongs((snap.data()?.songs as Song[] | undefined) ?? []), fail),
+      onSnapshot(
+        collection(db, base, 'quests'),
+        (snap) =>
+          setQuests(
+            snap.docs
+              .map((d) => ({ ...(d.data() as Omit<Quest, 'id'>), id: d.id }))
+              .sort((a, b) => a.createdAt - b.createdAt),
+          ),
+        fail,
+      ),
       onSnapshot(
         collection(db, base, 'gachas'),
         (snap) => setGachaDocs(snap.docs.map((d) => toGacha(d.id, d.data()))),
@@ -281,6 +309,17 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
   }, [base, week, fail])
 
   const yesterday = useMemo(() => prevDateKey(today), [today])
+
+  // 今週（月曜0時から）つけた朝の記録。クエストのダメージに使う
+  useEffect(() => {
+    setWeekCheckins([])
+    const start = new Date(`${week}T00:00:00`).getTime()
+    return onSnapshot(
+      query(collection(db, base, 'checkins'), where('ts', '>=', start)),
+      (snap) => setWeekCheckins(snap.docs.map((d) => toCheckin(d.data())).sort((a, b) => a.ts - b.ts)),
+      fail,
+    )
+  }, [base, week, fail])
 
   useEffect(() => {
     setYesterdayCheckin(null)
@@ -644,6 +683,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         rarity: input.rarity,
         common: false,
         favoriteSlot: input.favoriteSlot,
+        questOnly: input.questOnly,
         skill: input.skill,
         createdAt: existing?.createdAt ?? Date.now(),
       })
@@ -717,6 +757,75 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       batch.commit().catch(fail)
     }
 
+    const saveQuest: Store['saveQuest'] = (input) => {
+      const { id, ...data } = input
+      const current = id ? quests.find((q) => q.id === id) : undefined
+      const ref = id ? doc(db, base, 'quests', id) : doc(collection(db, base, 'quests'))
+      setDoc(ref, {
+        ...data,
+        name: data.name.trim(),
+        catchphrase: data.catchphrase.trim(),
+        weakSlots: data.weakSlots.slice(0, CONFIG.quest.maxWeakSlots),
+        createdAt: current?.createdAt ?? Date.now(),
+      }).catch(fail)
+    }
+
+    const deleteQuest: Store['deleteQuest'] = (id) => {
+      const batch = writeBatch(db)
+      batch.delete(doc(db, base, 'quests', id))
+      if (state.challenge?.questId === id && !state.challenge.cleared) batch.update(stateRef, { challenge: null })
+      batch.commit().catch(fail)
+    }
+
+    const startChallenge: Store['startChallenge'] = (questId, difficulty, party) => {
+      if (!quests.some((q) => q.id === questId)) return
+      if (state.challenge?.week === week && state.challenge.cleared) return // 今週はもうクリアした
+      const ids = party.filter((p) => owned.some((o) => o.id === p)).slice(0, CONFIG.quest.partySize)
+      updateState({ challenge: { week, questId, difficulty, party: ids, startTs: Date.now(), cleared: false } })
+    }
+
+    const quitChallenge: Store['quitChallenge'] = () => {
+      if (state.challenge && !state.challenge.cleared) updateState({ challenge: null })
+    }
+
+    const claimQuest: Store['claimQuest'] = () => {
+      const c = state.challenge
+      const quest = c && quests.find((q) => q.id === c.questId)
+      const boss = quest && defs.find((d) => d.id === quest.bossDefId)
+      if (!c || !quest || !boss || c.week !== week || c.cleared) return null
+      const party = c.party.flatMap((id) => {
+        const mon = owned.find((o) => o.id === id)
+        const def = mon && defs.find((d) => d.id === mon.defId)
+        return mon && def ? [{ mon, def }] : []
+      })
+      const sets = weekSets.filter((s) => s.ts >= c.startTs)
+      const checkins = weekCheckins.filter((k) => k.ts >= c.startTs)
+      const damage = questHits(quest, party, sets, checkins, () => '').reduce((sum, h) => sum + h.damage, 0)
+      if (damage < quest.hp[c.difficulty]) return null
+      const diff = CONFIG.quest.difficulties[c.difficulty]
+      const shiny = Math.random() < CONFIG.shop.shinyRate
+      const ref = doc(collection(db, base, 'ownedMonsters'))
+      const batch = writeBatch(db)
+      batch.set(ref, {
+        defId: boss.id,
+        nodeId: FIRST_NODE_ID,
+        investedBy: {},
+        investedFrom: {},
+        plus: diff.plus,
+        shiny,
+        obtainedAt: Date.now(),
+      })
+      const update: DocumentData = {
+        gold: increment(diff.gold),
+        questClears: increment(1),
+        'challenge.cleared': true,
+      }
+      if (shiny) update[`dexShiny.${boss.id}`] = true
+      batch.update(stateRef, update)
+      batch.commit().catch(fail)
+      return ref.id
+    }
+
     const saveSongs: Store['saveSongs'] = (next) => {
       setDoc(musicRef, { songs: next }).catch(fail)
     }
@@ -753,9 +862,17 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       saveSongs,
       gachas,
       saveGacha,
+      quests,
+      weekCheckins,
+      week,
+      saveQuest,
+      deleteQuest,
+      startChallenge,
+      quitChallenge,
+      claimQuest,
       deleteGacha,
     }
-  }, [user, base, state, menu, defs, owned, songs, gachas, today, yesterday, yesterdayCheckin, week, weekSets, todaySets, stateRef, menuRef, musicRef, fail])
+  }, [user, base, state, menu, defs, owned, songs, gachas, quests, weekCheckins, today, yesterday, yesterdayCheckin, week, weekSets, todaySets, stateRef, menuRef, musicRef, fail])
 
   if (!store) {
     return (

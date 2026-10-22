@@ -1,0 +1,206 @@
+import { useState } from 'react'
+import { useStore } from '../store'
+import { CONFIG } from '../config/gameConfig'
+import { DAYS, FORM_ATTRS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type FormAttr } from '../data/exercises'
+import { FIRST_NODE_ID } from '../data/evolutionTemplates'
+import { QuestBanner } from '../components/QuestBanner'
+import { DIFFICULTIES, standardWeekDamage } from '../lib/quest'
+import { ATTR_COLOR, type Go } from '../nav'
+import { nodeAttr, type Quest, type QuestDifficulty } from '../types'
+
+/** クエストを作る・編集する。ボス・弱点・HPを決める */
+export function QuestForm({ id, go }: { id?: string; go: Go }) {
+  const { quests, defs, menu, saveQuest, deleteQuest } = useStore()
+  const existing = id ? quests.find((q) => q.id === id) : undefined
+  // ボスになれるのは「クエスト限定」のモンスター（いなければ全員から選べる）
+  const bossChoices = defs.some((d) => d.questOnly) ? defs.filter((d) => d.questOnly) : defs
+  const week = standardWeekDamage()
+  const defaultHp = Object.fromEntries(
+    DIFFICULTIES.map((d) => [d, Math.round((week * CONFIG.quest.difficulties[d].hpRatio) / 100) * 100]),
+  ) as Record<QuestDifficulty, number>
+
+  const [name, setName] = useState(existing?.name ?? '')
+  const [bossDefId, setBossDefId] = useState(existing?.bossDefId ?? bossChoices[0]?.id ?? '')
+  const [attr, setAttr] = useState<FormAttr>(
+    existing?.attr ?? (bossChoices[0] ? nodeAttr(bossChoices[0], FIRST_NODE_ID) : 'none'),
+  )
+  const [weakSlots, setWeakSlots] = useState<string[]>(existing?.weakSlots ?? [])
+  const [weakSkill, setWeakSkill] = useState(existing?.weakSkill ?? '')
+  const [hp, setHp] = useState<Record<QuestDifficulty, number>>(existing?.hp ?? defaultHp)
+  const [catchphrase, setCatchphrase] = useState(existing?.catchphrase ?? '')
+  const [theme, setTheme] = useState(existing?.theme ?? 'flame')
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const boss = defs.find((d) => d.id === bossDefId)
+  const draft: Quest = {
+    id: existing?.id ?? 'new',
+    name: name.trim() || '名前のないクエスト',
+    bossDefId,
+    attr,
+    weakSlots,
+    weakSkill,
+    hp,
+    catchphrase,
+    theme,
+    createdAt: existing?.createdAt ?? 0,
+  }
+
+  const save = () => {
+    if (!name.trim()) return setError('クエストの名前を入力してください')
+    if (!boss) return setError('ボスにするモンスターを選んでください')
+    if (DIFFICULTIES.some((d) => !(hp[d] > 0))) return setError('HPは1以上にしてください')
+    saveQuest({ id: existing?.id, name, bossDefId, attr, weakSlots, weakSkill, hp, catchphrase, theme })
+    go({ name: 'quests' })
+  }
+
+  return (
+    <div className="page">
+      <button className="back" onClick={() => go({ name: 'quests' })}>
+        ← クエストに戻る
+      </button>
+      <h1 className="title">{existing ? 'クエストの編集' : 'クエストを作る'}</h1>
+      <QuestBanner quest={draft} boss={boss} />
+
+      <section className="card">
+        <label className="field">
+          クエストの名前
+          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={20} placeholder="例：脚竜の巣" />
+        </label>
+        <label className="field">
+          キャッチコピー（省略可）
+          <input value={catchphrase} onChange={(e) => setCatchphrase(e.target.value)} maxLength={24} placeholder="例：脚を鍛えた者だけが進める" />
+        </label>
+        <div className="field">
+          テーマ色
+          <div className="chips">
+            {Object.entries(CONFIG.gacha.themes).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                className={`chip theme-chip theme-${key}${theme === key ? ' on' : ''}`}
+                onClick={() => setTheme(key)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="card">
+        <h2>ボス</h2>
+        {bossChoices.length === 0 ? (
+          <p className="warn small">モンスターがいません。図鑑でボスにするモンスターを登録してください。</p>
+        ) : (
+          <label className="field">
+            倒すと手に入るモンスター
+            <select
+              value={bossDefId}
+              onChange={(e) => {
+                setBossDefId(e.target.value)
+                const d = defs.find((x) => x.id === e.target.value)
+                if (d) setAttr(nodeAttr(d, FIRST_NODE_ID))
+              }}
+            >
+              {bossChoices.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {!defs.some((d) => d.questOnly) && (
+          <p className="muted small">図鑑の登録画面で「クエスト限定」にしたモンスターは、ガチャに出なくなり、ここでだけ選べます。</p>
+        )}
+        <div className="field">
+          ボスの属性（相性に使います）
+          <div className="chips" role="group" aria-label="ボスの属性">
+            {FORM_ATTRS.map((a) => (
+              <button
+                key={a}
+                type="button"
+                className={`chip${attr === a ? ' on' : ''}`}
+                style={attr === a ? { borderColor: ATTR_COLOR[a], color: ATTR_COLOR[a] } : undefined}
+                onClick={() => setAttr(a)}
+              >
+                {FORM_ATTR_LABEL[a]}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="field">
+          弱点種目（{CONFIG.quest.maxWeakSlots}つまで・ダメージ×{CONFIG.quest.weakSlot}）
+          <div className="chips">
+            {SLOTS.map((slot) => {
+              const on = weakSlots.includes(slot.id)
+              return (
+                <button
+                  key={slot.id}
+                  type="button"
+                  className={`chip small${on ? ' on' : ''}`}
+                  disabled={!on && weakSlots.length >= CONFIG.quest.maxWeakSlots}
+                  onClick={() => setWeakSlots(on ? weakSlots.filter((s) => s !== slot.id) : [...weakSlots, slot.id])}
+                >
+                  {slot.day === 'bonus' ? '' : `${DAYS[slot.day].title}：`}
+                  {exerciseOfSlot(slot, menu).name}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+        <label className="field">
+          弱点のやり方（この特攻スキルのモンスターが、そのやり方をするとダメージ×{CONFIG.quest.skill}）
+          <select value={weakSkill} onChange={(e) => setWeakSkill(e.target.value)}>
+            <option value="">なし</option>
+            {Object.entries(CONFIG.skills).map(([key, label]) => (
+              <option key={key} value={key}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </section>
+
+      <section className="card">
+        <h2>HP</h2>
+        <p className="muted small">
+          目安：★4を3体（胸腕・脚・背肩）、相性・弱点なしで、1週間ぜんぶ（全消し・ローラー毎日・7000歩・習慣10分）やると約
+          <strong>{week.toLocaleString()}</strong>ダメージ。2周目までやったり、弱点を突いたりすると大きく増えます。
+        </p>
+        {DIFFICULTIES.map((d) => (
+          <label key={d} className="field">
+            {CONFIG.quest.difficulties[d].label}（ドロップ＋{CONFIG.quest.difficulties[d].plus}・{CONFIG.quest.difficulties[d].gold}G）
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              value={hp[d]}
+              onChange={(e) => setHp({ ...hp, [d]: Math.max(0, Math.floor(Number(e.target.value) || 0)) })}
+              aria-label={`${CONFIG.quest.difficulties[d].label}のHP`}
+            />
+            <span className="muted small">目安の {Math.round((hp[d] / week) * 100)}%</span>
+          </label>
+        ))}
+      </section>
+
+      {error && <p className="error">{error}</p>}
+      <button className="btn primary wide" onClick={save}>
+        {existing ? '保存する' : 'クエストを作る'}
+      </button>
+      {existing && (
+        <button
+          className="btn ghost wide"
+          onClick={() => {
+            if (!confirmDelete) return setConfirmDelete(true)
+            deleteQuest(existing.id)
+            go({ name: 'quests' })
+          }}
+        >
+          {confirmDelete ? '本当に消す' : 'このクエストを消す'}
+        </button>
+      )}
+    </div>
+  )
+}

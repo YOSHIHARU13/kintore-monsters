@@ -52,6 +52,8 @@ const state: GameState = {
   pity: {},
   activeMonsterId: 'o1',
   partners: {},
+  challenge: null,
+  questClears: 0,
 }
 const defs: MonsterDef[] = [
   {
@@ -145,6 +147,14 @@ beforeEach(() => {
     setHabitLabel: vi.fn(),
     setHabitMode: vi.fn(),
     setPartner: vi.fn(),
+    quests: [],
+    weekCheckins: [],
+    week: TODAY,
+    saveQuest: vi.fn(),
+    deleteQuest: vi.fn(),
+    startChallenge: vi.fn(),
+    quitChallenge: vi.fn(),
+    claimQuest: vi.fn(() => 'o8'),
     setSlot: vi.fn(),
     buyExp: vi.fn(),
     buyEgg: vi.fn(),
@@ -602,6 +612,78 @@ describe('画面の表示', () => {
     expect(el.querySelector('.gacha-banner.auto')!.textContent).toContain('ジョグレスで★7')
     await click('保存する')
     expect(fake.store.saveGacha).toHaveBeenCalledWith(expect.objectContaining({ featured: ['j1'] }))
+  })
+
+  it('クエスト作成：ボス・弱点・HPを決めて保存（HPには目安が入っている）', async () => {
+    const { QuestForm } = await import('./QuestForm')
+    fake.store.defs = [...defs, { id: 'b1', name: 'アシリュウ', attr: 'legs', templateId: 'linear3', images: {}, questOnly: true, createdAt: 9 }]
+    const el = await render(<QuestForm go={go} />)
+    const type = async (input: HTMLInputElement, value: string) =>
+      act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value)
+        input.dispatchEvent(new Event('input', { bubbles: true }))
+      })
+    await type(el.querySelector('input')!, '脚竜の巣')
+    expect(el.textContent).toContain('アシリュウ') // クエスト限定のモンスターだけがボス候補
+    expect([...el.querySelectorAll('option')].map((o) => o.textContent)).not.toContain('ムキドラ')
+    await click('胸腕：ダンベルカール')
+    await act(async () => {
+      const sel = el.querySelectorAll('select')[1] as HTMLSelectElement
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(sel, 'beat')
+      sel.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    await click('クエストを作る')
+    expect(fake.store.saveQuest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: '脚竜の巣', bossDefId: 'b1', attr: 'legs', weakSlots: ['mon4'], weakSkill: 'beat',
+        hp: { easy: expect.any(Number), normal: expect.any(Number), hard: expect.any(Number) },
+      }),
+    )
+  })
+
+  it('クエスト詳細：効きやすい順にメンバーが並び、選んで挑戦できる', async () => {
+    const { QuestDetail } = await import('./QuestDetail')
+    const quest = {
+      id: 'q1', name: '脚竜の巣', bossDefId: 'm2', attr: 'legs' as const, weakSlots: ['mon4'], weakSkill: 'beat',
+      hp: { easy: 1000, normal: 3000, hard: 6000 }, catchphrase: '', theme: 'flame', createdAt: 1,
+    }
+    fake.store.quests = [quest]
+    fake.store.defs = [{ ...defs[0], favoriteSlot: 'mon4', skill: 'beat' }, defs[1]]
+    fake.store.owned = [owned[0], { id: 'o2', defId: 'm2', nodeId: 'n1', obtainedAt: 2 }]
+    const el = await render(<QuestDetail id="q1" go={go} />)
+    expect(el.textContent).toContain('適正（相性◎）胸腕')
+    expect(el.textContent).toContain('ダンベルカール')
+    const names = [...el.querySelectorAll('button.choice')].map((b) => b.textContent)
+    expect(names[0]).toContain('ムキドラゴ') // 胸腕（脚に強い）・得意種目と特攻が弱点
+    expect(names[0]).toContain('相性◎')
+    expect(names[0]).toContain('得意種目が弱点')
+    await act(async () => el.querySelector('[aria-label="難易度"]')!.querySelectorAll('button')[2].click())
+    expect(el.textContent).toContain('HP 6,000・ドロップ アシガメ＋2')
+    await click('ムキドラゴ')
+    await click('これに挑戦する')
+    expect(fake.store.startChallenge).toHaveBeenCalledWith('q1', 'hard', ['o1'])
+  })
+
+  it('クエスト：挑戦を始めてからの記録がダメージになり、倒したら報酬を受け取れる', async () => {
+    const { Quests } = await import('./Quests')
+    const quest = {
+      id: 'q1', name: '脚竜の巣', bossDefId: 'm2', attr: 'legs' as const, weakSlots: ['mon2'], weakSkill: '',
+      hp: { easy: 100, normal: 3000, hard: 6000 }, catchphrase: '', theme: 'flame', createdAt: 1,
+    }
+    fake.store.quests = [quest]
+    fake.store.state = {
+      ...state,
+      challenge: { week: TODAY, questId: 'q1', difficulty: 'easy', party: ['o1'], startTs: 10, cleared: false },
+    }
+    // 開始前のセットは数えない。ムキドラゴ（胸腕★3）がフロアプレス（弱点）を攻撃：10 × 3 × 2（相性）× 2（弱点）= 120
+    fake.store.weekSets = [past(1, 10, 5, TODAY), past(2, 10, 20, TODAY)]
+    const el = await render(<Quests go={go} />)
+    expect(el.textContent).toContain('与えたダメージ 120 ／ HP 100')
+    expect(el.textContent).toContain('討伐できる！')
+    await click('報酬を受け取る')
+    expect(fake.store.claimQuest).toHaveBeenCalled()
+    await click('会いに行く')
+    expect(go).toHaveBeenCalledWith({ name: 'monster', id: 'o8' })
   })
 
   it('ショップ：天井で激レアが出ると演出に出る', async () => {

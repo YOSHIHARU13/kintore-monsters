@@ -11,6 +11,9 @@ export type View =
   | { name: 'monster'; id: string }
   | { name: 'shop' }
   | { name: 'gachaForm'; id?: string }
+  | { name: 'quests' }
+  | { name: 'quest'; id: string }
+  | { name: 'questForm'; id?: string }
   | { name: 'dex' }
   | { name: 'registry' }
   | { name: 'monsterForm'; id?: string }

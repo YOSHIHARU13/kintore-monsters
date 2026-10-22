@@ -21,6 +21,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
   const [attrs, setAttrs] = useState<Record<string, FormAttr>>(existing?.attrs ?? {})
   const [names, setNames] = useState<Record<string, string>>(existing?.names ?? {})
   const [files, setFiles] = useState<Record<string, File>>({})
+  const [questOnly, setQuestOnly] = useState(existing?.questOnly === true)
   const [favoriteSlot, setFavoriteSlot] = useState(existing?.favoriteSlot ?? '')
   const [skill, setSkill] = useState(existing?.skill ?? '')
   const [inGachas, setInGachas] = useState<string[]>(existing?.gachas ?? [])
@@ -78,6 +79,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
         rarity,
         favoriteSlot,
         skill,
+        questOnly: recipe.length !== 2 && questOnly,
       })
       go({ name: 'registry' })
     } catch (e) {
@@ -229,7 +231,11 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
             ))}
           </div>
           <p className="muted small">{CONFIG.gacha.rarities[rarity].hint}</p>
-          {!CONFIG.gacha.rarities[rarity].everyGacha && (
+          <label className="row">
+            <input type="checkbox" checked={questOnly} onChange={(e) => setQuestOnly(e.target.checked)} />
+            クエスト限定にする（ガチャには出ず、クエストのボスとして倒すと手に入る）
+          </label>
+          {!questOnly && !CONFIG.gacha.rarities[rarity].everyGacha && (
             <>
               <h3 className="small">入るガチャ（{CONFIG.gacha.maxPerMonster}つまで）</h3>
               <div className="chips">
