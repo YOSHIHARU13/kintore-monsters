@@ -43,6 +43,21 @@ export function rateTable(gachaId: string, defs: MonsterDef[]): Rate[] {
   )
 }
 
+/** ピックアップ（そのガチャを選んだモンスターだけが出るレア度＝レア以上）か */
+export function isPickupRarity(r: RarityKey): boolean {
+  return !CONFIG.gacha.rarities[r].everyGacha
+}
+
+/** そのガチャのピックアップの数 */
+export function pickupCount(table: Rate[]): number {
+  return table.filter((t) => isPickupRarity(t.rarity)).length
+}
+
+/** ショップで引けるか。作ったガチャはピックアップがそろってから（いつものガチャはいつでも） */
+export function isReady(gacha: { builtin: boolean }, table: Rate[]): boolean {
+  return table.length > 0 && (gacha.builtin || pickupCount(table) >= CONFIG.gacha.minPickups)
+}
+
 /** レア度ごとの合計確率（そのガチャにいるレア度だけ） */
 export function tierRates(table: Rate[]): { rarity: RarityKey; rate: number; count: number }[] {
   return RARITY_KEYS.map((rarity) => {

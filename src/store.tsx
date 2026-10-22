@@ -24,7 +24,7 @@ import { evolutionCost, fusionCost, isExpFull, planPour } from './lib/evolution'
 import { habitLabelOf, stepsGold } from './lib/rewards'
 import { isWeekCleared } from './lib/week'
 import { compressImage } from './lib/imageCompress'
-import { draw, isPity, rarityOf, rateTable } from './lib/gacha'
+import { draw, isPickupRarity, isPity, isReady, rarityOf, rateTable } from './lib/gacha'
 import { investedFor, isHidden, nodeAttr, type AttrExp, type Checkin, type Gacha, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
 
 const zeroExp = () => ({ trained: 0, bought: 0 })
@@ -93,7 +93,8 @@ export interface GachaInput {
   id?: string
   name: string
   shinyRate: number
-  banner?: File // 新しいバナー画像
+  banner?: File
+  pickups?: string[] // ピックアップにするモンスター（レア以上）の defId。いつものガチャでは使わない // 新しいバナー画像
 }
 
 function toGacha(id: string, data: DocumentData | undefined): Gacha {
@@ -371,6 +372,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       if (!gacha || state.eggs <= 0) return null
       // 隠しモンスターはタマゴからは生まれない（rateTable が外す）
       const table = rateTable(gacha.id, defs)
+      if (!isReady(gacha, table)) return null
       const pulls = state.pity[gacha.id] ?? 0
       const pity = isPity(pulls, table)
       const def = draw(table, pulls, Math.random())
@@ -649,6 +651,18 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         shinyRate: input.shinyRate,
         createdAt: current?.createdAt || Date.now(),
       })
+      // ピックアップの出し入れは、モンスターの「入るガチャ」に書く（1体につき最大3つまで）
+      if (input.pickups && !current?.builtin) {
+        for (const def of defs.filter((d) => !isHidden(d) && isPickupRarity(rarityOf(d)))) {
+          const has = def.gachas?.includes(ref.id) ?? false
+          const want = input.pickups.includes(def.id)
+          if (want && !has && (def.gachas?.length ?? 0) < CONFIG.gacha.maxPerMonster) {
+            batch.update(doc(db, base, 'monsterDefs', def.id), { gachas: arrayUnion(ref.id) })
+          } else if (!want && has) {
+            batch.update(doc(db, base, 'monsterDefs', def.id), { gachas: arrayRemove(ref.id) })
+          }
+        }
+      }
       batch.commit().catch(fail)
       return ref.id
     }

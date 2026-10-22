@@ -10,7 +10,7 @@ import { monsterName } from '../types'
 import { HatchReveal, type Hatched } from '../components/HatchReveal'
 import { Stars } from '../components/Stars'
 import { GachaBanner } from '../components/GachaBanner'
-import { percent, rarityOf, rateTable, tierRates } from '../lib/gacha'
+import { isReady, percent, pickupCount, rarityOf, rateTable, tierRates } from '../lib/gacha'
 
 
 export function Shop({ go }: { go: Go }) {
@@ -20,7 +20,7 @@ export function Shop({ go }: { go: Go }) {
   const [hatched, setHatched] = useState<Hatched | null>(null)
   const [gachaId, setGachaId] = useState(() => {
     // 最初は、中身がいるガチャのうち、いちばん新しいものを選んでおく
-    const withMembers = gachas.filter((g) => rateTable(g.id, defs).length > 0)
+    const withMembers = gachas.filter((g) => isReady(g, rateTable(g.id, defs)))
     return (withMembers[withMembers.length - 1] ?? gachas[0]).id
   })
 
@@ -31,7 +31,8 @@ export function Shop({ go }: { go: Go }) {
   const met = (defId: string) => owned.some((o) => o.defId === defId) || (state.dexFound[defId]?.length ?? 0) > 0
   const anyEggDefs = gachas.some((g) => rateTable(g.id, defs).length > 0)
   const canBuyEgg = state.gold >= CONFIG.shop.eggPrice && anyEggDefs
-  const canHatch = state.eggs > 0 && table.length > 0
+  const ready = isReady(gacha, table)
+  const canHatch = state.eggs > 0 && ready
   const hatch = () => {
     const result = hatchEgg(gacha.id)
     if (result) setHatched({ ...result, rarity: rarityOf(result.def) })
@@ -79,9 +80,11 @@ export function Shop({ go }: { go: Go }) {
             編集
           </button>
         </div>
-        {table.length === 0 ? (
+        {!ready ? (
           <p className="warn small">
-            このガチャにはまだモンスターがいません。図鑑の登録画面で、モンスターをこのガチャに入れてください。
+            {gacha.builtin
+              ? 'このガチャにはまだモンスターがいません。図鑑でモンスターを登録してください。'
+              : `準備中：ピックアップ（レア以上）があと${CONFIG.gacha.minPickups - pickupCount(table)}体そろうと引けます。「編集」から選べます。`}
           </p>
         ) : (
           <>

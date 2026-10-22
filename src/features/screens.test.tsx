@@ -446,13 +446,14 @@ describe('画面の表示', () => {
       { ...defs[1], rarity: 'superRare', gachas: ['g1'] },
       { id: 'c1', name: 'ザコスラ', attr: 'none', templateId: 'early2', images: {}, rarity: 'hazure', createdAt: 3 },
       { id: 'c2', name: 'フツウドリ', attr: 'none', templateId: 'linear3', images: {}, createdAt: 4 },
+      { id: 'r2', name: 'ツノウサ', attr: 'legs', templateId: 'linear3', images: {}, rarity: 'rare', gachas: ['g1'], createdAt: 5 },
     ]
     const el = await render(<Shop go={go} />)
-    // 中身がいる、いちばん新しいガチャが選ばれている
+    // 引けるガチャのうち、いちばん新しいものが選ばれている
     expect(el.textContent).toContain('「脚まつり」を引く')
-    expect(el.textContent).toContain('全4種')
+    expect(el.textContent).toContain('全5種')
     expect(el.textContent).toContain('激レア 合計3%（1種）')
-    expect(el.textContent).toContain('レア 合計12%（1種）')
+    expect(el.textContent).toContain('レア 合計12%（2種）')
     expect(el.textContent).toContain('ノーマル 合計35%（1種）')
     expect(el.textContent).toContain('ハズレ 合計50%（1種）')
     expect(el.textContent).toContain('激レア確定まで あと3回')
@@ -464,6 +465,46 @@ describe('画面の表示', () => {
     expect(el.textContent).not.toContain('確定まで')
     await click('「いつものガチャ」を引く')
     expect(fake.store.hatchEgg).toHaveBeenCalledWith('default')
+  })
+
+  it('ショップ：ピックアップが3体そろっていないガチャは準備中', async () => {
+    fake.store.gachas = [gachas[0], gacha('g1', '脚まつり', { createdAt: 1 })]
+    fake.store.defs = [...defs, { id: 'r1', name: 'ツノウサ', attr: 'legs', templateId: 'linear3', images: {}, rarity: 'rare', gachas: ['g1'], createdAt: 5 }]
+    const el = await render(<Shop go={go} />)
+    expect(el.textContent).toContain('「いつものガチャ」を引く') // 引けるガチャが選ばれている
+    await click('脚まつり')
+    expect(el.textContent).toContain('準備中：ピックアップ（レア以上）があと2体')
+    expect(el.textContent).not.toContain('「脚まつり」を引く')
+  })
+
+  it('ガチャ作成：レア以上からピックアップを選ぶと、その場で確率が出る', async () => {
+    fake.store.defs = [
+      ...defs,
+      { id: 'r1', name: 'ツノウサ', attr: 'legs', templateId: 'linear3', images: {}, rarity: 'rare', createdAt: 5 },
+      { id: 's1', name: 'カミドラ', attr: 'legs', templateId: 'linear3', images: {}, rarity: 'superRare', createdAt: 6 },
+      {
+        id: 'r3', name: 'イソガシ', attr: 'legs', templateId: 'linear3', images: {}, rarity: 'rare', gachas: ['a', 'b', 'c'], createdAt: 7,
+      },
+    ]
+    const el = await render(<GachaForm go={go} />)
+    expect(el.textContent).not.toContain('ムキドラ（') // ノーマルは選ぶ一覧に出ない
+    const pick = async (name: string) => {
+      const b = [...el.querySelectorAll('button.choice')].find((x) => x.textContent?.includes(name))!
+      await act(async () => (b as HTMLButtonElement).click())
+    }
+    expect([...el.querySelectorAll('button.choice')].find((x) => x.textContent?.includes('イソガシ'))!.hasAttribute('disabled')).toBe(true)
+    await pick('ツノウサ')
+    await pick('カミドラ')
+    expect(el.textContent).toContain('激レア 合計6%') // ハズレがいないので、その分が回る
+    expect(el.textContent).toContain('あと1体で')
+    const type = async (input: HTMLInputElement, value: string) =>
+      act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value)
+        input.dispatchEvent(new Event('input', { bubbles: true }))
+      })
+    await type(el.querySelector('input')!, '脚まつり')
+    await click('ガチャを作る')
+    expect(fake.store.saveGacha).toHaveBeenCalledWith(expect.objectContaining({ name: '脚まつり', pickups: ['r1', 's1'] }))
   })
 
   it('ショップ：天井で激レアが出ると演出に出る', async () => {
