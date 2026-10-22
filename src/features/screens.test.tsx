@@ -780,6 +780,23 @@ describe('画面の表示', () => {
     expect(fake.store.deleteGacha).toHaveBeenCalledWith('g1')
   })
 
+  it('モンスター登録：足りないものが分かり、おすすめで埋められ、刺さるクエストが出る', async () => {
+    fake.store.quests = [
+      {
+        id: 'q1', name: '脚竜の巣', bossDefId: 'm2', attr: 'legs', weakSlots: ['wed1'], gimmicks: ['シールド'],
+        hp: { easy: 1, normal: 1, hard: 1 }, catchphrase: '', theme: 'flame', createdAt: 1,
+      },
+    ]
+    const el = await render(<MonsterForm go={go} />)
+    expect(el.textContent).toContain('胸腕 1体／ボス1') // ムキドラ（最終形態に胸腕がある）
+    expect(el.textContent).toContain('シールドクラッシャー 0体／ボス1不足')
+    expect(el.textContent).toContain('脚竜の巣')
+    await click('足りないもので埋める')
+    const select = el.querySelectorAll('select')[1] as HTMLSelectElement
+    expect(select.value).toBe('wed1') // 弱点種目なのに得意なモンスターがいない
+    expect(el.querySelector('.fit-good')).not.toBeNull() // 胸腕・シールドクラッシャー・得意種目が弱点 → ◎
+  })
+
   it('モンスター登録：入るガチャは3つまで', async () => {
     fake.store.gachas = [gachas[0], ...[1, 2, 3, 4].map((n) => gacha(`g${n}`, `ガチャ${n}`, { createdAt: n }))]
     const el = await render(<MonsterForm go={go} />)

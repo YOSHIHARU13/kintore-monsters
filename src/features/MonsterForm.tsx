@@ -1,14 +1,24 @@
 import { useMemo, useState } from 'react'
 import { useStore } from '../store'
-import { DAYS, FORM_ATTRS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type FormAttr } from '../data/exercises'
+import { ATTRS, DAYS, FORM_ATTRS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type FormAttr } from '../data/exercises'
 import { TEMPLATES, canChangeTemplate, getTemplate } from '../data/evolutionTemplates'
 import { evolutionCost } from '../lib/evolution'
 import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
 import { CONFIG } from '../config/gameConfig'
-import { isHidden, type RarityKey } from '../types'
+import { isHidden, type MonsterDef, type RarityKey } from '../types'
 import { RARITY_KEYS, formLabel, rarityOf } from '../lib/gacha'
 import { abilityName, abilitySlots, allGimmicks } from '../lib/gimmick'
+import {
+  abilitySupply,
+  attrSupply,
+  isShort,
+  questFits,
+  recommend,
+  similarDefs,
+  slotSupply,
+  type Supply,
+} from '../lib/coverage'
 
 export function MonsterForm({ id, go }: { id?: string; go: Go }) {
   const { defs, gachas, menu, quests, saveMonsterDef } = useStore()
@@ -54,6 +64,26 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
     jogressBirthStars: birthStars,
     createdAt: 0,
   }
+  // 被りや不足を見るための集計（自分以外のモンスターと、作ってあるクエストから）
+  const gimmickNames = allGimmicks(quests)
+  const maxAbilities = abilitySlots({ recipe, rarity })
+  const draftFull: MonsterDef = {
+    ...draftDef,
+    attrs: Object.fromEntries(template.nodes.map((n) => [n.id, attrOf(n.id)])),
+    favoriteSlot: favoriteSlot || undefined,
+    abilities,
+  }
+  const attrSup = attrSupply(defs, quests, existing?.id)
+  const fits = questFits(draftFull, quests, (g) => abilityName(g, gimmickNames))
+  const similar = similarDefs(draftFull, defs)
+  const supplyText = (sup: Supply) => `${sup.have}体${sup.need > 0 ? `／ボス${sup.need}` : ''}`
+  const applyRecommend = () => {
+    const rec = recommend(defs, quests, Object.keys(gimmickNames), maxAbilities, existing?.id)
+    setAttrs(Object.fromEntries(template.nodes.map((n) => [n.id, rec.attr])))
+    setFavoriteSlot(rec.favoriteSlot)
+    setAbilities(rec.abilities)
+  }
+
   const stages = [...new Set(template.nodes.filter((n) => n.next.length > 0).map((n) => n.stage))]
   const hasBranch = template.nodes.some((n) => n.next.length > 1)
 
@@ -151,6 +181,16 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
 
       <section className="card">
         <h2>各形態の属性・名前・画像</h2>
+        <p className="small supply-row">
+          最終形態の属性の内訳：
+          {ATTRS.map((a) => (
+            <span key={a} className={`supply${isShort(attrSup[a]) ? ' short' : ''}`} style={{ color: ATTR_COLOR[a] }}>
+              {FORM_ATTR_LABEL[a]} {supplyText(attrSup[a])}
+              {isShort(attrSup[a]) && ' 不足'}
+            </span>
+          ))}
+        </p>
+        <p className="muted small">「ボス」は、その属性が相性◎になるクエストの数です。</p>
         <p className="muted small">
           その形態に進化するには、その形態の属性のEXPが必要です。「無」はどの筋トレのEXPでも育ちます。
           {hasBranch && '分岐先を別々の属性にすると、どのEXPを注いだかで進化先が変わります。'}
@@ -207,6 +247,9 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
 
       <section className="card">
         <h2>得意種目とアビリティ</h2>
+        <button type="button" className="btn small" onClick={applyRecommend}>
+          ✨ 足りないもので埋める（属性・得意種目・アビリティ）
+        </button>
         <label className="field">
           得意種目（この種目の相棒にすると、EXPがさらに ×{CONFIG.partner.favorite}）
           <select value={favoriteSlot} onChange={(e) => setFavoriteSlot(e.target.value)}>
@@ -214,26 +257,28 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
             {SLOTS.map((slot) => (
               <option key={slot.id} value={slot.id}>
                 {slot.day === 'bonus' ? 'ボーナス：' : `${DAYS[slot.day].title}：`}
-                {exerciseOfSlot(slot, menu).name}
+                {exerciseOfSlot(slot, menu).name}（{supplyText(slotSupply(slot.id, defs, quests, existing?.id))}）
+                {isShort(slotSupply(slot.id, defs, quests, existing?.id)) ? ' 不足' : ''}
               </option>
             ))}
           </select>
         </label>
         <div className="field">
-          アビリティ（{abilitySlots({ recipe, rarity })}個まで・レア度で決まる）
+          アビリティ（{maxAbilities}個まで・レア度で決まる）　数字は「持っているモンスター／そのギミックのボス」
           <div className="chips" role="group" aria-label="アビリティ">
-            {Object.keys(allGimmicks(quests)).map((g) => {
+            {Object.keys(gimmickNames).map((g) => {
               const on = abilities.includes(g)
-              const max = abilitySlots({ recipe, rarity })
+              const sup = abilitySupply(g, defs, quests, existing?.id)
               return (
                 <button
                   key={g}
                   type="button"
-                  className={`chip${on ? ' on' : ''}`}
-                  disabled={!on && abilities.length >= max}
+                  className={`chip${on ? ' on' : ''}${isShort(sup) ? ' short' : ''}`}
+                  disabled={!on && abilities.length >= maxAbilities}
                   onClick={() => setAbilities(on ? abilities.filter((x) => x !== g) : [...abilities, g])}
                 >
-                  {abilityName(g, allGimmicks(quests))}
+                  {abilityName(g, gimmickNames)} <span className="small">{supplyText(sup)}</span>
+                  {isShort(sup) && <span className="short-badge">不足</span>}
                 </button>
               )
             })}
@@ -355,6 +400,28 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
             </label>
           ))}
       </section>
+
+      {quests.length > 0 && (
+        <section className="card">
+          <h2>このモンスターが刺さるクエスト</h2>
+          <p className="muted small">最終形態で、今の設定（属性・得意種目・アビリティ）のまま戦ったときの目安です。</p>
+          <ul className="mini-list">
+            {fits.map(({ quest, grade, reasons }) => (
+              <li key={quest.id}>
+                <span>
+                  <strong className={`fit fit-${grade === '◎' ? 'good' : grade === '○' ? 'ok' : 'bad'}`}>{grade}</strong> {quest.name}
+                </span>
+                <span className="muted small">{reasons.join('・') || '可もなく不可もなく'}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {similar.length > 0 && (
+        <p className="warn small">
+          ⚠️ {similar.map((d) => d.name).join('・')} と同じ構成です（属性・得意種目・アビリティが全部同じ）。
+        </p>
+      )}
 
       {error && <p className="error">{error}</p>}
       <button className="btn primary wide" disabled={saving} onClick={save}>

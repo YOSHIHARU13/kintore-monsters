@@ -867,6 +867,43 @@ details.fold[open] > summary {
   font-weight: 700;
 }
 
+/* 登録画面の被り・不足 */
+.supply-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+.supply.short {
+  font-weight: 800;
+  text-decoration: underline;
+}
+.chip.short {
+  border-color: var(--warn);
+}
+.short-badge {
+  margin-left: 4px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--warn);
+  color: #1b1400;
+}
+.fit {
+  display: inline-block;
+  width: 1.4em;
+  text-align: center;
+}
+.fit-good {
+  color: var(--keep);
+}
+.fit-ok {
+  color: var(--muted);
+}
+.fit-bad {
+  color: var(--beat);
+}
+
 /* クエスト */
 .battle-bar {
   position: sticky;
