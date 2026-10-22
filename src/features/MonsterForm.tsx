@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '../store'
-import { whitenBackground } from '../lib/whiten'
 import { allSeries } from '../lib/series'
 import { ATTRS, DAYS, FORM_ATTRS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type FormAttr } from '../data/exercises'
 import { FIRST_NODE_ID, TEMPLATES, canChangeTemplate, getTemplate } from '../data/evolutionTemplates'
@@ -29,7 +28,7 @@ import { requirementsOf } from '../lib/formation'
 export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' | 'quest'; go: Go }) {
   // 降臨用：クエスト限定・1形態だけ・★3・激レアで始める（名前と画像だけで登録できる）
   const questPreset = !id && preset === 'quest'
-  const { defs, gachas, menu, quests, saveMonsterDef, loadImage } = useStore()
+  const { defs, gachas, menu, quests, saveMonsterDef } = useStore()
   const existing = id ? defs.find((d) => d.id === id) : undefined
   // 登録済みのモンスターは、ツリーを変えられないか、分岐を増やす方向にだけ変えられる
   const selectable = TEMPLATES.filter((t) =>
@@ -41,23 +40,6 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
   const [attrs, setAttrs] = useState<Record<string, FormAttr>>(existing?.attrs ?? {})
   const [names, setNames] = useState<Record<string, string>>(existing?.names ?? {})
   const [files, setFiles] = useState<Record<string, File>>({})
-  // 黒い背景を白にする（スクショの画像向け）。数字が大きいほど、明るめの黒まで白にする
-  const [whitenLevel, setWhitenLevel] = useState(90)
-  const [whitening, setWhitening] = useState<string | null>(null)
-  const whiten = async (nodeId: string) => {
-    setWhitening(nodeId)
-    try {
-      const chosen = files[nodeId]
-      const saved = existing?.images[nodeId] ? await loadImage(existing.images[nodeId]) : null
-      const src = chosen ?? (saved ? await (await fetch(saved)).blob() : null)
-      if (src) setFiles({ ...files, [nodeId]: await whitenBackground(src, whitenLevel) })
-    } catch (e) {
-      console.error(e)
-      setError('画像を変換できませんでした')
-    } finally {
-      setWhitening(null)
-    }
-  }
   const [birthStars, setBirthStars] = useState(existing?.jogressBirthStars ?? CONFIG.gacha.jogressDefaultBirth)
   const [fixedStars, setFixedStars] = useState(existing?.fixedStars ?? CONFIG.gacha.fixedStarsDefault)
   const [jogressPlus] = useState(existing?.jogressPlus ?? 0)
@@ -282,18 +264,6 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
 
       <section className="card">
         <h2>各形態の画像と部位</h2>
-        <details className="muted small">
-          <summary>黒い背景を白にする強さ（スクショの画像向け）：{whitenLevel}</summary>
-          <input
-            type="range"
-            min={10}
-            max={120}
-            value={whitenLevel}
-            onChange={(e) => setWhitenLevel(Number(e.target.value))}
-            aria-label="黒い背景を白にする強さ"
-          />
-          ふちから、暗くて色がなめらかに続く部分（黒・茶色・グラデーション）を白にします。キャラの縁で色がはっきり変わるところで止まります。背景が残るなら強く、キャラまで白くなるなら弱くして、もう一度画像を選んでから押してください。保存するまで元の画像は変わりません。いちばんきれいなのは、iPhoneの写真アプリでキャラを長押しして切り抜いた画像を選ぶ方法です（透明な部分は自動で白になります）。
-        </details>
         <p className="small supply-row">
           部位の内訳（最終形態）：
           {ATTRS.map((a) => (
@@ -367,11 +337,6 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
                   }}
                 />
               </label>
-              )}
-              {!(template.awaken && node.id !== FIRST_NODE_ID) && (files[node.id] || existing?.images[node.id]) && (
-                <button type="button" className="btn small ghost" disabled={whitening !== null} onClick={() => whiten(node.id)}>
-                  {whitening === node.id ? '変換中…' : '🖤→🤍 黒い背景を白に'}
-                </button>
               )}
             </div>
           </div>

@@ -193,7 +193,6 @@ export const CONFIG = {
         reward: { eggs: 30, gold: 500 },
         boosters: ['habit', 'exp', 'quest'],
       },
-      { id: 'coinStart', label: '進化コイン実装記念', reward: { coins: 1000 } },
     ] as { id: string; label: string; reward: Reward; boosters?: BoosterKey[] }[],
   },
   // 無料ガチャのイベント：その日のうちに、好きなガチャで引ける（卵は減らない）

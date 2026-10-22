@@ -99,7 +99,7 @@ export const TEMPLATES: EvoTemplate[] = [
     id: 'awaken3',
     name: '覚醒（イラスト1枚・3段）',
     description: '絵は1枚のまま。EXPを注いで進化するたびに覚醒して、絵のまわりの光が強くなる（★1→★3）。コラボ向け',
-    extends: ['linear3', 'single'],
+    retired: true, // 新しくは選べない（切り抜き画像で絵が用意しやすくなったので）。登録済みはそのまま
     awaken: true,
     nodes: [
       { id: 'n1', stage: 1, label: '通常', next: ['n2'] },
