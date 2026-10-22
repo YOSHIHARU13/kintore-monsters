@@ -22,6 +22,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
   const [confirmAllLuck, setConfirmAllLuck] = useState(false)
   const [partnerKey, setPartnerKey] = useState<string | null>(null)
   const [born, setBorn] = useState<{ def: MonsterDef; id: string } | null>(null)
+  const [luckMaxNow, setLuckMaxNow] = useState(false)
   const mon = owned.find((o) => o.id === id)
   const def = mon && defs.find((d) => d.id === mon.defId)
 
@@ -110,6 +111,24 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
 
   return (
     <div className="page">
+      {luckMaxNow && (
+        <div className="beat-overlay clear-overlay" onClick={() => setLuckMaxNow(false)}>
+          <div className="beat-burst" />
+          <div className="beat-burst reverse" />
+          {Array.from({ length: 42 }, (_, i) => (
+            <i key={i} className="spark" style={{ ['--i' as string]: i }} />
+          ))}
+          <div className="beat-text">
+            <div className="beat-title">運極達成！！</div>
+            <MonsterImage imageId={imageOf(def, mon.nodeId)} awaken={awakenOf(def, mon.nodeId)} size={180} shiny={mon.shiny} />
+            <div className="beat-title">{plusName(def, mon)}</div>
+            <div className="beat-sub">
+              クエスト報酬G＋{Math.round(CONFIG.luck.goldBonus * 100)}%・核＋{Math.round(CONFIG.luck.coreBonus * 100)}%
+            </div>
+            <span className="luck-max">運極</span>
+          </div>
+        </div>
+      )}
       <button className="back" onClick={() => go({ name: 'box' })}>
         ← BOXに戻る
       </button>
@@ -257,6 +276,8 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
                   luckPicked.map((f) => f.id),
                 )
                 setConfirmAllLuck(false)
+                // この食べさせで運極になったら、お祝いの演出
+                if (luckOf(mon) + luckGain >= CONFIG.luck.max) setLuckMaxNow(true)
                 navigator.vibrate?.([60, 40, 200])
               }}
             >
