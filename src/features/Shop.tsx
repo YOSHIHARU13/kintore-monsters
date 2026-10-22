@@ -6,9 +6,9 @@ import { Stepper } from '../components/Stepper'
 import { MonsterImage } from '../components/MonsterImage'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { ATTR_COLOR, type Go } from '../nav'
-import { monsterName, type MonsterDef } from '../types'
+import { isHidden, monsterName, type MonsterDef } from '../types'
 
-type Hatched = { def: MonsterDef; monsterId: string }
+type Hatched = { def: MonsterDef; monsterId: string; shiny: boolean }
 
 export function Shop({ go }: { go: Go }) {
   const { state, defs, buyEgg, hatchEgg, buyExp } = useStore()
@@ -16,8 +16,9 @@ export function Shop({ go }: { go: Go }) {
   const [amount, setAmount] = useState(CONFIG.shop.expBuyStep)
   const [hatched, setHatched] = useState<Hatched | null>(null)
 
-  const canBuyEgg = state.gold >= CONFIG.shop.eggPrice && defs.length > 0
-  const canHatch = state.eggs > 0 && defs.length > 0
+  const eggDefs = defs.filter((d) => !isHidden(d)) // 隠しモンスターはタマゴから生まれない
+  const canBuyEgg = state.gold >= CONFIG.shop.eggPrice && eggDefs.length > 0
+  const canHatch = state.eggs > 0 && eggDefs.length > 0
   const expCost = amount * CONFIG.shop.goldPerExp
   const maxAmount = Math.max(
     CONFIG.shop.expBuyStep,
@@ -32,7 +33,8 @@ export function Shop({ go }: { go: Go }) {
       <section className="card">
         <h2>タマゴ</h2>
         <p className="muted small">
-          登録済みのモンスター（{defs.length}種）から、ランダムで1体生まれます。ダブりあり。同じモンスターを別の進化先に育てて、図鑑を埋められます。
+          登録済みのモンスター（{eggDefs.length}種）から、ランダムで1体生まれます。ダブりあり。
+          {Math.round(1 / CONFIG.shop.shinyRate)}回に1回くらい、✨色違い✨が生まれます。
         </p>
         <p>
           手持ちのタマゴ：<strong>{state.eggs}個</strong>
@@ -43,7 +45,7 @@ export function Shop({ go }: { go: Go }) {
         <button className="btn wide" disabled={!canBuyEgg} onClick={buyEgg}>
           タマゴを買う（{CONFIG.shop.eggPrice}G）
         </button>
-        {defs.length === 0 && (
+        {eggDefs.length === 0 && (
           <p className="warn small">生まれるモンスターがいません。図鑑で新しいモンスターを登録してください。</p>
         )}
       </section>
@@ -83,10 +85,14 @@ export function Shop({ go }: { go: Go }) {
       </section>
 
       {hatched && (
-        <div className="beat-overlay" onClick={() => setHatched(null)}>
+        <div className={`beat-overlay${hatched.shiny ? ' clear-overlay' : ''}`} onClick={() => setHatched(null)}>
           <div className="beat-burst" />
+          {hatched.shiny && <div className="beat-burst reverse" />}
+          {hatched.shiny &&
+            Array.from({ length: 42 }, (_, i) => <i key={i} className="spark" style={{ ['--i' as string]: i }} />)}
           <div className="beat-text">
-            <MonsterImage imageId={hatched.def.images[FIRST_NODE_ID]} size={180} />
+            {hatched.shiny && <div className="beat-title">✨ 色違い！！ ✨</div>}
+            <MonsterImage imageId={hatched.def.images[FIRST_NODE_ID]} size={180} shiny={hatched.shiny} />
             <div className="beat-title">{monsterName(hatched.def, FIRST_NODE_ID)}</div>
             <div className="beat-sub">が生まれた！</div>
             <button

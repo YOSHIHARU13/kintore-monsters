@@ -6,20 +6,31 @@ interface Props {
   silhouette?: boolean // 画像があっても黒いシルエットで表示する（未入手・進化先）
   size?: number
   plus?: number // 合体の＋。1以上なら＋に応じた枠で囲む
+  shiny?: boolean // 色違い。色を変えてキラキラさせる
 }
 
 /** モンスター画像。画像が未登録ならプレースホルダーのシルエットを出す */
-export function MonsterImage({ plus = 0, ...props }: Props) {
-  if (plus <= 0) return <Picture {...props} />
+export function MonsterImage({ plus = 0, shiny = false, ...props }: Props) {
+  const picture = shiny ? (
+    <div className="shiny">
+      <Picture {...props} />
+      <span className="shiny-mark" aria-label="色違い">
+        ✨
+      </span>
+    </div>
+  ) : (
+    <Picture {...props} />
+  )
+  if (plus <= 0) return picture
   return (
     <div className={`frame plus-${Math.min(plus, 5)}`}>
-      <Picture {...props} />
+      {picture}
       <span className="frame-plus">＋{plus}</span>
     </div>
   )
 }
 
-function Picture({ imageId, silhouette = false, size = 96 }: Omit<Props, 'plus'>) {
+function Picture({ imageId, silhouette = false, size = 96 }: Omit<Props, 'plus' | 'shiny'>) {
   const { loadImage } = useStore()
   const [src, setSrc] = useState<string | null>(null)
 

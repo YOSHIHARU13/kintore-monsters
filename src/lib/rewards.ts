@@ -1,5 +1,5 @@
 import { CONFIG } from '../config/gameConfig'
-import type { Judge } from '../types'
+import type { GameState, Judge } from '../types'
 
 export interface SetReward {
   eligible: boolean
@@ -25,6 +25,11 @@ export function calcSetReward(p: { isBonus: boolean; setNo: number; judge: Judge
 }
 
 /** 歩数のゴールド。500歩ごとに1G＋届いた段の歩数ボーナス */
+/** 習慣の名前（未設定なら初期の名前） */
+export function habitLabelOf(state: GameState): string {
+  return state.habitLabel?.trim() || CONFIG.morning.habitDefaultLabel
+}
+
 export function stepsGold(steps: number): number {
   const base = Math.floor(Math.max(0, steps) / CONFIG.morning.stepsPerGold)
   return base + CONFIG.morning.stepBonuses.reduce((sum, b) => sum + (steps >= b.steps ? b.gold : 0), 0)
@@ -35,7 +40,3 @@ export function nextStepBonus(steps: number): { steps: number; gold: number } | 
   return CONFIG.morning.stepBonuses.find((b) => steps < b.steps) ?? null
 }
 
-/** 禁欲n日目のゴールド。日数に比例して増え、上限の日数で頭打ち */
-export function abstinenceGold(day: number): number {
-  return Math.min(Math.max(0, Math.floor(day)), CONFIG.morning.abstinenceMaxDays) * CONFIG.morning.abstinenceGoldPerDay
-}

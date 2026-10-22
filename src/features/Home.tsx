@@ -1,6 +1,7 @@
 import { signOut } from 'firebase/auth'
 import { auth } from '../lib/firebase'
 import { useStore } from '../store'
+import { habitLabelOf } from '../lib/rewards'
 import { ATTRS, ATTR_LABEL, FORM_ATTR_LABEL, DAYS, DAY_KEYS, exerciseOfSlot, slotsOfDay } from '../data/exercises'
 import { getNode, getTemplate } from '../data/evolutionTemplates'
 import { CONFIG } from '../config/gameConfig'
@@ -9,7 +10,6 @@ import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
 import { nodeAttr, plusName } from '../types'
 import { isWeekCleared, partProgress, slotDone } from '../lib/week'
-import { abstinenceGold } from '../lib/rewards'
 import { StepTable } from './Morning'
 
 export function Home({ go }: { go: Go }) {
@@ -27,8 +27,8 @@ export function Home({ go }: { go: Go }) {
       <section className="card">
         <h2>☀️ 朝の記録</h2>
         <p>
-          禁欲 <strong className="num">{state.abstinenceStreak}</strong>日継続中
-          <span className="muted small">（自己ベスト {state.bestAbstinenceStreak}日）</span>
+          {habitLabelOf(state)}：<strong className="num">{state.habitStreak}</strong>日連続
+          <span className="muted small">（自己ベスト {state.bestHabitStreak}日）</span>
         </p>
         <p className="muted small">今日歩いた分は、明日の朝に記録します。歩くほどボーナスが乗ります：</p>
         <StepTable />
@@ -36,8 +36,7 @@ export function Home({ go }: { go: Go }) {
           <p className="muted small">前日の分は記録済み。また明日の朝に。</p>
         ) : (
           <button className="btn primary wide" onClick={() => go({ name: 'morning' })}>
-            前日の歩数と禁欲を記録する（禁欲{state.abstinenceStreak + 1}日目なら +
-            {abstinenceGold(state.abstinenceStreak + 1)}G）
+            前日の歩数と習慣を記録する
           </button>
         )}
       </section>
@@ -134,7 +133,7 @@ export function Home({ go }: { go: Go }) {
         <h2>育成中のモンスター</h2>
         {active && activeDef ? (
           <button className="monster-row" onClick={() => go({ name: 'monster', id: active.id })}>
-            <MonsterImage imageId={activeDef.images[active.nodeId]} size={88} plus={active.plus} />
+            <MonsterImage imageId={activeDef.images[active.nodeId]} size={88} plus={active.plus} shiny={active.shiny} />
             <div>
               <strong>{plusName(activeDef, active)}</strong>
               <div className="muted">

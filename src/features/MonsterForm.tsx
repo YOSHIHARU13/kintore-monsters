@@ -5,6 +5,8 @@ import { TEMPLATES, canChangeTemplate, getTemplate } from '../data/evolutionTemp
 import { evolutionCost } from '../lib/evolution'
 import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
+import { CONFIG } from '../config/gameConfig'
+import { isHidden } from '../types'
 
 export function MonsterForm({ id, go }: { id?: string; go: Go }) {
   const { defs, saveMonsterDef } = useStore()
@@ -18,6 +20,9 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
   const [attrs, setAttrs] = useState<Record<string, FormAttr>>(existing?.attrs ?? {})
   const [names, setNames] = useState<Record<string, string>>(existing?.names ?? {})
   const [files, setFiles] = useState<Record<string, File>>({})
+  const [recipe, setRecipe] = useState<string[]>(existing?.recipe?.length === 2 ? existing.recipe : [])
+  // レシピに使えるのは、タマゴから生まれる普通のモンスター（自分以外）
+  const parents = defs.filter((d) => d.id !== existing?.id && !isHidden(d))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -34,6 +39,10 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
   const save = async () => {
     if (!name.trim()) {
       setError('名前を入力してください')
+      return
+    }
+    if (recipe.length === 2 && recipe.some((r) => !parents.some((p) => p.id === r))) {
+      setError('レシピのモンスターを2体選んでください')
       return
     }
     setSaving(true)
@@ -54,6 +63,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
         attrs: validAttrs,
         names: validNames,
         files: validFiles,
+        recipe,
       })
       go({ name: 'registry' })
     } catch (e) {
@@ -159,6 +169,39 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
             </div>
           </div>
         ))}
+      </section>
+
+      <section className="card">
+        <h2>隠しモンスター（ジョグレス）</h2>
+        <label className="row">
+          <input
+            type="checkbox"
+            checked={recipe.length === 2}
+            disabled={parents.length === 0}
+            onChange={(e) => setRecipe(e.target.checked ? [parents[0].id, parents[0].id] : [])}
+          />
+          隠しモンスターにする
+        </label>
+        <p className="muted small">
+          隠しモンスターはタマゴからは生まれません。レシピの2体をどちらも最終形態の＋{CONFIG.fusion.maxPlus}
+          まで育ててジョグレスさせると生まれます（{CONFIG.jogress.gold}G、2体はいなくなります）。同じモンスター2体でもOK。
+        </p>
+        {recipe.length === 2 &&
+          [0, 1].map((i) => (
+            <label key={i} className="field">
+              レシピ{i + 1}体目
+              <select
+                value={recipe[i]}
+                onChange={(e) => setRecipe(recipe.map((r, j) => (j === i ? e.target.value : r)))}
+              >
+                {parents.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ))}
       </section>
 
       {error && <p className="error">{error}</p>}

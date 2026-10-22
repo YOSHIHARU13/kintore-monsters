@@ -3,11 +3,12 @@ import { FORM_ATTR_LABEL } from '../data/exercises'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
-import { monsterName, nodeAttr } from '../types'
+import { isHidden, monsterName, nodeAttr } from '../types'
 
 export function MonsterRegistry({ go }: { go: Go }) {
-  const { defs, owned } = useStore()
-  const ownedCount = defs.filter((d) => owned.some((o) => o.defId === d.id)).length
+  const { defs, owned, state } = useStore()
+  const hasMet = (defId: string) => owned.some((o) => o.defId === defId) || (state.dexFound[defId]?.length ?? 0) > 0
+  const ownedCount = defs.filter((d) => hasMet(d.id)).length
 
   return (
     <div className="page">
@@ -24,7 +25,7 @@ export function MonsterRegistry({ go }: { go: Go }) {
 
       <div className="grid">
         {defs.map((def, index) => {
-          const has = owned.some((o) => o.defId === def.id)
+          const has = hasMet(def.id)
           const attr = nodeAttr(def, FIRST_NODE_ID)
           return (
             <div key={def.id} className="tile">
@@ -33,6 +34,7 @@ export function MonsterRegistry({ go }: { go: Go }) {
               <strong>{monsterName(def, FIRST_NODE_ID)}</strong>
               <span className="small" style={{ color: ATTR_COLOR[attr] }}>
                 {FORM_ATTR_LABEL[attr]}・{has ? '入手済み' : '未入手'}
+                {isHidden(def) && '・隠し'}
               </span>
               <button className="btn small" onClick={() => go({ name: 'monsterForm', id: def.id })}>
                 編集

@@ -41,9 +41,12 @@ const state: GameState = {
   beatCount: 4,
   weeklyClears: 2,
   lastClearWeek: '2026-09-21',
-  abstinenceStreak: 3,
-  bestAbstinenceStreak: 5,
+  habitStreak: 3,
+  bestHabitStreak: 5,
+  habitLabel: null,
   lastCheckinDate: '2026-10-03',
+  dexFound: {},
+  dexShiny: {},
   activeMonsterId: 'o1',
 }
 const defs: MonsterDef[] = [
@@ -117,22 +120,26 @@ beforeEach(() => {
       record: { ...rec, id: `new${Date.now()}`, ts: Date.now(), date: TODAY },
       weekCleared: false,
     })),
-    recordMorning: vi.fn((steps: number, abstained: boolean) => ({
+    recordMorning: vi.fn((steps: number, habit: boolean) => ({
       date: '2026-10-04',
       steps,
-      abstained,
-      streak: abstained ? 4 : 0,
+      habit,
+      habitLabel: 'ベッドでスマホを見なかった',
+      streak: habit ? 4 : 0,
       stepsGold: 23,
-      abstinenceGold: abstained ? 40 : 0,
+      habitGold: habit ? 10 : 0,
       ts: 1,
     })),
+    setHabitLabel: vi.fn(),
     setSlot: vi.fn(),
     buyExp: vi.fn(),
     buyEgg: vi.fn(),
-    hatchEgg: vi.fn(() => ({ def: defs[1], monsterId: 'o2' })),
+    hatchEgg: vi.fn(() => ({ def: defs[1], monsterId: 'o2', shiny: false })),
     pourExp: vi.fn(),
     evolve: vi.fn(),
+    pourPlusExp: vi.fn(),
     fuse: vi.fn(),
+    jogress: vi.fn(() => 'o9'),
     setActive: vi.fn(),
     saveMonsterDef: vi.fn(async () => {}),
     loadImage: vi.fn(async () => null),
@@ -152,8 +159,8 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('累計 2週')
     expect(el.textContent).toContain('500G')
     expect(el.textContent).toContain('ムキドラゴ') // 第2段階の名前
-    expect(el.textContent).toContain('禁欲 3日継続中')
-    expect(el.textContent).toContain('禁欲4日目なら +40G')
+    expect(el.textContent).toContain('ベッドでスマホを見なかった：3日連続')
+    expect(el.textContent).toContain('前日の歩数と習慣を記録する')
     await click('ブルガリアンスクワット')
     expect(go).toHaveBeenCalledWith({ name: 'set', slotId: 'wed1' })
   })
@@ -220,7 +227,7 @@ describe('画面の表示', () => {
     expect(fake.store.setSlot).toHaveBeenCalledWith('mon1', 'pushupBar')
   })
 
-  it('朝の記録：歩数と禁欲を入れて記録', async () => {
+  it('朝の記録：歩数と習慣を入れて記録', async () => {
     const el = await render(<Morning go={go} />)
     expect(el.textContent).toContain('10/4の分')
     const input = el.querySelector('input')!
@@ -231,25 +238,30 @@ describe('画面の表示', () => {
     })
     expect(el.textContent).toContain('+23G')
     expect(el.textContent).toContain('あと1,500歩で +46G')
-    await click('してない（禁欲4日目 +40G）')
-    await click('記録する（+63G）')
+    expect(el.textContent).toContain('前日：ベッドでスマホを見なかった？')
+    await click('できた（+10G）')
+    await click('記録する（+33G）')
     expect(fake.store.recordMorning).toHaveBeenCalledWith(6500, true)
-    expect(el.textContent).toContain('記録しました：+63G')
-  })
-
-  it('朝の記録：「した」を選ぶと連続がリセットされる注意が出る', async () => {
-    const el = await render(<Morning go={go} />)
-    await click('した（+0G）')
-    expect(el.textContent).toContain('連続3日がリセット')
+    expect(el.textContent).toContain('記録しました：+33G')
+    expect(el.textContent).toContain('○（4日連続）')
   })
 
   it('朝の記録：記録済みなら結果だけ出る', async () => {
     fake.store.yesterdayCheckin = {
-      date: '2026-10-04', steps: 5000, abstained: true, streak: 4, stepsGold: 10, abstinenceGold: 40, ts: 1,
+      date: '2026-10-04', steps: 5000, habit: false, habitLabel: '朝の光を浴びた', streak: 0, stepsGold: 20, habitGold: 0, ts: 1,
     }
     const el = await render(<Morning go={go} />)
-    expect(el.textContent).toContain('記録しました：+50G')
-    expect(el.textContent).toContain('禁欲 4日目')
+    expect(el.textContent).toContain('記録しました：+20G')
+    expect(el.textContent).toContain('朝の光を浴びた：×')
+  })
+
+  it('ショップ：色違いが生まれると特別な演出', async () => {
+    fake.store.hatchEgg = vi.fn(() => ({ def: defs[1], monsterId: 'o2', shiny: true }))
+    const shop = await render(<Shop go={go} />)
+    expect(shop.textContent).toContain('20回に1回くらい')
+    await click('タマゴを孵す')
+    expect(shop.textContent).toContain('色違い！！')
+    expect(shop.querySelector('.shiny')).not.toBeNull()
   })
 
   it('BOX・図鑑・ショップ', async () => {
@@ -290,20 +302,77 @@ describe('画面の表示', () => {
     expect(fake.store.evolve).toHaveBeenCalledWith('o1', 'n3a')
   })
 
-  it('モンスター詳細：同じモンスターを食べさせて＋1、枠が付く', async () => {
+  it('モンスター詳細：最終形態になるまでは合体できない', async () => {
+    fake.store.owned = [...owned, { id: 'o3', defId: 'm1', nodeId: 'n1', obtainedAt: 3 }]
+    const el = await render(<MonsterDetail id="o1" go={go} />)
+    expect(el.textContent).toContain('最終形態まで進化すると')
+    expect(el.textContent).toContain('いま食べさせられるムキドラ：1体')
+    expect(el.textContent).not.toContain('食べさせる（')
+  })
+
+  it('モンスター詳細：最終形態はEXPを注いでから、同じモンスターを食べさせて＋1', async () => {
     fake.store.owned = [
-      { ...owned[0], plus: 2 },
+      { id: 'o1', defId: 'm1', nodeId: 'n3a', plus: 2, plusExp: { trained: 100, bought: 0 }, shiny: true, obtainedAt: 1 },
       { id: 'o3', defId: 'm1', nodeId: 'n1', obtainedAt: 3 },
       { id: 'o4', defId: 'm2', nodeId: 'n1', obtainedAt: 4 },
     ]
     const el = await render(<MonsterDetail id="o1" go={go} />)
-    expect(el.textContent).toContain('ムキドラゴ＋2')
+    expect(el.textContent).toContain('✨ムキドラ＋2')
     expect(el.textContent).toContain('合体（＋2／5）')
-    expect(el.querySelector('.frame.plus-2')).not.toBeNull()
-    expect(el.textContent).not.toContain('アシガメ') // 別のモンスターは食べさせられない
+    expect(el.textContent).toContain('100/300')
+    expect(el.querySelector('.frame.plus-2 .shiny')).not.toBeNull()
+    expect(el.textContent).not.toContain('食べさせる') // ゲージが満タンになるまでは食べさせられない
+    await click('胸腕EXPを注ぐ（+200）')
+    expect(fake.store.pourPlusExp).toHaveBeenCalledWith('o1', 'chestArms')
+    await click('万能EXPを注ぐ（+30）')
+    expect(fake.store.pourPlusExp).toHaveBeenCalledWith('o1', 'any')
+  })
+
+  it('モンスター詳細：ゲージが満タンなら食べさせられる（別のモンスターは不可）', async () => {
+    fake.store.owned = [
+      { id: 'o1', defId: 'm1', nodeId: 'n3a', plus: 2, plusExp: { trained: 300, bought: 0 }, obtainedAt: 1 },
+      { id: 'o3', defId: 'm1', nodeId: 'n1', obtainedAt: 3 },
+      { id: 'o4', defId: 'm2', nodeId: 'n1', obtainedAt: 4 },
+    ]
+    const el = await render(<MonsterDetail id="o1" go={go} />)
+    expect(el.textContent).not.toContain('アシガメ')
     await click('食べさせる')
     await click('本当に食べさせる（300G）')
     expect(fake.store.fuse).toHaveBeenCalledWith('o1', 'o3')
+  })
+
+  it('モンスター詳細：＋5どうしでジョグレスすると隠しモンスターが生まれる', async () => {
+    const hidden: MonsterDef = {
+      id: 'h1', name: 'カイザードラ', attr: 'none', templateId: 'linear3', images: {}, recipe: ['m1', 'm2'], createdAt: 3,
+    }
+    fake.store.defs = [...defs, hidden]
+    fake.store.state = { ...state, gold: 1500 }
+    fake.store.owned = [
+      { id: 'o1', defId: 'm1', nodeId: 'n3a', plus: 5, obtainedAt: 1 },
+      { id: 'o2', defId: 'm2', nodeId: 'n3', plus: 5, obtainedAt: 2 },
+    ]
+    const el = await render(<MonsterDetail id="o1" go={go} />)
+    expect(el.textContent).toContain('？？？ ← ムキドラ＋5 ＆ アシガメ＋5')
+    await click('アシガメ＋5とジョグレス')
+    await click('本当にジョグレスする（1000G）')
+    expect(fake.store.jogress).toHaveBeenCalledWith('o1', 'o2', 'h1')
+    expect(el.textContent).toContain('ジョグレス進化！！')
+    expect(el.textContent).toContain('カイザードラ')
+    await click('会いに行く')
+    expect(go).toHaveBeenCalledWith({ name: 'monster', id: 'o9' })
+  })
+
+  it('図鑑：隠しモンスターはヒントだけ。合体でいなくなった個体の発見も残る', async () => {
+    fake.store.defs = [
+      ...defs,
+      { id: 'h1', name: 'カイザードラ', attr: 'none', templateId: 'linear3', images: {}, recipe: ['m1', 'm2'], createdAt: 3 },
+    ]
+    fake.store.state = { ...state, dexFound: { m1: ['n1', 'n2', 'n3b'] }, dexShiny: { m1: true } }
+    const dex = await render(<Dex go={go} />)
+    expect(dex.textContent).toContain('ヒント：ムキドラ＋？？？')
+    expect(dex.textContent).not.toContain('カイザードラ')
+    expect(dex.textContent).toContain('ヤミムキドラ')
+    expect(dex.textContent).toContain('ムキドラ ✨')
   })
 
   it('モンスター詳細：手持ちのEXPがあれば進化先を選んで注げる', async () => {

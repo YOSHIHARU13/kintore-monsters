@@ -11,9 +11,9 @@ export function evolutionCost(stage: number): EvoCost | null {
   return CONFIG.evolutionCosts[stage - 1] ?? null
 }
 
-/** ＋plus から＋1するのに必要なゴールド。最大なら null */
-export function fusionCost(plus: number): number | null {
-  return plus < CONFIG.fusion.maxPlus ? (CONFIG.fusion.goldCosts[plus] ?? null) : null
+/** ＋plus から＋1するのに必要なEXPとゴールド。最大なら null */
+export function fusionCost(plus: number): EvoCost | null {
+  return plus < CONFIG.fusion.maxPlus ? (CONFIG.fusion.costs[plus] ?? null) : null
 }
 
 /** 購入EXPで埋められる上限 */

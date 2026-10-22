@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { calcTarget, judgeSet, recentSessions, suggestProgression } from './target'
-import { abstinenceGold, calcSetReward, stepsGold } from './rewards'
+import { calcSetReward, stepsGold } from './rewards'
 import { boughtCap, evolutionCost, fusionCost, isExpFull, planPour } from './evolution'
 import { CONFIG } from '../config/gameConfig'
 import { EXERCISES, SLOTS, TASK_SLOTS } from '../data/exercises'
@@ -73,13 +73,6 @@ describe('セット報酬', () => {
     expect(stepsGold(15000)).toBe(130) // 30 + 10 + 20 + 30 + 40
     expect(stepsGold(-1)).toBe(0)
   })
-  it('禁欲はn日目×10G、10日目で頭打ち', () => {
-    expect(abstinenceGold(1)).toBe(10)
-    expect(abstinenceGold(2)).toBe(20)
-    expect(abstinenceGold(10)).toBe(100)
-    expect(abstinenceGold(30)).toBe(100)
-    expect(abstinenceGold(0)).toBe(0)
-  })
 })
 
 describe('次の一手の提案', () => {
@@ -151,8 +144,8 @@ describe('進化', () => {
   const cost = evolutionCost(1)!
   it('初期コスト', () => {
     expect(cost).toEqual({ exp: 150, gold: 100 })
-    expect(fusionCost(0)).toBe(100)
-    expect(fusionCost(4)).toBe(500)
+    expect(fusionCost(0)).toEqual({ exp: 100, gold: 100 })
+    expect(fusionCost(4)).toEqual({ exp: 500, gold: 500 })
     expect(fusionCost(5)).toBeNull()
     expect(evolutionCost(4)).toEqual({ exp: 2500, gold: 1500 })
     expect(evolutionCost(5)).toBeNull()

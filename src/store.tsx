@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { User } from 'firebase/auth'
 import {
+  arrayUnion,
   collection,
   doc,
   getDoc,
@@ -19,10 +20,10 @@ import { ATTRS, DAYS, type Attr, type FormAttr } from './data/exercises'
 import { FIRST_NODE_ID, canChangeTemplate, getNode, getTemplate, pathTo } from './data/evolutionTemplates'
 import { dateKey, prevDateKey, weekStartKey } from './lib/date'
 import { evolutionCost, fusionCost, isExpFull, planPour } from './lib/evolution'
-import { abstinenceGold, stepsGold } from './lib/rewards'
+import { habitLabelOf, stepsGold } from './lib/rewards'
 import { isWeekCleared } from './lib/week'
 import { compressImage } from './lib/imageCompress'
-import { investedFor, nodeAttr, type Checkin, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
+import { investedFor, isHidden, nodeAttr, type AttrExp, type Checkin, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
 
 const zeroExp = () => ({ trained: 0, bought: 0 })
 
@@ -39,9 +40,12 @@ function initialState(): GameState {
     beatCount: 0,
     weeklyClears: 0,
     lastClearWeek: null,
-    abstinenceStreak: 0,
-    bestAbstinenceStreak: 0,
+    habitStreak: 0,
+    bestHabitStreak: 0,
+    habitLabel: null,
     lastCheckinDate: null,
+    dexFound: {},
+    dexShiny: {},
     activeMonsterId: null,
   }
 }
@@ -56,6 +60,20 @@ function toState(data: DocumentData): GameState {
   } as GameState
 }
 
+/** 朝の記録を読む。禁欲を記録していたころのデータも、習慣の記録として読む */
+function toCheckin(data: DocumentData): Checkin {
+  return {
+    date: data.date,
+    steps: data.steps ?? 0,
+    habit: data.habit ?? data.abstained ?? false,
+    habitLabel: data.habitLabel ?? (data.abstained !== undefined ? '禁欲' : ''),
+    streak: data.streak ?? 0,
+    stepsGold: data.stepsGold ?? 0,
+    habitGold: data.habitGold ?? data.abstinenceGold ?? 0,
+    ts: data.ts ?? 0,
+  }
+}
+
 export interface MonsterDefInput {
   id?: string
   name: string
@@ -63,6 +81,7 @@ export interface MonsterDefInput {
   attrs: Record<string, FormAttr> // nodeId → その形態の属性
   names: Record<string, string> // nodeId → その段階だけの名前
   files: Record<string, File> // nodeId → 新しくアップロードする画像
+  recipe: string[] // 隠しモンスターのレシピ（2体の defId）。普通のモンスターは空
 }
 
 interface Store {
@@ -80,17 +99,22 @@ interface Store {
   getHistory: (exerciseId: string) => Promise<SetRecord[]>
   /** セットを記録する。このセットで今週のタスクを全部消したら weekCleared が true */
   recordSet: (rec: Omit<SetRecord, 'id' | 'ts' | 'date'>, countsBeat: boolean) => { record: SetRecord; weekCleared: boolean }
-  /** 前日の歩数と禁欲を記録する。1日1回だけ */
-  recordMorning: (steps: number, abstained: boolean) => Checkin | null
+  /** 前日の歩数と習慣を記録する。1日1回だけ */
+  recordMorning: (steps: number, habit: boolean) => Checkin | null
+  setHabitLabel: (label: string) => void
   setSlot: (slotId: string, exerciseId: string) => void
   buyExp: (attr: Attr, amount: number) => void
   buyEgg: () => void
   /** タマゴを孵す。登録済みのモンスターからランダムで1体（ダブりあり） */
-  hatchEgg: () => { def: MonsterDef; monsterId: string } | null
+  hatchEgg: () => { def: MonsterDef; monsterId: string; shiny: boolean } | null
   pourExp: (monsterId: string, toNodeId: string, from: ExpSource) => void
   evolve: (monsterId: string, toNodeId: string) => void
-  /** foodId のモンスターを monsterId に食べさせて＋1にする（同じモンスター同士だけ） */
+  /** 最終形態のモンスターに、次の＋に向けてEXPを注ぐ */
+  pourPlusExp: (monsterId: string, from: ExpSource) => void
+  /** foodId のモンスターを monsterId（最終形態）に食べさせて＋1にする（同じモンスター同士だけ） */
   fuse: (monsterId: string, foodId: string) => void
+  /** ＋5の2体を合わせて隠しモンスターを生む。生まれた個体のID */
+  jogress: (monsterId: string, partnerId: string, hiddenDefId: string) => string | null
   setActive: (monsterId: string) => void
   saveMonsterDef: (input: MonsterDefInput) => Promise<void>
   loadImage: (imageId: string) => Promise<string | null>
@@ -203,7 +227,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     setYesterdayCheckin(null)
     return onSnapshot(
       doc(db, base, 'checkins', yesterday),
-      (snap) => setYesterdayCheckin(snap.exists() ? (snap.data() as Checkin) : null),
+      (snap) => setYesterdayCheckin(snap.exists() ? toCheckin(snap.data()) : null),
       fail,
     )
   }, [base, yesterday, fail])
@@ -251,30 +275,33 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       return { record: { ...full, id: ref.id }, weekCleared }
     }
 
-    const recordMorning: Store['recordMorning'] = (steps, abstained) => {
+    const recordMorning: Store['recordMorning'] = (steps, habit) => {
       if (state.lastCheckinDate === yesterday || yesterdayCheckin) return null
       // 朝の記録をつけ忘れた日があっても、連続日数は途切れない（つけ忘れた日の分のゴールドは出ない）
-      const streak = abstained ? state.abstinenceStreak + 1 : 0
+      const streak = habit ? state.habitStreak + 1 : 0
       const record: Checkin = {
         date: yesterday,
         steps: Math.floor(Math.max(0, steps)),
-        abstained,
+        habit,
+        habitLabel: habitLabelOf(state),
         streak,
         stepsGold: stepsGold(steps),
-        abstinenceGold: abstained ? abstinenceGold(streak) : 0,
+        habitGold: habit ? CONFIG.morning.habitGold : 0,
         ts: Date.now(),
       }
       const batch = writeBatch(db)
       batch.set(doc(db, base, 'checkins', yesterday), record)
       batch.update(stateRef, {
-        gold: increment(record.stepsGold + record.abstinenceGold),
-        abstinenceStreak: streak,
-        bestAbstinenceStreak: Math.max(state.bestAbstinenceStreak, streak),
+        gold: increment(record.stepsGold + record.habitGold),
+        habitStreak: streak,
+        bestHabitStreak: Math.max(state.bestHabitStreak, streak),
         lastCheckinDate: yesterday,
       })
       batch.commit().catch(fail)
       return record
     }
+
+    const setHabitLabel: Store['setHabitLabel'] = (label) => updateState({ habitLabel: label.trim() || null })
 
     const setSlot: Store['setSlot'] = (slotId, exerciseId) => {
       setDoc(menuRef, { [slotId]: exerciseId }, { merge: true }).catch(fail)
@@ -293,13 +320,16 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     }
 
     const buyEgg: Store['buyEgg'] = () => {
-      if (state.gold < CONFIG.shop.eggPrice || defs.length === 0) return
+      if (state.gold < CONFIG.shop.eggPrice || !defs.some((d) => !isHidden(d))) return
       updateState({ gold: increment(-CONFIG.shop.eggPrice), eggs: increment(1) })
     }
 
     const hatchEgg: Store['hatchEgg'] = () => {
-      if (state.eggs <= 0 || defs.length === 0) return null
-      const def = defs[Math.floor(Math.random() * defs.length)]
+      // 隠しモンスターはタマゴからは生まれない
+      const pool = defs.filter((d) => !isHidden(d))
+      if (state.eggs <= 0 || pool.length === 0) return null
+      const def = pool[Math.floor(Math.random() * pool.length)]
+      const shiny = Math.random() < CONFIG.shop.shinyRate
       const ref = doc(collection(db, base, 'ownedMonsters'))
       const batch = writeBatch(db)
       batch.set(ref, {
@@ -307,13 +337,15 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         nodeId: FIRST_NODE_ID,
         investedBy: {},
         investedFrom: {},
+        shiny,
         obtainedAt: Date.now(),
       })
       const update: DocumentData = { eggs: increment(-1) }
+      if (shiny) update[`dexShiny.${def.id}`] = true
       if (!state.activeMonsterId) update.activeMonsterId = ref.id
       batch.update(stateRef, update)
       batch.commit().catch(fail)
-      return { def, monsterId: ref.id }
+      return { def, monsterId: ref.id, shiny }
     }
 
     const findMonster = (monsterId: string) => {
@@ -331,8 +363,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const { mon, def, node, cost } = found
       const attr = nodeAttr(def, toNodeId)
       if (from !== 'any' && attr !== 'none' && attr !== from) return
-      const wallet = from === 'any' ? { trained: state.anyExp, bought: 0 } : state.exp[from]
-      const pour = planPour(cost, investedFor(mon, toNodeId, node.next[0]), wallet)
+      const pour = planPour(cost, investedFor(mon, toNodeId, node.next[0]), walletOf(from))
       if (pour.trained + pour.bought <= 0) return
       const batch = writeBatch(db)
       batch.update(doc(db, base, 'ownedMonsters', monsterId), {
@@ -341,15 +372,35 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         [`investedFrom.${toNodeId}.${from}.trained`]: increment(pour.trained),
         [`investedFrom.${toNodeId}.${from}.bought`]: increment(pour.bought),
       })
-      batch.update(
-        stateRef,
-        from === 'any'
-          ? { anyExp: increment(-pour.trained) }
-          : {
-              [`exp.${from}.trained`]: increment(-pour.trained),
-              [`exp.${from}.bought`]: increment(-pour.bought),
-            },
-      )
+      batch.update(stateRef, spendFrom(from, pour))
+      batch.commit().catch(fail)
+    }
+
+    const walletOf = (from: ExpSource): AttrExp => (from === 'any' ? { trained: state.anyExp, bought: 0 } : state.exp[from])
+
+    const spendFrom = (from: ExpSource, pour: AttrExp): DocumentData =>
+      from === 'any'
+        ? { anyExp: increment(-pour.trained) }
+        : { [`exp.${from}.trained`]: increment(-pour.trained), [`exp.${from}.bought`]: increment(-pour.bought) }
+
+    // 最終形態の属性のEXP（無属性ならどの属性でも）か、万能EXPを、次の＋のゲージに注ぐ
+    const pourPlusExp: Store['pourPlusExp'] = (monsterId, from) => {
+      const found = findMonster(monsterId)
+      if (!found || found.node.next.length > 0) return
+      const { mon, def } = found
+      const cost = fusionCost(mon.plus ?? 0)
+      const attr = nodeAttr(def, mon.nodeId)
+      if (!cost || (from !== 'any' && attr !== 'none' && attr !== from)) return
+      const pour = planPour(cost, mon.plusExp ?? zeroExp(), walletOf(from))
+      if (pour.trained + pour.bought <= 0) return
+      const batch = writeBatch(db)
+      batch.update(doc(db, base, 'ownedMonsters', monsterId), {
+        'plusExp.trained': increment(pour.trained),
+        'plusExp.bought': increment(pour.bought),
+        [`plusFrom.${from}.trained`]: increment(pour.trained),
+        [`plusFrom.${from}.bought`]: increment(pour.bought),
+      })
+      batch.update(stateRef, spendFrom(from, pour))
       batch.commit().catch(fail)
     }
 
@@ -360,7 +411,9 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       if (!isExpFull(cost, investedFor(mon, toNodeId, node.next[0])) || state.gold < cost.gold) return
       // 選ばなかった進化先に注いでいたEXPは、元の財布に返す
       const update: DocumentData = { gold: increment(-cost.gold) }
-      addRefund(update, mon, def, node.next.filter((n) => n !== toNodeId))
+      const refund = newRefund()
+      addRefund(refund, mon, def, node.next.filter((n) => n !== toNodeId))
+      applyRefund(update, refund)
       const batch = writeBatch(db)
       batch.update(doc(db, base, 'ownedMonsters', monsterId), {
         nodeId: toNodeId,
@@ -372,46 +425,96 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       batch.commit().catch(fail)
     }
 
-    // 同じモンスターを食べさせて＋1（食べさせた側の＋も引き継ぐ）。食べさせた側に注いでいたEXPは財布に返す
+    // 最終形態に同じモンスター（段階は問わない）を食べさせて＋1（食べさせた側の＋も引き継ぐ）
+    // 食べさせた側に注いでいたEXPは財布に返し、見つけていた形態は図鑑に残す
     const fuse: Store['fuse'] = (monsterId, foodId) => {
       const found = findMonster(monsterId)
       const food = findMonster(foodId)
       if (!found || !food || monsterId === foodId || found.mon.defId !== food.mon.defId) return
+      if (found.node.next.length > 0) return
       const plus = found.mon.plus ?? 0
       const cost = fusionCost(plus)
-      if (cost === null || state.gold < cost) return
-      const update: DocumentData = { gold: increment(-cost) }
-      addRefund(update, food.mon, food.def, food.node.next)
+      if (!cost || !isExpFull(cost, found.mon.plusExp ?? zeroExp()) || state.gold < cost.gold) return
+      const update: DocumentData = { gold: increment(-cost.gold) }
+      consume(update, [food])
       if (state.activeMonsterId === foodId) update.activeMonsterId = monsterId
-      // 食べさせた側の姿まで見つけた形態は、図鑑から消えないように引き継ぐ
-      const template = getTemplate(food.def.templateId)
-      const discovered = [
-        ...new Set([...(found.mon.discovered ?? []), ...(food.mon.discovered ?? []), ...pathTo(template, food.mon.nodeId)]),
-      ]
       const batch = writeBatch(db)
       batch.update(doc(db, base, 'ownedMonsters', monsterId), {
         plus: Math.min(CONFIG.fusion.maxPlus, plus + 1 + (food.mon.plus ?? 0)),
-        discovered,
+        plusExp: zeroExp(),
+        plusFrom: {},
       })
       batch.delete(doc(db, base, 'ownedMonsters', foodId))
       batch.update(stateRef, update)
       batch.commit().catch(fail)
     }
 
-    /** nodeIds の進化先に注いでいたEXPを、注いだ元の財布に返すよう update に足す */
-    const addRefund = (update: DocumentData, mon: OwnedMonster, def: MonsterDef, nodeIds: string[]) => {
-      const giveBack = (attr: Attr, exp: { trained?: number; bought?: number } | undefined) => {
+    // レシピの2体（どちらも最終形態の＋5）を合わせて、隠しモンスターを生む。2体はいなくなる
+    const jogress: Store['jogress'] = (monsterId, partnerId, hiddenDefId) => {
+      const a = findMonster(monsterId)
+      const b = findMonster(partnerId)
+      const hidden = defs.find((d) => d.id === hiddenDefId)
+      if (!a || !b || !hidden?.recipe || monsterId === partnerId) return null
+      const pair = [a.mon.defId, b.mon.defId].sort().join()
+      if ([...hidden.recipe].sort().join() !== pair) return null
+      const ready = (m: NonNullable<typeof a>) => m.node.next.length === 0 && (m.mon.plus ?? 0) >= CONFIG.fusion.maxPlus
+      if (!ready(a) || !ready(b) || state.gold < CONFIG.jogress.gold) return null
+      const shiny = Math.random() < CONFIG.shop.shinyRate
+      const ref = doc(collection(db, base, 'ownedMonsters'))
+      const update: DocumentData = { gold: increment(-CONFIG.jogress.gold) }
+      consume(update, [a, b])
+      if (shiny) update[`dexShiny.${hidden.id}`] = true
+      if (!state.activeMonsterId || state.activeMonsterId === monsterId || state.activeMonsterId === partnerId) {
+        update.activeMonsterId = ref.id
+      }
+      const batch = writeBatch(db)
+      batch.set(ref, { defId: hidden.id, nodeId: FIRST_NODE_ID, investedBy: {}, investedFrom: {}, shiny, obtainedAt: Date.now() })
+      batch.delete(doc(db, base, 'ownedMonsters', monsterId))
+      batch.delete(doc(db, base, 'ownedMonsters', partnerId))
+      batch.update(stateRef, update)
+      batch.commit().catch(fail)
+      return ref.id
+    }
+
+    /** いなくなる個体のEXPを財布に返し、見つけていた形態と色違いを図鑑に残すよう update に足す */
+    const consume = (update: DocumentData, gone: NonNullable<ReturnType<typeof findMonster>>[]) => {
+      const refund = newRefund()
+      const found: Record<string, Set<string>> = {}
+      for (const { mon, def, node } of gone) {
+        addRefund(refund, mon, def, node.next)
+        for (const src of [...ATTRS, 'any'] as const) {
+          refund[src].trained += mon.plusFrom?.[src]?.trained ?? 0
+          refund[src].bought += mon.plusFrom?.[src]?.bought ?? 0
+        }
+        found[def.id] ??= new Set()
+        for (const n of pathTo(getTemplate(def.templateId), mon.nodeId)) found[def.id].add(n)
+        if (mon.shiny) update[`dexShiny.${def.id}`] = true
+      }
+      applyRefund(update, refund)
+      for (const [defId, nodes] of Object.entries(found)) update[`dexFound.${defId}`] = arrayUnion(...nodes)
+    }
+
+    type Refund = Record<ExpSource, AttrExp>
+    const newRefund = (): Refund => ({
+      chestArms: zeroExp(),
+      legs: zeroExp(),
+      backShoulders: zeroExp(),
+      any: zeroExp(),
+    })
+
+    const applyRefund = (update: DocumentData, refund: Refund) => {
+      for (const attr of ATTRS) {
         for (const kind of ['trained', 'bought'] as const) {
-          const amount = exp?.[kind] ?? 0
-          if (amount > 0) update[`exp.${attr}.${kind}`] = increment(amount)
+          if (refund[attr][kind] > 0) update[`exp.${attr}.${kind}`] = increment(refund[attr][kind])
         }
       }
-      const refund: Record<ExpSource, { trained: number; bought: number }> = {
-        chestArms: { trained: 0, bought: 0 },
-        legs: { trained: 0, bought: 0 },
-        backShoulders: { trained: 0, bought: 0 },
-        any: { trained: 0, bought: 0 },
-      }
+      // 万能EXPはすべて筋トレEXP扱い
+      const any = refund.any.trained + refund.any.bought
+      if (any > 0) update.anyExp = increment(any)
+    }
+
+    /** nodeIds の進化先に注いでいたEXPを、注いだ元の財布ごとに refund に足す */
+    const addRefund = (refund: Refund, mon: OwnedMonster, def: MonsterDef, nodeIds: string[]) => {
       const add = (attr: ExpSource, exp: { trained?: number; bought?: number } | undefined) => {
         refund[attr].trained += exp?.trained ?? 0
         refund[attr].bought += exp?.bought ?? 0
@@ -430,8 +533,6 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
           }
         }
       }
-      for (const attr of ATTRS) giveBack(attr, refund[attr])
-      if (refund.any.trained > 0) update.anyExp = increment(refund.any.trained)
     }
 
     const setActive: Store['setActive'] = (monsterId) => updateState({ activeMonsterId: monsterId })
@@ -459,6 +560,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
             : input.templateId,
         images,
         names: input.names,
+        recipe: input.recipe,
         createdAt: existing?.createdAt ?? Date.now(),
       })
       batch.commit().catch(fail)
@@ -497,13 +599,16 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       getHistory,
       recordSet,
       recordMorning,
+      setHabitLabel,
       setSlot,
       buyExp,
       buyEgg,
       hatchEgg,
       pourExp,
       evolve,
+      pourPlusExp,
       fuse,
+      jogress,
       setActive,
       saveMonsterDef,
       loadImage,

@@ -446,6 +446,11 @@ h2 {
   background: var(--card2);
   animation: pop 0.3s;
 }
+.mini-list li.jogress {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
 .bonus-reward {
   color: var(--primary);
   font-weight: 700;
@@ -602,6 +607,55 @@ h2 {
   60% {
     filter: brightness(3);
     transform: scale(1.15);
+  }
+}
+
+/* 色違い：色を変えて、光の筋が流れる */
+.shiny {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+  flex-shrink: 0;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.shiny .monster-img {
+  display: block;
+  filter: hue-rotate(150deg) saturate(1.5) brightness(1.08);
+}
+.shiny .monster-img.silhouette {
+  filter: brightness(0) opacity(0.75);
+}
+.shiny::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.55) 50%, transparent 65%);
+  background-size: 250% 100%;
+  animation: shiny-sweep 2.6s ease-in-out infinite;
+  pointer-events: none;
+}
+.shiny-mark {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  line-height: 1;
+  font-size: 1.1rem;
+  filter: drop-shadow(0 0 3px #fff);
+  z-index: 1;
+}
+@keyframes shiny-sweep {
+  0% {
+    background-position: 120% 0;
+  }
+  60%,
+  100% {
+    background-position: -120% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shiny::after {
+    animation: none;
   }
 }
 

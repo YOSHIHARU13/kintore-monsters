@@ -1,9 +1,12 @@
 import { useState, type FormEvent } from 'react'
 import { useStore } from '../store'
+import { habitLabelOf } from '../lib/rewards'
+import { CONFIG } from '../config/gameConfig'
 import { isSunoShortLink, parseSunoSongId } from '../lib/suno'
 
 export function Settings() {
-  const { songs, saveSongs } = useStore()
+  const { songs, saveSongs, state, setHabitLabel } = useStore()
+  const [habit, setHabit] = useState(habitLabelOf(state))
   const [url, setUrl] = useState('')
   const [title, setTitle] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -32,6 +35,29 @@ export function Settings() {
   return (
     <div className="page">
       <h1 className="title">設定</h1>
+
+      <form
+        className="card"
+        onSubmit={(e) => {
+          e.preventDefault()
+          setHabitLabel(habit)
+        }}
+      >
+        <h2>朝の記録の習慣</h2>
+        <label className="field">
+          毎朝「前日、これができたか」を聞きます（できたら +{CONFIG.morning.habitGold}G）
+          <input
+            type="text"
+            maxLength={30}
+            placeholder={CONFIG.morning.habitDefaultLabel}
+            value={habit}
+            onChange={(e) => setHabit(e.target.value)}
+          />
+        </label>
+        <button className="btn primary wide" type="submit" disabled={habit.trim() === habitLabelOf(state)}>
+          習慣の名前を保存
+        </button>
+      </form>
 
       <section className="card">
         <h2>トレーニング中に流す曲（Suno）</h2>

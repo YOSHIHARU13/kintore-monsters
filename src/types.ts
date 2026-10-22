@@ -22,9 +22,12 @@ export interface GameState {
   beatCount: number
   weeklyClears: number // 今週のタスクを全部消した週の累計
   lastClearWeek: string | null // 最後に全消しした週（その週の月曜の日付）
-  abstinenceStreak: number // 禁欲の連続日数（朝の記録で「してない」と答えた日の連続）
-  bestAbstinenceStreak: number
+  habitStreak: number // 朝の記録で習慣を守れた日の連続日数
+  bestHabitStreak: number
+  habitLabel: string | null // 習慣の名前（null なら初期の名前）
   lastCheckinDate: string | null // 最後に朝の記録をつけた「前日」の日付
+  dexFound: Record<string, string[]> // 合体・ジョグレスでいなくなった個体が見つけていた形態（defId → nodeId）
+  dexShiny: Record<string, boolean> // 色違いを見つけたモンスター（defId）
   activeMonsterId: string | null
 }
 
@@ -49,10 +52,11 @@ export interface SetRecord {
 export interface Checkin {
   date: string // 記録の対象日（前日）
   steps: number
-  abstained: boolean // 前日、自慰行為をしなかったか
-  streak: number // この日を含めた禁欲の連続日数（しなかった日は0）
+  habit: boolean // 前日、習慣を守れたか
+  habitLabel: string
+  streak: number // この日を含めた習慣の連続日数（守れなかった日は0）
   stepsGold: number
-  abstinenceGold: number
+  habitGold: number
   ts: number
 }
 
@@ -69,13 +73,19 @@ export interface MonsterDef {
   attrs?: Record<string, FormAttr> // nodeId → その形態の属性（なければ attr を使う）
   images: Record<string, string> // nodeId → 画像ドキュメントID
   names?: Record<string, string> // nodeId → その段階だけの名前（なければ name を使う）
+  recipe?: string[] // 隠しモンスターのレシピ（2体の defId）。あればタマゴからは生まれず、ジョグレスでだけ生まれる
   createdAt: number
 }
 
-/** 合体の＋を付けた名前（例：ショルベアー＋3） */
+/** 合体の＋と色違いを付けた名前（例：✨ショルベアー＋3） */
 export function plusName(def: MonsterDef, mon: OwnedMonster): string {
-  const name = monsterName(def, mon.nodeId)
+  const name = `${mon.shiny ? '✨' : ''}${monsterName(def, mon.nodeId)}`
   return mon.plus ? `${name}＋${mon.plus}` : name
+}
+
+/** ジョグレスで生まれる隠しモンスターか */
+export function isHidden(def: MonsterDef): boolean {
+  return (def.recipe?.length ?? 0) === 2
 }
 
 /** その段階での名前。段階ごとの名前が未設定なら全体の名前 */
@@ -91,7 +101,9 @@ export interface OwnedMonster {
   investedFrom?: Record<string, Partial<Record<ExpSource, AttrExp>>> // 進化先 → どの財布から注いだか（返却用）
   invested?: AttrExp // 旧形式（通常ルートに注いだEXP）
   plus?: number // 合体で上げた＋の数（0〜最大）
-  discovered?: string[] // 合体で食べさせた個体が見つけていた形態（図鑑から消さないため）
+  plusExp?: AttrExp // 次の＋に向けて注いだEXP
+  plusFrom?: Partial<Record<ExpSource, AttrExp>> // 次の＋に向けて、どの財布から注いだか（返却用）
+  shiny?: boolean // 色違い
   obtainedAt: number
 }
 

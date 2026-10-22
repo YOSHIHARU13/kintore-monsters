@@ -33,7 +33,7 @@ export function Box({ go }: { go: Go }) {
           const node = getNode(getTemplate(def.templateId), mon.nodeId)
           return (
             <button key={mon.id} className="tile" onClick={() => go({ name: 'monster', id: mon.id })}>
-              <MonsterImage imageId={def.images[mon.nodeId]} size={96} plus={mon.plus} />
+              <MonsterImage imageId={def.images[mon.nodeId]} size={96} plus={mon.plus} shiny={mon.shiny} />
               <strong>{plusName(def, mon)}</strong>
               <span className="small" style={{ color: ATTR_COLOR[nodeAttr(def, mon.nodeId)] }}>
                 {FORM_ATTR_LABEL[nodeAttr(def, mon.nodeId)]}・{node.stage}段階
