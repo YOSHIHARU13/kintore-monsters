@@ -105,8 +105,9 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
       maxAbilities,
       existing?.id,
       favoriteChoices.map((s) => s.id),
+      element || undefined, // 属性が決まっていれば、その属性のまま考える（属性は変えない）
     )
-    if (recipe.length !== 2) setElement(rec.element)
+    if (recipe.length !== 2 && !element) setElement(rec.element)
     setFavoriteSlot(rec.favoriteSlot)
     setAbilities(rec.abilities)
   }
@@ -247,7 +248,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
       </section>
 
       <section className="card">
-        <h2>各形態の属性・名前・画像</h2>
+        <h2>各形態の画像と部位</h2>
         <p className="small supply-row">
           部位の内訳（最終形態）：
           {ATTRS.map((a) => (
@@ -257,12 +258,12 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
             </span>
           ))}
         </p>
-        <p className="muted small">部位は「どのEXPで育つか」と「どの部位のセットで強く攻撃するか（一致で×2）」を決めます。クエストの編成の条件になるのは、下の属性とアビリティです。</p>
-        <p className="muted small">
-          その形態に進化するには、その形態の属性のEXPが必要です。「無」はどの筋トレのEXPでも育ちます。
-          {hasBranch && '分岐先を別々の属性にすると、どのEXPを注いだかで進化先が変わります。'}
-          あとからでも変更できます。
-        </p>
+        <details className="muted small">
+          <summary>部位について</summary>
+          部位は「どのEXPで育つか」と「どの部位のセットで強く攻撃するか（一致で×2）」を決めます。「無」はどの筋トレのEXPでも育ちます。
+          {hasBranch && '分岐先を別々の部位にすると、どのEXPを注いだかで進化先が変わります。'}
+          クエストの編成の条件になるのは、属性とアビリティです。
+        </details>
         {template.nodes.map((node) => (
           <div key={node.id} className="image-row">
             {previews[node.id] ? (
@@ -288,14 +289,17 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
                   )
                 })}
               </div>
-              <input
-                className="stage-name"
-                value={names[node.id] ?? ''}
-                onChange={(e) => setNames({ ...names, [node.id]: e.target.value })}
-                maxLength={20}
-                placeholder={name.trim() || 'この段階の名前'}
-                aria-label={`${node.label}の名前`}
-              />
+              <details className="stage-name-fold" open={!!names[node.id]}>
+                <summary className="muted small">この形態だけ名前を変える</summary>
+                <input
+                  className="stage-name"
+                  value={names[node.id] ?? ''}
+                  onChange={(e) => setNames({ ...names, [node.id]: e.target.value })}
+                  maxLength={20}
+                  placeholder={name.trim() || 'この段階の名前'}
+                  aria-label={`${node.label}の名前`}
+                />
+              </details>
               <label className="btn small file-btn">
                 画像を選ぶ
                 <input
@@ -310,117 +314,6 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
             </div>
           </div>
         ))}
-      </section>
-
-      <section className="card">
-        <h2>属性</h2>
-        {auto && (
-          <p className="small bonus-reward">
-            ✨ おまかせ中：足りない属性・得意種目・アビリティを自動で選んでいます（自分で選ぶと止まります）
-          </p>
-        )}
-        {recipe.length === 2 ? (
-          <p className="small">
-            属性：<strong>{elementName(elementInfo(draftFull))}</strong>
-            <span className="muted small">（素材から決まります。同じ属性どうしなら超属性、違えば複合属性）</span>
-          </p>
-        ) : (
-          <div className="field">
-            属性　数字は「持っているモンスター／その属性を求めるクエスト」
-            <div className="chips" role="group" aria-label="属性">
-              <button type="button" className={`chip${element === '' ? ' on' : ''}`} onClick={() => {
-                  setAuto(false)
-                  setElement('')
-                }}>
-                無属性
-              </button>
-              {ELEMENTS.map((e) => (
-                <button
-                  key={e}
-                  type="button"
-                  className={`chip${element === e ? ' on' : ''}${isShort(elSup[e]) ? ' short' : ''}`}
-                  style={element === e ? { borderColor: ELEMENT_COLOR[e], color: ELEMENT_COLOR[e] } : undefined}
-                  onClick={() => {
-                    setAuto(false)
-                    setElement(e)
-                  }}
-                >
-                  {ELEMENT_LABEL[e]} <span className="small">{supplyText(elSup[e])}</span>
-                  {isShort(elSup[e]) && <span className="short-badge">不足</span>}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-        <details className="tuning" open={!!existing && (!!existing.favoriteSlot || (existing.abilities ?? []).length > 0)}>
-          <summary>こだわり設定（あとからでOK）：得意種目・アビリティ</summary>
-          <button type="button" className="btn small" onClick={applyRecommend}>
-            ✨ 足りないもので埋める（属性・得意種目・アビリティ）
-          </button>
-          {quests.some((q) => q.kind !== 'material') && (
-            <label className="field">
-              🎯 このクエスト用にする（そのクエストの条件に合わせて、属性・アビリティ・得意種目を選びます）
-              <select value="" onChange={(e) => applyQuest(e.target.value)}>
-                <option value="">クエストを選ぶ…</option>
-                {quests
-                  .filter((q) => q.kind !== 'material')
-                  .map((q) => (
-                    <option key={q.id} value={q.id}>
-                      {q.name}
-                    </option>
-                  ))}
-              </select>
-            </label>
-          )}
-        <label className="field">
-          得意種目（このモンスターの部位の種目から。相棒にするとEXPがさらに ×{CONFIG.partner.favorite}）
-          <select
-            value={validFavorite}
-            onChange={(e) => {
-              setAuto(false)
-              setFavoriteSlot(e.target.value)
-            }}
-          >
-            <option value="">なし</option>
-            {favoriteChoices.map((slot) => (
-              <option key={slot.id} value={slot.id}>
-                {slot.day === 'bonus' ? 'ボーナス：' : `${DAYS[slot.day].title}：`}
-                {exerciseOfSlot(slot, menu).name}（{supplyText(slotSupply(slot.id, defs, quests, existing?.id))}）
-                {isShort(slotSupply(slot.id, defs, quests, existing?.id)) ? ' 不足' : ''}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="field">
-          アビリティ（{maxAbilities}個まで）　数字は「持っているモンスター／それを求めるクエスト」
-          <div className="chips" role="group" aria-label="アビリティ">
-            {maxAbilities === 0 && <span className="muted small">このレア度ではアビリティを持てません。</span>}
-            {maxAbilities > 0 && selectableGimmicks(quests).map((g) => {
-              const on = abilities.includes(g)
-              const sup = abilitySupply(g, defs, quests, existing?.id)
-              return (
-                <button
-                  key={g}
-                  type="button"
-                  className={`chip${on ? ' on' : ''}${isShort(sup) ? ' short' : ''}`}
-                  disabled={!on && abilities.length >= maxAbilities}
-                  onClick={() => {
-                    setAuto(false)
-                    setAbilities(on ? abilities.filter((x) => x !== g) : [...abilities, g])
-                  }}
-                >
-                  {abilityName(g, gimmickNames)} <span className="small">{supplyText(sup)}</span>
-                  {isShort(sup) && <span className="short-badge">不足</span>}
-                </button>
-              )
-            })}
-          </div>
-          <span className="muted small">
-            クエストの「求められる編成」の条件になります。持てる数はレア度で決まります（ハズレ・ノーマル{CONFIG.gimmicks.slots.normal}、激レア
-            {CONFIG.gimmicks.slots.superRare}、ジョグレス{CONFIG.gimmicks.slots.jogress}）。
-          </span>
-        </div>
-        </details>
       </section>
 
       {recipe.length !== 2 && (
@@ -488,7 +381,145 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
       )}
 
       <section className="card">
-        <h2>隠しモンスター（ジョグレス）</h2>
+        <h2>属性</h2>
+        {auto && (
+          <p className="small bonus-reward">
+            ✨ おまかせ中：足りない属性・得意種目・アビリティを自動で選んでいます（自分で選ぶと止まります）
+          </p>
+        )}
+        {recipe.length === 2 ? (
+          <p className="small">
+            属性：<strong>{elementName(elementInfo(draftFull))}</strong>
+            <span className="muted small">（素材から決まります。同じ属性どうしなら超属性、違えば複合属性）</span>
+          </p>
+        ) : (
+          <div className="field">
+            属性　数字は「持っているモンスター／その属性を求めるクエスト」
+            <div className="chips" role="group" aria-label="属性">
+              <button type="button" className={`chip${element === '' ? ' on' : ''}`} onClick={() => {
+                  setAuto(false)
+                  setElement('')
+                }}>
+                無属性
+              </button>
+              {ELEMENTS.map((e) => (
+                <button
+                  key={e}
+                  type="button"
+                  className={`chip${element === e ? ' on' : ''}${isShort(elSup[e]) ? ' short' : ''}`}
+                  style={element === e ? { borderColor: ELEMENT_COLOR[e], color: ELEMENT_COLOR[e] } : undefined}
+                  onClick={() => {
+                    setAuto(false)
+                    setElement(e)
+                  }}
+                >
+                  {ELEMENT_LABEL[e]} <span className="small">{supplyText(elSup[e])}</span>
+                  {isShort(elSup[e]) && <span className="short-badge">不足</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        <details className="tuning" open={!!existing && (!!existing.favoriteSlot || (existing.abilities ?? []).length > 0)}>
+          <summary>こだわり設定（あとからでOK）：得意種目・アビリティ</summary>
+          <button type="button" className="btn small" onClick={applyRecommend}>
+            ✨ 足りないもので埋める（得意種目・アビリティ。属性は空のときだけ）
+          </button>
+          {quests.some((q) => q.kind !== 'material') && (
+            <label className="field">
+              🎯 このクエスト用にする（そのクエストの条件に合わせて、属性・アビリティ・得意種目を選びます）
+              <select value="" onChange={(e) => applyQuest(e.target.value)}>
+                <option value="">クエストを選ぶ…</option>
+                {quests
+                  .filter((q) => q.kind !== 'material')
+                  .map((q) => (
+                    <option key={q.id} value={q.id}>
+                      {q.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+          )}
+        <label className="field">
+          得意種目（このモンスターの部位の種目から。相棒にするとEXPがさらに ×{CONFIG.partner.favorite}）
+          <select
+            value={validFavorite}
+            onChange={(e) => {
+              setAuto(false)
+              setFavoriteSlot(e.target.value)
+            }}
+          >
+            <option value="">なし</option>
+            {favoriteChoices.map((slot) => (
+              <option key={slot.id} value={slot.id}>
+                {slot.day === 'bonus' ? 'ボーナス：' : `${DAYS[slot.day].title}：`}
+                {exerciseOfSlot(slot, menu).name}（{supplyText(slotSupply(slot.id, defs, quests, existing?.id))}）
+                {isShort(slotSupply(slot.id, defs, quests, existing?.id)) ? ' 不足' : ''}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="field">
+          アビリティ（{maxAbilities}個まで）　数字は「持っているモンスター／それを求めるクエスト」
+          <div className="chips" role="group" aria-label="アビリティ">
+            {maxAbilities === 0 && <span className="muted small">このレア度ではアビリティを持てません。</span>}
+            {maxAbilities > 0 && selectableGimmicks(quests).map((g) => {
+              const on = abilities.includes(g)
+              const sup = abilitySupply(g, defs, quests, existing?.id)
+              return (
+                <button
+                  key={g}
+                  type="button"
+                  className={`chip${on ? ' on' : ''}${isShort(sup) ? ' short' : ''}`}
+                  disabled={!on && abilities.length >= maxAbilities}
+                  onClick={() => {
+                    setAuto(false)
+                    setAbilities(on ? abilities.filter((x) => x !== g) : [...abilities, g])
+                  }}
+                >
+                  {abilityName(g, gimmickNames)} <span className="small">{supplyText(sup)}</span>
+                  {isShort(sup) && <span className="short-badge">不足</span>}
+                </button>
+              )
+            })}
+          </div>
+          <span className="muted small">
+            クエストの「求められる編成」の条件になります。持てる数はレア度で決まります（ハズレ・ノーマル{CONFIG.gimmicks.slots.normal}、激レア
+            {CONFIG.gimmicks.slots.superRare}、ジョグレス{CONFIG.gimmicks.slots.jogress}）。
+          </span>
+        </div>
+        </details>
+      </section>
+
+
+
+      {quests.length > 0 && (
+        <section className="card">
+          <h2>このモンスターが刺さるクエスト</h2>
+          {fits.filter((f) => f.grade === '◎').length === 0 ? (
+            <p className="muted small">今の設定だと、特に刺さるクエストはまだありません。</p>
+          ) : (
+            <ul className="mini-list">
+              {fits
+                .filter((f) => f.grade === '◎')
+                .map(({ quest, reasons }) => (
+                  <li key={quest.id}>
+                    <span>
+                      <strong className="fit fit-good">◎</strong> {quest.name}
+                    </span>
+                    <span className="muted small">
+                      {reasons.join('・')}
+                    </span>
+                  </li>
+                ))}
+            </ul>
+          )}
+        </section>
+      )}
+      <details className="card fold" open={recipe.length === 2}>
+        <summary>
+          <h2>隠しモンスター（ジョグレス）</h2>
+        </summary>
         <label className="row">
           <input
             type="checkbox"
@@ -537,31 +568,8 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
               </select>
             </label>
           ))}
-      </section>
+      </details>
 
-      {quests.length > 0 && (
-        <section className="card">
-          <h2>このモンスターが刺さるクエスト</h2>
-          {fits.filter((f) => f.grade === '◎').length === 0 ? (
-            <p className="muted small">今の設定だと、特に刺さるクエストはまだありません。</p>
-          ) : (
-            <ul className="mini-list">
-              {fits
-                .filter((f) => f.grade === '◎')
-                .map(({ quest, reasons }) => (
-                  <li key={quest.id}>
-                    <span>
-                      <strong className="fit fit-good">◎</strong> {quest.name}
-                    </span>
-                    <span className="muted small">
-                      {reasons.join('・')}
-                    </span>
-                  </li>
-                ))}
-            </ul>
-          )}
-        </section>
-      )}
       {similar.length > 0 && (
         <p className="warn small">
           ⚠️ {similar.map((d) => d.name).join('・')} と同じ構成です（属性・得意種目・アビリティが全部同じ）。
@@ -569,9 +577,11 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
       )}
 
       {error && <p className="error">{error}</p>}
-      <button className="btn primary wide" disabled={saving} onClick={save}>
-        {saving ? '保存中…' : '保存する'}
-      </button>
+      <div className="save-bar">
+        <button className="btn primary wide" disabled={saving} onClick={save}>
+          {saving ? '保存中…' : '保存する'}
+        </button>
+      </div>
     </div>
   )
 }

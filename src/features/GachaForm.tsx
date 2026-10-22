@@ -22,7 +22,8 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
   const builtin = existing?.builtin ?? false
   const draftId = existing?.id ?? 'new'
   // ピックアップにできるのはレア以上（ハズレとノーマルはどのガチャにも入っている）
-  const candidates = defs.filter((d) => !isHidden(d) && isPickupRarity(rarityOf(d)))
+  // 降臨（クエスト限定）とジョグレスはガチャに出ないので、ピックアップにもできない
+  const candidates = defs.filter((d) => !isHidden(d) && !d.questOnly && isPickupRarity(rarityOf(d)))
   const [pickups, setPickups] = useState<string[]>(
     candidates.filter((d) => existing && d.gachas?.includes(existing.id)).map((d) => d.id),
   )

@@ -891,6 +891,17 @@ details.fold[open] > summary {
   font-size: 1.8rem;
 }
 
+.save-bar {
+  position: sticky;
+  bottom: calc(64px + env(safe-area-inset-bottom));
+  z-index: 15;
+  padding: 8px 0;
+  background: linear-gradient(transparent, var(--bg) 30%);
+}
+.stage-name-fold > summary {
+  cursor: pointer;
+}
+
 /* 登録・編集の一覧 */
 .tile.todo {
   border-color: var(--warn);

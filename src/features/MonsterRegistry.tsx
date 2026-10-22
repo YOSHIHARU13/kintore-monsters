@@ -3,6 +3,7 @@ import { useStore } from '../store'
 import { CONFIG } from '../config/gameConfig'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { MonsterImage } from '../components/MonsterImage'
+import { bannerNodeOf } from '../components/GachaBanner'
 import { ElementBadge } from '../components/ElementBadge'
 import { Abilities } from '../components/Abilities'
 import { rarityOf } from '../lib/gacha'
@@ -117,7 +118,7 @@ export function MonsterRegistry({ go }: { go: Go }) {
               onClick={() => go({ name: 'monsterForm', id: def.id })}
             >
               <span className="muted small">No.{String(index + 1).padStart(3, '0')}</span>
-              <MonsterImage imageId={def.images[FIRST_NODE_ID]} size={96} />
+              <MonsterImage imageId={def.images[bannerNodeOf(def)] ?? def.images[FIRST_NODE_ID]} size={96} />
               <strong>{monsterName(def, FIRST_NODE_ID)}</strong>
               <span className="small">
                 {isHidden(def) ? 'ジョグレス' : CONFIG.gacha.rarities[rarityOf(def)].label}

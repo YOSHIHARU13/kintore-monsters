@@ -858,7 +858,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       })
       // ピックアップの出し入れは、モンスターの「入るガチャ」に書く（1体につき最大3つまで）
       if (input.pickups && !current?.builtin) {
-        for (const def of defs.filter((d) => !isHidden(d) && isPickupRarity(rarityOf(d)))) {
+        for (const def of defs.filter((d) => !isHidden(d) && !d.questOnly && isPickupRarity(rarityOf(d)))) {
           const has = def.gachas?.includes(ref.id) ?? false
           const want = input.pickups.includes(def.id)
           if (want && !has && (def.gachas?.length ?? 0) < CONFIG.gacha.maxPerMonster) {
