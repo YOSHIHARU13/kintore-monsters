@@ -199,11 +199,20 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('休むと報酬の対象になります')
   })
 
-  it('セット入力：今週すでに3セット終えた種目は記録のみ', async () => {
+  it('セット入力：今週3セット終えた種目は2周目（EXP半分）', async () => {
     fake.store.weekSets = [1, 2, 3].map((n) => past(n, 10, n, '2026-10-06'))
     fake.store.today = '2026-10-07'
     const el = await render(<SetInput slotId="mon2" go={go} />)
-    expect(el.textContent).toContain('今週 4セット目')
+    expect(el.textContent).toContain('今週 2周目 1セット目')
+    expect(el.textContent).toContain('EXPは50%')
+    await click('回で確定')
+    expect(fake.store.recordSet).toHaveBeenCalledWith(expect.objectContaining({ eligible: true }), expect.anything())
+  })
+
+  it('セット入力：2周目まで終えた種目は記録のみ', async () => {
+    fake.store.weekSets = [1, 2, 3, 4, 5, 6].map((n) => past(n, 10, n, '2026-10-06'))
+    fake.store.today = '2026-10-07'
+    const el = await render(<SetInput slotId="mon2" go={go} />)
     expect(el.textContent).toContain('記録のみ')
     await click('回で確定')
     expect(fake.store.recordSet).toHaveBeenCalledWith(expect.objectContaining({ eligible: false, exp: 0 }), false)
@@ -369,7 +378,9 @@ describe('画面の表示', () => {
     ]
     fake.store.state = { ...state, dexFound: { m1: ['n1', 'n2', 'n3b'] }, dexShiny: { m1: true } }
     const dex = await render(<Dex go={go} />)
-    expect(dex.textContent).toContain('ヒント：ムキドラ＋？？？')
+    expect(dex.textContent).toContain('ジョグレスのレシピ')
+    expect(dex.textContent).toContain('いちばん育っているのは2段階')
+    expect(dex.textContent).toContain('アシガメ未所持')
     expect(dex.textContent).not.toContain('カイザードラ')
     expect(dex.textContent).toContain('ヤミムキドラ')
     expect(dex.textContent).toContain('ムキドラ ✨')

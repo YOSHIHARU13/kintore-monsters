@@ -1,9 +1,9 @@
 import { useStore } from '../store'
 import { FORM_ATTR_LABEL } from '../data/exercises'
-import { getTemplate, pathTo } from '../data/evolutionTemplates'
+import { getNode, getTemplate, pathTo } from '../data/evolutionTemplates'
 import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
-import { isHidden, monsterName, nodeAttr, type MonsterDef } from '../types'
+import { isHidden, monsterName, nodeAttr } from '../types'
 import { CONFIG } from '../config/gameConfig'
 
 /** 全体図鑑。一度でもその姿になった形態が埋まっていく */
@@ -19,10 +19,24 @@ export function Dex({ go }: { go: Go }) {
     const shiny = state.dexShiny[def.id] === true || mons.some((m) => m.shiny)
     return { def, template, found, count: mons.length, shiny }
   })
-  // 隠しモンスターのヒント：レシピの片方だけを見せる
-  const hintOf = (def: MonsterDef) => {
-    const parent = defs.find((d) => d.id === def.recipe?.[0])
-    return `${parent?.name ?? '？？？'}＋？？？`
+  // レシピの1体ぶんの進み具合：持っている中でいちばん育っている個体
+  const progressOf = (defId: string) => {
+    const parent = defs.find((d) => d.id === defId)
+    if (!parent) return { name: '？？？', text: '登録が見つかりません', ready: false }
+    const template = getTemplate(parent.templateId)
+    const mons = owned.filter((o) => o.defId === defId)
+    const best = mons
+      .map((m) => ({ final: getNode(template, m.nodeId).next.length === 0, stage: getNode(template, m.nodeId).stage, plus: m.plus ?? 0 }))
+      .sort((a, b) => Number(b.final) - Number(a.final) || b.plus - a.plus || b.stage - a.stage)[0]
+    const max = CONFIG.fusion.maxPlus
+    const text = !best
+      ? '未所持'
+      : best.final
+        ? best.plus >= max
+          ? `最終形態＋${max} ✓`
+          : `最終形態＋${best.plus}（あと＋${max - best.plus}）`
+        : `いちばん育っているのは${best.stage}段階`
+    return { name: parent.name, text, ready: !!best && best.final && best.plus >= max }
   }
   const foundCount = entries.reduce((sum, e) => sum + e.found.size, 0)
   const formCount = entries.reduce((sum, e) => sum + e.template.nodes.length, 0)
@@ -52,10 +66,23 @@ export function Dex({ go }: { go: Go }) {
               {found.size}/{template.nodes.length}形態・所持{count}体
             </span>
           </h2>
-          {isHidden(def) && found.size === 0 && (
-            <p className="muted small">
-              🔒 隠しモンスター。ヒント：{hintOf(def)}の＋{CONFIG.fusion.maxPlus}どうしをジョグレス
-            </p>
+          {isHidden(def) && (
+            <div className="recipe">
+              <strong className="small">
+                {found.size === 0 ? '🔒 ' : ''}ジョグレスのレシピ（どちらも最終形態の＋{CONFIG.fusion.maxPlus}）
+              </strong>
+              <ul className="mini-list">
+                {def.recipe!.map((parentId, i) => {
+                  const p = progressOf(parentId)
+                  return (
+                    <li key={i}>
+                      <span>{p.name}</span>
+                      <span className={`tag${p.ready ? ' keep' : ''}`}>{p.text}</span>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
           )}
           <div className="dex-forms">
             {template.nodes.map((node) => {

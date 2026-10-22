@@ -1,7 +1,7 @@
 import { useStore } from '../store'
 import { BONUS_SLOT, DAYS, DAY_KEYS, dumbbellText, exerciseOfSlot, rangeText, slotsOfDay, type Slot } from '../data/exercises'
 import { CONFIG } from '../config/gameConfig'
-import { partProgress, slotDone } from '../lib/week'
+import { partProgress, slotDone, weekCount } from '../lib/week'
 import { ATTR_COLOR, type Go } from '../nav'
 import { MusicButtons } from '../music'
 
@@ -17,6 +17,7 @@ export function Training({ go }: { go: Go }) {
       ? Math.min(CONFIG.sets.perExercise, todaySets.filter((s) => s.slotId === slot.id).length)
       : slotDone(weekSets, slot.id)
     const complete = done >= CONFIG.sets.perExercise
+    const extraDone = isBonus ? 0 : Math.min(CONFIG.sets.perExercise, weekCount(weekSets, slot.id) - CONFIG.sets.perExercise)
     return (
       <li key={slot.id}>
         <button className={`slot${complete ? ' complete' : ''}`} onClick={() => go({ name: 'set', slotId: slot.id })}>
@@ -27,6 +28,11 @@ export function Training({ go }: { go: Go }) {
               {ex.weighted ? `・${dumbbellText(ex)}` : ''}
             </div>
             <div className="muted small how">{ex.how}</div>
+            {complete && !isBonus && (
+              <div className="small bonus-reward">
+                2周目 {Math.max(0, extraDone)}/{CONFIG.sets.perExercise}（EXP{Math.round(CONFIG.sets.extraExpRatio * 100)}%）
+              </div>
+            )}
           </div>
           <span className="slot-count">
             {complete ? '✓ ' : ''}
@@ -47,6 +53,7 @@ export function Training({ go }: { go: Go }) {
       )}
       <p className="muted small">
         今週のタスクです。どの日に、どの種目からやってもOK。1種目は{CONFIG.sets.perExercise}セットで完了、月曜にリセットされます。
+        終わった種目は、余力があれば2周目（もう{CONFIG.sets.perExercise}セット、EXP{Math.round(CONFIG.sets.extraExpRatio * 100)}%）もできます。
       </p>
 
       {DAY_KEYS.map((day) => (
