@@ -57,6 +57,12 @@ export function HabitCard() {
         {state.habitStreak}日連続（自己ベスト {state.bestHabitStreak}日）
         {byMinutes && `・今日 ${todayMinutes}分（Gは${max}分まで）`}
       </p>
+      {byMinutes && (
+        <p className="small">
+          {CONFIG.morning.habitRates.map((t) => `${t.from}分〜 1分${t.perMinute}G`).join('・')}
+          （1回で続けた分数で決まる。{CONFIG.morning.habitRates[CONFIG.morning.habitRates.length - 1].from}分で卵{Math.floor((CONFIG.morning.habitRates[CONFIG.morning.habitRates.length - 1].from * CONFIG.morning.habitRates[CONFIG.morning.habitRates.length - 1].perMinute) / CONFIG.shop.eggPrice)}個ぶん）
+        </p>
+      )}
       {flash && <div className="result keep">{flash}</div>}
       {byMinutes ? (
         <>

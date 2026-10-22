@@ -78,7 +78,7 @@ export function Settings({ go }: { go: Go }) {
               className={`chip${state.habitMode === 'minutes' ? ' on' : ''}`}
               onClick={() => setHabitMode('minutes')}
             >
-              分数（1分 +{CONFIG.morning.habitGoldPerMinute}G・{CONFIG.morning.habitMaxMinutes}分まで）
+              分数（続けた分数が長いほど高い・{CONFIG.morning.habitMaxMinutes}分まで）
             </button>
           </div>
         </div>

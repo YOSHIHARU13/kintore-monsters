@@ -55,10 +55,14 @@ export const CONFIG = {
 
   // 朝の記録（前日の歩数）と、習慣（その場で記録）
   morning: {
-    stepsPerGold: 150, // この歩数ごとに1G（段階なし。8000歩で53G、10000歩で66G）
+    stepsPerGold: 100, // この歩数ごとに1G（段階なし。5000歩で50G＝卵1個）
     maxSteps: 100_000, // 入力できる歩数の上限
-    habitGold: 10, // 習慣ができた日のゴールド（○×で記録するとき）
-    habitGoldPerMinute: 2, // 習慣を分数で記録するときの、1分あたりのゴールド
+    habitGold: 50, // 習慣ができた日のゴールド（○×で記録するとき）
+    // 習慣を分数で記録するときの、1分あたりのゴールド。1回に続けた分数が長いほど高い（5分で50G＝卵1個）
+    habitRates: [
+      { from: 1, perMinute: 5 },
+      { from: 5, perMinute: 10 },
+    ],
     habitMaxMinutes: 30, // 分数で記録するとき、ゴールドが出るのは1日の合計でこの分数まで
     habitDefaultLabel: 'ベッドでスマホを見なかった', // 習慣の名前（設定で変えられる）
   },
@@ -68,7 +72,7 @@ export const CONFIG = {
     goldPerExp: 5, // 1EXPを買うのに必要なゴールド
     expBuyStep: 10, // EXP購入の±ボタン1回分
     boughtExpMaxRatio: 0.5, // 購入EXPで埋められるのは進化必要EXPのこの割合まで
-    eggPrice: 300,
+    eggPrice: 50, // 歩数5000歩・瞑想5分でちょうど1個
     shinyRate: 1 / 20, // タマゴから色違いが生まれる確率
     starterEggs: 1, // 開始時にもらえるタマゴ
   },

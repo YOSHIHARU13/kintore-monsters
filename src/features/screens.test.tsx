@@ -262,8 +262,8 @@ describe('画面の表示', () => {
     fake.store.state = { ...state, habitMode: 'minutes', habitLabel: '瞑想', habitDate: TODAY, habitMinutesToday: 25 }
     const el = await render(<HabitCard />)
     expect(el.textContent).toContain('今日 25分（Gは30分まで）')
-    expect(el.textContent).toContain('10分（+10G）') // 残り5分ぶんだけ
-    await click('10分')
+    expect(el.textContent).toContain('10分（+50G）') // 残り5分ぶんだけ（10分続けた単価10G）
+    await click('10分（+50G）')
     expect(fake.store.recordHabit).toHaveBeenCalledWith(10)
     expect(el.textContent).toContain('瞑想 10分 → +20G')
   })
@@ -271,7 +271,7 @@ describe('画面の表示', () => {
   it('習慣：○×なら1日1回「できた」', async () => {
     const { HabitCard } = await import('../components/HabitCard')
     await render(<HabitCard />)
-    await click('今日できた（+10G）')
+    await click('今日できた（+50G）')
     expect(fake.store.recordHabit).toHaveBeenCalledWith(0)
     fake.store.state = { ...state, habitDate: TODAY }
     expect((await render(<HabitCard />)).textContent).toContain('今日はできた！')
@@ -348,9 +348,9 @@ describe('画面の表示', () => {
     expect(fake.store.setSlot).toHaveBeenCalledWith('mon1', 'pushupBar')
   })
 
-  it('朝の記録：前日の歩数を入れて記録（150歩ごとに1G）', async () => {
+  it('朝の記録：前日の歩数を入れて記録（100歩ごとに1G）', async () => {
     fake.store.recordMorning = vi.fn((steps: number) => ({
-      date: '2026-10-04', steps, habit: false, habitLabel: '', streak: 0, stepsGold: Math.floor(steps / 150), habitGold: 0, ts: 1,
+      date: '2026-10-04', steps, habit: false, habitLabel: '', streak: 0, stepsGold: Math.floor(steps / 100), habitGold: 0, ts: 1,
     }))
     const el = await render(<Morning go={go} />)
     expect(el.textContent).toContain('10/4の分')
@@ -359,9 +359,9 @@ describe('画面の表示', () => {
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, '6500')
       input.dispatchEvent(new Event('input', { bubbles: true }))
     })
-    await click('記録する（+43G）')
+    await click('記録する（+65G）')
     expect(fake.store.recordMorning).toHaveBeenCalledWith(6500)
-    expect(el.textContent).toContain('記録しました：+43G')
+    expect(el.textContent).toContain('記録しました：+65G')
   })
 
   it('朝の記録：記録済みなら結果だけ出る', async () => {

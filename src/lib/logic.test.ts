@@ -68,18 +68,17 @@ describe('セット報酬', () => {
     })
     expect(calcSetReward({ isBonus: true, setNo: 4, judge: 'normal', intervalOk: true }).gold).toBe(0)
   })
-  it('習慣：分数は1日の合計30分まで1分2G。○×は1日1回10G', () => {
+  it('習慣：分数は1日の合計30分まで。1回に続けた分数が長いほど単価が高い。○×は1日1回50G', () => {
     const st = (extra: Partial<GameState>) => ({ habitMode: 'minutes', habitDate: '2026-10-05', habitMinutesToday: 25, ...extra }) as GameState
-    expect(habitGoldNow(st({}), '2026-10-05', 10)).toBe(10) // 残り5分ぶん
-    expect(habitGoldNow(st({}), '2026-10-06', 10)).toBe(20) // 日が変われば0から
+    expect(habitGoldNow(st({}), '2026-10-05', 10)).toBe(50) // 残り5分ぶん × 10分続けた単価10G
+    expect(habitGoldNow(st({}), '2026-10-06', 3)).toBe(15) // 4分までは1分5G
+    expect(habitGoldNow(st({}), '2026-10-06', 5)).toBe(50) // 5分続けると1分10G＝卵1個
     expect(habitGoldNow(st({ habitMode: 'check' }), '2026-10-05', 0)).toBe(0)
-    expect(habitGoldNow(st({ habitMode: 'check' }), '2026-10-06', 0)).toBe(10)
+    expect(habitGoldNow(st({ habitMode: 'check' }), '2026-10-06', 0)).toBe(50)
   })
-  it('歩数は150歩ごとに1G（段階なし。6000歩も7000歩もちゃんと増える）', () => {
-    expect(stepsGold(6000)).toBe(40)
-    expect(stepsGold(7000)).toBe(46)
-    expect(stepsGold(8000)).toBe(53)
-    expect(stepsGold(10000)).toBe(66)
+  it('歩数は100歩ごとに1G（段階なし。5000歩で卵1個ぶん）', () => {
+    expect(stepsGold(5000)).toBe(50)
+    expect(stepsGold(7050)).toBe(70)
     expect(stepsGold(-1)).toBe(0)
   })
 })
