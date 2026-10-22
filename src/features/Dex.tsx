@@ -141,7 +141,7 @@ export function Dex({ go }: { go: Go }) {
                 </span>
                 <Abilities def={open.def} />
                 <p className="muted small">
-                  所持 {open.count}体{open.shiny && '・✨色違い発見済み'}
+                  所持 {open.count}体
                 </p>
               </>
             ) : (

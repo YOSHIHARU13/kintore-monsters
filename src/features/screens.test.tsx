@@ -370,14 +370,14 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('歩数 5,000歩')
   })
 
-  it('ショップ：色違いが生まれると特別な演出', async () => {
+  it('ショップ：色違いはなくなった（古いデータの色違いも普通に出す）', async () => {
     fake.store.hatchEgg = vi.fn(() => ({ def: defs[1], monsterId: 'o2', shiny: true, pity: false }))
     const shop = await render(<Shop go={go} />)
-    expect(shop.textContent).toContain('色違い 1/20')
+    expect(shop.textContent).not.toContain('色違い')
     await click('1回引く')
     await click('スキップ')
-    expect(shop.textContent).toContain('色違い！！')
-    expect(shop.querySelector('.shiny')).not.toBeNull()
+    expect(shop.textContent).not.toContain('色違い！！')
+    expect(shop.querySelector('.shiny')).toBeNull()
   })
 
   it('BOX・図鑑・ショップ', async () => {
@@ -470,7 +470,7 @@ describe('画面の表示', () => {
     fake.store.state = { ...state, dexFound: { m1: ['n1', 'n2', 'n3b'] }, dexShiny: { m1: true } }
     const dex = await render(<Dex go={go} />)
     // 合体でいなくなった個体が見つけていた形態も残る。色違いも
-    expect(dex.querySelector('.dex-cell[aria-label="No.4 ヤミムキドラ"] .shiny')).not.toBeNull()
+    expect(dex.querySelector('.dex-cell[aria-label="No.4 ヤミムキドラ"] .shiny')).toBeNull() // 色違いはなくなった
     // 隠しモンスターは名前を伏せたまま、タップするとレシピと進み具合が見える
     const hidden = dex.querySelector<HTMLButtonElement>('.dex-cell[aria-label="No.8 未発見"]')!
     await act(async () => hidden.click())
@@ -845,15 +845,15 @@ describe('画面の表示', () => {
     }
   })
 
-  it('ガチャ編集：中身をレア度ごとに見せ、名前と色違いの確率を保存できる', async () => {
+  it('ガチャ編集：中身をレア度ごとに見せ、名前を保存できる', async () => {
     fake.store.gachas = [gachas[0], gacha('g1', '脚まつり', { createdAt: 1 })]
     fake.store.defs = [{ ...defs[0], rarity: 'rare', gachas: ['g1'] }, { ...defs[1], rarity: 'superRare', gachas: ['g1'] }]
     const el = await render(<GachaForm id="g1" go={go} />)
     expect(el.textContent).toContain('全2種')
     expect(el.textContent).toContain('激レア 合計100%') // 以前の「レア」も激レア
-    await click('1/10')
+    expect(el.textContent).not.toContain('色違い')
     await click('保存する')
-    expect(fake.store.saveGacha).toHaveBeenCalledWith(expect.objectContaining({ id: 'g1', name: '脚まつり', shinyRate: 1 / 10 }))
+    expect(fake.store.saveGacha).toHaveBeenCalledWith(expect.objectContaining({ id: 'g1', name: '脚まつり' }))
     await click('このガチャを消す')
     await click('本当に消す')
     expect(fake.store.deleteGacha).toHaveBeenCalledWith('g1')

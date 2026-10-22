@@ -22,7 +22,7 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
   const { gachas, defs, saveGacha, deleteGacha } = useStore()
   const existing = id ? gachas.find((g) => g.id === id) : undefined
   const [name, setName] = useState(existing?.name ?? '')
-  const [shinyRate, setShinyRate] = useState(existing?.shinyRate ?? CONFIG.shop.shinyRate)
+  const shinyRate = existing?.shinyRate ?? CONFIG.shop.shinyRate // 色違いはなくなった（値だけ残す）
   const [banner, setBanner] = useState<File | null>(null)
   const [removeBanner, setRemoveBanner] = useState(false)
   const [catchphrase, setCatchphrase] = useState(existing?.catchphrase ?? '')
@@ -193,21 +193,6 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
             画像をやめて自動のバナーにする
           </button>
         )}
-        <div className="field">
-          ✨色違いの確率
-          <div className="chips">
-            {CONFIG.gacha.shinyRateChoices.map((r) => (
-              <button
-                key={r}
-                type="button"
-                className={`chip${Math.abs(r - shinyRate) < 1e-9 ? ' on' : ''}`}
-                onClick={() => setShinyRate(r)}
-              >
-                1/{Math.round(1 / r)}
-              </button>
-            ))}
-          </div>
-        </div>
       </section>
 
       {!builtin && (

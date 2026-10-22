@@ -145,7 +145,7 @@ export function Shop({ go }: { go: Go }) {
               </p>
             )}
             <details>
-              <summary className="small">提供割合を見る（✨色違い 1/{Math.round(1 / gacha.shinyRate)}）</summary>
+              <summary className="small">提供割合を見る</summary>
             {[...tierRates(table)].reverse().map(({ rarity, rate, count }) => (
               <div key={rarity}>
                 <h3 className={`small rarity-title rarity-${rarity}`}>

@@ -112,7 +112,7 @@ export function GachaBanner({ gacha, count, featured = [], pickups = [], selecte
   const others = pickups.filter((d) => d.id !== hero?.id)
   const info = (
     <span className="small">
-      全{count}種・✨色違い 1/{Math.round(1 / gacha.shinyRate)}
+      全{count}種
     </span>
   )
   const hasSuperRare = featured.some((d) => !isHidden(d) && rarityOf(d) === 'superRare')

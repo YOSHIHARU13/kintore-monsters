@@ -6,24 +6,15 @@ interface Props {
   silhouette?: boolean // 画像があっても黒いシルエットで表示する（未入手・進化先）
   size?: number
   plus?: number // 合体の＋。1以上なら＋に応じた枠で囲む
-  shiny?: boolean // 色違い。色を変えてキラキラさせる
+  shiny?: boolean // 旧：色違い（今は使わない）
   awaken?: number // 覚醒の段階（1：覚醒、2：真・覚醒）。絵のまわりが光る（星とは別）
 }
 
 /** モンスター画像。画像が未登録ならプレースホルダーのシルエットを出す */
-export function MonsterImage({ plus: _plus = 0, shiny = false, awaken = 0, ...props }: Props) {
-  // ＋はなくなったので、枠は出さない（色違いだけ）
+export function MonsterImage({ plus: _plus = 0, shiny: _shiny = false, awaken = 0, ...props }: Props) {
+  // ＋も色違いもなくなったので、枠やキラキラは出さない（古いデータの色違いも普通の色で出す）
   const plus = 0
-  const base = shiny ? (
-    <div className="shiny">
-      <Picture {...props} />
-      <span className="shiny-mark" aria-label="色違い">
-        ✨
-      </span>
-    </div>
-  ) : (
-    <Picture {...props} />
-  )
+  const base = <Picture {...props} />
   // 覚醒：絵のうしろに光の輪。大きい絵には「覚醒」の文字も（星の数と見間違えないように）
   const picture =
     awaken > 0 && !props.silhouette ? (

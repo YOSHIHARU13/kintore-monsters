@@ -615,7 +615,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         const pity = sure || isPity(pulls, table)
         const def = draw(table, sure ? CONFIG.gacha.pity.pulls : pulls, Math.random())
         if (!def) break
-        const shiny = Math.random() < gacha.shinyRate
+        const shiny = false // 色違いはなくなった
         const ref = doc(collection(db, base, 'ownedMonsters'))
         batch.set(ref, {
           defId: def.id,
@@ -773,7 +773,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       if ([...hidden.recipe].sort().join() !== pair) return null
       if (!isJogressReady(a.mon, a.def, hidden) || !isJogressReady(b.mon, b.def, hidden)) return null
       if (state.gold < CONFIG.jogress.gold || (state.cores.none ?? 0) < CONFIG.jogress.cores) return null
-      const shiny = Math.random() < CONFIG.shop.shinyRate
+      const shiny = false // 色違いはなくなった
       const ref = doc(collection(db, base, 'ownedMonsters'))
       const update: DocumentData = { gold: increment(-CONFIG.jogress.gold), 'cores.none': increment(-CONFIG.jogress.cores) }
       consume(update, [a, b])
@@ -1084,7 +1084,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       } else {
         const boss = battle.boss
         if (!boss) return null
-        const shiny = Math.random() < CONFIG.shop.shinyRate
+        const shiny = false // 色違いはなくなった
         const ref = doc(collection(db, base, 'ownedMonsters'))
         batch.set(ref, {
           defId: boss.id,
@@ -1138,7 +1138,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       if (floor.reward.booster) update[`boosters.${floor.reward.booster}`] = increment(1)
       let monsterId: string | null = null
       if (floor.reward.monsterDefId) {
-        const shiny = Math.random() < CONFIG.shop.shinyRate
+        const shiny = false // 色違いはなくなった
         const ref = doc(collection(db, base, 'ownedMonsters'))
         batch.set(ref, {
           defId: floor.reward.monsterDefId,

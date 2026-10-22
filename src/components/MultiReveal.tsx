@@ -13,7 +13,7 @@ export function MultiReveal({ results, onClose, onMeet }: {
   onMeet: (monsterId: string) => void
 }) {
   const best = Math.max(...results.map((r) => RARITY_KEYS.indexOf(rarityOf(r.def))))
-  const big = best === RARITY_KEYS.indexOf('superRare') || results.some((r) => r.shiny)
+  const big = best === RARITY_KEYS.indexOf('superRare')
   return (
     <div className={`beat-overlay${big ? ' clear-overlay' : ''}`} onClick={onClose}>
       <div className="beat-burst" />
@@ -26,7 +26,7 @@ export function MultiReveal({ results, onClose, onMeet }: {
             return (
               <button
                 key={r.monsterId}
-                className={`multi-cell rarity-${rarity}${r.shiny ? ' shiny-cell' : ''}`}
+                className={`multi-cell rarity-${rarity}`}
                 style={{ animationDelay: `${i * 0.12}s` }}
                 onClick={(e) => {
                   e.stopPropagation()

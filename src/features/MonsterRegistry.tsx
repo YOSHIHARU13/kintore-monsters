@@ -111,8 +111,8 @@ export function MonsterRegistry({ go }: { go: Go }) {
           <ul className="mini-list">
             {allSeries(defs).map((name) => {
               const p = seriesPeriods[name]
-              const save = (start: string, end: string) =>
-                saveSeriesPeriod(name, start && end ? { start, end } : null)
+              // 片方だけでも保存しておく（両方そろうと期間が有効になる）。両方空なら消す
+              const save = (start: string, end: string) => saveSeriesPeriod(name, start || end ? { start, end } : null)
               return (
                 <li key={name} className="period-row">
                   <span>

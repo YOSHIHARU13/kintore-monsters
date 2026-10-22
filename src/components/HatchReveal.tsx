@@ -24,7 +24,7 @@ export function HatchReveal({ hatched, onClose, onMeet }: { hatched: Hatched; on
   const [phase, setPhase] = useState<Phase>('shake')
   const [shownStars, setShownStars] = useState(0)
   const stars = starsOf(hatched.def, FIRST_NODE_ID)
-  const big = hatched.shiny || hatched.rarity === 'superRare'
+  const big = hatched.rarity === 'superRare'
 
   useEffect(() => {
     if (phase === 'shake') {
@@ -88,7 +88,6 @@ export function HatchReveal({ hatched, onClose, onMeet }: { hatched: Hatched; on
       {big && <div className="beat-burst reverse" />}
       {big && Array.from({ length: 42 }, (_, i) => <i key={i} className="spark" style={{ ['--i' as string]: i }} />)}
       <div className="beat-text">
-        {hatched.shiny && <div className="beat-title">✨ 色違い！！ ✨</div>}
         {hatched.pity && <div className="beat-sub">天井で確定！</div>}
         {hatched.rarity !== 'normal' && (
           <div className={`beat-title rarity-${hatched.rarity}`}>
