@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '../store'
+import { allSeries } from '../lib/series'
 import { ATTRS, DAYS, FORM_ATTRS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type FormAttr } from '../data/exercises'
 import { FIRST_NODE_ID, TEMPLATES, canChangeTemplate, getTemplate } from '../data/evolutionTemplates'
 import { nextCost } from '../lib/evolution'
@@ -34,6 +35,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
     existing ? canChangeTemplate(existing.templateId, t.id) : !t.retired,
   )
   const [name, setName] = useState(existing?.name ?? '')
+  const [series, setSeries] = useState(existing?.series ?? '')
   const [templateId, setTemplateId] = useState(existing?.templateId ?? (questPreset ? 'single' : selectable[0].id))
   const [attrs, setAttrs] = useState<Record<string, FormAttr>>(existing?.attrs ?? {})
   const [names, setNames] = useState<Record<string, string>>(existing?.names ?? {})
@@ -183,6 +185,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
         rarity,
         element,
         favoriteSlot: validFavorite,
+        series,
         abilities: abilities.slice(0, abilitySlots({ recipe, rarity, questOnly })),
         questOnly: recipe.length !== 2 && questOnly,
         tower: recipe.length !== 2 && questOnly && tower,
@@ -214,6 +217,15 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
         <label className="field">
           <span>名前（段階ごとの名前を付けないときに使われます）</span>
           <input value={name} onChange={(e) => setName(e.target.value)} maxLength={20} placeholder="なまえ" />
+        </label>
+        <label className="field">
+          <span>シリーズ（コラボ名・省略可。クエスト・BOX・図鑑をシリーズごとに分けて見られる）</span>
+          <input value={series} onChange={(e) => setSeries(e.target.value)} maxLength={16} placeholder="空なら通常" list="series-list" />
+          <datalist id="series-list">
+            {allSeries(defs).map((s) => (
+              <option key={s} value={s} />
+            ))}
+          </datalist>
         </label>
 
         <label className="field">

@@ -98,6 +98,7 @@ export interface MonsterDef {
   jogressElements?: Element[] // ジョグレスの属性（保存するときに素材から計算する）
   jogressSuper?: boolean // 同じ属性どうしのジョグレスなら超属性
   favoriteSlot?: string // 得意種目（種目の枠ID）
+  series?: string // シリーズ（コラボ名）。空なら通常
   jogressBirthStars?: number // 隠しモンスターが生まれるときの星（素材はこの1つ下以上）
   jogressPlus?: number // 隠しモンスターの素材に必要な＋（なければ0）
   fixedStars?: number // 進化しない（1形態だけの）クエスト限定モンスターの星（なければ fixedStarsDefault）

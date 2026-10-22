@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { awakenOf, imageOf } from '../lib/art'
 import { useStore } from '../store'
+import { SeriesChips } from '../components/SeriesChips'
+import { inSeries, seriesOf, type SeriesFilter } from '../lib/series'
 import { FORM_ATTRS, FORM_ATTR_LABEL, type FormAttr } from '../data/exercises'
 import { MonsterImage } from '../components/MonsterImage'
 import { CONFIG } from '../config/gameConfig'
@@ -32,6 +34,7 @@ export function Box({ go }: { go: Go }) {
   })
   const [element, setElement] = useState<Element | 'none' | 'all'>('all')
   const [part, setPart] = useState<FormAttr | 'all'>('all')
+  const [series, setSeries] = useState<SeriesFilter>('all')
   const partnerIds = new Set(Object.values(state.partners))
 
   const changeSort = (s: Sort) => {
@@ -61,6 +64,7 @@ export function Box({ go }: { go: Go }) {
       return element === 'all' || (element === 'none' ? els.length === 0 : els.includes(element))
     })
     .filter(({ def, mon }) => part === 'all' || nodeAttr(def, mon.nodeId) === part)
+    .filter(({ def }) => inSeries(series, seriesOf(def)))
     .sort(order[sort])
 
   return (
@@ -77,6 +81,7 @@ export function Box({ go }: { go: Go }) {
           </button>
         ))}
       </div>
+      <SeriesChips value={series} onChange={setSeries} />
       <div className="chips" role="group" aria-label="属性で絞り込み">
         <button type="button" className={`chip small${element === 'all' ? ' on' : ''}`} onClick={() => setElement('all')}>
           全属性

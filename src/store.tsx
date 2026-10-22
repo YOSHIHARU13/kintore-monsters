@@ -119,6 +119,7 @@ export interface MonsterDefInput {
   fixedStars: number // 進化しない降臨モンスターの星
   element: Element | '' // 属性（無属性は空）
   favoriteSlot: string // 得意種目の枠ID（なしは空）
+  series?: string // シリーズ（コラボ名）。空なら通常
   abilities: string[] // アビリティ（対応するギミック名）
 }
 
@@ -814,6 +815,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         common: false,
         element: input.element || null,
         favoriteSlot: input.favoriteSlot,
+        series: input.series?.trim() || null,
         questOnly: input.questOnly,
         tower: input.questOnly && input.tower === true,
         fixedStars: input.fixedStars,

@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { awakenOf, imageOf } from '../lib/art'
 import { useStore } from '../store'
+import { SeriesChips } from '../components/SeriesChips'
+import { inSeries, seriesOf, type SeriesFilter } from '../lib/series'
 import { CONFIG } from '../config/gameConfig'
 import { FORM_ATTR_LABEL } from '../data/exercises'
 import { getTemplate, pathTo, type EvoNode } from '../data/evolutionTemplates'
@@ -31,6 +33,7 @@ export function Dex({ go }: { go: Go }) {
   const { defs, owned, state } = useStore()
   const [filter, setFilter] = useState<Filter>('all')
   const [open, setOpen] = useState<Entry | null>(null)
+  const [series, setSeries] = useState<SeriesFilter>('all')
 
   let no = 0
   const entries: Entry[] = defs.flatMap((def) => {
@@ -42,7 +45,9 @@ export function Dex({ go }: { go: Go }) {
     return template.nodes.map((node) => ({ no: ++no, def, node, found: found.has(node.id), shiny, count: mons.length }))
   })
   const foundCount = entries.filter((e) => e.found).length
-  const list = entries.filter((e) => (filter === 'found' ? e.found : filter === 'missing' ? !e.found : true))
+  const list = entries
+    .filter((e) => (filter === 'found' ? e.found : filter === 'missing' ? !e.found : true))
+    .filter((e) => inSeries(series, seriesOf(e.def)))
 
   // レシピの1体ぶんの進み具合
   const progressOf = (defId: string, hidden: MonsterDef) => {
@@ -77,6 +82,7 @@ export function Dex({ go }: { go: Go }) {
           </button>
         ))}
       </div>
+      <SeriesChips value={series} onChange={setSeries} />
       {defs.length === 0 && <p className="muted">まだモンスターが登録されていません。</p>}
 
       <div className="dex-grid">

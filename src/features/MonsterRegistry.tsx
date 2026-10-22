@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { imageOf } from '../lib/art'
 import { useStore } from '../store'
+import { SeriesChips } from '../components/SeriesChips'
+import { inSeries, seriesOf, type SeriesFilter } from '../lib/series'
 import { CONFIG } from '../config/gameConfig'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { MonsterImage } from '../components/MonsterImage'
@@ -37,6 +39,7 @@ export function MonsterRegistry({ go }: { go: Go }) {
   const { defs, owned, state, autoTuneDefs } = useStore()
   const [filter, setFilter] = useState<Filter>('all')
   const [query, setQuery] = useState('')
+  const [series, setSeries] = useState<SeriesFilter>('all')
   const [tuned, setTuned] = useState<number | null>(null)
   const hasMet = (defId: string) => owned.some((o) => o.defId === defId) || (state.dexFound[defId]?.length ?? 0) > 0
   const ownedCount = defs.filter((d) => hasMet(d.id)).length
@@ -52,6 +55,7 @@ export function MonsterRegistry({ go }: { go: Go }) {
 
   const matches = (d: MonsterDef) => {
     if (query.trim() && !d.name.includes(query.trim())) return false
+    if (!inSeries(series, seriesOf(d))) return false
     if (filter === 'todo') return todosOf(d).length > 0
     if (filter === 'gacha') return !isHidden(d) && !d.questOnly
     if (filter === 'quest') return d.questOnly === true
@@ -101,6 +105,7 @@ export function MonsterRegistry({ go }: { go: Go }) {
           </button>
         ))}
       </div>
+      <SeriesChips value={series} onChange={setSeries} />
       <input
         className="search"
         value={query}

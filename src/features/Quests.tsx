@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { awakenOf, imageOf } from '../lib/art'
 import { useStore } from '../store'
+import { SeriesChips } from '../components/SeriesChips'
+import { inSeries, questSeries, type SeriesFilter } from '../lib/series'
 import { Gauge } from '../components/Gauge'
 import { MonsterImage } from '../components/MonsterImage'
 import { QuestBanner } from '../components/QuestBanner'
@@ -37,6 +39,7 @@ import { nodeAttr, plusName, type MonsterDef, type Quest } from '../types'
 export function Quests({ go }: { go: Go }) {
   const { state, quests, tower, defs, today, quitChallenge, claimQuest, saveQuest } = useStore()
   const [made, setMade] = useState<number | null>(null)
+  const [series, setSeries] = useState<SeriesFilter>('all')
   // まだボスクエストがない降臨モンスター（塔限定は塔でもらえるので除く）
   const pending = defs.filter(
     (d) => d.questOnly && !d.tower && !quests.some((q) => q.kind !== 'material' && q.bossDefId === d.id),
@@ -258,9 +261,12 @@ export function Quests({ go }: { go: Go }) {
             </button>
           </div>
         </div>
+        <SeriesChips value={series} onChange={setSeries} />
         {quests.length === 0 && <p className="muted small">まだクエストがありません。</p>}
         {QUEST_GROUPS.map(({ key, label }) => {
-          const group = quests.filter((q) => (q.kind === 'material' ? 'material' : gradeOf(q)) === key)
+          const group = quests.filter(
+            (q) => (q.kind === 'material' ? 'material' : gradeOf(q)) === key && inSeries(series, questSeries(q, defs)),
+          )
           if (group.length === 0) return null
           return (
             <div key={key} className="quest-group">
