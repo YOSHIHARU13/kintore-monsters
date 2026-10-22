@@ -674,10 +674,27 @@ describe('画面の表示', () => {
     const el = await render(<QuestForm go={go} />)
     const group = el.querySelector('[aria-label="活躍させたいモンスター"]')!
     await act(async () => [...group.querySelectorAll('button')].find((b) => b.textContent === 'ムキドラ')!.click())
-    await click('選んだモンスターの属性・アビリティで条件を作る')
+    await click('このキャラが刺さる条件にする')
     expect(el.textContent).toContain('🔥炎')
     expect(el.textContent).toContain('バリアブレイカー')
     expect(el.textContent).toContain('持っている 1（今の手持ちだと×1.0に届かない）') // 炎3に対して手持ちは1
+  })
+
+  it('クエスト作成：ガチャのキャラがいなくても、ギミック2つや属性2つから条件を作れる', async () => {
+    const { QuestForm } = await import('./QuestForm')
+    const el = await render(<QuestForm go={go} />)
+    await click('🧩 ギミックを接待')
+    const gim = el.querySelector('[aria-label="接待するギミック"]')!
+    for (const name of ['バリアブレイカー', 'ミラーシャッター'])
+      await act(async () => [...gim.querySelectorAll('button')].find((b) => b.textContent === name)!.click())
+    await click('このギミックの条件にする')
+    expect(el.textContent).toContain('バリアブレイカーとミラーシャッターを両方')
+    await click('🎨 属性')
+    const els = el.querySelector('[aria-label="求める属性"]')!
+    for (const name of ['炎', '水']) await act(async () => [...els.querySelectorAll('button')].find((b) => b.textContent === name)!.click())
+    await click('この属性の条件にする')
+    expect(el.textContent).toContain('🔥炎')
+    expect(el.textContent).toContain('💧水')
   })
 
   it('クエスト詳細：効きやすい順にメンバーが並び、選んで挑戦できる', async () => {

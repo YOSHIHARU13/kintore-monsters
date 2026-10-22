@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { useStore } from '../store'
+import { seriesOf } from '../lib/series'
 import { canShinka, shinkaFoods } from '../lib/shinka'
 import { protectedIds } from '../lib/fusion'
 import { rarityOf } from '../lib/gacha'
@@ -276,14 +277,16 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
           {mon.shinka ? (
             <p className="small">神化した激レアです。攻撃力が★4ぶん上がっています。</p>
           ) : !canShinka(mon, def) ? (
-            <p className="muted small">最終形態まで育てると、同じ属性の降臨モンスター1体を素材に★4へ神化できます。</p>
+            <p className="muted small">最終形態まで育てると、{seriesOf(def) ? '同じコラボ' : '同じ属性'}の降臨モンスター1体を素材に★4へ神化できます。</p>
           ) : (
             <>
               <p className="muted small">
-                同じ属性の降臨モンスター1体と🪙{CONFIG.shinka.coins}で、★4に神化します（素材の降臨はいなくなります）。
+                {seriesOf(def) ? `同じ「${seriesOf(def)}」コラボの降臨モンスター1体` : '同じ属性の降臨モンスター1体'}と🪙{CONFIG.shinka.coins}で、★4に神化します（絵はそのまま。素材の降臨はいなくなります）。
               </p>
               {shinkaChoices.length === 0 ? (
-                <p className="warn small">素材になる降臨モンスター（{elementName(elementInfo(def))}）がいません。降臨クエストで手に入れよう。</p>
+                <p className="warn small">
+                  素材になる降臨モンスター（{seriesOf(def) ? `${seriesOf(def)}コラボ` : elementName(elementInfo(def))}）がいません。降臨クエストで手に入れよう。
+                </p>
               ) : (
                 <>
                   <ul className="choice-list">

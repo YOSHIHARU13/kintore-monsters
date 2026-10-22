@@ -5,11 +5,11 @@ import { DAYS, FORM_ATTRS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type FormAttr
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { QuestBanner } from '../components/QuestBanner'
 import { COLLAB_GRADES, DIFFICULTIES, GRADES, defaultBossHp, defaultHp, gradeOf, questGold, standardSessionDamage } from '../lib/quest'
-import { allGimmicks, selectableGimmicks } from '../lib/gimmick'
+import { allGimmicks, selectableGimmicks, abilityName } from '../lib/gimmick'
 import { ELEMENTS, ELEMENT_COLOR, ELEMENT_LABEL, advantageElements, elementInfo } from '../lib/element'
-import { abilityTag, elementTag, ownedSupply, requirementsFromMonsters, requirementsOf, tagLabel, comboTag } from '../lib/formation'
+import { abilityTag, elementTag, ownedSupply, requirementsOf, tagLabel, comboTag, tagAbilities } from '../lib/formation'
 import { CORE_LABEL } from '../lib/cores'
-import { autoQuestSetup } from '../lib/questAuto'
+import { autoQuestSetup, basisRequirements, type Basis } from '../lib/questAuto'
 import { seriesOf } from '../lib/series'
 import { ATTR_COLOR, type Go } from '../nav'
 import { nodeAttr, type Element, type Quest, type QuestDifficulty, type QuestGrade, type Requirement } from '../types'
@@ -18,6 +18,9 @@ import { nodeAttr, type Element, type Quest, type QuestDifficulty, type QuestGra
 export function QuestForm({ id, go }: { id?: string; go: Go }) {
   const { quests, defs, owned, menu, saveQuest, deleteQuest } = useStore()
   const [stars, setStars] = useState<string[]>([])
+  const [basisKind, setBasisKind] = useState<'hero' | 'gimmicks' | 'elements'>('hero')
+  const [pickedGimmicks, setPickedGimmicks] = useState<string[]>([])
+  const [pickedElements, setPickedElements] = useState<Element[]>([])
   const existing = id ? quests.find((q) => q.id === id) : undefined
   // ボスになれるのは「クエスト限定」のモンスター（いなければ全員から選べる）
   const bossChoices = defs.some((d) => d.questOnly) ? defs.filter((d) => d.questOnly) : defs
@@ -37,6 +40,24 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
   const [customGimmicks, setCustomGimmicks] = useState<Record<string, string>>(existing?.customGimmicks ?? {})
   const gimmickNames = { ...allGimmicks(quests), ...customGimmicks }
   const allAbilities = [...new Set([...selectableGimmicks(quests), ...Object.keys(customGimmicks)])]
+  // 選んだもと（刺さるキャラ・ギミック・属性）
+  const heroDef = defs.find((d) => d.id === stars[0])
+  const basis: Basis | null =
+    basisKind === 'hero'
+      ? heroDef
+        ? { kind: 'hero', hero: heroDef }
+        : null
+      : basisKind === 'gimmicks'
+        ? pickedGimmicks.length > 0
+          ? { kind: 'gimmicks', gimmicks: pickedGimmicks }
+          : null
+        : pickedElements.length > 0
+          ? { kind: 'elements', elements: pickedElements }
+          : null
+  // 属性から作るときに足す、ほかのクエストであまり使われていないアビリティ
+  const leastUsed = allAbilities
+    .map((g) => ({ g, n: quests.filter((q) => q.id !== existing?.id && requirementsOf(q).some((r) => tagAbilities(r.tag).includes(g))).length }))
+    .sort((a, b) => a.n - b.n)[0]?.g
   const [kind, setKind] = useState<'boss' | 'material'>(existing?.kind ?? 'boss')
   const [rank, setRank] = useState(existing?.rank ?? 1)
   const [grade, setGrade] = useState<QuestGrade>(existing ? gradeOf(existing) : 'kyukyoku')
@@ -240,34 +261,80 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
           出撃する6体の合計で満たす条件です。ちょうどそろうと編成倍率×1.0（普通にその日のメニューで倒せる）、何もないと×
           {CONFIG.formation.base}、超えた分は1つにつき+{CONFIG.formation.perExtra}。超属性は2、複合属性は両方に1ずつ数えます。
         </p>
-        <div className="field">
-          🎯 このモンスターが活躍するクエストにする（3体まで選んで「条件を作る」）
-          <div className="chips" role="group" aria-label="活躍させたいモンスター">
-            {defs.map((d) => {
-              const on = stars.includes(d.id)
-              return (
-                <button
-                  key={d.id}
-                  type="button"
-                  className={`chip small${on ? ' on' : ''}`}
-                  disabled={!on && stars.length >= 3}
-                  onClick={() => setStars(on ? stars.filter((x) => x !== d.id) : [...stars, d.id])}
-                >
-                  {d.name}
-                </button>
-              )
-            })}
+        <div className="field basis">
+          条件を何から作る？（選ぶと、格に合った数で条件ができます）
+          <div className="segmented small-seg" role="tablist" aria-label="条件の作り方">
+            {(
+              [
+                ['hero', '🎯 刺さるキャラ'],
+                ['gimmicks', '🧩 ギミックを接待'],
+                ['elements', '🎨 属性'],
+              ] as const
+            ).map(([k, label]) => (
+              <button key={k} className={basisKind === k ? 'on' : ''} onClick={() => setBasisKind(k)}>
+                {label}
+              </button>
+            ))}
           </div>
-          <button
-            type="button"
-            className="btn small"
-            disabled={stars.length === 0}
-            onClick={() => {
-              editRequirements(requirementsFromMonsters(defs.filter((d) => stars.includes(d.id))))
-            }}
-          >
-            選んだモンスターの属性・アビリティで条件を作る
+          {basisKind === 'hero' && (
+            <div className="chips" role="group" aria-label="活躍させたいモンスター">
+              {defs
+                .filter((d) => !d.questOnly)
+                .map((d) => (
+                  <button
+                    key={d.id}
+                    type="button"
+                    className={`chip small${stars[0] === d.id ? ' on' : ''}`}
+                    onClick={() => setStars(stars[0] === d.id ? [] : [d.id])}
+                  >
+                    {d.name}
+                  </button>
+                ))}
+            </div>
+          )}
+          {basisKind === 'gimmicks' && (
+            <div className="chips" role="group" aria-label="接待するギミック">
+              {allAbilities.map((g) => {
+                const on = pickedGimmicks.includes(g)
+                return (
+                  <button
+                    key={g}
+                    type="button"
+                    className={`chip small${on ? ' on' : ''}`}
+                    disabled={!on && pickedGimmicks.length >= 2}
+                    onClick={() => setPickedGimmicks(on ? pickedGimmicks.filter((x) => x !== g) : [...pickedGimmicks, g])}
+                  >
+                    {abilityName(g, gimmickNames)}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+          {basisKind === 'elements' && (
+            <div className="chips" role="group" aria-label="求める属性">
+              {ELEMENTS.map((e) => {
+                const on = pickedElements.includes(e)
+                return (
+                  <button
+                    key={e}
+                    type="button"
+                    className={`chip small${on ? ' on' : ''}`}
+                    style={on ? { borderColor: ELEMENT_COLOR[e], color: ELEMENT_COLOR[e] } : undefined}
+                    disabled={!on && pickedElements.length >= 2}
+                    onClick={() => setPickedElements(on ? pickedElements.filter((x) => x !== e) : [...pickedElements, e])}
+                  >
+                    {ELEMENT_LABEL[e]}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+          <button type="button" className="btn small" disabled={!basis} onClick={() => basis && editRequirements(basisRequirements(basis, grade, boss, leastUsed))}>
+            {basisKind === 'hero' ? 'このキャラが刺さる条件にする' : basisKind === 'gimmicks' ? 'このギミックの条件にする' : 'この属性の条件にする'}
           </button>
+          <span className="muted small">
+            ガチャのキャラがまだいなくても、ギミックや属性から作っておけます。あとで作ったキャラは、モンスター登録の「🎯 このクエスト用にする」で合わせられます。
+          </span>
         </div>
         {requirements.length === 0 && <p className="muted small">まだ条件がありません（いつでも×1.0）。下から足してください。</p>}
         <ul className="mini-list">

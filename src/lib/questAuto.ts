@@ -6,7 +6,7 @@ import { abilityTag, comboTag, elementTag, requirementsOf, tagAbilities } from '
 import { abilitySlots } from './gimmick'
 import { rarityOf } from './gacha'
 import { seriesOf } from './series'
-import { isHidden, nodeAttr, type MonsterDef, type Quest, type QuestGrade, type RarityKey, type Requirement } from '../types'
+import { isHidden, nodeAttr, type Element, type MonsterDef, type Quest, type QuestGrade, type RarityKey, type Requirement } from '../types'
 
 /** 文字列から決まる数（同じボスなら毎回同じ結果に） */
 function hash(s: string): number {
@@ -55,14 +55,7 @@ export function autoQuestSetup(
     const hero = pickHero(boss, grade, defs, seed)
     if (hero) {
       heroId = hero.id
-      const el = elementInfo(hero)
-      const [g1, g2] = (hero.abilities ?? []).slice(0, abilitySlots(hero))
-      if (el.super) requirements.push({ tag: elementTag(el.elements[0]), count: 4 })
-      else if (el.elements.length >= 2) for (const e of el.elements.slice(0, 2)) requirements.push({ tag: elementTag(e), count: 2 })
-      else if (el.elements[0]) requirements.push({ tag: elementTag(el.elements[0]), count: 3 })
-      requirements.push({ tag: comboTag(g1, g2), count: grade === 'chokyukyoku' ? 3 : 2 })
-      // ボスに有利な属性も少し（刺さるキャラの属性と同じなら足さない）
-      if (adv && !requirements.some((r) => r.tag === elementTag(adv))) requirements.push({ tag: elementTag(adv), count: 2 })
+      requirements = basisRequirements({ kind: 'hero', hero }, grade, boss)
     } else {
       if (adv) requirements.push({ tag: elementTag(adv), count: 3 })
       if (second) requirements.push({ tag: elementTag(second), count: 3 })
@@ -103,4 +96,43 @@ export function autoGradeOf(def: MonsterDef): QuestGrade {
   // コラボの激レアは超究極
   if (rarityOf(def) === 'superRare' && seriesOf(def) !== '') return 'chokyukyoku'
   return GRADE_BY_RARITY[rarityOf(def)]
+}
+
+/** 条件の作り方：刺さるキャラ・接待するギミック・属性のどれかから */
+export type Basis =
+  | { kind: 'hero'; hero: MonsterDef }
+  | { kind: 'gimmicks'; gimmicks: string[] } // 1つか2つ（2つなら「両方もつ」）
+  | { kind: 'elements'; elements: Element[] } // 1つか2つ
+
+const GRADE_INDEX: Record<QuestGrade, number> = { jokyu: 0, kiwami: 1, kyukyoku: 2, chozetsu: 3, chokyukyoku: 4 }
+// 格ごとの数：属性1つ・属性2つ（それぞれ）・アビリティ（両方もつも同じ）
+const ONE_ELEMENT = [1, 2, 3, 3, 4]
+const TWO_ELEMENTS = [1, 1, 2, 3, 3]
+const ABILITY = [1, 1, 2, 2, 3]
+
+/**
+ * 選んだもとから、格に合った編成の条件を作る。
+ * キャラなら「その子の属性＋アビリティ（2つ持っていれば両方もつ）」、ギミックなら「そのアビリティ＋ボスに有利な属性」、
+ * 属性なら「その属性＋あまり使われていないアビリティ（extraAbility）」。
+ */
+export function basisRequirements(basis: Basis, grade: QuestGrade, boss: MonsterDef | undefined, extraAbility?: string): Requirement[] {
+  const g = GRADE_INDEX[grade]
+  const adv = advantageElements(boss ? elementInfo(boss).elements[0] : undefined)[0]
+  const els = (list: Element[], superEl = false): Requirement[] =>
+    list.length >= 2
+      ? list.slice(0, 2).map((e) => ({ tag: elementTag(e), count: TWO_ELEMENTS[g] }))
+      : list.map((e) => ({ tag: elementTag(e), count: ONE_ELEMENT[g] + (superEl ? 1 : 0) }))
+  const abil = (list: string[]): Requirement[] =>
+    list.length >= 2 ? [{ tag: comboTag(list[0], list[1]), count: ABILITY[g] }] : list.map((x) => ({ tag: abilityTag(x), count: ABILITY[g] }))
+  let reqs: Requirement[] = []
+  if (basis.kind === 'hero') {
+    const el = elementInfo(basis.hero)
+    reqs = [...els(el.elements, el.super), ...abil((basis.hero.abilities ?? []).slice(0, Math.min(2, abilitySlots(basis.hero))))]
+    if (g >= 3 && adv && !reqs.some((r) => r.tag === elementTag(adv))) reqs.push({ tag: elementTag(adv), count: 2 })
+  } else if (basis.kind === 'gimmicks') {
+    reqs = [...(adv ? els([adv]) : []), ...abil(basis.gimmicks)]
+  } else {
+    reqs = [...els(basis.elements), ...(g >= 1 && extraAbility ? abil([extraAbility]) : [])]
+  }
+  return reqs.slice(0, CONFIG.formation.maxRequirements)
 }

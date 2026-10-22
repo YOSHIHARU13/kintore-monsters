@@ -22,4 +22,10 @@ describe('神化', () => {
     const owned = [mon('x', 'q1', 'n1'), mon('y', 'q2', 'n1'), mon('z', 'q1', 'n1')]
     expect(shinkaFoods(sr, owned, defs, new Set(['z'])).map((f) => f.mon.id)).toEqual(['x'])
   })
+  it('コラボの激レアは、同じコラボの降臨が素材（属性は問わない）', () => {
+    const collab = def('c', { rarity: 'superRare', element: 'fire', series: '鬼' })
+    const defs = [collab, def('q1', { questOnly: true, element: 'water', series: '鬼' }), def('q2', { questOnly: true, element: 'fire' })]
+    const owned = [mon('x', 'q1', 'n1'), mon('y', 'q2', 'n1')]
+    expect(shinkaFoods(collab, owned, defs, new Set()).map((f) => f.mon.id)).toEqual(['x'])
+  })
 })
