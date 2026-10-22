@@ -383,17 +383,20 @@ describe('画面の表示', () => {
     expect(registry.textContent).toContain('入手 1／登録 2')
     expect(registry.textContent).toContain('未入手')
     // 全体図鑑：ムキドラは第2段階まで（2形態）発見、アシガメは未入手
+    // 全体図鑑：形態ごとに番号つきのアイコン。ムキドラは第2段階まで（2形態）発見、アシガメは未入手
     const dex = await render(<Dex go={go} />)
-    expect(dex.textContent).toContain('発見 2／全 7 形態')
-    expect(dex.textContent).toContain('ムキドラゴ')
-    expect(dex.textContent).not.toContain('ヤミムキドラ') // 進化していない形態の名前は伏せる
-    expect(dex.textContent).not.toContain('アシガメ')
+    const labels = () => [...dex.querySelectorAll('.dex-cell')].map((c) => c.getAttribute('aria-label'))
+    expect(dex.textContent).toContain('発見 2／7')
+    expect(labels()).toContain('No.2 ムキドラゴ')
+    expect(labels()).toContain('No.4 未発見') // 進化していない形態の名前は伏せる
+    expect(labels().some((l) => l?.includes('アシガメ'))).toBe(false)
     // 同じモンスターをもう1体、別の進化先に育てると、その形態も埋まる
     fake.store.owned = [...owned, { id: 'o3', defId: 'm1', nodeId: 'n3b', obtainedAt: 2 }]
     const dex2 = await render(<Dex go={go} />)
-    expect(dex2.textContent).toContain('発見 3／全 7 形態')
-    expect(dex2.textContent).toContain('ヤミムキドラ')
-    expect(dex2.textContent).toContain('所持2体')
+    expect(dex2.textContent).toContain('発見 3／7')
+    const yami = dex2.querySelector<HTMLButtonElement>('.dex-cell[aria-label="No.4 ヤミムキドラ"]')!
+    await act(async () => yami.click())
+    expect(dex2.querySelector('.sheet')!.textContent).toContain('所持 2体')
     expect((await render(<Box go={go} />)).textContent).toContain('所持 2体')
     const shop = await render(<Shop go={go} />)
     await click('「いつものガチャ」を引く')
@@ -497,12 +500,16 @@ describe('画面の表示', () => {
     ]
     fake.store.state = { ...state, dexFound: { m1: ['n1', 'n2', 'n3b'] }, dexShiny: { m1: true } }
     const dex = await render(<Dex go={go} />)
-    expect(dex.textContent).toContain('ジョグレスのレシピ')
-    expect(dex.textContent).toContain('いちばん育っているのは★2')
-    expect(dex.textContent).toContain('アシガメ未所持')
-    expect(dex.textContent).not.toContain('カイザードラ')
-    expect(dex.textContent).toContain('ヤミムキドラ')
-    expect(dex.textContent).toContain('ムキドラ ✨')
+    // 合体でいなくなった個体が見つけていた形態も残る。色違いも
+    expect(dex.querySelector('.dex-cell[aria-label="No.4 ヤミムキドラ"] .shiny')).not.toBeNull()
+    // 隠しモンスターは名前を伏せたまま、タップするとレシピと進み具合が見える
+    const hidden = dex.querySelector<HTMLButtonElement>('.dex-cell[aria-label="No.8 未発見"]')!
+    await act(async () => hidden.click())
+    const sheet = dex.querySelector('.sheet')!.textContent
+    expect(sheet).toContain('ジョグレスのレシピ')
+    expect(sheet).toContain('いちばん育っているのは★2')
+    expect(sheet).toContain('アシガメ未所持')
+    expect(sheet).not.toContain('カイザードラ')
   })
 
   it('モンスター詳細：手持ちのEXPがあれば進化先を選んで注げる', async () => {
@@ -736,6 +743,20 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('健脚の核 ×1 がドロップ！') // ボスクエストでも、たまに核が落ちる
     await click('会いに行く')
     expect(go).toHaveBeenCalledWith({ name: 'monster', id: 'o8' })
+  })
+
+  it('クエスト一覧：超絶・究極・極・素材の見出しで分かれ、バナーに格のリボンが付く', async () => {
+    const { Quests } = await import('./Quests')
+    const base = { bossDefId: 'm2', attr: 'legs' as const, weakSlots: [], hp: { easy: 1, normal: 1, hard: 1 }, catchphrase: '', theme: '', createdAt: 1 }
+    fake.store.quests = [
+      { ...base, id: 'a', name: 'ゆるい巣', grade: 'kiwami' as const },
+      { ...base, id: 'b', name: '地獄の巣', grade: 'chozetsu' as const },
+      { ...base, id: 'c', name: '修練場', kind: 'material' as const },
+    ]
+    const el = await render(<Quests go={go} />)
+    const heads = [...el.querySelectorAll('.quest-group-head')].map((h) => h.textContent)
+    expect(heads).toEqual(['超絶', '極', '素材'])
+    expect(el.querySelector('.quest-banner.frame-chozetsu .grade-ribbon')!.textContent).toBe('超絶')
   })
 
   it('クエスト：日付が変わったら時間切れ。トレーニング画面には出撃中のHPが出る', async () => {

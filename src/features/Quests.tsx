@@ -5,7 +5,15 @@ import { MonsterImage } from '../components/MonsterImage'
 import { QuestBanner } from '../components/QuestBanner'
 import { bannerNodeOf } from '../components/GachaBanner'
 import { useBattle } from '../components/BattleBar'
-import { dropPlus, questGold, questLevelLabel } from '../lib/quest'
+import { dropPlus, gradeOf, questGold, questLevelLabel } from '../lib/quest'
+
+/** クエスト一覧の見出し：格の高い順、最後に素材 */
+const QUEST_GROUPS = [
+  { key: 'chozetsu', label: '超絶' },
+  { key: 'kyukyoku', label: '究極' },
+  { key: 'kiwami', label: '極' },
+  { key: 'material', label: '素材' },
+] as const
 import { formationOf, requirementsOf } from '../lib/formation'
 import { CORE_LABEL } from '../lib/cores'
 import type { QuestReward } from '../store'
@@ -144,17 +152,26 @@ export function Quests({ go }: { go: Go }) {
       <section className="card">
         <h2>クエスト一覧</h2>
         {quests.length === 0 && <p className="muted small">まだクエストがありません。</p>}
-        <div className="gacha-list">
-          {quests.map((q) => (
-            <QuestBanner
-              key={q.id}
-              quest={q}
-              boss={defs.find((d) => d.id === q.bossDefId)}
-              selected={q.id === battle?.quest.id}
-              onClick={() => go({ name: 'quest', id: q.id })}
-            />
-          ))}
-        </div>
+        {QUEST_GROUPS.map(({ key, label }) => {
+          const group = quests.filter((q) => (q.kind === 'material' ? 'material' : gradeOf(q)) === key)
+          if (group.length === 0) return null
+          return (
+            <div key={key} className="quest-group">
+              <h3 className={`quest-group-head head-${key}`}>{label}</h3>
+              <div className="gacha-list">
+                {group.map((q) => (
+                  <QuestBanner
+                    key={q.id}
+                    quest={q}
+                    boss={defs.find((d) => d.id === q.bossDefId)}
+                    selected={q.id === battle?.quest.id}
+                    onClick={() => go({ name: 'quest', id: q.id })}
+                  />
+                ))}
+              </div>
+            </div>
+          )
+        })}
         <button className="btn small" onClick={() => go({ name: 'questForm' })}>
           ＋ クエストを作る
         </button>

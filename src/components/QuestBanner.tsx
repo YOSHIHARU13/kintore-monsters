@@ -24,7 +24,12 @@ export function QuestBanner({ quest, boss, onClick, selected = false }: {
   const { quests } = useStore()
   const names = allGimmicks(quests)
   return (
-    <button type="button" className={`gacha-banner auto quest-banner ${questTone(quest)}${selected ? ' on' : ''}`} onClick={onClick}>
+    <button
+      type="button"
+      className={`gacha-banner auto quest-banner ${questTone(quest)} frame-${quest.kind === 'material' ? 'material' : gradeOf(quest)}${selected ? ' on' : ''}`}
+      onClick={onClick}
+    >
+      <span className="grade-ribbon">{quest.kind === 'material' ? '素材' : CONFIG.quest.grades[gradeOf(quest)].label}</span>
       <span className="auto-rays" aria-hidden="true" />
       <span className="auto-monsters">
         {boss && (

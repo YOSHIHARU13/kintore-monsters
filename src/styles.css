@@ -956,6 +956,152 @@ details.tuning[open] > summary {
   color: var(--beat);
 }
 
+/* クエスト一覧：格ごとの見出しと枠 */
+.quest-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.quest-group-head {
+  margin: 4px 0 0;
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: #fff;
+  text-shadow: 0 1px 3px #000;
+}
+.head-chozetsu {
+  background: linear-gradient(90deg, #8a1c1c, #ff8a3d 60%, #ffd166);
+}
+.head-kyukyoku {
+  background: linear-gradient(90deg, #12305a, #4cc9f0);
+}
+.head-kiwami {
+  background: linear-gradient(90deg, #3c4350, #a7b0bd);
+}
+.head-material {
+  background: linear-gradient(90deg, #0f4d48, #39d0b8);
+}
+.quest-banner {
+  border-width: 3px;
+}
+.quest-banner.frame-chozetsu {
+  border-color: #ffb347;
+  box-shadow: 0 0 14px rgba(255, 140, 60, 0.6);
+}
+.quest-banner.frame-kyukyoku {
+  border-color: #4cc9f0;
+}
+.quest-banner.frame-kiwami {
+  border-color: #a7b0bd;
+}
+.quest-banner.frame-material {
+  border-color: #39d0b8;
+}
+.grade-ribbon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 5;
+  padding: 2px 14px 2px 18px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  font-size: 0.85rem;
+  color: #fff;
+  clip-path: polygon(12px 0, 100% 0, 100% 100%, 0 100%);
+  text-shadow: 0 1px 3px #000;
+}
+.frame-chozetsu .grade-ribbon {
+  background: linear-gradient(90deg, #c0392b, #ffd166);
+}
+.frame-kyukyoku .grade-ribbon {
+  background: linear-gradient(90deg, #1f3d6b, #4cc9f0);
+}
+.frame-kiwami .grade-ribbon {
+  background: linear-gradient(90deg, #4b5563, #9ca3af);
+}
+.frame-material .grade-ribbon {
+  background: linear-gradient(90deg, #0f4d48, #39d0b8);
+}
+
+/* 図鑑：番号つきのアイコンの一覧と、タップで出る詳しい情報 */
+.dex-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.dex-rate {
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: var(--primary);
+}
+.dex-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 6px;
+}
+.dex-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 14px 2px 4px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  line-height: 1;
+}
+.dex-cell.unknown {
+  opacity: 0.6;
+}
+.dex-cell .stars {
+  font-size: 0.6rem;
+}
+.dex-no {
+  position: absolute;
+  top: 2px;
+  left: 5px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: var(--muted);
+}
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(10, 10, 18, 0.7);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--card);
+  border-radius: 18px 18px 0 0;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  animation: sheet-up 0.25s ease-out;
+}
+.sheet .recipe,
+.sheet .btn {
+  align-self: stretch;
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+}
+
 /* クエストの格 */
 .grade-badge {
   display: inline-block;

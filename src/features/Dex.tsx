@@ -1,110 +1,170 @@
+import { useState } from 'react'
 import { useStore } from '../store'
+import { CONFIG } from '../config/gameConfig'
 import { FORM_ATTR_LABEL } from '../data/exercises'
-import { getTemplate, pathTo } from '../data/evolutionTemplates'
+import { getTemplate, pathTo, type EvoNode } from '../data/evolutionTemplates'
 import { MonsterImage } from '../components/MonsterImage'
 import { Stars } from '../components/Stars'
+import { ElementBadge } from '../components/ElementBadge'
+import { Abilities } from '../components/Abilities'
 import { isJogressReady, jogressNeed } from '../lib/stats'
 import { MonsterTabs } from '../components/MonsterTabs'
 import { ATTR_COLOR, type Go } from '../nav'
 import { isHidden, monsterName, nodeAttr, type MonsterDef } from '../types'
-import { starsOf } from '../lib/gacha'
+import { rarityOf, starsOf } from '../lib/gacha'
+import { ELEMENT_COLOR, elementInfo } from '../lib/element'
 
-/** 全体図鑑。一度でもその姿になった形態が埋まっていく */
+type Filter = 'all' | 'found' | 'missing'
+
+interface Entry {
+  no: number // 図鑑番号（形態ごと）
+  def: MonsterDef
+  node: EvoNode
+  found: boolean
+  shiny: boolean
+  count: number // そのモンスターの所持数
+}
+
+/** 全体図鑑。モンストのように、形態ごとに番号つきのアイコンが並ぶ。タップで詳しく */
 export function Dex({ go }: { go: Go }) {
   const { defs, owned, state } = useStore()
+  const [filter, setFilter] = useState<Filter>('all')
+  const [open, setOpen] = useState<Entry | null>(null)
 
-  const entries = defs.map((def) => {
+  let no = 0
+  const entries: Entry[] = defs.flatMap((def) => {
     const template = getTemplate(def.templateId)
     const mons = owned.filter((o) => o.defId === def.id)
-    // 進化は一方通行なので、持っている1体ずつの「今の姿までの道のり」を合わせたものが発見済み
-    // 合体・ジョグレスでいなくなった個体が見つけていた形態も残す
+    // 持っている1体ずつの「今の姿までの道のり」と、合体・ジョグレスでいなくなった個体が見つけていた形態
     const found = new Set([...mons.flatMap((mon) => pathTo(template, mon.nodeId)), ...(state.dexFound[def.id] ?? [])])
     const shiny = state.dexShiny[def.id] === true || mons.some((m) => m.shiny)
-    return { def, template, found, count: mons.length, shiny }
+    return template.nodes.map((node) => ({ no: ++no, def, node, found: found.has(node.id), shiny, count: mons.length }))
   })
-  // レシピの1体ぶんの進み具合：持っている中でいちばん育っている個体
+  const foundCount = entries.filter((e) => e.found).length
+  const list = entries.filter((e) => (filter === 'found' ? e.found : filter === 'missing' ? !e.found : true))
+
+  // レシピの1体ぶんの進み具合
   const progressOf = (defId: string, hidden: MonsterDef) => {
     const parent = defs.find((d) => d.id === defId)
     if (!parent) return { name: '？？？', text: '登録が見つかりません', ready: false }
     const mons = owned.filter((o) => o.defId === defId)
     if (mons.some((m) => isJogressReady(m, parent, hidden))) return { name: parent.name, text: '条件クリア ✓', ready: true }
-    // いちばん育っている個体（星が多い順、同じなら＋が多い順）
     const best = mons
       .map((m) => ({ stars: starsOf(parent, m.nodeId), plus: m.plus ?? 0 }))
       .sort((a, b) => b.stars - a.stars || b.plus - a.plus)[0]
     const text = best ? `いちばん育っているのは★${best.stars}${best.plus > 0 ? `＋${best.plus}` : ''}` : '未所持'
     return { name: parent.name, text, ready: false }
   }
-  const foundCount = entries.reduce((sum, e) => sum + e.found.size, 0)
-  const formCount = entries.reduce((sum, e) => sum + e.template.nodes.length, 0)
 
   return (
     <div className="page">
       <MonsterTabs on="dex" go={go} />
-      <p className="muted">
-        発見 {foundCount}／全 {formCount} 形態
-      </p>
-      <p className="muted small">
-        分岐する進化先は、同じモンスターをもう1体タマゴから孵して、別の道に育てると埋まります。
-      </p>
+      <div className="dex-head">
+        <strong>
+          発見 {foundCount}／{entries.length}
+        </strong>
+        <span className="dex-rate">{entries.length ? Math.floor((foundCount / entries.length) * 100) : 0}%</span>
+      </div>
+      <div className="chips" role="group" aria-label="図鑑の絞り込み">
+        {(
+          [
+            ['all', '全部'],
+            ['found', '発見済み'],
+            ['missing', '未発見'],
+          ] as const
+        ).map(([f, label]) => (
+          <button key={f} type="button" className={`chip${filter === f ? ' on' : ''}`} onClick={() => setFilter(f)}>
+            {label}
+          </button>
+        ))}
+      </div>
+      {defs.length === 0 && <p className="muted">まだモンスターが登録されていません。</p>}
+
+      <div className="dex-grid">
+        {list.map((e) => {
+          const el = elementInfo(e.def).elements[0]
+          return (
+            <button
+              key={`${e.def.id}-${e.node.id}`}
+              className={`dex-cell${e.found ? '' : ' unknown'}`}
+              style={e.found && el ? { borderColor: ELEMENT_COLOR[el] } : undefined}
+              onClick={() => setOpen(e)}
+              aria-label={`No.${e.no} ${e.found ? monsterName(e.def, e.node.id) : '未発見'}`}
+            >
+              <span className="dex-no">{String(e.no).padStart(3, '0')}</span>
+              <MonsterImage
+                imageId={e.def.images[e.node.id]}
+                silhouette={!e.found}
+                shiny={e.found && e.shiny}
+                size={56}
+              />
+              {e.found && <Stars def={e.def} nodeId={e.node.id} />}
+            </button>
+          )
+        })}
+      </div>
+
       <button className="btn wide" onClick={() => go({ name: 'registry' })}>
         モンスターを登録・編集する
       </button>
-      {defs.length === 0 && <p className="muted">まだモンスターが登録されていません。</p>}
 
-      {entries.map(({ def, template, found, count, shiny }, index) => (
-        <section className="card" key={def.id}>
-          <h2>
-            <span className="muted small">No.{String(index + 1).padStart(3, '0')}</span>{' '}
-            {found.size > 0 ? def.name : '？？？'}
-            {shiny && ' ✨'}
-            <span className="muted small">
-              {' '}
-              {found.size}/{template.nodes.length}形態・所持{count}体
-            </span>
-          </h2>
-          {isHidden(def) && (
-            <div className="recipe">
-              <strong className="small">
-                {found.size === 0 ? '🔒 ' : ''}ジョグレスのレシピ（★{jogressNeed(def).stars + 1}で誕生・どちらも★
-                {jogressNeed(def).stars}以上{jogressNeed(def).plus > 0 ? `・＋${jogressNeed(def).plus}以上` : ''}）
-              </strong>
-              <ul className="mini-list">
-                {def.recipe!.map((parentId, i) => {
-                  const p = progressOf(parentId, def)
-                  return (
-                    <li key={i}>
-                      <span>{p.name}</span>
-                      <span className={`tag${p.ready ? ' keep' : ''}`}>{p.text}</span>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
-          )}
-          <div className="dex-forms">
-            {template.nodes.map((node) => {
-              const isFound = found.has(node.id)
-              const attr = nodeAttr(def, node.id)
-              return (
-                <div key={node.id} className={`dex-form${isFound ? '' : ' unknown'}`}>
-                  <MonsterImage
-                    imageId={def.images[node.id]}
-                    silhouette={!isFound}
-                    shiny={isFound && shiny}
-                    size={72}
-                  />
-                  <strong className="small">{isFound ? monsterName(def, node.id) : '？？？'}</strong>
-                  <Stars def={def} nodeId={node.id} />
-                  <span className="small" style={{ color: isFound ? ATTR_COLOR[attr] : undefined }}>
-                    {isFound ? `${FORM_ATTR_LABEL[attr]}属性` : '？'}
+      {open && (
+        <div className="sheet-backdrop" onClick={() => setOpen(null)}>
+          <div className="sheet" onClick={(ev) => ev.stopPropagation()}>
+            <span className="muted small">No.{String(open.no).padStart(3, '0')}</span>
+            <MonsterImage
+              imageId={open.def.images[open.node.id]}
+              silhouette={!open.found}
+              shiny={open.found && open.shiny}
+              size={160}
+            />
+            <h2>{open.found ? monsterName(open.def, open.node.id) : '？？？'}</h2>
+            <Stars def={open.def} nodeId={open.node.id} />
+            {open.found ? (
+              <>
+                <span className="row wrap center">
+                  <ElementBadge def={open.def} />
+                  <span className="small" style={{ color: ATTR_COLOR[nodeAttr(open.def, open.node.id)] }}>
+                    {FORM_ATTR_LABEL[nodeAttr(open.def, open.node.id)]}
                   </span>
-                </div>
-              )
-            })}
+                  <span className="small">
+                    {isHidden(open.def) ? 'ジョグレス' : CONFIG.gacha.rarities[rarityOf(open.def)].label}
+                    {open.def.questOnly && '・降臨'}
+                  </span>
+                </span>
+                <Abilities def={open.def} />
+                <p className="muted small">
+                  所持 {open.count}体{open.shiny && '・✨色違い発見済み'}
+                </p>
+              </>
+            ) : (
+              <p className="muted small">まだ見つけていない姿です。</p>
+            )}
+            {isHidden(open.def) && (
+              <div className="recipe">
+                <strong className="small">
+                  ジョグレスのレシピ（★{jogressNeed(open.def).stars + 1}で誕生・どちらも★{jogressNeed(open.def).stars}以上
+                  {jogressNeed(open.def).plus > 0 ? `・＋${jogressNeed(open.def).plus}以上` : ''}）
+                </strong>
+                <ul className="mini-list">
+                  {open.def.recipe!.map((parentId, i) => {
+                    const p = progressOf(parentId, open.def)
+                    return (
+                      <li key={i}>
+                        <span>{p.name}</span>
+                        <span className={`tag${p.ready ? ' keep' : ''}`}>{p.text}</span>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            )}
+            <button className="btn wide" onClick={() => setOpen(null)}>
+              閉じる
+            </button>
           </div>
-        </section>
-      ))}
+        </div>
+      )}
     </div>
   )
 }
