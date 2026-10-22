@@ -9,10 +9,11 @@ import type { Go } from '../nav'
 import { RARITY_KEYS, rarityOf, starsOf } from '../lib/gacha'
 import { ELEMENTS, ELEMENT_COLOR, ELEMENT_LABEL, elementInfo } from '../lib/element'
 import { attackOf } from '../lib/stats'
+import { isLuckMax, luckOf } from '../lib/fusion'
 import { isHidden, nodeAttr, plusName, type Element, type MonsterDef, type OwnedMonster } from '../types'
 
-type Sort = 'new' | 'stars' | 'attack' | 'rarity' | 'dex'
-const SORT_LABEL: Record<Sort, string> = { new: '入手順', stars: '星', attack: '攻撃力', rarity: 'レア度', dex: '図鑑順' }
+type Sort = 'new' | 'stars' | 'attack' | 'rarity' | 'luck' | 'dex'
+const SORT_LABEL: Record<Sort, string> = { new: '入手順', stars: '星', attack: '攻撃力', rarity: 'レア度', luck: '運', dex: '図鑑順' }
 const SORT_KEY = 'boxSort'
 
 /** レア度の高さ（ジョグレスがいちばん上） */
@@ -50,6 +51,7 @@ export function Box({ go }: { go: Go }) {
     stars: (a, b) => starsOf(b.def, b.mon.nodeId) - starsOf(a.def, a.mon.nodeId) || (b.mon.plus ?? 0) - (a.mon.plus ?? 0),
     attack: (a, b) => attackOf(b.mon, b.def) - attackOf(a.mon, a.def),
     rarity: (a, b) => rarityRank(b.def) - rarityRank(a.def) || starsOf(b.def, b.mon.nodeId) - starsOf(a.def, a.mon.nodeId),
+    luck: (a, b) => luckOf(b.mon) - luckOf(a.mon),
     dex: (a, b) => a.index - b.index || a.mon.obtainedAt - b.mon.obtainedAt,
   }
   const list = rows
@@ -118,6 +120,7 @@ export function Box({ go }: { go: Go }) {
               aria-label={plusName(def, mon)}
             >
               {partnerIds.has(mon.id) && <span className="box-partner">相</span>}
+              {isLuckMax(mon) && <span className="box-luck">運極</span>}
               <MonsterImage imageId={def.images[mon.nodeId]} size={56} plus={mon.plus} shiny={mon.shiny} />
               <Stars def={def} nodeId={mon.nodeId} />
               <span className="box-name">{plusName(def, mon)}</span>

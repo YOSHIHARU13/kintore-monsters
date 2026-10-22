@@ -8,6 +8,7 @@ import { QuestBanner } from '../components/QuestBanner'
 import { BOSS_DIFFICULTY, DIFFICULTIES, attrOf, dropPlus, gradeOf, powerOf, questGold, questHp, rankOf, type Member } from '../lib/quest'
 import { formationOf, requirementsOf, shortfallHelp, tagLabel, tagsOf } from '../lib/formation'
 import { FormationPanel } from '../components/FormationPanel'
+import { luckBonus } from '../lib/fusion'
 import { elementInfo, elementName } from '../lib/element'
 import { ATTR_COLOR, type Go } from '../nav'
 import { attackOf } from '../lib/stats'
@@ -54,6 +55,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
     return def ? [def] : []
   })
   const formation = formationOf(partyDefs, requirements)
+  const luck = luckBonus(party.flatMap((pid) => owned.filter((o) => o.id === pid)))
   // 候補は「まだ足りていない条件にいくつ貢献できるか」の順。同じなら攻撃力の順
   const members = owned
     .flatMap((mon): (Member & { help: number; tags: string[] })[] => {
@@ -87,6 +89,12 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
       <section className="card">
         <h2>求められる編成</h2>
         <FormationPanel formation={formation} names={names} />
+        {luck.count > 0 && (
+          <p className="small luck-bonus">
+            <span className="luck-max">運極</span> ×{luck.count}：報酬G ×{luck.goldRate.toFixed(1)}
+            {quest.kind === 'material' && `・核が落ちる確率 +${Math.round(luck.coreRate * 100)}%`}
+          </p>
+        )}
       </section>
 
       <section className="card">

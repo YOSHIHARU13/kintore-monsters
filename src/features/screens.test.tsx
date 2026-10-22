@@ -177,6 +177,7 @@ beforeEach(() => {
     evolve: vi.fn(),
     pourPlusExp: vi.fn(),
     fuse: vi.fn(),
+    feedLuck: vi.fn(),
     jogress: vi.fn(() => 'o9'),
     setActive: vi.fn(),
     saveMonsterDef: vi.fn(async () => {}),
@@ -427,8 +428,9 @@ describe('画面の表示', () => {
     fake.store.owned = [...owned, { id: 'o3', defId: 'm1', nodeId: 'n1', obtainedAt: 3 }]
     const el = await render(<MonsterDetail id="o1" go={go} />)
     expect(el.textContent).toContain('最終形態まで進化すると')
-    expect(el.textContent).toContain('いま食べさせられるモンスター：1体')
-    expect(el.textContent).not.toContain('食べさせる（')
+    expect(el.textContent).toContain('いま食べさせられるモンスター：0体') // 同じモンスターは運のほうへ
+    expect(el.textContent).toContain('同じモンスター1体をまとめて食べさせる（運＋1）')
+    expect(el.textContent).not.toContain('本当に食べさせる（') // ＋の合体はまだできない
   })
 
   it('モンスター詳細：最終形態はEXPを注いでから、同じモンスターを食べさせて＋1', async () => {
@@ -450,7 +452,7 @@ describe('画面の表示', () => {
     expect(fake.store.pourPlusExp).toHaveBeenCalledWith('o1', 'any')
   })
 
-  it('モンスター詳細：ゲージが満タンなら、同じモンスター（＋2）か同じ属性のモンスター（＋1）を食べさせられる', async () => {
+  it('モンスター詳細：ゲージが満タンなら同じ属性のモンスターで＋1、同じモンスターは運に食べさせる', async () => {
     fake.store.defs = [
       { ...defs[0], element: 'fire' },
       { ...defs[1], element: 'water' },
@@ -465,12 +467,16 @@ describe('画面の表示', () => {
     const el = await render(<MonsterDetail id="o1" go={go} />)
     expect(el.textContent).not.toContain('アシガメ') // 水は炎の素材にならない
     const rows = [...el.querySelectorAll('.mini-list li')].map((li) => li.textContent)
-    expect(rows[0]).toContain('＋2（同じモンスター）')
-    expect(rows[1]).toContain('ヒノコ')
-    expect(rows[1]).toContain('＋1（同じ属性）')
+    expect(rows[0]).toContain('ヒノコ')
+    expect(rows[0]).toContain('＋1（同じ属性）')
+    expect(rows.some((r) => r?.includes('ムキドラ'))).toBe(false) // 同じモンスターは＋の素材にしない
     await click('食べさせる')
     await click('本当に食べさせる（300G）')
-    expect(fake.store.fuse).toHaveBeenCalledWith('o1', 'o3')
+    expect(fake.store.fuse).toHaveBeenCalledWith('o1', 'o5')
+    // 同じモンスターは運に食べさせる
+    await click('同じモンスター1体をまとめて食べさせる')
+    await click('本当に1体まとめて食べさせる')
+    expect(fake.store.feedLuck).toHaveBeenCalledWith('o1', ['o3'])
   })
 
   it('モンスター詳細：＋5どうしでジョグレスすると隠しモンスターが生まれる', async () => {

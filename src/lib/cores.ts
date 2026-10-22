@@ -23,10 +23,10 @@ export interface Drop {
  * 素材クエストの核のドロップ。misses は、そのクエストで続けて落ちなかった回数。
  * 天井の回数ぶん続けて落ちなかったら、次は必ず落ちる。上級はたまに2個。
  */
-export function rollCoreDrop(difficulty: QuestDifficulty, misses: number, random: () => number): Drop {
+export function rollCoreDrop(difficulty: QuestDifficulty, misses: number, random: () => number, bonusRate = 0): Drop {
   const d = CONFIG.cores.drop[difficulty]
   const pity = misses >= CONFIG.cores.pityMisses
-  if (!pity && random() >= d.rate) return { count: 0, pity: false }
+  if (!pity && random() >= Math.min(1, d.rate + bonusRate)) return { count: 0, pity: false }
   return { count: random() < d.double ? 2 : 1, pity }
 }
 

@@ -1203,6 +1203,31 @@ details.tuning[open] > summary {
   color: var(--primary-text);
 }
 
+.luck-max {
+  display: inline-block;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-weight: 900;
+  color: #1b1400;
+  background: linear-gradient(90deg, #ef476f, #ffd166, #06d6a0, #4cc9f0, #b388ff);
+}
+.box-luck {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  font-size: 0.55rem;
+  font-weight: 900;
+  padding: 0 4px;
+  border-radius: 4px;
+  color: #1b1400;
+  background: linear-gradient(90deg, #ef476f, #ffd166, #06d6a0, #4cc9f0, #b388ff);
+}
+.luck-bonus {
+  margin: 4px 0 0;
+}
+
 /* クエストの格 */
 .grade-badge {
   display: inline-block;

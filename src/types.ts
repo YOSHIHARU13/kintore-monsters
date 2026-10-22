@@ -178,6 +178,7 @@ export interface OwnedMonster {
   investedFrom?: Record<string, Partial<Record<ExpSource, AttrExp>>> // 進化先 → どの財布から注いだか（返却用）
   invested?: AttrExp // 旧形式（通常ルートに注いだEXP）
   plus?: number // 合体で上げた＋の数（0〜最大）
+  luck?: number // 運（同じモンスターを食べさせると上がる。なければ1。99で運極）
   plusExp?: AttrExp // 次の＋に向けて注いだEXP
   plusFrom?: Partial<Record<ExpSource, AttrExp>> // 次の＋に向けて、どの財布から注いだか（返却用）
   shiny?: boolean // 色違い

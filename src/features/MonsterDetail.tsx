@@ -7,7 +7,7 @@ import { boughtCap, fusionCost, isExpFull, nextCost, planPour } from '../lib/evo
 import { Gauge } from '../components/Gauge'
 import { Stars } from '../components/Stars'
 import { Abilities } from '../components/Abilities'
-import { canFeed, fusionGain } from '../lib/fusion'
+import { canFeed, fusionGain, isLuckMax, luckOf } from '../lib/fusion'
 import { ElementBadge } from '../components/ElementBadge'
 import { CORE_LABEL } from '../lib/cores'
 import { attackOf, isJogressReady, jogressNeed } from '../lib/stats'
@@ -16,9 +16,10 @@ import { ATTR_COLOR, type Go } from '../nav'
 import { investedFor, isHidden, monsterName, nodeAttr, plusName, type MonsterDef } from '../types'
 
 export function MonsterDetail({ id, go }: { id: string; go: Go }) {
-  const { owned, defs, state, menu, pourExp, pourPlusExp, evolve, fuse, jogress } = useStore()
+  const { owned, defs, state, menu, pourExp, pourPlusExp, evolve, fuse, feedLuck, jogress } = useStore()
   const [evolved, setEvolved] = useState(0)
   const [foodId, setFoodId] = useState<string | null>(null)
+  const [confirmAllLuck, setConfirmAllLuck] = useState(false)
   const [partnerKey, setPartnerKey] = useState<string | null>(null)
   const [born, setBorn] = useState<{ def: MonsterDef; id: string } | null>(null)
   const mon = owned.find((o) => o.id === id)
@@ -76,6 +77,18 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
       return d && o.id !== mon.id && canFeed(def, d) ? [{ food: o, foodDef: d, gain: fusionGain(def, d, o) }] : []
     })
     .sort((a, b) => b.gain - a.gain)
+  // 運の素材：同じモンスターの別の個体（運が低い順。運が高い個体を残せるように）
+  const luckFoods = owned
+    .filter((o) => o.defId === mon.defId && o.id !== mon.id)
+    .sort((a, b) => luckOf(a) - luckOf(b) || (a.plus ?? 0) - (b.plus ?? 0))
+  // 運99に届くまでの分だけ食べさせる
+  let luckTotal = luckOf(mon)
+  const luckPicked = luckFoods.filter((f) => {
+    if (luckTotal >= CONFIG.luck.max) return false
+    luckTotal += luckOf(f)
+    return true
+  })
+  const luckGain = Math.min(CONFIG.luck.max, luckTotal) - luckOf(mon)
   // このモンスターがレシピに入っている隠しモンスターと、その相手になれる個体
   const recipes = defs
     .filter((d) => isHidden(d) && d.recipe!.includes(mon.defId))
@@ -121,7 +134,10 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
         </div>
         <h1 className="title">{plusName(def, mon)}</h1>
         <Stars def={def} nodeId={mon.nodeId} />
-        <p className="small">攻撃力 <strong>{attackOf(mon, def).toLocaleString()}</strong></p>
+        <p className="small">
+          攻撃力 <strong>{attackOf(mon, def).toLocaleString()}</strong>　
+          {isLuckMax(mon) ? <span className="luck-max">運極</span> : <span>運 {luckOf(mon)}</span>}
+        </p>
         <Abilities def={def} />
         <ElementBadge def={def} />
         <p style={{ color: ATTR_COLOR[attr] }}>
@@ -234,8 +250,8 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
         </summary>
         {!isFinal ? (
           <p className="muted small">
-            最終形態まで進化すると、同じモンスター（＋{CONFIG.fusion.gain.sameMonster}）か同じ属性のモンスター（＋
-            {CONFIG.fusion.gain.sameElement}）を食べさせて＋を上げられます（最大＋{CONFIG.fusion.maxPlus}、＋が上がるほど枠が豪華に）。食べさせる側は進化していなくてもOK。いま食べさせられるモンスター：
+            最終形態まで進化すると、同じ属性の別のモンスターを食べさせて＋
+            {CONFIG.fusion.gain.sameElement}できます（同じモンスターは「運」のほうへ）（最大＋{CONFIG.fusion.maxPlus}、＋が上がるほど枠が豪華に）。食べさせる側は進化していなくてもOK。いま食べさせられるモンスター：
             {foods.length}体
           </p>
         ) : fuseCost === null ? (
@@ -243,8 +259,8 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
         ) : (
           <>
             <p className="muted small">
-              ①EXPを注いでゲージを満タンに → ②同じモンスター（＋{CONFIG.fusion.gain.sameMonster}）か同じ属性のモンスター（＋
-              {CONFIG.fusion.gain.sameElement}）を食べさせる（{fuseCost.gold}G）。食べさせた側はいなくなりますが、注いでいたEXPは財布に戻り、図鑑の発見も消えません。
+              ①EXPを注いでゲージを満タンに → ②同じ属性の別のモンスターを食べさせて＋
+              {CONFIG.fusion.gain.sameElement}（{fuseCost.gold}G）。食べさせた側はいなくなりますが、注いでいたEXPは財布に戻り、図鑑の発見も消えません。
             </p>
             <div className="gauge-row">
               <span>＋{plus + 1}まで</span>
@@ -285,7 +301,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
                         {plusName(foodDef, food)} <Stars def={foodDef} nodeId={food.nodeId} />
                         <br />
                         <strong className="bonus-reward">＋{Math.min(gain, CONFIG.fusion.maxPlus - plus)}</strong>
-                        <span className="muted small">{food.defId === mon.defId ? '（同じモンスター）' : '（同じ属性）'}</span>
+                        <span className="muted small">（同じ属性）</span>
                       </span>
                     </span>
                     {foodId === food.id ? (
@@ -310,6 +326,47 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
                 ))}
               </ul>
             )}
+          </>
+        )}
+      </details>
+
+      <details className="card fold" open={luckFoods.length > 0 && !isLuckMax(mon)}>
+        <summary>
+          <h2>
+            運（{luckOf(mon)}／{CONFIG.luck.max}）{isLuckMax(mon) && <span className="luck-max">運極</span>}
+          </h2>
+        </summary>
+        <div className="gauge-row">
+          <Gauge value={luckOf(mon)} max={CONFIG.luck.max} color="#ffd166" />
+          <span className="num">{luckOf(mon)}</span>
+        </div>
+        <p className="muted small">
+          同じモンスターを食べさせると運が上がります（タダ。食べさせた側の運もそのまま足されます）。運{CONFIG.luck.max}で「運極」。運極を出撃させると、1体につきクエスト報酬のG＋
+          {Math.round(CONFIG.luck.goldBonus * 100)}%、核が落ちる確率＋{Math.round(CONFIG.luck.coreBonus * 100)}%。
+        </p>
+        {isLuckMax(mon) ? (
+          <p>運極！ クエストで報酬ボーナスがつきます。</p>
+        ) : luckFoods.length === 0 ? (
+          <p className="muted small">同じモンスターがいません。ガチャやクエストでダブりを集めよう。</p>
+        ) : (
+          <>
+            <button
+              className={`btn${confirmAllLuck ? ' primary' : ''} wide`}
+              onClick={() => {
+                if (!confirmAllLuck) return setConfirmAllLuck(true)
+                feedLuck(
+                  id,
+                  luckPicked.map((f) => f.id),
+                )
+                setConfirmAllLuck(false)
+                navigator.vibrate?.([60, 40, 200])
+              }}
+            >
+              {confirmAllLuck
+                ? `本当に${luckPicked.length}体まとめて食べさせる`
+                : `同じモンスター${luckPicked.length}体をまとめて食べさせる（運＋${luckGain}）`}
+            </button>
+            <p className="muted small">食べさせた側はいなくなりますが、注いでいたEXPは財布に戻り、図鑑の発見も消えません。</p>
           </>
         )}
       </details>

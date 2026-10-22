@@ -29,7 +29,7 @@ import { draw, isPickupRarity, isPity, isReady, rarityOf, rateTable } from './li
 import { isJogressReady } from './lib/stats'
 import { battleOf, dropPlus, questGold } from './lib/quest'
 import { rollBonusCore, rollCoreDrop } from './lib/cores'
-import { canFeed, fusionGain } from './lib/fusion'
+import { canFeed, fusionGain, isLuckMax, luckAfter, luckBonus } from './lib/fusion'
 import { finalAttrs, recommend } from './lib/coverage'
 import { abilitySlots, jogressGradeOf, selectableGimmicks } from './lib/gimmick'
 import { jogressElementOf } from './lib/element'
@@ -211,6 +211,8 @@ interface Store {
   pourPlusExp: (monsterId: string, from: ExpSource) => void
   /** foodId のモンスターを monsterId（最終形態）に食べさせて＋1にする（同じモンスター同士だけ） */
   fuse: (monsterId: string, foodId: string) => void
+  /** 同じモンスターをまとめて食べさせて運を上げる（タダ・最大99） */
+  feedLuck: (monsterId: string, foodIds: string[]) => void
   /** ＋5の2体を合わせて隠しモンスターを生む。生まれた個体のID */
   jogress: (monsterId: string, partnerId: string, hiddenDefId: string) => string | null
   saveMonsterDef: (input: MonsterDefInput) => Promise<void>
@@ -615,6 +617,26 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       batch.commit().catch(fail)
     }
 
+    // 同じモンスターを食べさせて運を上げる（段階は問わない・タダ）。食べさせた側のEXPは財布に戻し、図鑑の発見も残す
+    const feedLuck: Store['feedLuck'] = (monsterId, foodIds) => {
+      const found = findMonster(monsterId)
+      if (!found || isLuckMax(found.mon)) return
+      const foods = foodIds
+        .filter((f) => f !== monsterId)
+        .map(findMonster)
+        .filter((f): f is NonNullable<typeof f> => !!f && f.mon.defId === found.mon.defId)
+      if (foods.length === 0) return
+      // 1体ずつ足していく（最大99）
+      const luck = foods.reduce((sum, f) => luckAfter({ luck: sum }, f.mon), found.mon.luck ?? 1)
+      const update: DocumentData = {}
+      consume(update, foods)
+      const batch = writeBatch(db)
+      batch.update(doc(db, base, 'ownedMonsters', monsterId), { luck })
+      for (const f of foods) batch.delete(doc(db, base, 'ownedMonsters', f.mon.id))
+      if (Object.keys(update).length > 0) batch.update(stateRef, update)
+      batch.commit().catch(fail)
+    }
+
     // レシピの2体（どちらも最終形態の＋5）を合わせて、隠しモンスターを生む。2体はいなくなる
     const jogress: Store['jogress'] = (monsterId, partnerId, hiddenDefId) => {
       const a = findMonster(monsterId)
@@ -881,7 +903,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       if (!battle?.defeated) return null
       const c = battle.challenge
       const material = battle.quest.kind === 'material'
-      const gold = questGold(battle.quest, c.difficulty)
+      const bonus = luckBonus(battle.party.map((m) => m.mon))
+      const gold = Math.round(questGold(battle.quest, c.difficulty) * bonus.goldRate)
       const coreKey = battle.quest.attr
       const batch = writeBatch(db)
       const update: DocumentData = {
@@ -895,7 +918,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       let corePity = false
       if (material) {
         // 素材クエスト：核が落ちる（毎回ではない。続けて落ちないと確定）
-        const drop = rollCoreDrop(c.difficulty, state.coreMisses[battle.quest.id] ?? 0, Math.random)
+        const drop = rollCoreDrop(c.difficulty, state.coreMisses[battle.quest.id] ?? 0, Math.random, bonus.coreRate)
         cores = drop.count
         corePity = drop.pity
         update[`coreMisses.${battle.quest.id}`] = cores > 0 ? 0 : increment(1)
@@ -961,6 +984,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       evolve,
       pourPlusExp,
       fuse,
+      feedLuck,
       jogress,
       saveMonsterDef,
       autoTuneDefs,

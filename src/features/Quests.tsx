@@ -17,6 +17,7 @@ const QUEST_GROUPS = [
   { key: 'material', label: '素材' },
 ] as const
 import { formationOf, requirementsOf } from '../lib/formation'
+import { luckBonus } from '../lib/fusion'
 import { CORE_LABEL } from '../lib/cores'
 import type { QuestReward } from '../store'
 import type { Go } from '../nav'
@@ -97,6 +98,8 @@ export function Quests({ go }: { go: Go }) {
                   battle.party.map((m) => m.def),
                   requirementsOf(battle.quest),
                 ).rate.toFixed(2)}
+                {luckBonus(battle.party.map((m) => m.mon)).count > 0 &&
+                  `・運極ボーナス 報酬G×${luckBonus(battle.party.map((m) => m.mon)).goldRate.toFixed(1)}`}
                 ・今日中に倒そう
               </span>
             </div>
