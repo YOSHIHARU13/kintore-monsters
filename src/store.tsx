@@ -34,6 +34,7 @@ import { autoPartners } from './lib/partner'
 import { finalAttrs, recommend } from './lib/coverage'
 import { abilitySlots, jogressGradeOf, selectableGimmicks } from './lib/gimmick'
 import { boostActive } from './lib/boosters'
+import { builtinMaterialQuests } from './lib/materials'
 import { towerCleared, towerFloors, towerMonth, type TowerFloor } from './lib/tower'
 import { elementInfo, jogressElementOf } from './lib/element'
 import { investedFor, isHidden, nodeAttr, type AttrExp, type BannerSlide, type BoosterKey, type Checkin, type Element, type Gacha, type Quest, type QuestDifficulty, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
@@ -371,12 +372,12 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
   // ボスの属性は、いつもボスのモンスターの属性と同じ（モンスターの属性を変えればクエストも変わる）
   const quests = useMemo(
     () =>
-      questDocs.map((q) => {
+      questDocs.map((q): Quest => {
         const boss = defs.find((d) => d.id === q.bossDefId)
         const autoName = !q.name?.trim()
         const name = autoName ? (boss?.name ?? '名前のないクエスト') : q.name
         return boss ? { ...q, name, autoName, element: elementInfo(boss).elements[0] } : { ...q, name, autoName }
-      }),
+      }).concat(builtinMaterialQuests(defs)),
     [questDocs, defs],
   )
   const yesterday = useMemo(() => prevDateKey(today), [today])

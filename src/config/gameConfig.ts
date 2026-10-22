@@ -234,6 +234,7 @@ export const CONFIG = {
     eggExchange: 3, // この数でタマゴ1個と交換
     materialHpRatio: 0.5, // 素材クエストのHPは、ボスクエストのこの割合
     materialGoldRatio: 0.5,
+    builtinCatchphrase: 'いつでも挑める。核を集めよう',
   },
 
   // 進化コスト（上から 1→2, 2→3, 3→4, 4→5）
