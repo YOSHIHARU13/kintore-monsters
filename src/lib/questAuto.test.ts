@@ -6,15 +6,20 @@ import type { MonsterDef } from '../types'
 const boss = { id: 'b1', name: 'アシリュウ', templateId: 'single', attrs: { n1: 'legs' }, images: {}, element: 'water', questOnly: true, rarity: 'superRare', createdAt: 0 } as unknown as MonsterDef
 
 describe('おまかせのクエスト', () => {
-  it('超絶：刺さるキャラがいなければ、2つの属性を3ずつ＋実際に誰かが両方持っている組み合わせ', () => {
-    const normal = (id: string, abilities: string[]) =>
-      ({ id, name: id, templateId: 'linear3', images: {}, rarity: 'normal', abilities, createdAt: 0 }) as unknown as MonsterDef
-    // ノーマルは1つしか持てないので、両方もつ子はいない → アビリティ1つの条件になる（誰も持っていない組み合わせにはしない）
-    const r = autoQuestSetup(boss, 'chozetsu', 'boss', [], ['バリア', 'シールド', 'リジェネ', 'ミラー'], undefined, [normal('n', ['ミラー'])])
-    expect(r.requirements[0]).toEqual({ tag: 'el:wood', count: 3 }) // 水には木が有利
-    expect(r.requirements[1]).toMatchObject({ tag: expect.stringMatching(/^el:/), count: 3 })
-    expect(r.requirements[2]).toEqual({ tag: 'ab:ミラー', count: 2 }) // 持っている子がいるアビリティ
+  it('タグの仲間がいなければ、ボスに有利な属性＋実際に誰かが持っているギミックだけ（無関係な属性は求めない）', () => {
+    const sr = (id: string, element: string, abilities: string[]) =>
+      ({ id, name: id, templateId: 'linear3', images: {}, rarity: 'superRare', element, abilities, createdAt: 0 }) as unknown as MonsterDef
+    const defs = [sr('h', 'fire', ['バリア', 'ミラー']), sr('i', 'water', ['シールド', 'リジェネ'])]
+    const r = autoQuestSetup(boss, 'chozetsu', 'boss', [], ['バリア', 'シールド', 'リジェネ', 'ミラー'], undefined, defs)
+    expect(r.heroId).toBeUndefined()
+    expect(r.requirements[0]).toEqual({ tag: 'el:wood', count: 4 }) // 水には木が有利
+    expect(r.requirements[1]).toMatchObject({ tag: expect.stringMatching(/^ab2:/), count: 2 }) // 誰かが両方持っている組み合わせ
+    expect(r.requirements.filter((x) => x.tag.startsWith('el:'))).toHaveLength(1) // 炎や水は求めない
     expect(r.weakSlots.length).toBeGreaterThan(0)
+    // ノーマル1つ持ちだけなら、両方もつ条件は作らず、そのギミック1つ
+    const normal = { ...sr('n', 'fire', ['ミラー']), rarity: 'normal' } as MonsterDef
+    const r2 = autoQuestSetup(boss, 'chozetsu', 'boss', [], ['バリア', 'シールド', 'リジェネ', 'ミラー'], undefined, [normal])
+    expect(r2.requirements).toEqual([{ tag: 'el:wood', count: 4 }, { tag: 'ab:ミラー', count: 2 }])
   })
   it('刺さるキャラを3体選ぶと、その子たちに多い属性と、両方持っている組み合わせで条件を作る', () => {
     const sr = (id: string, element: string, abilities: string[]) =>
@@ -26,16 +31,6 @@ describe('おまかせのクエスト', () => {
       { tag: 'el:fire', count: 3 },
       { tag: 'el:light', count: 1 },
       { tag: 'ab2:バリア|ミラー', count: 3 },
-    ])
-  })
-  it('超絶：刺さるキャラ（アビリティ2つの激レア）の属性と、アビリティを両方もつ条件になる', () => {
-    const hero = { id: 'h', name: 'h', templateId: 'linear3', images: {}, rarity: 'superRare', element: 'fire', abilities: ['バリア', 'ミラー'], createdAt: 0 } as unknown as MonsterDef
-    const r = autoQuestSetup(boss, 'chozetsu', 'boss', [], ['バリア', 'シールド', 'リジェネ', 'ミラー'], undefined, [hero])
-    expect(r.heroId).toBe('h')
-    // 仲間がいないので理想の6体はこの子×6。超絶はその約5/6
-    expect(r.requirements).toEqual([
-      { tag: 'el:fire', count: 5 },
-      { tag: 'ab2:バリア|ミラー', count: 5 },
     ])
   })
   it('超究極：同じコラボの子が刺さるキャラになる', () => {

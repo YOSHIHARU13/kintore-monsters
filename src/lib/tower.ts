@@ -1,9 +1,9 @@
 import { CONFIG } from '../config/gameConfig'
-import { SLOTS } from '../data/exercises'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
-import { ELEMENTS, advantageElements, elementInfo } from './element'
-import { abilityTag, elementTag } from './formation'
+import { ELEMENTS, elementInfo } from './element'
 import { standardSessionDamage } from './quest'
+import { autoQuestSetup } from './questAuto'
+import { rarityOf } from './gacha'
 import {
   isHidden,
   nodeAttr,
@@ -66,37 +66,27 @@ export function towerFloors(month: string, defs: MonsterDef[], gimmicks: string[
   const t = CONFIG.tower
   const r = seeded(`tower:${month}`)
   const looks = defs.filter((d) => !isHidden(d) && d.images[FIRST_NODE_ID])
+  // ボスは降臨モンスターから（塔の報酬は除く）。いなければハズレ・ノーマル、それもいなければ誰か
+  const questOnly = looks.filter((d) => d.questOnly && !d.tower)
+  const weakOnes = looks.filter((d) => !d.questOnly && rarityOf(d) !== 'superRare')
+  const pool = [...(questOnly.length > 0 ? questOnly : weakOnes.length > 0 ? weakOnes : looks)].sort(() => r() - 0.5)
   const prizes = towerMonsters(defs)
   // 月が変わるごとに、塔限定モンスターを順番に出す
   const [y, m] = month.split('-').map(Number)
   const turn = (y * 12 + m) * t.monsterFloors.length
-  const weakChoices = SLOTS.filter((s) => s.day !== 'bonus').map((s) => s.id)
 
   return Array.from({ length: t.floors }, (_, i) => {
     const floor = i + 1
-    const element = pick([...ELEMENTS], r)
-    const sameElement = looks.filter((d) => elementInfo(d).elements.includes(element))
-    const boss =
-      (sameElement.length > 0 ? sameElement : looks).length > 0
-        ? pick(sameElement.length > 0 ? sameElement : looks, r)
-        : undefined
+    // 同じ月の塔では、なるべく同じボスが続かないように順番に。属性はボスの属性
+    const boss = pool.length > 0 ? pool[i % pool.length] : undefined
+    const element = (boss && elementInfo(boss).elements[0]) || pick([...ELEMENTS], r)
     const attr = boss ? nodeAttr(boss, FIRST_NODE_ID) : pick(['chestArms', 'legs', 'backShoulders'] as const, r)
     const attrKey = attr === 'none' ? pick(['chestArms', 'legs', 'backShoulders'] as const, r) : attr
-    const weak = [...weakChoices].sort(() => r() - 0.5).slice(0, floor >= t.twoWeakFrom ? 2 : 1)
-    const requirements: Requirement[] = []
-    if (floor >= t.elementReqFrom) {
-      requirements.push({
-        tag: elementTag(advantageElements(element)[0]),
-        count: Math.min(4, 2 + Math.floor((floor - t.elementReqFrom) / 3)),
-      })
-    }
-    if (floor >= t.abilityReqFrom && gimmicks.length > 0) {
-      requirements.push({
-        tag: abilityTag(pick(gimmicks, r)),
-        count: floor >= 9 ? 3 : 2,
-      })
-    }
     const grade: QuestGrade = floor >= t.chozetsuFrom ? 'chozetsu' : floor >= t.kyukyokuFrom ? 'kyukyoku' : 'kiwami'
+    // 条件と弱点は、クエストのおまかせと同じ作り方（ボスに有利な属性＋実際に誰かが持っているギミック。タグの仲間がいればその子たち）
+    const setup = boss ? autoQuestSetup(boss, grade, 'boss', [], gimmicks, undefined, defs) : { requirements: [], weakSlots: [] }
+    const requirements: Requirement[] = floor >= t.elementReqFrom ? setup.requirements : []
+    const weak = setup.weakSlots.slice(0, floor >= t.twoWeakFrom ? 2 : 1)
     const hp = Math.max(100, Math.round((standardSessionDamage() * t.hpRatio[i]) / 100) * 100)
     const mi = t.monsterFloors.indexOf(floor)
     const prize = mi >= 0 && prizes.length > 0 ? prizes[(turn + mi) % prizes.length] : undefined

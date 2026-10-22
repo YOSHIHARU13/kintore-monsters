@@ -637,7 +637,8 @@ describe('画面の表示', () => {
 
   it('クエスト作成：ボス・弱点・HPを決めて保存（HPには目安が入っている）', async () => {
     const { QuestForm } = await import('./QuestForm')
-    fake.store.defs = [...defs, { id: 'b1', name: 'アシリュウ', attr: 'legs', templateId: 'linear3', images: {}, questOnly: true, createdAt: 9 }]
+    // ムキドラはバリアブレイカーを持っている（誰かが持っているギミックだけが、おまかせの条件になる）
+    fake.store.defs = [{ ...defs[0], abilities: ['バリア'] }, defs[1], { id: 'b1', name: 'アシリュウ', attr: 'legs', templateId: 'linear3', images: {}, questOnly: true, createdAt: 9 }]
     const el = await render(<QuestForm go={go} />)
     const type = async (input: HTMLInputElement, value: string) =>
       act(async () => {

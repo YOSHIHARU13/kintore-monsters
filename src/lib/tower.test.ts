@@ -15,7 +15,9 @@ describe('試練の塔', () => {
     expect(towerFloors('2026-11', defs, ['バリア']).map((f) => f.quest.element)).not.toEqual(a.map((f) => f.quest.element))
   })
   it('上の階ほどHPが高く、条件が増え、8階から超絶', () => {
-    const floors = towerFloors('2026-10', defs, ['バリア'])
+    // 誰かが持っているギミックだけが条件になるので、バリアを持つ子を入れておく
+    const withAbility = defs.map((d) => (d.id === 'a' ? { ...d, abilities: ['バリア'] } : d))
+    const floors = towerFloors('2026-10', withAbility, ['バリア'])
     for (let i = 1; i < floors.length; i++) expect(floors[i].quest.hp.normal).toBeGreaterThan(floors[i - 1].quest.hp.normal)
     expect(floors[0].quest.requirements).toEqual([])
     expect(floors[9].quest.requirements).toHaveLength(2)
@@ -31,5 +33,13 @@ describe('試練の塔', () => {
   it('クリアした階は月が変わると0に戻る', () => {
     expect(towerCleared({ tower: { month: '2026-10', cleared: 4 } }, '2026-10')).toBe(4)
     expect(towerCleared({ tower: { month: '2026-09', cleared: 10 } }, '2026-10')).toBe(0)
+  })
+  it('ボスは降臨モンスターから。属性はボスの属性で、条件はボスに有利な属性（無関係な属性は求めない）', () => {
+    const boss = def('q', { questOnly: true, element: 'light' })
+    const floors = towerFloors('2026-10', [...defs, boss], ['バリア'])
+    expect(floors.every((f) => f.quest.bossDefId === 'q')).toBe(true)
+    expect(floors[9].quest.element).toBe('light')
+    const els = floors[9].quest.requirements!.filter((r) => r.tag.startsWith('el:')).map((r) => r.tag)
+    expect(els).toEqual(['el:dark']) // 光には闇が有利
   })
 })
