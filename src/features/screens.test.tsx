@@ -835,7 +835,14 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('胸腕 1体') // ムキドラ（最終形態に胸腕がある）
     expect(el.textContent).toContain('炎 0体／クエスト1不足')
     expect(el.textContent).toContain('シールドクラッシャー 0体／クエスト1不足')
-    expect(el.textContent).toContain('特に刺さるクエストはまだありません') // 刺さらないクエストは出さない
+    // 新しく登録するときは、最初からおまかせで足りないものが選ばれている
+    expect(el.textContent).toContain('おまかせ中')
+    expect(el.textContent).toContain('◎ 脚竜の巣')
+    // 自分で選ぶとおまかせは止まり、刺さらなくなったクエストは出さない
+    const els = el.querySelector('[aria-label="属性"]')!
+    await act(async () => [...els.querySelectorAll('button')].find((b) => b.textContent?.startsWith('水'))!.click())
+    expect(el.textContent).not.toContain('おまかせ中')
+    expect(el.textContent).not.toContain('🔥炎・')
     await click('足りないもので埋める')
     const favorite = [...el.querySelectorAll('select')].find((x) => x.textContent?.includes('プッシュアップ')) as HTMLSelectElement
     expect(favorite.value).toBe('mon4') // 弱点種目なのに得意なモンスターがいない（胸腕のモンスターなので胸腕の種目から）

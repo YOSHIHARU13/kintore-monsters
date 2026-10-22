@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '../store'
 import { ATTRS, DAYS, FORM_ATTRS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type FormAttr } from '../data/exercises'
 import { TEMPLATES, canChangeTemplate, getTemplate } from '../data/evolutionTemplates'
@@ -109,10 +109,19 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
     setAbilities(rec.abilities)
   }
 
+  // 新しく登録するときは、足りないものを自動で選んでおく（自分で選んだら止める）
+  const [auto, setAuto] = useState(!existing)
+  const favoriteKey = favoriteChoices.map((s) => s.id).join()
+  useEffect(() => {
+    if (auto) applyRecommend()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auto, maxAbilities, favoriteKey, recipe.length, defs.length, quests.length])
+
   // 選んだクエストの条件に合わせる：属性はその条件の中でいちばん足りていないもの、アビリティは条件にあるもの
   const applyQuest = (questId: string) => {
     const quest = quests.find((q) => q.id === questId)
     if (!quest) return
+    setAuto(false)
     const reqs = requirementsOf(quest)
     const elementReqs = reqs.filter((r) => r.tag.startsWith('el:'))
     if (recipe.length !== 2 && elementReqs.length > 0) {
@@ -295,6 +304,11 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
 
       <section className="card">
         <h2>属性</h2>
+        {auto && (
+          <p className="small bonus-reward">
+            ✨ おまかせ中：足りない属性・得意種目・アビリティを自動で選んでいます（自分で選ぶと止まります）
+          </p>
+        )}
         {recipe.length === 2 ? (
           <p className="small">
             属性：<strong>{elementName(elementInfo(draftFull))}</strong>
@@ -304,7 +318,10 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
           <div className="field">
             属性　数字は「持っているモンスター／その属性を求めるクエスト」
             <div className="chips" role="group" aria-label="属性">
-              <button type="button" className={`chip${element === '' ? ' on' : ''}`} onClick={() => setElement('')}>
+              <button type="button" className={`chip${element === '' ? ' on' : ''}`} onClick={() => {
+                  setAuto(false)
+                  setElement('')
+                }}>
                 無属性
               </button>
               {ELEMENTS.map((e) => (
@@ -313,7 +330,10 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
                   type="button"
                   className={`chip${element === e ? ' on' : ''}${isShort(elSup[e]) ? ' short' : ''}`}
                   style={element === e ? { borderColor: ELEMENT_COLOR[e], color: ELEMENT_COLOR[e] } : undefined}
-                  onClick={() => setElement(e)}
+                  onClick={() => {
+                    setAuto(false)
+                    setElement(e)
+                  }}
                 >
                   {ELEMENT_LABEL[e]} <span className="small">{supplyText(elSup[e])}</span>
                   {isShort(elSup[e]) && <span className="short-badge">不足</span>}
@@ -344,7 +364,13 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
           )}
         <label className="field">
           得意種目（このモンスターの部位の種目から。相棒にするとEXPがさらに ×{CONFIG.partner.favorite}）
-          <select value={validFavorite} onChange={(e) => setFavoriteSlot(e.target.value)}>
+          <select
+            value={validFavorite}
+            onChange={(e) => {
+              setAuto(false)
+              setFavoriteSlot(e.target.value)
+            }}
+          >
             <option value="">なし</option>
             {favoriteChoices.map((slot) => (
               <option key={slot.id} value={slot.id}>
@@ -368,7 +394,10 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
                   type="button"
                   className={`chip${on ? ' on' : ''}${isShort(sup) ? ' short' : ''}`}
                   disabled={!on && abilities.length >= maxAbilities}
-                  onClick={() => setAbilities(on ? abilities.filter((x) => x !== g) : [...abilities, g])}
+                  onClick={() => {
+                    setAuto(false)
+                    setAbilities(on ? abilities.filter((x) => x !== g) : [...abilities, g])
+                  }}
                 >
                   {abilityName(g, gimmickNames)} <span className="small">{supplyText(sup)}</span>
                   {isShort(sup) && <span className="short-badge">不足</span>}
