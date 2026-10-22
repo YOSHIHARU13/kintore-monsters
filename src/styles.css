@@ -2438,3 +2438,65 @@ details.tuning[open] > summary {
 .period-row input[type='date'] {
   max-width: 140px;
 }
+
+/* 激レア以上：白い背景を透明にして、うしろにエフェクト */
+.glow {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  isolation: isolate;
+}
+.glow .monster-img {
+  position: relative;
+  z-index: 1;
+  background: transparent !important;
+}
+.glow-bg {
+  position: absolute;
+  inset: -40%;
+  z-index: 0;
+}
+.glow-superRare .glow-bg {
+  background:
+    radial-gradient(circle at 50% 55%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 38%),
+    conic-gradient(from 0deg, #ff6b6b, #ffd166, #06d6a0, #4cc9f0, #b388ff, #ff6bcb, #ff6b6b);
+  animation: glow-spin 9s linear infinite;
+}
+.glow-jogress .glow-bg {
+  background:
+    radial-gradient(circle at 50% 55%, rgba(255, 245, 210, 0.9), rgba(255, 245, 210, 0) 40%),
+    conic-gradient(from 0deg, #3a0d5c, #ffd166, #8a2be2, #ffe9a8, #3a0d5c);
+  animation: glow-spin 7s linear infinite;
+}
+/* きらきら */
+.glow::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 22%, #fff 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 82% 30%, #fff 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 70% 85%, #fff 0 1.2px, transparent 2.2px),
+    radial-gradient(circle at 25% 78%, #fff 0 1px, transparent 2px);
+  animation: glow-twinkle 2.2s ease-in-out infinite;
+}
+@keyframes glow-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes glow-twinkle {
+  50% {
+    opacity: 0.25;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .glow-bg,
+  .glow::after {
+    animation: none;
+  }
+}

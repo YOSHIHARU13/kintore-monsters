@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { awakenOf, imageOf } from '../lib/art'
+import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { CONFIG } from '../config/gameConfig'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { starsOf } from '../lib/gacha'
@@ -96,7 +96,7 @@ export function HatchReveal({ hatched, onClose, onMeet }: { hatched: Hatched; on
           </div>
         )}
         {starRow}
-        <MonsterImage imageId={imageOf(hatched.def, FIRST_NODE_ID)} awaken={awakenOf(hatched.def, FIRST_NODE_ID)} size={180} shiny={hatched.shiny} />
+        <MonsterImage imageId={imageOf(hatched.def, FIRST_NODE_ID)} awaken={awakenOf(hatched.def, FIRST_NODE_ID)} glow={glowOf(hatched.def)} size={180} shiny={hatched.shiny} />
         <div className="beat-title">{monsterName(hatched.def, FIRST_NODE_ID)}</div>
         <div className="beat-sub">が生まれた！</div>
         <button

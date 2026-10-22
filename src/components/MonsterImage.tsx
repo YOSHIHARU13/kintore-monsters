@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../store'
+import { cutoutWhite } from '../lib/cutout'
+import type { Glow } from '../lib/art'
 
 interface Props {
   imageId?: string
@@ -8,6 +10,7 @@ interface Props {
   plus?: number // 合体の＋。1以上なら＋に応じた枠で囲む
   shiny?: boolean // 旧：色違い（今は使わない）
   awaken?: number // 覚醒の段階（1：覚醒、2：真・覚醒）。絵のまわりが光る（星とは別）
+  glow?: Glow // 激レア以上：白い背景を透明にして、うしろに虹色などのエフェクト
 }
 
 /** モンスター画像。画像が未登録ならプレースホルダーのシルエットを出す */
@@ -34,19 +37,23 @@ export function MonsterImage({ plus: _plus = 0, shiny: _shiny = false, awaken = 
   )
 }
 
-function Picture({ imageId, silhouette = false, size = 96 }: Omit<Props, 'plus' | 'shiny'>) {
+function Picture({ imageId, silhouette = false, size = 96, glow }: Omit<Props, 'plus' | 'shiny'>) {
   const { loadImage } = useStore()
   const [src, setSrc] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
     setSrc(null)
-    if (imageId) loadImage(imageId).then((data) => alive && setSrc(data))
+    const fancy = glow && !silhouette
+    if (imageId)
+      loadImage(imageId)
+        .then((data) => (data && fancy ? cutoutWhite(data) : data))
+        .then((data) => alive && setSrc(data))
     return () => {
       alive = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [imageId])
+  }, [imageId, glow, silhouette])
 
   const style = { width: size, height: size }
   if (!src) {
@@ -61,5 +68,12 @@ function Picture({ imageId, silhouette = false, size = 96 }: Omit<Props, 'plus' 
       </div>
     )
   }
-  return <img className={`monster-img${silhouette ? ' silhouette' : ''}`} style={style} src={src} alt="" />
+  const img = <img className={`monster-img${silhouette ? ' silhouette' : ''}`} style={style} src={src} alt="" />
+  if (!glow || silhouette) return img
+  return (
+    <div className={`glow glow-${glow}`} style={style}>
+      <span className="glow-bg" aria-hidden="true" />
+      {img}
+    </div>
+  )
 }

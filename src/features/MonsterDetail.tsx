@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { awakenOf, imageOf } from '../lib/art'
+import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { useStore } from '../store'
 import { ATTRS, ATTR_LABEL, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type Attr } from '../data/exercises'
 import { FIRST_NODE_ID, getNode, getTemplate } from '../data/evolutionTemplates'
@@ -37,7 +37,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
         ))}
         <div className="beat-text">
           <div className="beat-title">ジョグレス進化！！</div>
-          <MonsterImage imageId={imageOf(born.def, FIRST_NODE_ID)} awaken={awakenOf(born.def, FIRST_NODE_ID)} size={180} />
+          <MonsterImage imageId={imageOf(born.def, FIRST_NODE_ID)} awaken={awakenOf(born.def, FIRST_NODE_ID)} glow={glowOf(born.def)} size={180} />
           <div className="beat-title">{monsterName(born.def, FIRST_NODE_ID)}</div>
           <Stars def={born.def} nodeId={FIRST_NODE_ID} />
           <div className="beat-sub">が生まれた！</div>
@@ -120,7 +120,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
           ))}
           <div className="beat-text">
             <div className="beat-title">運極達成！！</div>
-            <MonsterImage imageId={imageOf(def, mon.nodeId)} awaken={awakenOf(def, mon.nodeId)} size={180} shiny={mon.shiny} />
+            <MonsterImage imageId={imageOf(def, mon.nodeId)} awaken={awakenOf(def, mon.nodeId)} glow={glowOf(def)} size={180} shiny={mon.shiny} />
             <div className="beat-title">{plusName(def, mon)}</div>
             <div className="beat-sub">
               クエスト報酬G＋{Math.round(CONFIG.luck.goldBonus * 100)}%・核＋{Math.round(CONFIG.luck.coreBonus * 100)}%
@@ -135,7 +135,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
 
       <section className="card center">
         <div className={evolved ? 'evolve-flash' : ''} key={evolved}>
-          <MonsterImage imageId={imageOf(def, mon.nodeId)} awaken={awakenOf(def, mon.nodeId)} size={200} plus={mon.plus} shiny={mon.shiny} />
+          <MonsterImage imageId={imageOf(def, mon.nodeId)} awaken={awakenOf(def, mon.nodeId)} glow={glowOf(def)} size={200} plus={mon.plus} shiny={mon.shiny} />
         </div>
         <h1 className="title">{plusName(def, mon)}</h1>
         <Stars def={def} nodeId={mon.nodeId} />
@@ -169,7 +169,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
               const full = isExpFull(cost, invested)
               return (
                 <div key={nextId} className="route">
-                  <MonsterImage imageId={imageOf(def, nextId)} awaken={awakenOf(def, nextId)} silhouette size={72} />
+                  <MonsterImage imageId={imageOf(def, nextId)} awaken={awakenOf(def, nextId)} glow={glowOf(def)} silhouette size={72} />
                   <div className="route-body">
                     <strong style={{ color: ATTR_COLOR[nextAttr] }}>
                       {nextAttr === 'none' ? '無属性：どのEXPでも進化' : `${ATTR_LABEL[nextAttr]}EXPで進化`}

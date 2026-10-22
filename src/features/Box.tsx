@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { awakenOf, imageOf } from '../lib/art'
+import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { useStore } from '../store'
 import { SeriesChips } from '../components/SeriesChips'
 import { inSeries, seriesOf, type SeriesFilter } from '../lib/series'
@@ -127,7 +127,7 @@ export function Box({ go }: { go: Go }) {
             >
               {partnerIds.has(mon.id) && <span className="box-partner">相</span>}
               {isLuckMax(mon) && <span className="box-luck">運極</span>}
-              <MonsterImage imageId={imageOf(def, mon.nodeId)} awaken={awakenOf(def, mon.nodeId)} size={56} plus={mon.plus} shiny={mon.shiny} />
+              <MonsterImage imageId={imageOf(def, mon.nodeId)} awaken={awakenOf(def, mon.nodeId)} glow={glowOf(def)} size={56} plus={mon.plus} shiny={mon.shiny} />
               <Stars def={def} nodeId={mon.nodeId} />
               <span className="box-name">{plusName(def, mon)}</span>
             </button>

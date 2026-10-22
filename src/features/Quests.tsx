@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { awakenOf, imageOf } from '../lib/art'
+import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { useStore } from '../store'
 import { SeriesChips } from '../components/SeriesChips'
 import { allSeries, inSeries, questSeries, seriesStatus, statusLabel, type SeriesFilter } from '../lib/series'
@@ -115,7 +115,7 @@ export function Quests({ go }: { go: Go }) {
           )}
           {got.monsterId && got.boss && (
             <>
-              <MonsterImage imageId={imageOf(got.boss, bannerNodeOf(got.boss))} awaken={awakenOf(got.boss, bannerNodeOf(got.boss))} size={140} plus={got.plus} />
+              <MonsterImage imageId={imageOf(got.boss, bannerNodeOf(got.boss))} awaken={awakenOf(got.boss, bannerNodeOf(got.boss))} glow={glowOf(got.boss)} size={140} plus={got.plus} />
               <p>
                 {got.boss.name}
                 {got.plus > 0 ? `＋${got.plus}` : ''} を手に入れた！
@@ -147,7 +147,7 @@ export function Quests({ go }: { go: Go }) {
           </h2>
           <div className="monster-row">
             {battle.boss && (
-              <MonsterImage imageId={imageOf(battle.boss, bannerNodeOf(battle.boss))} awaken={awakenOf(battle.boss, bannerNodeOf(battle.boss))} size={72} silhouette={!battle.defeated} />
+              <MonsterImage imageId={imageOf(battle.boss, bannerNodeOf(battle.boss))} awaken={awakenOf(battle.boss, bannerNodeOf(battle.boss))} glow={glowOf(battle.boss)} size={72} silhouette={!battle.defeated} />
             )}
             <div className="goal-body">
               <strong>
@@ -199,7 +199,7 @@ export function Quests({ go }: { go: Go }) {
           <div className="party-row">
             {battle.party.map((m) => (
               <span key={m.mon.id} title={plusName(m.def, m.mon)}>
-                <MonsterImage imageId={imageOf(m.def, m.mon.nodeId)} awaken={awakenOf(m.def, m.mon.nodeId)} size={40} plus={m.mon.plus} shiny={m.mon.shiny} />
+                <MonsterImage imageId={imageOf(m.def, m.mon.nodeId)} awaken={awakenOf(m.def, m.mon.nodeId)} glow={glowOf(m.def)} size={40} plus={m.mon.plus} shiny={m.mon.shiny} />
               </span>
             ))}
           </div>
@@ -303,7 +303,7 @@ export function Quests({ go }: { go: Go }) {
                         onClick={() => go({ name: 'quest', id: q.id })}
                         aria-label={q.name}
                       >
-                        {boss && <MonsterImage imageId={imageOf(boss, bannerNodeOf(boss))} awaken={awakenOf(boss, bannerNodeOf(boss))} size={56} />}
+                        {boss && <MonsterImage imageId={imageOf(boss, bannerNodeOf(boss))} awaken={awakenOf(boss, bannerNodeOf(boss))} glow={glowOf(boss)} size={56} />}
                         {cleared && <span className="quest-cleared">✓</span>}
                         {q.element && (
                           <span className="quest-element" style={{ background: ELEMENT_COLOR[q.element] }}>

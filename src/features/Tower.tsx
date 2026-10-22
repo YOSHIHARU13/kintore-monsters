@@ -1,5 +1,5 @@
 import { useStore } from '../store'
-import { awakenOf, imageOf } from '../lib/art'
+import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { CONFIG } from '../config/gameConfig'
 import { MonsterImage } from '../components/MonsterImage'
 import { bannerNodeOf } from '../components/GachaBanner'
@@ -62,7 +62,7 @@ export function Tower({ go }: { go: Go }) {
               >
                 <span className="tower-no">{f.floor}F</span>
                 {boss ? (
-                  <MonsterImage imageId={imageOf(boss, bannerNodeOf(boss))} awaken={awakenOf(boss, bannerNodeOf(boss))} size={48} silhouette={!done && !next} />
+                  <MonsterImage imageId={imageOf(boss, bannerNodeOf(boss))} awaken={awakenOf(boss, bannerNodeOf(boss))} glow={glowOf(boss)} size={48} silhouette={!done && !next} />
                 ) : (
                   <span className="tower-blank">？</span>
                 )}
@@ -75,7 +75,7 @@ export function Tower({ go }: { go: Go }) {
                   </strong>
                   <span className="small">{towerRewardText(f, defs, state)}</span>
                 </span>
-                {prize && <MonsterImage imageId={imageOf(prize, bannerNodeOf(prize))} awaken={awakenOf(prize, bannerNodeOf(prize))} size={40} silhouette={!done} />}
+                {prize && <MonsterImage imageId={imageOf(prize, bannerNodeOf(prize))} awaken={awakenOf(prize, bannerNodeOf(prize))} glow={glowOf(prize)} size={40} silhouette={!done} />}
                 <span className="tower-state">{done ? '✓' : next ? '挑戦' : '🔒'}</span>
               </button>
             </li>

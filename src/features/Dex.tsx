@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { awakenOf, imageOf } from '../lib/art'
+import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { useStore } from '../store'
 import { SeriesChips } from '../components/SeriesChips'
 import { inSeries, seriesOf, type SeriesFilter } from '../lib/series'
@@ -99,7 +99,7 @@ export function Dex({ go }: { go: Go }) {
               <span className="dex-no">{String(e.no).padStart(3, '0')}</span>
               <MonsterImage
                 imageId={imageOf(e.def, e.node.id)}
-                awaken={awakenOf(e.def, e.node.id)}
+                awaken={awakenOf(e.def, e.node.id)} glow={glowOf(e.def)}
                 silhouette={!e.found}
                 shiny={e.found && e.shiny}
                 size={56}
@@ -120,7 +120,7 @@ export function Dex({ go }: { go: Go }) {
             <span className="muted small">No.{String(open.no).padStart(3, '0')}</span>
             <MonsterImage
               imageId={imageOf(open.def, open.node.id)}
-              awaken={awakenOf(open.def, open.node.id)}
+              awaken={awakenOf(open.def, open.node.id)} glow={glowOf(open.def)}
               silhouette={!open.found}
               shiny={open.found && open.shiny}
               size={160}

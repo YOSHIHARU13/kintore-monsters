@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { awakenOf, imageOf } from '../lib/art'
+import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { useStore } from '../store'
 import { BONUS_SLOT, DAYS, DAY_KEYS, dumbbellText, exerciseOfSlot, rangeText, slotsOfDay, type Slot } from '../data/exercises'
 import { CONFIG } from '../config/gameConfig'
@@ -34,7 +34,7 @@ export function Training({ go }: { go: Go }) {
         >
           {partner ? (
             <>
-              <MonsterImage imageId={imageOf(partner.def, partner.mon.nodeId)} awaken={awakenOf(partner.def, partner.mon.nodeId)} size={40} plus={partner.mon.plus} />
+              <MonsterImage imageId={imageOf(partner.def, partner.mon.nodeId)} awaken={awakenOf(partner.def, partner.mon.nodeId)} glow={glowOf(partner.def)} size={40} plus={partner.mon.plus} />
               <span className="small bonus-reward">{rateText(partner.rate)}</span>
             </>
           ) : (

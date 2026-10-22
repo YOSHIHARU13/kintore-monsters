@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { awakenOf, imageOf } from '../lib/art'
+import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { useStore } from '../store'
 import { CONFIG } from '../config/gameConfig'
 import { getTemplate } from '../data/evolutionTemplates'
@@ -138,7 +138,7 @@ export function GachaBanner({ gacha, count, featured = [], pickups = [], selecte
           <span className="auto-rays" aria-hidden="true" />
           {hero && (
             <span className="hero-monster">
-              <MonsterImage imageId={imageOf(hero, bannerNodeOf(hero))} awaken={awakenOf(hero, bannerNodeOf(hero))} size={150} />
+              <MonsterImage imageId={imageOf(hero, bannerNodeOf(hero))} awaken={awakenOf(hero, bannerNodeOf(hero))} glow={glowOf(hero)} size={150} />
             </span>
           )}
           <span className="auto-text">
@@ -171,7 +171,7 @@ export function GachaBanner({ gacha, count, featured = [], pickups = [], selecte
                   className={`trio-member${i === 0 ? ' first' : ''}`}
                   style={el ? { ['--glow' as string]: ELEMENT_COLOR[el] } : undefined}
                 >
-                  <MonsterImage imageId={imageOf(d, bannerNodeOf(d))} awaken={awakenOf(d, bannerNodeOf(d))} size={sizes[i]} />
+                  <MonsterImage imageId={imageOf(d, bannerNodeOf(d))} awaken={awakenOf(d, bannerNodeOf(d))} glow={glowOf(d)} size={sizes[i]} />
                   <span className="pickup-name">{d.name}</span>
                 </span>
               )
@@ -190,7 +190,7 @@ export function GachaBanner({ gacha, count, featured = [], pickups = [], selecte
         <span className="pickup-row">
           {others.slice(0, 6).map((d) => (
             <span key={d.id} className="pickup">
-              <MonsterImage imageId={imageOf(d, bannerNodeOf(d))} awaken={awakenOf(d, bannerNodeOf(d))} size={64} />
+              <MonsterImage imageId={imageOf(d, bannerNodeOf(d))} awaken={awakenOf(d, bannerNodeOf(d))} glow={glowOf(d)} size={64} />
               <span className="pickup-name">{d.name}</span>
               <Stars def={d} nodeId={bannerNodeOf(d)} />
               <ElementBadge def={d} />

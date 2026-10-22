@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { awakenOf, imageOf } from '../lib/art'
+import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { useStore } from '../store'
 import { gachaSeries, seriesStatus, statusLabel } from '../lib/series'
 import { availableEvents, upcomingEvents } from '../lib/events'
@@ -157,7 +157,7 @@ export function Shop({ go }: { go: Go }) {
                     .map(({ def, rate: r }) => (
                       <li key={def.id}>
                         <span className="monster-row">
-                          <MonsterImage imageId={imageOf(def, FIRST_NODE_ID)} awaken={awakenOf(def, FIRST_NODE_ID)} silhouette={!met(def.id)} size={40} />
+                          <MonsterImage imageId={imageOf(def, FIRST_NODE_ID)} awaken={awakenOf(def, FIRST_NODE_ID)} glow={glowOf(def)} silhouette={!met(def.id)} size={40} />
                           <span>
                             {met(def.id) ? monsterName(def, FIRST_NODE_ID) : '？？？'}
                             <br />
