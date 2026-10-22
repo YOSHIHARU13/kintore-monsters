@@ -63,7 +63,7 @@ export function towerMonsters(defs: MonsterDef[]): MonsterDef[] {
 
 /** その月の塔。ボスの見た目は登録済みのモンスターから、属性に合うものを選ぶ */
 /**
- * 1〜10階のボス：超絶・超究極のクエストのボス（降臨）を、炎・水・木・光・闇の順に2周。同じ属性の中は図鑑の番号順。
+ * 1〜10階のボス：通常の超絶クエストのボス（降臨。コラボと超究極は入れない）を、炎・水・木・光・闇の順に2周。同じ属性の中は図鑑の番号順。
  * 足りない属性は、残りの超絶ボス → ほかの降臨 → ハズレ・ノーマルの順で埋める。毎月同じ並び（登録が変われば変わる）
  */
 export function towerLineup(defs: MonsterDef[], quests: Pick<Quest, 'kind' | 'grade' | 'rank' | 'bossDefId' | 'builtin'>[]): (MonsterDef | undefined)[] {
@@ -71,10 +71,13 @@ export function towerLineup(defs: MonsterDef[], quests: Pick<Quest, 'kind' | 'gr
   const dex = (d: MonsterDef) => defs.indexOf(d)
   const ids = new Set(
     quests
-      .filter((q) => q.kind !== 'material' && !q.builtin && ['chozetsu', 'chokyukyoku'].includes(gradeOf(q)))
+      .filter((q) => q.kind !== 'material' && !q.builtin && gradeOf(q) === 'chozetsu')
       .map((q) => q.bossDefId),
   )
-  const top = defs.filter((d) => ids.has(d.id) && !d.tower).sort((a, b) => dex(a) - dex(b))
+  // 超究極のボス（因縁の強敵など）も、埋め合わせに使わない
+  const strongIds = new Set(quests.filter((q) => q.kind !== 'material' && gradeOf(q) === 'chokyukyoku').map((q) => q.bossDefId))
+  // コラボの子は入れない（通常の超絶だけ）
+  const top = defs.filter((d) => ids.has(d.id) && !d.tower && !d.series?.trim()).sort((a, b) => dex(a) - dex(b))
   const slots = t.elementOrder.length * 2
   const lineup: (MonsterDef | undefined)[] = Array.from({ length: slots }, (_, i) => {
     const e = t.elementOrder[i % t.elementOrder.length]
@@ -84,7 +87,7 @@ export function towerLineup(defs: MonsterDef[], quests: Pick<Quest, 'kind' | 'gr
   const used = new Set(lineup.filter((d) => d).map((d) => d!.id))
   const spare = [
     ...top,
-    ...defs.filter((d) => d.questOnly && !d.tower && !isHidden(d)),
+    ...defs.filter((d) => d.questOnly && !d.tower && !isHidden(d) && !d.series?.trim() && !strongIds.has(d.id)),
     ...defs.filter((d) => !d.questOnly && !isHidden(d) && rarityOf(d) !== 'superRare'),
   ].filter((d) => !used.has(d.id))
   return lineup.map((d) => {
@@ -156,6 +159,9 @@ export function towerFloors(
     return { floor, quest, reward }
   })
 }
+
+/** 保存した塔の作り方の版。作り方を変えたら上げる（古い保存は使わず、作り直して保存し直す） */
+export const TOWER_VERSION = 2
 
 /** 保存する塔の1階ぶん（毎月同じにするため） */
 export interface FixedFloor {

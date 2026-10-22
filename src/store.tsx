@@ -40,7 +40,7 @@ import { activeToday, currentStats, loginReady, loginReward, type Reward } from 
 import { builtinMaterialQuests } from './lib/materials'
 import { tagsOfDef } from './lib/tags'
 import type { Period, Periods } from './lib/series'
-import { towerCleared, towerFloors, towerMonth, type FixedFloor, type TowerFloor } from './lib/tower'
+import { TOWER_VERSION, towerCleared, towerFloors, towerMonth, type FixedFloor, type TowerFloor } from './lib/tower'
 import { elementInfo, jogressElementOf } from './lib/element'
 import { investedFor, isHidden, nodeAttr, type AttrExp, type BannerSlide, type BoosterKey, type Checkin, type Element, type Gacha, type Quest, type QuestDifficulty, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
 
@@ -333,7 +333,12 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       onSnapshot(menuRef, (snap) => setMenu((snap.data() as Record<string, string>) ?? {}), fail),
       onSnapshot(musicRef, (snap) => setSongs((snap.data()?.songs as Song[] | undefined) ?? []), fail),
       onSnapshot(seriesRef, (snap) => setSeriesPeriods((snap.data()?.periods as Periods | undefined) ?? {}), fail),
-      onSnapshot(towerRef, (snap) => setTowerFixed((snap.data()?.floors as FixedFloor[] | undefined) ?? null), fail),
+      onSnapshot(
+        towerRef,
+        (snap) =>
+          setTowerFixed(snap.data()?.version === TOWER_VERSION ? ((snap.data()?.floors as FixedFloor[] | undefined) ?? null) : null),
+        fail,
+      ),
       onSnapshot(
         collection(db, base, 'quests'),
         (snap) =>
@@ -1242,7 +1247,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     }
 
     const fixTower: Store['fixTower'] = (floors) => {
-      setDoc(towerRef, { floors: floors ?? null }).catch(fail)
+      setDoc(towerRef, { floors: floors ?? null, version: TOWER_VERSION }).catch(fail)
     }
 
     const saveSeriesPeriod: Store['saveSeriesPeriod'] = (series, period) => {

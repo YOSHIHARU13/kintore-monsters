@@ -76,4 +76,12 @@ describe('試練の塔', () => {
     expect(l2.quest.requirements!.some((r) => r.tag.startsWith('ab2:'))).toBe(true)
     expect(l2.quest.requirements!.some((r) => r.tag === 'ab2:シールド|バリア')).toBe(false)
   })
+  it('コラボの子と、超究極のボスは塔に入れない', () => {
+    const extra = [def('c1', { questOnly: true, element: 'fire', series: '鬼' }), def('k1', { questOnly: true, element: 'fire' })]
+    const qs = [...quests, chozetsu('c1'), { kind: 'boss', grade: 'chokyukyoku', bossDefId: 'k1' } as Quest]
+    const ids = towerLineup([def('c1', { questOnly: true, element: 'fire', series: '鬼' }), ...defs, ...extra.slice(1)], qs).map((d) => d?.id)
+    expect(ids).not.toContain('c1')
+    expect(ids).not.toContain('k1')
+    expect(ids[0]).toBe('f1')
+  })
 })

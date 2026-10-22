@@ -150,8 +150,6 @@ export function rankOf(quest: Pick<Quest, 'rank'>) {
 
 export const GRADES: QuestGrade[] = ['jokyu', 'kiwami', 'kyukyoku', 'chozetsu', 'chokyukyoku']
 
-/** 超究極はコラボ（シリーズのあるボス）だけ */
-export const COLLAB_GRADES: QuestGrade[] = ['chokyukyoku']
 
 /** 適正：ボスに有利な属性か、編成の条件で求められている属性を持っている */
 export function fitsQuest(def: MonsterDef, quest: Pick<Quest, 'element' | 'requirements' | 'gimmicks'>): boolean {

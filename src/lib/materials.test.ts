@@ -21,4 +21,13 @@ describe('いつでもある素材クエスト', () => {
     expect(legs('2026-10-24').bossDefId).not.toBe(legs('2026-10-23').bossDefId) // 次の日は別の敵
     expect(legs('2026-10-24').element).not.toBe(legs('2026-10-23').element) // 属性も変わる
   })
+  it('5つのクエストに毎日5属性を1つずつ。どの属性のハズレも出番がある', () => {
+    const els = ['fire', 'water', 'wood', 'light', 'dark']
+    const defs = els.flatMap((e) => [def(`${e}1`, { rarity: 'hazure', element: e } as Partial<MonsterDef>), def(`${e}2`, { rarity: 'hazure', element: e } as Partial<MonsterDef>)])
+    const qs = builtinMaterialQuests(defs, '2026-10-23')
+    expect(new Set(qs.map((q) => q.element)).size).toBe(5)
+    const seen = new Set<string>()
+    for (let d = 1; d <= 20; d++) for (const q of builtinMaterialQuests(defs, `2026-11-${String(d).padStart(2, '0')}`)) seen.add(q.bossDefId)
+    expect(seen.size).toBe(10) // 20日あれば全員出てくる
+  })
 })

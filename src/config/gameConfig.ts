@@ -142,7 +142,7 @@ export const CONFIG = {
       kiwami: { label: '極', hpRatio: 0.9, gold: 80, plus: 0 },
       kyukyoku: { label: '究極', hpRatio: 1.5, gold: 150, plus: 0 },
       chozetsu: { label: '超絶', hpRatio: 2.5, gold: 300, plus: 1 },
-      chokyukyoku: { label: '超究極', hpRatio: 2.5, gold: 300, plus: 1 }, // コラボ限定。強さと報酬は超絶と同じ
+      chokyukyoku: { label: '超究極', hpRatio: 2.5, gold: 300, plus: 1 }, // 主にコラボ用（因縁の強敵など、たまの例外にも）。強さと報酬は超絶と同じ
     },
     difficulties: {
       // hpRatio：1回のトレーニングで与えるダメージの目安に対するHPの倍率
