@@ -36,7 +36,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
   const [files, setFiles] = useState<Record<string, File>>({})
   const [birthStars, setBirthStars] = useState(existing?.jogressBirthStars ?? CONFIG.gacha.jogressDefaultBirth)
   const [fixedStars, setFixedStars] = useState(existing?.fixedStars ?? CONFIG.gacha.fixedStarsDefault)
-  const [jogressPlus, setJogressPlus] = useState(existing?.jogressPlus ?? CONFIG.fusion.maxPlus)
+  const [jogressPlus, setJogressPlus] = useState(existing?.jogressPlus ?? 0)
   const [questOnly, setQuestOnly] = useState(existing?.questOnly === true)
   const [element, setElement] = useState<Element | ''>(existing?.element ?? '')
   const [favoriteSlot, setFavoriteSlot] = useState(existing?.favoriteSlot ?? '')

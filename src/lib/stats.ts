@@ -17,7 +17,7 @@ export function attackOf(mon: OwnedMonster, def: MonsterDef): number {
 
 /** ジョグレスの条件：素材は「生まれるときの星の1つ下」以上で、レシピの＋以上 */
 export function jogressNeed(hidden: MonsterDef): { stars: number; plus: number } {
-  return { stars: starsOf(hidden, 'n1') - 1, plus: hidden.jogressPlus ?? CONFIG.fusion.maxPlus }
+  return { stars: starsOf(hidden, 'n1') - 1, plus: hidden.jogressPlus ?? 0 }
 }
 
 /** そのモンスターが、その隠しモンスターのジョグレスの素材になれるか */

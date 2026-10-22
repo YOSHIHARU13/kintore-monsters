@@ -29,6 +29,7 @@ import { draw, isPickupRarity, isPity, isReady, rarityOf, rateTable } from './li
 import { isJogressReady } from './lib/stats'
 import { battleOf, questGold } from './lib/quest'
 import { rollBonusCore, rollCoreDrop } from './lib/cores'
+import { canFeed, fusionGain } from './lib/fusion'
 import { jogressElementOf } from './lib/element'
 import { jogressGradeOf } from './lib/gimmick'
 import { investedFor, isHidden, nodeAttr, type AttrExp, type Checkin, type Element, type Gacha, type Quest, type QuestDifficulty, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
@@ -568,12 +569,12 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       batch.commit().catch(fail)
     }
 
-    // 最終形態に同じモンスター（段階は問わない）を食べさせて＋1（食べさせた側の＋も引き継ぐ）
+    // 最終形態に、同じモンスター（＋2）か同じ属性のモンスター（＋1）を食べさせる（段階は問わない。食べさせた側の＋も引き継ぐ）
     // 食べさせた側に注いでいたEXPは財布に返し、見つけていた形態は図鑑に残す
     const fuse: Store['fuse'] = (monsterId, foodId) => {
       const found = findMonster(monsterId)
       const food = findMonster(foodId)
-      if (!found || !food || monsterId === foodId || found.mon.defId !== food.mon.defId) return
+      if (!found || !food || monsterId === foodId || !canFeed(found.def, food.def)) return
       if (found.node.next.length > 0) return
       const plus = found.mon.plus ?? 0
       const cost = fusionCost(plus)
@@ -582,7 +583,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       consume(update, [food])
       const batch = writeBatch(db)
       batch.update(doc(db, base, 'ownedMonsters', monsterId), {
-        plus: Math.min(CONFIG.fusion.maxPlus, plus + 1 + (food.mon.plus ?? 0)),
+        plus: Math.min(CONFIG.fusion.maxPlus, plus + fusionGain(found.def, food.def, food.mon)),
         plusExp: zeroExp(),
         plusFrom: {},
       })

@@ -7,6 +7,7 @@ import { boughtCap, evolutionCost, fusionCost, isExpFull, planPour } from '../li
 import { Gauge } from '../components/Gauge'
 import { Stars } from '../components/Stars'
 import { Abilities } from '../components/Abilities'
+import { canFeed, fusionGain } from '../lib/fusion'
 import { ElementBadge } from '../components/ElementBadge'
 import { CORE_LABEL } from '../lib/cores'
 import { attackOf, isJogressReady, jogressNeed } from '../lib/stats'
@@ -68,7 +69,13 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
   const plusExp = mon.plusExp ?? { trained: 0, bought: 0 }
   const plusFull = fuseCost !== null && isExpFull(fuseCost, plusExp)
   // 食べさせられるのは同じモンスターの別の個体（段階は問わない）
-  const foods = owned.filter((o) => o.defId === mon.defId && o.id !== mon.id)
+  // 同じモンスター（＋2）か、同じ属性のモンスター（＋1）。同じモンスターを先に、＋が大きい順
+  const foods = owned
+    .flatMap((o) => {
+      const d = defs.find((x) => x.id === o.defId)
+      return d && o.id !== mon.id && canFeed(def, d) ? [{ food: o, foodDef: d, gain: fusionGain(def, d, o) }] : []
+    })
+    .sort((a, b) => b.gain - a.gain)
   // このモンスターがレシピに入っている隠しモンスターと、その相手になれる個体
   const recipes = defs
     .filter((d) => isHidden(d) && d.recipe!.includes(mon.defId))
@@ -227,16 +234,17 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
         </summary>
         {!isFinal ? (
           <p className="muted small">
-            最終形態まで進化すると、同じモンスターを食べさせて＋を上げられます（最大＋{CONFIG.fusion.maxPlus}
-            、＋が上がるほど枠が豪華に）。食べさせる側は進化していなくてもOK。いま食べさせられる{def.name}：{foods.length}体
+            最終形態まで進化すると、同じモンスター（＋{CONFIG.fusion.gain.sameMonster}）か同じ属性のモンスター（＋
+            {CONFIG.fusion.gain.sameElement}）を食べさせて＋を上げられます（最大＋{CONFIG.fusion.maxPlus}、＋が上がるほど枠が豪華に）。食べさせる側は進化していなくてもOK。いま食べさせられるモンスター：
+            {foods.length}体
           </p>
         ) : fuseCost === null ? (
           <p>＋{CONFIG.fusion.maxPlus}に到達！ 枠が虹色になりました。</p>
         ) : (
           <>
             <p className="muted small">
-              ①EXPを注いでゲージを満タンに → ②同じモンスターを食べさせて＋1（{fuseCost.gold}G）。食べさせた側は
-              いなくなりますが、注いでいたEXPは財布に戻り、図鑑の発見も消えません。
+              ①EXPを注いでゲージを満タンに → ②同じモンスター（＋{CONFIG.fusion.gain.sameMonster}）か同じ属性のモンスター（＋
+              {CONFIG.fusion.gain.sameElement}）を食べさせる（{fuseCost.gold}G）。食べさせた側はいなくなりますが、注いでいたEXPは財布に戻り、図鑑の発見も消えません。
             </p>
             <div className="gauge-row">
               <span>＋{plus + 1}まで</span>
@@ -266,14 +274,19 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
                 })()}
               </>
             ) : foods.length === 0 ? (
-              <p className="muted small">ゲージは満タン！ あとは食べさせる{def.name}がいれば＋1。タマゴでダブりを狙おう。</p>
+              <p className="muted small">ゲージは満タン！ あとは同じモンスターか同じ属性のモンスターがいれば＋が上がります。</p>
             ) : (
               <ul className="mini-list">
-                {foods.map((food) => (
+                {foods.map(({ food, foodDef, gain }) => (
                   <li key={food.id}>
                     <span className="monster-row">
-                      <MonsterImage imageId={def.images[food.nodeId]} size={48} plus={food.plus} shiny={food.shiny} />
-                      {plusName(def, food)} <Stars def={def} nodeId={food.nodeId} />
+                      <MonsterImage imageId={foodDef.images[food.nodeId]} size={48} plus={food.plus} shiny={food.shiny} />
+                      <span>
+                        {plusName(foodDef, food)} <Stars def={foodDef} nodeId={food.nodeId} />
+                        <br />
+                        <strong className="bonus-reward">＋{Math.min(gain, CONFIG.fusion.maxPlus - plus)}</strong>
+                        <span className="muted small">{food.defId === mon.defId ? '（同じモンスター）' : '（同じ属性）'}</span>
+                      </span>
                     </span>
                     {foodId === food.id ? (
                       <button

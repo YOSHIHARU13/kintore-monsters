@@ -414,7 +414,7 @@ describe('画面の表示', () => {
     fake.store.owned = [...owned, { id: 'o3', defId: 'm1', nodeId: 'n1', obtainedAt: 3 }]
     const el = await render(<MonsterDetail id="o1" go={go} />)
     expect(el.textContent).toContain('最終形態まで進化すると')
-    expect(el.textContent).toContain('いま食べさせられるムキドラ：1体')
+    expect(el.textContent).toContain('いま食べさせられるモンスター：1体')
     expect(el.textContent).not.toContain('食べさせる（')
   })
 
@@ -429,21 +429,32 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('合体（＋2／5）')
     expect(el.textContent).toContain('100/300')
     expect(el.querySelector('.frame.plus-2 .shiny')).not.toBeNull()
-    expect(el.textContent).not.toContain('食べさせる') // ゲージが満タンになるまでは食べさせられない
+    // ゲージが満タンになるまでは食べさせられない
+    expect([...el.querySelectorAll('button')].some((b) => b.textContent === '食べさせる')).toBe(false)
     await click('胸腕EXPを注ぐ（+200）')
     expect(fake.store.pourPlusExp).toHaveBeenCalledWith('o1', 'chestArms')
     await click('万能EXPを注ぐ（+30）')
     expect(fake.store.pourPlusExp).toHaveBeenCalledWith('o1', 'any')
   })
 
-  it('モンスター詳細：ゲージが満タンなら食べさせられる（別のモンスターは不可）', async () => {
+  it('モンスター詳細：ゲージが満タンなら、同じモンスター（＋2）か同じ属性のモンスター（＋1）を食べさせられる', async () => {
+    fake.store.defs = [
+      { ...defs[0], element: 'fire' },
+      { ...defs[1], element: 'water' },
+      { id: 'm3', name: 'ヒノコ', attr: 'legs', templateId: 'early2', images: {}, element: 'fire', rarity: 'hazure', createdAt: 3 },
+    ]
     fake.store.owned = [
       { id: 'o1', defId: 'm1', nodeId: 'n3a', plus: 2, plusExp: { trained: 300, bought: 0 }, obtainedAt: 1 },
       { id: 'o3', defId: 'm1', nodeId: 'n1', obtainedAt: 3 },
       { id: 'o4', defId: 'm2', nodeId: 'n1', obtainedAt: 4 },
+      { id: 'o5', defId: 'm3', nodeId: 'n1', obtainedAt: 5 },
     ]
     const el = await render(<MonsterDetail id="o1" go={go} />)
-    expect(el.textContent).not.toContain('アシガメ')
+    expect(el.textContent).not.toContain('アシガメ') // 水は炎の素材にならない
+    const rows = [...el.querySelectorAll('.mini-list li')].map((li) => li.textContent)
+    expect(rows[0]).toContain('＋2（同じモンスター）')
+    expect(rows[1]).toContain('ヒノコ')
+    expect(rows[1]).toContain('＋1（同じ属性）')
     await click('食べさせる')
     await click('本当に食べさせる（300G）')
     expect(fake.store.fuse).toHaveBeenCalledWith('o1', 'o3')
@@ -460,7 +471,7 @@ describe('画面の表示', () => {
       { id: 'o2', defId: 'm2', nodeId: 'n3', plus: 5, obtainedAt: 2 },
     ]
     const el = await render(<MonsterDetail id="o1" go={go} />)
-    expect(el.textContent).toContain('？？？（★4で誕生）← ムキドラ ＆ アシガメ：どちらも★3以上・＋5以上')
+    expect(el.textContent).toContain('？？？（★4で誕生）← ムキドラ ＆ アシガメ：どちらも★3以上')
     await click('アシガメ＋5とジョグレス')
     await click('本当にジョグレスする（600G・無垢の核×2）')
     expect(fake.store.jogress).toHaveBeenCalledWith('o1', 'o2', 'h1')
