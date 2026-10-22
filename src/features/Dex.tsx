@@ -97,8 +97,7 @@ export function Dex({ go }: { go: Go }) {
                   <strong className="small">{isFound ? monsterName(def, node.id) : '？？？'}</strong>
                   <Stars def={def} nodeId={node.id} />
                   <span className="small" style={{ color: isFound ? ATTR_COLOR[attr] : undefined }}>
-                    {isFound ? `${FORM_ATTR_LABEL[attr]}・` : ''}
-                    {node.stage}段階
+                    {isFound ? `${FORM_ATTR_LABEL[attr]}属性` : '？'}
                   </span>
                 </div>
               )

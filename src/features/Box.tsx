@@ -33,14 +33,13 @@ export function Box({ go }: { go: Go }) {
       )}
       <div className="grid">
         {list.map(({ mon, def }) => {
-          const node = getNode(getTemplate(def.templateId), mon.nodeId)
           return (
             <button key={mon.id} className="tile" onClick={() => go({ name: 'monster', id: mon.id })}>
               <MonsterImage imageId={def.images[mon.nodeId]} size={96} plus={mon.plus} shiny={mon.shiny} />
               <strong>{plusName(def, mon)}</strong>
               <Stars def={def} nodeId={mon.nodeId} />
               <span className="small" style={{ color: ATTR_COLOR[nodeAttr(def, mon.nodeId)] }}>
-                {FORM_ATTR_LABEL[nodeAttr(def, mon.nodeId)]}・{node.stage}段階
+                {FORM_ATTR_LABEL[nodeAttr(def, mon.nodeId)]}属性
               </span>
               {partnerSlots.has(mon.id) && <span className="badge">相棒</span>}
             </button>

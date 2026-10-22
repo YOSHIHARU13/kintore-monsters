@@ -7,7 +7,7 @@ import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
 import { CONFIG } from '../config/gameConfig'
 import { isHidden, type RarityKey } from '../types'
-import { RARITY_KEYS, rarityOf } from '../lib/gacha'
+import { RARITY_KEYS, formLabel, rarityOf } from '../lib/gacha'
 
 export function MonsterForm({ id, go }: { id?: string; go: Go }) {
   const { defs, gachas, menu, saveMonsterDef } = useStore()
@@ -41,6 +41,18 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
     [files],
   )
 
+  // 星の表示用：いま選んでいるレア度・ツリー・ジョグレスの設定で数える
+  const draftDef = {
+    id: existing?.id ?? 'new',
+    name,
+    attr: attrOf('n1'),
+    templateId,
+    images: {},
+    rarity,
+    recipe,
+    jogressBirthStars: birthStars,
+    createdAt: 0,
+  }
   const stages = [...new Set(template.nodes.filter((n) => n.next.length > 0).map((n) => n.stage))]
   const hasBranch = template.nodes.some((n) => n.next.length > 1)
 
@@ -151,7 +163,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
               <MonsterImage imageId={existing?.images[node.id]} size={80} />
             )}
             <div>
-              <strong>{node.label}</strong>
+              <strong>{formLabel(draftDef, node.id)}</strong>
               <div className="chips" role="group" aria-label={`${node.label}の属性`}>
                 {FORM_ATTRS.map((a) => {
                   const on = a === attrOf(node.id)

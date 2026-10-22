@@ -113,7 +113,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
         <Stars def={def} nodeId={mon.nodeId} />
         <p className="small">攻撃力 <strong>{attackOf(mon, def).toLocaleString()}</strong></p>
         <p style={{ color: ATTR_COLOR[attr] }}>
-          {FORM_ATTR_LABEL[attr]}属性・{node.label}
+          {FORM_ATTR_LABEL[attr]}属性
         </p>
         <p className="muted small">{template.name}</p>
         <p className="small">
@@ -268,7 +268,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
                   <li key={food.id}>
                     <span className="monster-row">
                       <MonsterImage imageId={def.images[food.nodeId]} size={48} plus={food.plus} shiny={food.shiny} />
-                      {plusName(def, food)}・{getNode(template, food.nodeId).stage}段階
+                      {plusName(def, food)} <Stars def={def} nodeId={food.nodeId} />
                     </span>
                     {foodId === food.id ? (
                       <button

@@ -504,7 +504,7 @@ describe('画面の表示', () => {
       Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(select, 'lateBranch3')
       select.dispatchEvent(new Event('change', { bubbles: true }))
     })
-    expect(el.textContent).toContain('最終C')
+    expect(el.textContent).toContain('★4-C') // 分岐の3つ目（形態は星で表す）
     await click('保存する')
     expect(fake.store.saveMonsterDef).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -750,7 +750,7 @@ describe('画面の表示', () => {
     const el = await render(<MonsterForm go={go} />)
     expect(el.textContent).not.toContain('ガチャ1') // ノーマルはどのガチャからも出るので選ばない
     await act(async () => el.querySelector('[aria-label="レア度"]')!.querySelectorAll('button')[2].click())
-    expect(el.textContent).toContain('分岐ありのかっこいいやつ')
+    expect(el.textContent).toContain('★3→★5、分岐ありのかっこいいやつ')
     for (const n of [1, 2, 3]) await click(`ガチャ${n}`)
     const g4 = [...el.querySelectorAll('button')].find((b) => b.textContent === 'ガチャ4')!
     expect(g4.disabled).toBe(true)

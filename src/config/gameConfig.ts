@@ -183,15 +183,15 @@ export const CONFIG = {
     // レア度ごとの確率（合計1）。同じレア度のモンスターで山分けする
     // ハズレとノーマルはどのガチャからも出る。レアと激レアは選んだガチャだけ（ガチャの「顔」）
     rarities: {
-      hazure: { label: 'ハズレ', rate: 0.5, startStars: 1, everyGacha: true, hint: 'どのガチャからも出る。2段階で終わるような軽いやつ' },
-      normal: { label: 'ノーマル', rate: 0.35, startStars: 2, everyGacha: true, hint: 'どのガチャからも出る。3段階まで進化する普通のやつ' },
-      rare: { label: 'レア', rate: 0.12, startStars: 3, everyGacha: false, hint: '選んだガチャだけ。分岐ありのかっこいいやつ' },
+      hazure: { label: 'ハズレ', rate: 0.5, startStars: 1, everyGacha: true, hint: 'どのガチャからも出る。★1→★2で終わるような軽いやつ' },
+      normal: { label: 'ノーマル', rate: 0.35, startStars: 2, everyGacha: true, hint: 'どのガチャからも出る。★2→★4まで進化する普通のやつ' },
+      rare: { label: 'レア', rate: 0.12, startStars: 3, everyGacha: false, hint: '選んだガチャだけ。★3→★5、分岐ありのかっこいいやつ' },
       superRare: {
         label: '激レア',
         rate: 0.03,
         startStars: 4,
         everyGacha: false,
-        hint: '選んだガチャだけ（フェス限）。ジョグレスの素材になる、いちばんかっこいいやつ',
+        hint: '選んだガチャだけ（フェス限）。★4→★6、ジョグレスの素材になる、いちばんかっこいいやつ',
       },
     },
     // 星：生まれたときはレア度の startStars、進化するたびに1つ増える

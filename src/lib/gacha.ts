@@ -107,3 +107,9 @@ export function starsOf(def: MonsterDef, nodeId: string): number {
   }
   return CONFIG.gacha.rarities[rarityOf(def)].startStars + stage - 1
 }
+
+/** 形態の呼び名：星の数（分岐があれば A・B・C を添える）。例：★5、★6-B */
+export function formLabel(def: MonsterDef, nodeId: string): string {
+  const branch = /[a-c]$/.exec(nodeId)?.[0]
+  return `★${starsOf(def, nodeId)}${branch ? `-${branch.toUpperCase()}` : ''}`
+}
