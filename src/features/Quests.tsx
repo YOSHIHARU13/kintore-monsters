@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { awakenOf, imageOf } from '../lib/art'
 import { useStore } from '../store'
 import { SeriesChips } from '../components/SeriesChips'
-import { inSeries, questSeries, type SeriesFilter } from '../lib/series'
+import { allSeries, inSeries, questSeries, seriesStatus, statusLabel, type SeriesFilter } from '../lib/series'
 import { Gauge } from '../components/Gauge'
 import { MonsterImage } from '../components/MonsterImage'
 import { QuestBanner } from '../components/QuestBanner'
@@ -20,6 +20,7 @@ const QUEST_GROUPS = [
   { key: 'kiwami', label: '極' },
   { key: 'jokyu', label: '上級' },
   { key: 'material', label: '素材' },
+  { key: 'archive', label: '📚 書庫（開催が終わったコラボ）' },
 ] as const
 import { formationOf, requirementsOf } from '../lib/formation'
 import { luckBonus } from '../lib/fusion'
@@ -38,7 +39,7 @@ import { nodeAttr, plusName, type MonsterDef, type Quest } from '../types'
 
 /** クエストのタブ：今日の戦いと、クエストの一覧 */
 export function Quests({ go }: { go: Go }) {
-  const { state, quests, tower, defs, today, quitChallenge, claimQuest, saveQuest } = useStore()
+  const { state, quests, tower, defs, today, seriesPeriods, quitChallenge, claimQuest, saveQuest } = useStore()
   const [made, setMade] = useState<number | null>(null)
   const [series, setSeries] = useState<SeriesFilter>('all')
   // まだボスクエストがない降臨モンスター（塔限定は塔でもらえるので除く）
@@ -263,11 +264,21 @@ export function Quests({ go }: { go: Go }) {
           </div>
         </div>
         <SeriesChips value={series} onChange={setSeries} />
+        {allSeries(defs)
+          .map((name) => ({ name, st: seriesStatus(name, seriesPeriods, today) }))
+          .filter(({ st }) => st.kind === 'active' || st.kind === 'upcoming')
+          .map(({ name, st }) => (
+            <button key={name} className={`collab-now${st.kind === 'active' ? ' on' : ''}`} onClick={() => setSeries(name)}>
+              ⏳ {name}：{statusLabel(st)}
+            </button>
+          ))}
         {quests.length === 0 && <p className="muted small">まだクエストがありません。</p>}
         {QUEST_GROUPS.map(({ key, label }) => {
-          const group = quests.filter(
-            (q) => (q.kind === 'material' ? 'material' : gradeOf(q)) === key && inSeries(series, questSeries(q, defs)),
-          )
+          const group = quests.filter((q) => {
+            const st = seriesStatus(questSeries(q, defs), seriesPeriods, today).kind
+            const place = st === 'ended' ? 'archive' : q.kind === 'material' ? 'material' : gradeOf(q)
+            return st !== 'upcoming' && place === key && inSeries(series, questSeries(q, defs))
+          })
           if (group.length === 0) return null
           return (
             <div key={key} className="quest-group">

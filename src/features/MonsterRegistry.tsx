@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { imageOf } from '../lib/art'
 import { useStore } from '../store'
 import { SeriesChips } from '../components/SeriesChips'
-import { inSeries, seriesOf, type SeriesFilter } from '../lib/series'
+import { allSeries, inSeries, seriesOf, seriesStatus, statusLabel, type SeriesFilter } from '../lib/series'
 import { CONFIG } from '../config/gameConfig'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { MonsterImage } from '../components/MonsterImage'
@@ -38,7 +38,7 @@ export function todosOf(def: MonsterDef): string[] {
 
 /** 開発者用の画面：未入手でも絵と名前を出し、未設定のものを上にまとめる */
 export function MonsterRegistry({ go }: { go: Go }) {
-  const { defs, owned, state, autoTuneDefs } = useStore()
+  const { defs, owned, state, autoTuneDefs, seriesPeriods, saveSeriesPeriod, today } = useStore()
   const [filter, setFilter] = useState<Filter>('all')
   const [query, setQuery] = useState('')
   const [series, setSeries] = useState<SeriesFilter>('all')
@@ -99,6 +99,37 @@ export function MonsterRegistry({ go }: { go: Go }) {
         </button>
       )}
       {tuned !== null && <div className="result keep">{tuned}体をおまかせで埋めました</div>}
+
+      {allSeries(defs).length > 0 && (
+        <details className="card fold">
+          <summary>
+            <h2>📅 コラボの開催期間</h2>
+          </summary>
+          <p className="muted small">
+            期間を入れると、その間だけコラボガチャが引けて、クエストに「開催中」が出ます。終わったクエストは書庫に移り、いつでも遊べます。空ならずっと開催。
+          </p>
+          <ul className="mini-list">
+            {allSeries(defs).map((name) => {
+              const p = seriesPeriods[name]
+              const save = (start: string, end: string) =>
+                saveSeriesPeriod(name, start && end ? { start, end } : null)
+              return (
+                <li key={name} className="period-row">
+                  <span>
+                    <strong>{name}</strong>
+                    <span className="muted small"> {statusLabel(seriesStatus(name, seriesPeriods, today)) || 'ずっと開催'}</span>
+                  </span>
+                  <span className="row wrap">
+                    <input type="date" value={p?.start ?? ''} onChange={(e) => save(e.target.value, p?.end ?? '')} aria-label={`${name}の開始日`} />
+                    〜
+                    <input type="date" value={p?.end ?? ''} onChange={(e) => save(p?.start ?? '', e.target.value)} aria-label={`${name}の終了日`} />
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        </details>
+      )}
 
       <div className="chips" role="group" aria-label="絞り込み">
         {(Object.keys(FILTER_LABEL) as Filter[]).map((f) => (

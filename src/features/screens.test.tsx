@@ -162,6 +162,7 @@ beforeEach(() => {
     setPartner: vi.fn(),
     quests: [],
     tower: [],
+    seriesPeriods: {},
     week: TODAY,
     saveQuest: vi.fn(),
     deleteQuest: vi.fn(),

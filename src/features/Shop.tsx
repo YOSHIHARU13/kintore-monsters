@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { awakenOf, imageOf } from '../lib/art'
 import { useStore } from '../store'
+import { gachaSeries, seriesStatus, statusLabel } from '../lib/series'
 import { availableEvents, upcomingEvents } from '../lib/events'
 import { ATTRS, ATTR_LABEL, type Attr } from '../data/exercises'
 import { CONFIG } from '../config/gameConfig'
@@ -22,7 +23,7 @@ import { isReady, percent, pickupCount, rarityOf, rateTable, tierRates } from '.
 
 
 export function Shop({ go }: { go: Go }) {
-  const { state, defs, owned, gachas, today, buyEgg, hatchEgg, hatchMany, freePull, buyExp, exchangeCores } = useStore()
+  const { state, defs, owned, gachas, today, seriesPeriods, buyEgg, hatchEgg, hatchMany, freePull, buyExp, exchangeCores } = useStore()
   const freeEvents = availableEvents(state, today)
   const upcoming = upcomingEvents(today).slice(0, 3)
   const [multi, setMulti] = useState<HatchResult[] | null>(null)
@@ -30,7 +31,9 @@ export function Shop({ go }: { go: Go }) {
   const [amount, setAmount] = useState(CONFIG.shop.expBuyStep)
   const [hatched, setHatched] = useState<Hatched | null>(null)
   // 「いつものガチャ」は出さない（作ったガチャが1つもないときだけ出す）
-  const shown = gachas.some((g) => !g.builtin) ? gachas.filter((g) => !g.builtin) : gachas
+  const statusOf = (gachaId: string) => seriesStatus(gachaSeries(rateTable(gachaId, defs)), seriesPeriods, today)
+  const custom = gachas.filter((g) => !g.builtin && !['ended', 'upcoming'].includes(statusOf(g.id).kind))
+  const shown = custom.length > 0 ? custom : gachas
   const [gachaId, setGachaId] = useState(() => {
     // 最初は、中身がいるガチャのうち、いちばん新しいものを選んでおく
     const withMembers = shown.filter((g) => isReady(g, rateTable(g.id, defs)))
@@ -77,6 +80,7 @@ export function Shop({ go }: { go: Go }) {
               onClick={() => setGachaId(g.id)}
             >
               {g.name}
+              {statusOf(g.id).kind === 'active' && <span className="tab-badge">⏳{statusLabel(statusOf(g.id))}</span>}
             </button>
           ))}
           <button className="gacha-tab add" onClick={() => go({ name: 'gachaForm' })}>

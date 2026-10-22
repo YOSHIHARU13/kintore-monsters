@@ -2407,3 +2407,34 @@ details.tuning[open] > summary {
   border: 2px solid #ffd166;
   box-shadow: 0 0 14px rgba(255, 209, 102, 0.45);
 }
+
+/* コラボの開催期間 */
+.tab-badge {
+  margin-left: 4px;
+  font-size: 0.65rem;
+  color: #ffd166;
+}
+.collab-now {
+  display: block;
+  width: 100%;
+  margin: 4px 0;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--card2);
+  color: inherit;
+  font-weight: 800;
+  text-align: left;
+}
+.collab-now.on {
+  border: none;
+  color: #fff;
+  background: linear-gradient(90deg, #6a1fb0, #ff4fa3);
+}
+.period-row {
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.period-row input[type='date'] {
+  max-width: 140px;
+}

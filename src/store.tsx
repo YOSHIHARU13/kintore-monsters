@@ -37,6 +37,7 @@ import { boostActive } from './lib/boosters'
 import { availableEvents, claimKey } from './lib/events'
 import { currentStats, loginReward, type Reward } from './lib/missions'
 import { builtinMaterialQuests } from './lib/materials'
+import type { Period, Periods } from './lib/series'
 import { towerCleared, towerFloors, towerMonth, type TowerFloor } from './lib/tower'
 import { elementInfo, jogressElementOf } from './lib/element'
 import { investedFor, isHidden, nodeAttr, type AttrExp, type BannerSlide, type BoosterKey, type Checkin, type Element, type Gacha, type Quest, type QuestDifficulty, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
@@ -187,6 +188,7 @@ interface Store {
   defs: MonsterDef[]
   owned: OwnedMonster[]
   songs: Song[]
+  seriesPeriods: Periods // コラボの開催期間
   gachas: Gacha[] // 先頭が「いつものガチャ」、あとは作った順
   quests: Quest[] // 作った順
   tower: TowerFloor[] // 今月の試練の塔（1階から）
@@ -253,6 +255,7 @@ interface Store {
   autoTuneDefs: (ids: string[]) => void
   loadImage: (imageId: string) => Promise<string | null>
   saveSongs: (songs: Song[]) => void
+  saveSeriesPeriod: (series: string, period: Period | null) => void
 }
 
 const StoreContext = createContext<Store | null>(null)
@@ -272,6 +275,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
   const [defs, setDefs] = useState<MonsterDef[]>([])
   const [owned, setOwned] = useState<OwnedMonster[]>([])
   const [songs, setSongs] = useState<Song[]>([])
+  const [seriesPeriods, setSeriesPeriods] = useState<Periods>({})
   const [gachaDocs, setGachaDocs] = useState<Gacha[]>([])
   const [questDocs, setQuests] = useState<Quest[]>([])
   const [today, setToday] = useState(dateKey())
@@ -282,6 +286,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
   const stateRef = useMemo(() => doc(db, base, 'meta', 'state'), [base])
   const menuRef = useMemo(() => doc(db, base, 'meta', 'menu'), [base])
   const musicRef = useMemo(() => doc(db, base, 'meta', 'music'), [base])
+  const seriesRef = useMemo(() => doc(db, base, 'meta', 'series'), [base])
 
   const fail = useCallback((e: unknown) => {
     console.error(e)
@@ -316,6 +321,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       ),
       onSnapshot(menuRef, (snap) => setMenu((snap.data() as Record<string, string>) ?? {}), fail),
       onSnapshot(musicRef, (snap) => setSongs((snap.data()?.songs as Song[] | undefined) ?? []), fail),
+      onSnapshot(seriesRef, (snap) => setSeriesPeriods((snap.data()?.periods as Periods | undefined) ?? {}), fail),
       onSnapshot(
         collection(db, base, 'quests'),
         (snap) =>
@@ -354,7 +360,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       ),
     ]
     return () => unsubs.forEach((u) => u())
-  }, [base, stateRef, menuRef, musicRef, fail])
+  }, [base, stateRef, menuRef, musicRef, seriesRef, fail])
 
   // 「いつものガチャ」は、保存していなくても必ずある
   const gachas = useMemo(() => {
@@ -1172,6 +1178,10 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       setDoc(musicRef, { songs: next }).catch(fail)
     }
 
+    const saveSeriesPeriod: Store['saveSeriesPeriod'] = (series, period) => {
+      setDoc(seriesRef, { periods: { [series]: period ?? deleteField() } }, { merge: true }).catch(fail)
+    }
+
     return {
       user,
       state,
@@ -1179,6 +1189,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       defs,
       owned,
       songs,
+      seriesPeriods,
       today,
       weekSets,
       todaySets,
@@ -1212,6 +1223,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       autoTuneDefs,
       loadImage,
       saveSongs,
+      saveSeriesPeriod,
       gachas,
       saveGacha,
       quests,
@@ -1225,7 +1237,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       exchangeCores,
       deleteGacha,
     }
-  }, [user, base, state, menu, defs, owned, songs, gachas, quests, tower, today, yesterday, yesterdayCheckin, week, weekSets, todaySets, stateRef, menuRef, musicRef, fail])
+  }, [user, base, state, menu, defs, owned, songs, seriesPeriods, gachas, quests, tower, today, yesterday, yesterdayCheckin, week, weekSets, todaySets, stateRef, menuRef, musicRef, seriesRef, fail])
 
   if (!store) {
     return (
