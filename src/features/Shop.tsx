@@ -10,7 +10,7 @@ import { monsterName } from '../types'
 import { HatchReveal, type Hatched } from '../components/HatchReveal'
 import { CORE_KEYS, CORE_LABEL } from '../lib/cores'
 import { Stars } from '../components/Stars'
-import { GachaBanner, featuredOf } from '../components/GachaBanner'
+import { GachaBanner, featuredOf, pickupsOf } from '../components/GachaBanner'
 import { isReady, percent, pickupCount, rarityOf, rateTable, tierRates } from '../lib/gacha'
 
 
@@ -65,6 +65,7 @@ export function Shop({ go }: { go: Go }) {
               gacha={g}
               count={rateTable(g.id, defs).length}
               featured={featuredOf(g, rateTable(g.id, defs), defs)}
+              pickups={pickupsOf(rateTable(g.id, defs))}
               selected={g.id === gacha.id}
               onClick={() => setGachaId(g.id)}
             />

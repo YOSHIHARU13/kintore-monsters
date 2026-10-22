@@ -3,7 +3,7 @@ import { useStore } from '../store'
 import { CONFIG } from '../config/gameConfig'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { MonsterImage } from '../components/MonsterImage'
-import { GachaBanner, bannerNodeOf, featuredOf, jogressOf } from '../components/GachaBanner'
+import { GachaBanner, bannerNodeOf, featuredOf, jogressOf, pickupsOf } from '../components/GachaBanner'
 import { isPickupRarity, percent, pickupCount, rarityOf, rateTable, starsOf, tierRates } from '../lib/gacha'
 import { Stars } from '../components/Stars'
 import type { Go } from '../nav'
@@ -17,7 +17,7 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
   const [banner, setBanner] = useState<File | null>(null)
   const [removeBanner, setRemoveBanner] = useState(false)
   const [catchphrase, setCatchphrase] = useState(existing?.catchphrase ?? '')
-  const [theme, setTheme] = useState(existing?.theme ?? 'royal')
+  const [theme] = useState(existing?.theme ?? 'royal')
   const [featured, setFeatured] = useState<string[]>(existing?.featured ?? [])
   const builtin = existing?.builtin ?? false
   const draftId = existing?.id ?? 'new'
@@ -91,7 +91,14 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
       <h1 className="title">{existing ? 'ガチャの編集' : 'ガチャを作る'}</h1>
 
       <section className="card">
-        <GachaBanner gacha={draft} count={table.length} featured={featuredOf(draft, table, defs)} preview={preview} />
+        <GachaBanner
+          gacha={draft}
+          count={table.length}
+          featured={featuredOf(draft, table, defs)}
+          pickups={pickupsOf(table)}
+          preview={preview}
+        />
+        <p className="muted small">バナーは主役の属性の色になり、スライドで「主役のズーム → ピックアップ → 主役3体」が見られます。</p>
         <label className="field">
           ガチャの名前
           <input value={name} onChange={(e) => setName(e.target.value)} maxLength={20} placeholder="例：脚ムキムキ祭り" />
@@ -105,21 +112,6 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
             placeholder="例：伝説の脚竜、ついに降臨！"
           />
         </label>
-        <div className="field">
-          テーマ色
-          <div className="chips" role="group" aria-label="テーマ色">
-            {Object.entries(CONFIG.gacha.themes).map(([key, label]) => (
-              <button
-                key={key}
-                type="button"
-                className={`chip theme-chip theme-${key}${theme === key ? ' on' : ''}`}
-                onClick={() => setTheme(key)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
         {!builtin && pickups.length > 0 && (
           <div className="field">
             バナーに出すモンスター（{CONFIG.gacha.bannerMonsters}体まで・選ばなければレア度の高い順）

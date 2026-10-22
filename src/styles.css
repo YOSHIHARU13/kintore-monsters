@@ -984,6 +984,176 @@ details.fold[open] > summary {
   right: 8%;
 }
 
+/* スライド式のバナー */
+.banner-carousel {
+  position: relative;
+  border-radius: 14px;
+  border: 2px solid transparent;
+  overflow: hidden;
+  --c1: #3a2a6b;
+  --c2: #ffd166;
+  --c3: #12091f;
+}
+.banner-carousel.on {
+  border-color: var(--primary);
+  box-shadow: 0 0 12px rgba(255, 209, 102, 0.5);
+}
+.tone-fire {
+  --c1: #8a1c1c;
+  --c2: #ff8a3d;
+  --c3: #2a0707;
+}
+.tone-water {
+  --c1: #0d3b66;
+  --c2: #4cc9f0;
+  --c3: #04121f;
+}
+.tone-wood {
+  --c1: #1b4d2b;
+  --c2: #9be564;
+  --c3: #06150b;
+}
+.tone-light {
+  --c1: #6b5a1f;
+  --c2: #fff2a8;
+  --c3: #1f1a05;
+}
+.tone-dark {
+  --c1: #2a1a4a;
+  --c2: #b388ff;
+  --c3: #07040f;
+}
+.tone-gold {
+  --c1: #3a2a6b;
+  --c2: #ffd166;
+  --c3: #12091f;
+}
+.banner-track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  cursor: pointer;
+}
+.banner-track::-webkit-scrollbar {
+  display: none;
+}
+.slide {
+  position: relative;
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  aspect-ratio: 2.4 / 1;
+  min-height: 130px;
+  overflow: hidden;
+  display: flex;
+  background: radial-gradient(circle at 72% 55%, var(--c2), transparent 62%), linear-gradient(120deg, var(--c3), var(--c1));
+  color: #fff;
+}
+.slide-image {
+  background-size: cover;
+  background-position: center;
+  align-items: flex-end;
+}
+.slide-hero .hero-monster {
+  position: absolute;
+  right: 4%;
+  bottom: -6%;
+  line-height: 0;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.65));
+  animation: hero-in 0.6s ease-out;
+}
+.slide-hero .hero-monster .monster-img,
+.slide-pickups .monster-img,
+.slide-trio .monster-img {
+  background: transparent;
+}
+.hero-name {
+  font-weight: 900;
+  font-size: 1rem;
+  color: var(--c2);
+  text-shadow: 0 2px 6px #000;
+}
+.slide-pickups {
+  flex-direction: column;
+  padding: 8px 10px;
+  gap: 4px;
+}
+.slide-label,
+.trio-title {
+  font-weight: 900;
+  text-shadow: 0 2px 6px #000;
+  position: relative;
+  z-index: 1;
+}
+.pickup-row {
+  display: flex;
+  gap: 8px;
+  overflow: hidden;
+}
+.pickup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-width: 64px;
+}
+.pickup-name {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-shadow: 0 1px 4px #000;
+  max-width: 92px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.slide-trio {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+.trio-row {
+  display: flex;
+  gap: 6px;
+  position: relative;
+  z-index: 1;
+}
+.trio-member {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6));
+}
+.banner-dots {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 5px;
+  pointer-events: none;
+}
+.banner-dots i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+}
+.banner-dots i.on {
+  background: #fff;
+}
+@keyframes hero-in {
+  from {
+    opacity: 0;
+    transform: translateX(20px) scale(0.9);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .slide-hero .hero-monster {
+    animation: none;
+  }
+}
+
 /* ガチャ */
 .rarity-row {
   display: flex;

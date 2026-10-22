@@ -37,7 +37,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
   const [bossHp, setBossHp] = useState(existing?.hp.normal ?? defaultBossHp(existing ? gradeOf(existing) : 'kyukyoku'))
   const [hp, setHp] = useState<Record<QuestDifficulty, number>>(existing?.hp ?? defaultHp(existing?.rank ?? 1, existing?.kind))
   const [catchphrase, setCatchphrase] = useState(existing?.catchphrase ?? '')
-  const [theme, setTheme] = useState(existing?.theme ?? 'flame')
+  const [theme] = useState(existing?.theme ?? 'flame')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -84,21 +84,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
           キャッチコピー（省略可）
           <input value={catchphrase} onChange={(e) => setCatchphrase(e.target.value)} maxLength={24} placeholder="例：脚を鍛えた者だけが進める" />
         </label>
-        <div className="field">
-          テーマ色
-          <div className="chips">
-            {Object.entries(CONFIG.gacha.themes).map(([key, label]) => (
-              <button
-                key={key}
-                type="button"
-                className={`chip theme-chip theme-${key}${theme === key ? ' on' : ''}`}
-                onClick={() => setTheme(key)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <p className="muted small">バナーの色は、求められる編成の最初の属性の色になります。</p>
       </section>
 
       <section className="card">

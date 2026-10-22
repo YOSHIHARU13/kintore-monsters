@@ -8,7 +8,13 @@ import { allGimmicks } from '../lib/gimmick'
 import { useStore } from '../store'
 import type { MonsterDef, Quest } from '../types'
 
-/** クエストのバナー：テーマ色の背景に、ボスの最終形態と名前を出す */
+/** バナーの色：求められる編成の最初の属性の色（属性の条件がなければ金） */
+function questTone(quest: Quest): string {
+  const el = requirementsOf(quest).find((r) => r.tag.startsWith('el:'))
+  return el ? `tone-${el.tag.slice(3)}` : 'tone-gold'
+}
+
+/** クエストのバナー：求める属性の色の背景に、ボスの最終形態と名前を出す */
 export function QuestBanner({ quest, boss, onClick, selected = false }: {
   quest: Quest
   boss: MonsterDef | undefined
@@ -18,7 +24,7 @@ export function QuestBanner({ quest, boss, onClick, selected = false }: {
   const { quests } = useStore()
   const names = allGimmicks(quests)
   return (
-    <button type="button" className={`gacha-banner auto quest-banner theme-${quest.theme}${selected ? ' on' : ''}`} onClick={onClick}>
+    <button type="button" className={`gacha-banner auto quest-banner ${questTone(quest)}${selected ? ' on' : ''}`} onClick={onClick}>
       <span className="auto-rays" aria-hidden="true" />
       <span className="auto-monsters">
         {boss && (

@@ -108,6 +108,14 @@ async function render(el: ReactElement) {
   return container
 }
 
+const tapBanner = async (name: string) => {
+  const banner = container.querySelector<HTMLElement>(`[role="button"][aria-label="${name}"]`)
+  if (!banner) throw new Error(`バナーが見つかりません: ${name}`)
+  await act(async () => {
+    banner.click()
+  })
+}
+
 const click = async (text: string) => {
   const button = [...container.querySelectorAll('button')].find((b) => b.textContent?.includes(text))
   if (!button) throw new Error(`ボタンが見つかりません: ${text}`)
@@ -555,7 +563,7 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('激レア確定まで あと3回')
     expect(el.textContent).toContain('？？？') // まだ会っていないモンスターは名前を伏せる
     // いつものガチャにはレア・激レアがいないので、その分がハズレとノーマルに回る
-    await click('いつものガチャ')
+    await tapBanner('いつものガチャ')
     expect(el.textContent).toContain('全2種')
     expect(el.textContent).toContain('ハズレ 合計58.8%')
     expect(el.textContent).not.toContain('確定まで')
@@ -568,7 +576,7 @@ describe('画面の表示', () => {
     fake.store.defs = [...defs, { id: 'r1', name: 'ツノウサ', attr: 'legs', templateId: 'linear3', images: {}, rarity: 'rare', gachas: ['g1'], createdAt: 5 }]
     const el = await render(<Shop go={go} />)
     expect(el.textContent).toContain('「いつものガチャ」を引く') // 引けるガチャが選ばれている
-    await click('脚まつり')
+    await tapBanner('脚まつり')
     expect(el.textContent).toContain('準備中：ピックアップ（レア以上）があと2体')
     expect(el.textContent).not.toContain('「脚まつり」を引く')
   })
@@ -577,7 +585,7 @@ describe('画面の表示', () => {
     fake.store.defs = [
       ...defs,
       { id: 'r1', name: 'ツノウサ', attr: 'legs', templateId: 'linear3', images: {}, rarity: 'rare', createdAt: 5 },
-      { id: 's1', name: 'カミドラ', attr: 'legs', templateId: 'linear3', images: {}, rarity: 'superRare', createdAt: 6 },
+      { id: 's1', name: 'カミドラ', attr: 'legs', templateId: 'linear3', images: {}, rarity: 'superRare', element: 'fire', createdAt: 6 },
       {
         id: 'r3', name: 'イソガシ', attr: 'legs', templateId: 'linear3', images: {}, rarity: 'rare', gachas: ['a', 'b', 'c'], createdAt: 7,
       },
@@ -599,21 +607,25 @@ describe('画面の表示', () => {
         input.dispatchEvent(new Event('input', { bubbles: true }))
       })
     await type(el.querySelector('input')!, '脚まつり')
-    // 自動バナー：キャッチコピー・テーマ色・ピックアップの最終形態で組み立てる
+    // スライド式のバナー：①主役のズーム ②ほかのピックアップ ③主役の集合。色は主役の属性
     await type(el.querySelector<HTMLInputElement>('input[placeholder^="例：伝説"]')!, '伝説の脚竜、降臨！')
-    await click('炎')
-    const banner = el.querySelector('.gacha-banner.auto.theme-flame')!
-    expect(banner.textContent).toContain('脚まつり')
-    expect(banner.textContent).toContain('伝説の脚竜、降臨！')
-    expect(banner.textContent).toContain('激レア登場')
-    expect(banner.querySelectorAll('.auto-monster')).toHaveLength(2)
+    const banner = el.querySelector('.banner-carousel')!
+    expect(banner.classList.contains('tone-fire')).toBe(true) // 主役のカミドラ（激レア・炎）
+    const hero = banner.querySelector('.slide-hero')!
+    expect(hero.textContent).toContain('脚まつり')
+    expect(hero.textContent).toContain('伝説の脚竜、降臨！')
+    expect(hero.textContent).toContain('激レア登場')
+    expect(hero.textContent).toContain('カミドラ')
+    expect(banner.querySelector('.slide-pickups')!.textContent).toContain('ツノウサ')
+    expect(banner.querySelectorAll('.slide-trio .trio-member')).toHaveLength(2)
+    expect(banner.querySelectorAll('.banner-dots i')).toHaveLength(3)
     const featuredChip = [...el.querySelectorAll('button.chip')].find((b) => b.textContent === 'カミドラ')!
     await act(async () => (featuredChip as HTMLButtonElement).click())
-    expect(el.querySelector('.gacha-banner.auto')!.querySelectorAll('.auto-monster')).toHaveLength(1)
+    expect(el.querySelector('.slide-trio')).toBeNull() // 主役が1体なら集合のスライドはない
     await click('ガチャを作る')
     expect(fake.store.saveGacha).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: '脚まつり', pickups: ['r1', 's1'], catchphrase: '伝説の脚竜、降臨！', theme: 'flame', featured: ['s1'],
+        name: '脚まつり', pickups: ['r1', 's1'], catchphrase: '伝説の脚竜、降臨！', featured: ['s1'],
       }),
     )
   })
@@ -628,7 +640,7 @@ describe('画面の表示', () => {
     const el = await render(<GachaForm id="g1" go={go} />)
     const chip = [...el.querySelectorAll('button.chip')].find((b) => b.textContent === '★4 カイザードラ（ジョグレス）')!
     await act(async () => (chip as HTMLButtonElement).click())
-    expect(el.querySelector('.gacha-banner.auto')!.textContent).toContain('ジョグレスで★4')
+    expect(el.querySelector('.banner-carousel .slide-hero')!.textContent).toContain('ジョグレスで★4')
     await click('保存する')
     expect(fake.store.saveGacha).toHaveBeenCalledWith(expect.objectContaining({ featured: ['j1'] }))
   })
