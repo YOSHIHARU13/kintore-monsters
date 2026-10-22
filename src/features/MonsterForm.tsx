@@ -76,13 +76,13 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
   }
   // 被りや不足を見るための集計（自分以外のモンスターと、作ってあるクエストから）
   const gimmickNames = allGimmicks(quests)
-  const maxAbilities = abilitySlots({ recipe, rarity })
+  const maxAbilities = abilitySlots({ recipe, rarity, questOnly })
   const draftFull: MonsterDef = {
     ...draftDef,
     attrs: Object.fromEntries(template.nodes.map((n) => [n.id, attrOf(n.id)])),
     element: element || undefined,
     favoriteSlot: favoriteSlot || undefined,
-    abilities: abilities.slice(0, abilitySlots({ recipe, rarity })),
+    abilities: abilities.slice(0, abilitySlots({ recipe, rarity, questOnly })),
     ...(recipe.length === 2
       ? { jogressElements: jogressElementOf(recipe, defs).elements, jogressSuper: jogressElementOf(recipe, defs).super }
       : {}),
@@ -183,7 +183,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
         rarity,
         element,
         favoriteSlot: validFavorite,
-        abilities: abilities.slice(0, abilitySlots({ recipe, rarity })),
+        abilities: abilities.slice(0, abilitySlots({ recipe, rarity, questOnly })),
         questOnly: recipe.length !== 2 && questOnly,
         tower: recipe.length !== 2 && questOnly && tower,
         jogressBirthStars: birthStars,
@@ -493,7 +493,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
           </div>
           <span className="muted small">
             クエストの「求められる編成」の条件になります。持てる数はレア度で決まります（ハズレ・ノーマル{CONFIG.gimmicks.slots.normal}、激レア
-            {CONFIG.gimmicks.slots.superRare}、ジョグレス{CONFIG.gimmicks.slots.jogress}）。
+            {CONFIG.gimmicks.slots.superRare}、ジョグレス{CONFIG.gimmicks.slots.jogress}。降臨は激レアでも{CONFIG.gimmicks.questOnlyMax}）。
           </span>
         </div>
         </details>

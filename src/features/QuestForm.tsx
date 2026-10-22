@@ -6,7 +6,7 @@ import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { QuestBanner } from '../components/QuestBanner'
 import { DIFFICULTIES, GRADES, defaultBossHp, defaultHp, gradeOf, questGold, standardSessionDamage } from '../lib/quest'
 import { allGimmicks, selectableGimmicks } from '../lib/gimmick'
-import { ELEMENTS, ELEMENT_COLOR, ELEMENT_LABEL, advantageElements } from '../lib/element'
+import { ELEMENTS, ELEMENT_COLOR, ELEMENT_LABEL, advantageElements, elementInfo } from '../lib/element'
 import { abilityTag, elementTag, ownedSupply, requirementsFromMonsters, requirementsOf, tagLabel } from '../lib/formation'
 import { CORE_LABEL } from '../lib/cores'
 import { ATTR_COLOR, type Go } from '../nav'
@@ -26,7 +26,8 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
   const [attr, setAttr] = useState<FormAttr>(
     existing?.attr ?? (bossChoices[0] ? nodeAttr(bossChoices[0], FIRST_NODE_ID) : 'none'),
   )
-  const [element, setElement] = useState<Element | undefined>(existing?.element ?? bossChoices[0]?.element)
+  const bossDef = defs.find((d) => d.id === bossDefId)
+  const element: Element | undefined = bossDef ? elementInfo(bossDef).elements[0] : undefined
   const [weakSlots, setWeakSlots] = useState<string[]>(existing?.weakSlots ?? [])
   const [requirements, setRequirements] = useState<Requirement[]>(existing ? requirementsOf(existing) : [])
   const [newGimmick, setNewGimmick] = useState('')
@@ -126,10 +127,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
               onChange={(e) => {
                 setBossDefId(e.target.value)
                 const d = defs.find((x) => x.id === e.target.value)
-                if (d) {
-                  setAttr(nodeAttr(d, FIRST_NODE_ID))
-                  setElement(d.element)
-                }
+                if (d) setAttr(nodeAttr(d, FIRST_NODE_ID))
               }}
             >
               {bossChoices.map((d) => (
@@ -144,23 +142,13 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
           <p className="muted small">図鑑の登録画面で「クエスト限定」にしたモンスターは、ガチャに出なくなり、ここでだけ選べます。</p>
         )}
         <div className="field">
-          ボスの属性（相性：炎→木→水→炎、光⇔闇。超絶では有利な属性以外のダメージが半減）
-          <div className="chips" role="group" aria-label="ボスの属性">
-            <button type="button" className={`chip${!element ? ' on' : ''}`} onClick={() => setElement(undefined)}>
-              無属性
-            </button>
-            {ELEMENTS.map((e) => (
-              <button
-                key={e}
-                type="button"
-                className={`chip${element === e ? ' on' : ''}`}
-                style={element === e ? { borderColor: ELEMENT_COLOR[e], color: ELEMENT_COLOR[e] } : undefined}
-                onClick={() => setElement(e)}
-              >
-                {ELEMENT_LABEL[e]}
-              </button>
-            ))}
-          </div>
+          <span>
+            ボスの属性：
+            <strong style={element ? { color: ELEMENT_COLOR[element] } : undefined}>
+              {element ? ELEMENT_LABEL[element] : '無属性'}
+            </strong>
+            （ボスのモンスターと同じ）
+          </span>
           {element && (
             <span className="muted small">
               適正（有利な属性）：{advantageElements(element).map((e) => ELEMENT_LABEL[e]).join('・')}

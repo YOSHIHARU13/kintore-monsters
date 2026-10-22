@@ -252,7 +252,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
   const [owned, setOwned] = useState<OwnedMonster[]>([])
   const [songs, setSongs] = useState<Song[]>([])
   const [gachaDocs, setGachaDocs] = useState<Gacha[]>([])
-  const [quests, setQuests] = useState<Quest[]>([])
+  const [questDocs, setQuests] = useState<Quest[]>([])
   const [today, setToday] = useState(dateKey())
   const [weekSets, setWeekSets] = useState<SetRecord[]>([])
   const [yesterdayCheckin, setYesterdayCheckin] = useState<Checkin | null>(null)
@@ -358,6 +358,15 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     )
   }, [base, week, fail])
 
+  // ボスの属性は、いつもボスのモンスターの属性と同じ（モンスターの属性を変えればクエストも変わる）
+  const quests = useMemo(
+    () =>
+      questDocs.map((q) => {
+        const boss = defs.find((d) => d.id === q.bossDefId)
+        return boss ? { ...q, element: elementInfo(boss).elements[0] } : q
+      }),
+    [questDocs, defs],
+  )
   const yesterday = useMemo(() => prevDateKey(today), [today])
   const tower = useMemo(() => towerFloors(towerMonth(today), defs, selectableGimmicks(quests)), [today, defs, quests])
 

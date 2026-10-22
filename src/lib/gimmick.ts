@@ -18,10 +18,14 @@ export function abilityName(gimmick: string, names: Record<string, string> = CON
 }
 
 /** そのモンスターが持てるアビリティの数（レア度の格） */
-export function abilitySlots(def: Pick<MonsterDef, 'recipe' | 'rarity' | 'common' | 'jogressGrade'>): number {
+export function abilitySlots(
+  def: Pick<MonsterDef, 'recipe' | 'rarity' | 'common' | 'jogressGrade'> & { questOnly?: boolean },
+): number {
   const slots = CONFIG.gimmicks.slots
   if (isHidden(def as MonsterDef)) return slots.jogress
-  return slots[rarityOf(def as MonsterDef)]
+  const n = slots[rarityOf(def as MonsterDef)]
+  // 降臨は激レアでもガチャより弱く
+  return def.questOnly ? Math.min(n, CONFIG.gimmicks.questOnlyMax) : n
 }
 
 /** ジョグレスの格：レシピの素材のうち激レアの数 */

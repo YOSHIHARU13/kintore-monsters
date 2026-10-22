@@ -104,6 +104,7 @@ export const CONFIG = {
     } as Record<string, string>,
     // 持てるアビリティの数（レア度の格）。ジョグレスは jogress
     slots: { hazure: 0, normal: 0, superRare: 2, jogress: 3 },
+    questOnlyMax: 1, // 降臨（クエスト限定）は激レアでもアビリティはここまで（ガチャより弱く）
   },
 
   // クエスト：出撃したら、その日のうちに倒す勝負。出撃してからのセットがそのままダメージになる（何回でも挑戦できる）
@@ -258,6 +259,7 @@ export const CONFIG = {
         hint: 'そのガチャ限定。ジョグレスの素材になる、いちばんかっこいいやつ',
       },
     },
+    questOnlyAttackBonusMax: 3000, // 降臨（クエスト限定）の攻撃力の上乗せはここまで（ガチャの激レア4500より弱く）
     // 星は進化形態だけで決まる（レア度は関係ない）：1段目が★1、進化するたびに1つ増える（最大 maxStars）
     // ジョグレスの隠しモンスターは、レシピで決めた「生まれるときの星」から（決めていなければ jogressDefaultBirth）
     // レア度は星には出さず、攻撃力の上乗せ（attackBonus）にだけ効く。ジョグレスは jogressAttackBonus
