@@ -69,3 +69,25 @@ export function shortfallHelp(def: MonsterDef, rows: FormationRow[]): number {
   const tags = tagsOf(def)
   return rows.reduce((sum, r) => sum + Math.min(tags[r.tag] ?? 0, Math.max(0, r.need - r.have)), 0)
 }
+
+/**
+ * 「このモンスターたちが活躍するクエスト」の条件：選んだモンスターの属性とアビリティから作る。
+ * 属性は1種類なら3、2種類以上なら2ずつ。アビリティは2ずつ。条件は最大 maxRequirements まで。
+ */
+export function requirementsFromMonsters(picked: MonsterDef[]): Requirement[] {
+  const elements = [...new Set(picked.flatMap((d) => elementInfo(d).elements))]
+  const abilities = [...new Set(picked.flatMap((d) => Object.keys(tagsOf(d)).filter((t) => t.startsWith('ab:'))))]
+  const perElement = elements.length <= 1 ? 3 : 2
+  return [
+    ...elements.map((e) => ({ tag: elementTag(e), count: perElement })),
+    ...abilities.map((tag) => ({ tag, count: 2 })),
+  ].slice(0, CONFIG.formation.maxRequirements)
+}
+
+/** 手持ちのモンスター全員で、その条件をいくつ満たせるか（出撃は6体までなので目安） */
+export function ownedSupply(tag: Tag, owned: { defId: string }[], defs: MonsterDef[]): number {
+  return owned.reduce((sum, o) => {
+    const def = defs.find((d) => d.id === o.defId)
+    return sum + (def ? (tagsOf(def)[tag] ?? 0) : 0)
+  }, 0)
+}

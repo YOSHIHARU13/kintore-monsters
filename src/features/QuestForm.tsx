@@ -7,14 +7,15 @@ import { QuestBanner } from '../components/QuestBanner'
 import { DIFFICULTIES, GRADES, defaultBossHp, defaultHp, gradeOf, questGold, standardSessionDamage } from '../lib/quest'
 import { allGimmicks, selectableGimmicks } from '../lib/gimmick'
 import { ELEMENTS } from '../lib/element'
-import { abilityTag, elementTag, requirementsOf, tagLabel } from '../lib/formation'
+import { abilityTag, elementTag, ownedSupply, requirementsFromMonsters, requirementsOf, tagLabel } from '../lib/formation'
 import { CORE_LABEL } from '../lib/cores'
 import { ATTR_COLOR, type Go } from '../nav'
 import { nodeAttr, type Quest, type QuestDifficulty, type QuestGrade, type Requirement } from '../types'
 
 /** クエストを作る・編集する。ボス・弱点・HPを決める */
 export function QuestForm({ id, go }: { id?: string; go: Go }) {
-  const { quests, defs, menu, saveQuest, deleteQuest } = useStore()
+  const { quests, defs, owned, menu, saveQuest, deleteQuest } = useStore()
+  const [stars, setStars] = useState<string[]>([])
   const existing = id ? quests.find((q) => q.id === id) : undefined
   // ボスになれるのは「クエスト限定」のモンスター（いなければ全員から選べる）
   const bossChoices = defs.some((d) => d.questOnly) ? defs.filter((d) => d.questOnly) : defs
@@ -181,11 +182,45 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
           出撃する6体の合計で満たす条件です。ちょうどそろうと編成倍率×1.0（普通にその日のメニューで倒せる）、何もないと×
           {CONFIG.formation.base}、超えた分は1つにつき+{CONFIG.formation.perExtra}。超属性は2、複合属性は両方に1ずつ数えます。
         </p>
+        <div className="field">
+          🎯 このモンスターが活躍するクエストにする（3体まで選んで「条件を作る」）
+          <div className="chips" role="group" aria-label="活躍させたいモンスター">
+            {defs.map((d) => {
+              const on = stars.includes(d.id)
+              return (
+                <button
+                  key={d.id}
+                  type="button"
+                  className={`chip small${on ? ' on' : ''}`}
+                  disabled={!on && stars.length >= 3}
+                  onClick={() => setStars(on ? stars.filter((x) => x !== d.id) : [...stars, d.id])}
+                >
+                  {d.name}
+                </button>
+              )
+            })}
+          </div>
+          <button
+            type="button"
+            className="btn small"
+            disabled={stars.length === 0}
+            onClick={() => setRequirements(requirementsFromMonsters(defs.filter((d) => stars.includes(d.id))))}
+          >
+            選んだモンスターの属性・アビリティで条件を作る
+          </button>
+        </div>
         {requirements.length === 0 && <p className="muted small">まだ条件がありません（いつでも×1.0）。下から足してください。</p>}
         <ul className="mini-list">
           {requirements.map((r, i) => (
             <li key={r.tag}>
-              <span>{tagLabel(r.tag, gimmickNames)}</span>
+              <span>
+                {tagLabel(r.tag, gimmickNames)}
+                <br />
+                <span className={`small ${ownedSupply(r.tag, owned, defs) < r.count ? 'warn' : 'muted'}`}>
+                  持っている {ownedSupply(r.tag, owned, defs)}
+                  {ownedSupply(r.tag, owned, defs) < r.count && '（今の手持ちだと×1.0に届かない）'}
+                </span>
+              </span>
               <span className="row">
                 <button
                   type="button"

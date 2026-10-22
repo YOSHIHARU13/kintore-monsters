@@ -674,6 +674,18 @@ describe('画面の表示', () => {
     )
   })
 
+  it('クエスト作成：🎯活躍させたいモンスターを選ぶと条件ができ、手持ちで足りるか出る', async () => {
+    const { QuestForm } = await import('./QuestForm')
+    fake.store.defs = [{ ...defs[0], element: 'fire', rarity: 'rare', abilities: ['バリア'] }, defs[1]]
+    const el = await render(<QuestForm go={go} />)
+    const group = el.querySelector('[aria-label="活躍させたいモンスター"]')!
+    await act(async () => [...group.querySelectorAll('button')].find((b) => b.textContent === 'ムキドラ')!.click())
+    await click('選んだモンスターの属性・アビリティで条件を作る')
+    expect(el.textContent).toContain('🔥炎')
+    expect(el.textContent).toContain('バリアブレイカー')
+    expect(el.textContent).toContain('持っている 1（今の手持ちだと×1.0に届かない）') // 炎3に対して手持ちは1
+  })
+
   it('クエスト詳細：効きやすい順にメンバーが並び、選んで挑戦できる', async () => {
     const { QuestDetail } = await import('./QuestDetail')
     const quest = {

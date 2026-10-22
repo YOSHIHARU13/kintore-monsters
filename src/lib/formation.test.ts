@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formationOf, requirementsOf, shortfallHelp, tagsOf } from './formation'
+import { formationOf, ownedSupply, requirementsFromMonsters, requirementsOf, shortfallHelp, tagsOf } from './formation'
 import type { MonsterDef } from '../types'
 
 const def = (id: string, extra: Partial<MonsterDef> = {}): MonsterDef => ({
@@ -50,5 +50,26 @@ describe('編成', () => {
 
   it('条件を作る前のクエストは、ギミックを「対応アビリティ2体」として読む', () => {
     expect(requirementsOf({ gimmicks: ['バリア'] })).toEqual([{ tag: 'ab:バリア', count: 2 }])
+  })
+
+  it('クエスト側から：選んだモンスターの属性とアビリティで条件を作る', () => {
+    const fireRare = def('a', { rarity: 'rare', element: 'fire', abilities: ['バリア'] })
+    const water = def('b', { element: 'water' })
+    expect(requirementsFromMonsters([fireRare])).toEqual([
+      { tag: 'el:fire', count: 3 },
+      { tag: 'ab:バリア', count: 2 },
+    ])
+    expect(requirementsFromMonsters([fireRare, water])).toEqual([
+      { tag: 'el:fire', count: 2 },
+      { tag: 'el:water', count: 2 },
+      { tag: 'ab:バリア', count: 2 },
+    ])
+  })
+
+  it('手持ちで満たせる数（同じモンスターを何体持っていても数える）', () => {
+    const defs = [def('a', { element: 'fire' }), def('s', { recipe: ['x', 'y'], jogressElements: ['fire'], jogressSuper: true })]
+    const owned = [{ defId: 'a' }, { defId: 'a' }, { defId: 's' }]
+    expect(ownedSupply('el:fire', owned, defs)).toBe(4)
+    expect(ownedSupply('el:water', owned, defs)).toBe(0)
   })
 })
