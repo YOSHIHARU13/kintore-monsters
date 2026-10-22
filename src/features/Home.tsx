@@ -1,4 +1,5 @@
 import { useStore } from '../store'
+import { CollabNews } from '../components/CollabNews'
 import { LoginBonus, Gifts } from './Missions'
 import { activeToday, canClaim, dailyMissions, dexMissions, weeklyMissions } from '../lib/missions'
 import { isLuckMax } from '../lib/fusion'
@@ -37,6 +38,7 @@ export function Home({ go }: { go: Go }) {
 
   return (
     <div className="page">
+      <CollabNews go={go} />
       <LoginBonus />
       <Gifts />
       <button className="card mission-entry" onClick={() => go({ name: 'missions' })}>

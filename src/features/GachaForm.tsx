@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { useStore } from '../store'
+import { PeriodInput } from '../components/PeriodInput'
 import { allSeries, gachaSeries, seriesOf } from '../lib/series'
 import { CONFIG } from '../config/gameConfig'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
@@ -213,7 +214,13 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
             このガチャの「顔」になるモンスターを選びます。{CONFIG.gacha.minPickups}体以上そろうとショップで引けます。1体が入れるガチャは
             {CONFIG.gacha.maxPerMonster}つまで。ハズレとノーマルはどのガチャにも自動で入ります。
           </p>
-          {collab && <p className="result keep">🤝 「{collab}」のコラボガチャとして扱います（開催期間・バナー・名前に反映）</p>}
+          {collab && (
+            <div className="field">
+              <p className="result keep">🤝 「{collab}」のコラボガチャとして扱います（開催期間・バナー・名前に反映）</p>
+              開催期間（先の日付にすると、その日まではショップにもクエストにも出ず「近日開催」と予告されます）
+              <PeriodInput series={collab} />
+            </div>
+          )}
           {seriesPicks.length > 0 && (
             <div className="chips" role="group" aria-label="シリーズでまとめて選ぶ">
               {seriesPicks.map(({ s, ids }) => (

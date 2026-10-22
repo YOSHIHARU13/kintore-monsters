@@ -2515,3 +2515,9 @@ details.tuning[open] > summary {
   border: 1px solid #ffd166;
   background: linear-gradient(160deg, rgba(255, 209, 102, 0.12), rgba(138, 43, 226, 0.12));
 }
+
+.period-input {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}

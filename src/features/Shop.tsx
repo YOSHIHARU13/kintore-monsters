@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { useStore } from '../store'
+import { CollabNews } from '../components/CollabNews'
 import { gachaSeries, seriesStatus, statusLabel } from '../lib/series'
 import { availableEvents, upcomingEvents } from '../lib/events'
 import { ACTIVE_HINT, activeToday } from '../lib/missions'
@@ -71,6 +72,7 @@ export function Shop({ go }: { go: Go }) {
       <h1 className="title">ショップ</h1>
       <p className="gold">所持 {state.gold}G・🪙{state.coins ?? 0}</p>
 
+      <CollabNews />
       <section className="card gacha-stage">
         <div className="gacha-tabs" role="tablist" aria-label="ガチャ">
           {shown.map((g) => (
