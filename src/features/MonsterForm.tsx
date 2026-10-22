@@ -42,7 +42,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
   const [names, setNames] = useState<Record<string, string>>(existing?.names ?? {})
   const [files, setFiles] = useState<Record<string, File>>({})
   // 黒い背景を白にする（スクショの画像向け）。数字が大きいほど、明るめの黒まで白にする
-  const [whitenLevel, setWhitenLevel] = useState(40)
+  const [whitenLevel, setWhitenLevel] = useState(90)
   const [whitening, setWhitening] = useState<string | null>(null)
   const whiten = async (nodeId: string) => {
     setWhitening(nodeId)
@@ -292,7 +292,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
             onChange={(e) => setWhitenLevel(Number(e.target.value))}
             aria-label="黒い背景を白にする強さ"
           />
-          ふちとつながった暗い色だけを白にします（キャラの中の黒は残ります）。背景が残るなら強く、キャラの縁まで消えるなら弱くして、もう一度画像を選んでから押してください。保存するまでは元の画像は変わりません。
+          ふちから、暗くて色がなめらかに続く部分（黒・茶色・グラデーション）を白にします。キャラの縁で色がはっきり変わるところで止まります。背景が残るなら強く、キャラまで白くなるなら弱くして、もう一度画像を選んでから押してください。保存するまで元の画像は変わりません。いちばんきれいなのは、iPhoneの写真アプリでキャラを長押しして切り抜いた画像を選ぶ方法です（透明な部分は自動で白になります）。
         </details>
         <p className="small supply-row">
           部位の内訳（最終形態）：

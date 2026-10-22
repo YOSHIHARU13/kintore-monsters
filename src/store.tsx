@@ -857,7 +857,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const images: Record<string, string> = { ...(existing?.images ?? {}) }
       const batch = writeBatch(db)
       for (const [nodeId, file] of Object.entries(input.files)) {
-        const data = await compressImage(file)
+        const data = await compressImage(file, CONFIG.image.maxSidePx, '#ffffff') // 切り抜き画像も白背景に
         const imageRef = doc(collection(db, base, 'images'))
         batch.set(imageRef, { data, createdAt: Date.now() })
         imageCache.set(imageRef.id, Promise.resolve(data))

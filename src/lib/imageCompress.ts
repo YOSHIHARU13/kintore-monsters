@@ -24,7 +24,8 @@ function dataUrlBytes(dataUrl: string): number {
  * 長辺を縮めてWebPに圧縮し、data URL で返す。
  * WebPで書き出せないブラウザではPNG/JPEGになるので、その場合はサイズを落として収める。
  */
-export async function compressImage(file: File, maxSidePx: number = CONFIG.image.maxSidePx): Promise<string> {
+/** background を指定すると、透明な部分をその色で塗る（切り抜いた画像も白背景にそろえる） */
+export async function compressImage(file: File, maxSidePx: number = CONFIG.image.maxSidePx, background?: string): Promise<string> {
   const img = await loadImage(file)
   let side = maxSidePx
   let best = ''
@@ -35,6 +36,10 @@ export async function compressImage(file: File, maxSidePx: number = CONFIG.image
     canvas.height = Math.max(1, Math.round(img.height * scale))
     const ctx = canvas.getContext('2d')
     if (!ctx) throw new Error('画像を処理できませんでした')
+    if (background) {
+      ctx.fillStyle = background
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+    }
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
     for (const quality of [0.85, 0.7, 0.55, 0.4]) {
       best = canvas.toDataURL('image/webp', quality)

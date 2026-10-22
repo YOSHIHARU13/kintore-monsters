@@ -1,13 +1,19 @@
+/** となりの色とこれ以内の差なら、同じ背景が続いているとみなす（黒→茶色のグラデーションもたどれる） */
+const STEP = 28
+
 /**
- * 黒い背景を白にする：画像のふちから、暗い色（明るさ threshold 以下）でつながっているところだけを白で塗る。
- * キャラの中の黒（ふちとつながっていない部分）は残る。境目は少しぼかしてギザギザを目立たなくする。
+ * 暗い背景を白にする：画像のふちから、暗い色（明るさ threshold 以下）で、色がなめらかにつながっているところだけを白で塗る。
+ * 背景が黒でも茶色でも、グラデーションでもたどれる。キャラの縁（背景と色がはっきり違うところ）で止まり、キャラの中の黒は残る。
  */
 export function whitenPixels(data: Uint8ClampedArray, width: number, height: number, threshold: number): number {
   const dark = (i: number) => data[i * 4 + 3] < 16 || Math.max(data[i * 4], data[i * 4 + 1], data[i * 4 + 2]) <= threshold
+  const near = (a: number, b: number) =>
+    Math.abs(data[a * 4] - data[b * 4]) + Math.abs(data[a * 4 + 1] - data[b * 4 + 1]) + Math.abs(data[a * 4 + 2] - data[b * 4 + 2]) <=
+    STEP * 3
   const filled = new Uint8Array(width * height)
   const stack: number[] = []
-  const push = (i: number) => {
-    if (!filled[i] && dark(i)) {
+  const push = (i: number, from = -1) => {
+    if (!filled[i] && dark(i) && (from < 0 || near(i, from))) {
       filled[i] = 1
       stack.push(i)
     }
@@ -24,10 +30,18 @@ export function whitenPixels(data: Uint8ClampedArray, width: number, height: num
     const i = stack.pop()!
     const x = i % width
     const y = (i - x) / width
-    if (x > 0) push(i - 1)
-    if (x < width - 1) push(i + 1)
-    if (y > 0) push(i - width)
-    if (y < height - 1) push(i + width)
+    if (x > 0) push(i - 1, i)
+    if (x < width - 1) push(i + 1, i)
+    if (y > 0) push(i - width, i)
+    if (y < height - 1) push(i + width, i)
+  }
+  // 塗る前に、境目の判定に使う元の色を見るので、白にするのは最後にまとめて
+  const edge: number[] = []
+  for (let i = 0; i < width * height; i++) {
+    if (filled[i]) continue
+    const x = i % width
+    const next = (x > 0 && filled[i - 1]) || (x < width - 1 && filled[i + 1]) || filled[i - width] || filled[i + width]
+    if (next && Math.max(data[i * 4], data[i * 4 + 1], data[i * 4 + 2]) <= threshold * 1.5) edge.push(i)
   }
   let count = 0
   for (let i = 0; i < width * height; i++) {
@@ -36,17 +50,7 @@ export function whitenPixels(data: Uint8ClampedArray, width: number, height: num
       count++
     }
   }
-  // 境目：塗ったところのとなりで、少しだけ明るい色は、白に寄せる
-  for (let i = 0; i < width * height; i++) {
-    if (filled[i]) continue
-    const x = i % width
-    const next = (x > 0 && filled[i - 1]) || (x < width - 1 && filled[i + 1]) || filled[i - width] || filled[i + width]
-    if (!next) continue
-    const b = Math.max(data[i * 4], data[i * 4 + 1], data[i * 4 + 2])
-    if (b > threshold * 2.5) continue
-    const t = 0.5
-    for (let c = 0; c < 3; c++) data[i * 4 + c] = Math.round(data[i * 4 + c] * (1 - t) + 255 * t)
-  }
+  for (const i of edge) for (let c = 0; c < 3; c++) data[i * 4 + c] = Math.round((data[i * 4 + c] + 255) / 2)
   return count
 }
 
