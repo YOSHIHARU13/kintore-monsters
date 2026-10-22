@@ -2351,3 +2351,59 @@ details.tuning[open] > summary {
     animation: none;
   }
 }
+
+/* ミッション・ログインボーナス */
+.mission-entry {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+  color: inherit;
+  font-weight: 800;
+  text-align: left;
+}
+.mission-list li {
+  align-items: center;
+  gap: 8px;
+}
+.mission-list li.claimed {
+  opacity: 0.55;
+}
+.mission-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.login-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+  margin: 6px 0;
+}
+.login-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 1px;
+  border-radius: 8px;
+  background: var(--card2);
+  font-size: 0.65rem;
+  text-align: center;
+  word-break: break-all;
+}
+.login-day.done {
+  opacity: 0.45;
+}
+.login-day.on {
+  background: linear-gradient(160deg, #ff4fa3, #ffd166);
+  color: #2a1400;
+  font-weight: 800;
+}
+.gift-card {
+  border: 2px solid #ffd166;
+  box-shadow: 0 0 14px rgba(255, 209, 102, 0.45);
+}

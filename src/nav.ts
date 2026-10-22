@@ -14,6 +14,7 @@ export type View =
   | { name: 'quests' }
   | { name: 'quest'; id: string }
   | { name: 'tower' }
+  | { name: 'missions' }
   | { name: 'questForm'; id?: string }
   | { name: 'dex' }
   | { name: 'registry' }

@@ -1,3 +1,5 @@
+import type { Reward } from '../lib/missions'
+import type { BoosterKey } from '../types'
 import type { FreePullEvent } from '../lib/events'
 // ============================================================
 // ゲームの数値はすべてこのファイルにまとめてあります。
@@ -158,10 +160,41 @@ export const CONFIG = {
     chokyukyoku: { element: 3, abilities: 2, abilityCount: 2, weak: 2 },
     material: { element: 2, abilities: 0, abilityCount: 0, weak: 1 },
   },
+  // ミッション・ログインボーナス・図鑑の達成報酬・一度きりのプレゼント
+  missions: {
+    daily: { reward: { gold: 20 }, allReward: { eggs: 1 }, habitMinutes: 5 },
+    weekly: { reward: { eggs: 1 }, days: 3, sets: 30, habitMinutes: 60 },
+    // ログインした日数で7日周期（休んでもリセットされない）
+    login: [
+      { gold: 50 },
+      { gold: 50 },
+      { eggs: 1 },
+      { gold: 50 },
+      { booster: 'exp' },
+      { gold: 50 },
+      { eggs: 2 },
+    ] as Reward[],
+    dex: [
+      { percent: 10, reward: { eggs: 3 } },
+      { percent: 25, reward: { eggs: 5 } },
+      { percent: 50, reward: { eggs: 10 } },
+      { percent: 75, reward: { eggs: 10 } },
+      { percent: 100, reward: { eggs: 20 } },
+    ] as { percent: number; reward: Reward }[],
+    // 一度だけのプレゼント（スタートダッシュ）
+    gifts: [
+      {
+        id: 'startDash',
+        label: 'スタートダッシュ記念',
+        reward: { eggs: 30, gold: 500 },
+        boosters: ['habit', 'exp', 'quest'],
+      },
+    ] as { id: string; label: string; reward: Reward; boosters?: BoosterKey[] }[],
+  },
   // 無料ガチャのイベント：その日のうちに、好きなガチャで引ける（卵は減らない）
   events: {
     freePulls: [
-      { id: 'thursday', label: '木曜の無料10連', pulls: 10, weekday: 4 },
+      { id: 'thursday', label: '木曜の無料5連', pulls: 5, weekday: 4 },
       { id: 'monthStart', label: '月初めの無料10連', pulls: 10, monthDay: 1 },
       { id: 'monthMid', label: '15日の激レア確定ガチャ', pulls: 1, monthDay: 15, guaranteed: true },
     ] as FreePullEvent[],

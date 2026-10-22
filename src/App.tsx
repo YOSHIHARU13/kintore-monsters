@@ -22,6 +22,7 @@ import { PartnerPick } from './features/PartnerPick'
 import { TopBar } from './components/TopBar'
 import { Quests } from './features/Quests'
 import { Tower } from './features/Tower'
+import { Missions } from './features/Missions'
 import { QuestDetail } from './features/QuestDetail'
 import { QuestForm } from './features/QuestForm'
 
@@ -59,6 +60,8 @@ function Screen({ view, go }: { view: View; go: (v: View) => void }) {
       return <QuestDetail key={view.id} id={view.id} go={go} />
     case 'tower':
       return <Tower go={go} />
+    case 'missions':
+      return <Missions go={go} />
     case 'questForm':
       return <QuestForm key={view.id ?? 'new'} id={view.id} go={go} />
     case 'gachaForm':

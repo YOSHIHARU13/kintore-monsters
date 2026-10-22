@@ -48,6 +48,16 @@ export interface GameState {
   boosters: Partial<Record<BoosterKey, number>> // 持っているブースターの数
   boosts: { habit?: boolean; quest?: boolean; expSets?: number } // 使用中のブースター（EXPは残りセット数）
   freeClaims: Record<string, boolean> // 引いた無料ガチャ（'thursday:2026-10-22' のようなキー）
+  claims: Record<string, boolean> // 受け取った報酬（ミッション・ログイン・図鑑・プレゼント）
+  loginDays: number // ログインボーナスを受け取った日数
+  stats: {
+    date: string
+    week: string
+    dayQuestClears: number
+    weekQuestClears: number
+    weekStrictClears: number
+    weekHabitMinutes: number
+  } | null // ミッション用の今日・今週の記録
 }
 
 export interface SetRecord {

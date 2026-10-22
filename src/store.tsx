@@ -27,7 +27,7 @@ import { isWeekCleared } from './lib/week'
 import { compressImage } from './lib/imageCompress'
 import { draw, isPickupRarity, isPity, isReady, rarityOf, rateTable } from './lib/gacha'
 import { isJogressReady } from './lib/stats'
-import { battleOf, dropPlus, questGold } from './lib/quest'
+import { battleOf, dropPlus, isStrict, questGold } from './lib/quest'
 import { rollBonusCore, rollCoreDrop } from './lib/cores'
 import { canFeed, fusionGain, isLuckMax, luckAfter, luckBonus } from './lib/fusion'
 import { autoPartners } from './lib/partner'
@@ -35,6 +35,7 @@ import { finalAttrs, recommend } from './lib/coverage'
 import { abilitySlots, jogressGradeOf, selectableGimmicks } from './lib/gimmick'
 import { boostActive } from './lib/boosters'
 import { availableEvents, claimKey } from './lib/events'
+import { currentStats, loginReward, type Reward } from './lib/missions'
 import { builtinMaterialQuests } from './lib/materials'
 import { towerCleared, towerFloors, towerMonth, type TowerFloor } from './lib/tower'
 import { elementInfo, jogressElementOf } from './lib/element'
@@ -74,6 +75,9 @@ function initialState(): GameState {
     boosters: {},
     boosts: {},
     freeClaims: {},
+    claims: {},
+    loginDays: 0,
+    stats: null,
     cores: {},
     coreMisses: {},
   }
@@ -228,6 +232,8 @@ interface Store {
   /** まとめて引く（タマゴの数まで）。引けた分だけ返す */
   hatchMany: (gachaId: string, count: number) => HatchResult[]
   freePull: (eventId: string, gachaId: string) => HatchResult[]
+  claimReward: (key: string, reward: Reward, boosters?: BoosterKey[]) => boolean
+  claimLogin: () => Reward | null
   /** ガチャを作る・編集する。保存したガチャのID */
   saveGacha: (input: GachaInput) => Promise<string>
   /** ガチャを消す（入っていたモンスターはそのガチャから外れる）。「いつものガチャ」は消せない */
@@ -478,6 +484,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         habitStreak: streak,
         bestHabitStreak: Math.max(state.bestHabitStreak, streak),
       }
+      bumpStats(update, { habit: byMinutes ? mins : 0 })
       if (gold > 0) update.gold = increment(gold)
       if (gold > 0 && state.boosts?.habit) update['boosts.habit'] = false
       updateState(update)
@@ -510,6 +517,43 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const batch = writeBatch(db)
       batch.update(stateRef, update)
       batch.commit().catch(fail)
+    }
+
+    /** ミッション用の今日・今週の記録を進める（update にまとめて書く） */
+    const bumpStats = (update: DocumentData, delta: { quest?: number; strict?: number; habit?: number }) => {
+      const st = currentStats(state, dateKey(), weekStartKey())
+      update.stats = {
+        ...st,
+        dayQuestClears: st.dayQuestClears + (delta.quest ?? 0),
+        weekQuestClears: st.weekQuestClears + (delta.quest ?? 0),
+        weekStrictClears: st.weekStrictClears + (delta.strict ?? 0),
+        weekHabitMinutes: st.weekHabitMinutes + (delta.habit ?? 0),
+      }
+    }
+
+    /** 報酬を受け取る（同じキーは1回だけ） */
+    const addReward = (update: DocumentData, reward: Reward, boosters: BoosterKey[] = []) => {
+      if (reward.eggs) update.eggs = increment(reward.eggs)
+      if (reward.gold) update.gold = increment(reward.gold)
+      for (const b of [...(reward.booster ? [reward.booster] : []), ...boosters]) update[`boosters.${b}`] = increment(1)
+    }
+    const claimReward: Store['claimReward'] = (key, reward, boosters) => {
+      if (state.claims?.[key]) return false
+      const update: DocumentData = { [`claims.${key}`]: true }
+      addReward(update, reward, boosters)
+      updateState(update)
+      return true
+    }
+
+    /** ログインボーナス：1日1回 */
+    const claimLogin: Store['claimLogin'] = () => {
+      const key = `login:${dateKey()}`
+      if (state.claims?.[key]) return null
+      const { reward } = loginReward(state)
+      const update: DocumentData = { [`claims.${key}`]: true, loginDays: increment(1) }
+      addReward(update, reward)
+      updateState(update)
+      return reward
     }
 
     const buyExp: Store['buyExp'] = (attr, amount) => {
@@ -1021,6 +1065,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         [`clearedQuests.${battle.quest.id}`]: increment(1),
         challenge: null,
       }
+      bumpStats(update, { quest: 1, strict: isStrict(battle.quest) ? 1 : 0 })
       let monsterId: string | null = null
       let cores = 0
       let corePity = false
@@ -1081,6 +1126,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         tower: { month, cleared: floor.floor },
         challenge: null,
       }
+      bumpStats(update, { quest: 1, strict: isStrict(floor.quest) ? 1 : 0 })
       if (floor.reward.eggs > 0) update.eggs = increment(floor.reward.eggs)
       if (cores > 0) update[`cores.${floor.quest.attr}`] = increment(cores)
       if (floor.reward.booster) update[`boosters.${floor.reward.booster}`] = increment(1)
@@ -1154,6 +1200,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       hatchEgg,
       hatchMany,
       freePull,
+      claimReward,
+      claimLogin,
       pourExp,
       evolve,
       pourPlusExp,

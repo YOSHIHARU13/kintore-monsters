@@ -1,4 +1,7 @@
 import { useStore } from '../store'
+import { LoginBonus, Gifts } from './Missions'
+import { canClaim, dailyMissions, dexMissions, weeklyMissions } from '../lib/missions'
+import { isLuckMax } from '../lib/fusion'
 import { availableEvents } from '../lib/events'
 import { awakenOf, imageOf } from '../lib/art'
 import { ATTRS, ATTR_LABEL, DAYS, DAY_KEYS, TASK_SLOTS, exerciseOfSlot } from '../data/exercises'
@@ -14,7 +17,12 @@ import { BoosterPanel } from '../components/BoosterPanel'
 import { HabitCard } from '../components/HabitCard'
 
 export function Home({ go }: { go: Go }) {
-  const { state, menu, weekSets, defs, owned, yesterday, yesterdayCheckin, today } = useStore()
+  const { state, menu, weekSets, todaySets, week, defs, owned, yesterday, yesterdayCheckin, today } = useStore()
+  const missionCtx = { state, today, week, todaySets, weekSets }
+  const claimable = [...dailyMissions(missionCtx), ...weeklyMissions(missionCtx), ...dexMissions(defs, owned, state)].filter(
+    (m) => canClaim(state, m),
+  ).length
+  const luckMaxCount = owned.filter(isLuckMax).length
   const freeEvents = availableEvents(state, today)
   const gaugeMax = Math.max(100, ...ATTRS.map((a) => state.lifetimeExp[a]))
   const progress = partProgress(weekSets)
@@ -29,6 +37,14 @@ export function Home({ go }: { go: Go }) {
 
   return (
     <div className="page">
+      <LoginBonus />
+      <Gifts />
+      <button className="card mission-entry" onClick={() => go({ name: 'missions' })}>
+        <span>🎯 ミッション</span>
+        {claimable > 0 ? <span className="tag keep">受け取れる報酬 {claimable}</span> : <span className="muted small">デイリー・ウィークリー・図鑑</span>}
+        {luckMaxCount > 0 && <span className="luck-max small">運極 {luckMaxCount}体</span>}
+        <span>›</span>
+      </button>
       {freeEvents.length > 0 && (
         <button className="card free-banner" onClick={() => go({ name: 'shop' })}>
           🎁 今日は{freeEvents.map((e) => e.label).join('・')}の日！ ショップで引こう

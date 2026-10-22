@@ -61,6 +61,9 @@ const state: GameState = {
   boosters: {},
   boosts: {},
   freeClaims: {},
+  claims: {},
+  loginDays: 0,
+  stats: null,
   cores: { chestArms: 2, none: 2 },
   coreMisses: {},
 }
