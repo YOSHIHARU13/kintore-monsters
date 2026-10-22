@@ -201,7 +201,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
           <ul className="mini-list">
             {estimate.map((e) => (
               <li key={e.day}>
-                <span>{DAYS[e.day].title}の日のメニュー1回</span>
+                <span>{DAYS[e.day].title}メニュー1回分</span>
                 <span className={`tag ${e.damage >= hp ? 'keep' : 'warn'}`}>
                   約{Math.round(e.damage).toLocaleString()}（{Math.round((e.damage / hp) * 100)}%）
                 </span>
@@ -210,8 +210,8 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
           </ul>
           <p className="small">
             {best >= hp
-              ? `${DAYS[bestDay].title}の日なら、1日で倒せそう（HP ${hp.toLocaleString()}）。`
-              : `今のメンバーだと、1日でHPの約${Math.round((best / hp) * 100)}%しか削れません。出撃した日のうちに倒す必要があるので、編成をそろえるか、格の低いクエストがおすすめ。`}
+              ? `${DAYS[bestDay].title}メニューを1回やれば、その日のうちに倒せそう（HP ${hp.toLocaleString()}）。`
+              : `今のメンバーだと、メニュー1回でHPの約${Math.round((best / hp) * 100)}%。出撃した日のうちに倒す必要があるので、2部位やる日に挑むか、編成をそろえるか、格の低いクエストがおすすめ。`}
           </p>
           <p className="muted small">基本セット（1種目3セット）とローラーを全部やったときの目安。弱点種目・得意種目・部位の一致・編成倍率込み。</p>
         </section>

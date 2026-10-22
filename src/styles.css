@@ -2500,3 +2500,13 @@ details.tuning[open] > summary {
     animation: none;
   }
 }
+
+.collab-ribbon {
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #6a1fb0, #ff4fa3);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 900;
+}

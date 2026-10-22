@@ -555,6 +555,22 @@ describe('画面の表示', () => {
     expect(el.textContent).not.toContain('1回引く')
   })
 
+  it('ガチャ作成：シリーズでまとめて選ぶと、コラボガチャとして名前とキャッチコピーが自動で入る', async () => {
+    fake.store.defs = [
+      ...defs,
+      ...[1, 2, 3].map((n) => ({
+        id: `c${n}`, name: `オニ${n}`, attr: 'legs' as const, templateId: 'single', images: {}, rarity: 'superRare' as const, series: '鬼退治', createdAt: 10 + n,
+      })),
+    ]
+    const el = await render(<GachaForm go={go} />)
+    await click('＋鬼退治の激レアを全部（3体）')
+    expect(el.textContent).toContain('「鬼退治」のコラボガチャとして扱います')
+    await click('ガチャを作る')
+    expect(fake.store.saveGacha).toHaveBeenCalledWith(
+      expect.objectContaining({ name: '鬼退治コラボガチャ', catchphrase: '鬼退治コラボ開催中！', pickups: ['c1', 'c2', 'c3'] }),
+    )
+  })
+
   it('ガチャ作成：レア以上からピックアップを選ぶと、その場で確率が出る', async () => {
     fake.store.defs = [
       ...defs,

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { useStore } from '../store'
+import { allSeries, gachaSeries, seriesOf } from '../lib/series'
 import { CONFIG } from '../config/gameConfig'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { MonsterImage } from '../components/MonsterImage'
@@ -54,13 +55,23 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
   const pickupNeed = Math.max(0, CONFIG.gacha.minPickups - pickupCount(table))
   // ピックアップを素材にするジョグレスの隠しモンスターも、バナーに出せる
   const jogressIds = jogressOf(table, defs).map((d) => d.id)
+  // 激レアのピックアップが全員同じシリーズなら、そのコラボのガチャ。名前とキャッチコピーは空なら自動で
+  const collab = builtin ? '' : gachaSeries(table)
+  const autoName = collab ? `${collab}コラボガチャ` : ''
+  const autoCatch = collab ? `${collab}コラボ開催中！` : ''
+  const finalName = name.trim() || autoName
+  const finalCatch = catchphrase.trim() || autoCatch
+  // シリーズごとの、まだ選んでいない激レア（まとめて選ぶ用）
+  const seriesPicks = allSeries(defs)
+    .map((s) => ({ s, ids: candidates.filter((d) => seriesOf(d) === s && !pickups.includes(d.id)).map((d) => d.id) }))
+    .filter((x) => x.ids.length > 0)
   // 編集中の内容で確率を計算し直す
   const draft: Gacha = {
     id: existing?.id ?? 'new',
-    name: name.trim() || '名前のないガチャ',
+    name: finalName || '名前のないガチャ',
     bannerImageId: removeBanner ? null : (existing?.bannerImageId ?? null),
     shinyRate,
-    catchphrase,
+    catchphrase: finalCatch,
     theme,
     featured: featured.filter((f) => builtin || pickups.includes(f) || jogressIds.includes(f)),
     slides,
@@ -69,7 +80,7 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
   }
 
   const save = async () => {
-    if (!name.trim()) {
+    if (!finalName) {
       setError('ガチャの名前を入力してください')
       return
     }
@@ -78,9 +89,9 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
     try {
       await saveGacha({
         id: existing?.id,
-        name,
+        name: finalName,
         shinyRate,
-        catchphrase,
+        catchphrase: finalCatch,
         theme,
         featured: draft.featured,
         slides,
@@ -114,7 +125,7 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
         <p className="muted small">バナーは1位の属性の色になります。選んだ型を順にスライドします。</p>
         <label className="field">
           ガチャの名前
-          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={20} placeholder="例：脚ムキムキ祭り" />
+          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={20} placeholder={autoName || "例：脚ムキムキ祭り"} />
         </label>
         <label className="field">
           キャッチコピー（バナーに出ます・省略可）
@@ -122,7 +133,7 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
             value={catchphrase}
             onChange={(e) => setCatchphrase(e.target.value)}
             maxLength={24}
-            placeholder="例：伝説の脚竜、ついに降臨！"
+            placeholder={autoCatch || "例：伝説の脚竜、ついに降臨！"}
           />
         </label>
         {!builtin && pickups.length > 0 && (
@@ -202,6 +213,21 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
             このガチャの「顔」になるモンスターを選びます。{CONFIG.gacha.minPickups}体以上そろうとショップで引けます。1体が入れるガチャは
             {CONFIG.gacha.maxPerMonster}つまで。ハズレとノーマルはどのガチャにも自動で入ります。
           </p>
+          {collab && <p className="result keep">🤝 「{collab}」のコラボガチャとして扱います（開催期間・バナー・名前に反映）</p>}
+          {seriesPicks.length > 0 && (
+            <div className="chips" role="group" aria-label="シリーズでまとめて選ぶ">
+              {seriesPicks.map(({ s, ids }) => (
+                <button
+                  key={s}
+                  type="button"
+                  className="chip small"
+                  onClick={() => setPickups([...pickups, ...ids])}
+                >
+                  ＋{s}の激レアを全部（{ids.length}体）
+                </button>
+              ))}
+            </div>
+          )}
           {candidates.length === 0 && (
             <p className="warn small">レア以上のモンスターがいません。図鑑の登録画面でレア度を「レア」か「激レア」にしてください。</p>
           )}
