@@ -2,7 +2,7 @@ import { CONFIG } from '../config/gameConfig'
 import { DAYS, SLOTS } from '../data/exercises'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { ELEMENTS, advantageElements, elementInfo } from './element'
-import { abilityTag, comboTag, elementTag, requirementsOf, tagAbilities } from './formation'
+import { abilityTag, comboTag, elementTag, groupTag, requirementsOf, tagAbilities } from './formation'
 import { abilitySlots } from './gimmick'
 import { rarityOf } from './gacha'
 import { seriesOf } from './series'
@@ -62,7 +62,7 @@ export function autoQuestSetup(
     const hero = pickHero(boss, grade, defs, seed)
     if (hero) {
       heroId = hero.id
-      requirements = basisRequirements({ kind: 'hero', heroes: [hero] }, grade, boss)
+      requirements = basisRequirements({ kind: 'hero', heroes: [hero, ...companions(hero, defs)] }, grade, boss)
     } else {
       if (adv) requirements.push({ tag: elementTag(adv), count: 3 })
       if (second) requirements.push({ tag: elementTag(second), count: 3 })
@@ -123,6 +123,16 @@ const GRADE_INDEX: Record<QuestGrade, number> = { jokyu: 0, kiwami: 1, kyukyoku:
 const ONE_ELEMENT = [1, 2, 3, 3, 4]
 const TWO_ELEMENTS = [1, 1, 2, 3, 3]
 const ABILITY = [1, 1, 2, 2, 3]
+// 刺さるキャラから作るとき、理想の6体が満たす数のどれくらいを求めるか（上級は軽く、超究極は理想どおり）
+const GRADE_SCALE = [0.34, 0.5, 0.67, 0.84, 1]
+
+/** 理想の6体：条件を多く持つ子ほど多く入れる（1体なら6体、2体なら4＋2、3体なら4＋1＋1） */
+export function idealParty(heroes: MonsterDef[]): MonsterDef[] {
+  const richness = (d: MonsterDef) => tagsOfDef(d).length + elementInfo(d).elements.length + slotted(d).length
+  const sorted = [...heroes].sort((a, b) => richness(b) - richness(a)).slice(0, 3)
+  const weights = sorted.length === 1 ? [6] : sorted.length === 2 ? [4, 2] : [4, 1, 1]
+  return sorted.flatMap((d, i) => Array.from({ length: weights[i] }, () => d))
+}
 
 /**
  * 選んだもとから、格に合った編成の条件を作る。
@@ -140,19 +150,31 @@ export function basisRequirements(basis: Basis, grade: QuestGrade, boss: Monster
     list.length >= 2 ? [{ tag: comboTag(list[0], list[1]), count: ABILITY[g] }] : list.map((x) => ({ tag: abilityTag(x), count: ABILITY[g] }))
   let reqs: Requirement[] = []
   if (basis.kind === 'hero') {
-    const heroes = basis.heroes
-    // 属性：選んだ子たちに多い順に2つまで（1体だけで超属性なら、その属性を多めに）
+    // 理想の6体：いちばん条件（タグ・属性・アビリティ）を多く持つ子を中心に、ほかの子で残りを埋める
+    // 例：3体選んで1体がタグ3つなら、その子4体＋ほか1体ずつ。条件の数は、その6体が満たす数から逆算する
+    const party = idealParty(basis.heroes)
+    const scale = GRADE_SCALE[g]
+    const need = (has: (d: MonsterDef) => number) =>
+      Math.max(1, Math.round(party.reduce((sum, d) => sum + has(d), 0) * scale))
     const elCount: Partial<Record<Element, number>> = {}
-    for (const h of heroes) for (const e of elementInfo(h).elements) elCount[e] = (elCount[e] ?? 0) + 1
+    for (const d of party) for (const e of elementInfo(d).elements) elCount[e] = (elCount[e] ?? 0) + 1
     const topEls = (Object.keys(elCount) as Element[]).sort((a, b) => elCount[b]! - elCount[a]!).slice(0, 2)
-    const superOne = heroes.length === 1 && elementInfo(heroes[0]).super
-    // アビリティ：選んだ子たちが「両方」持っている組み合わせのうち、いちばん多いもの。なければ多いアビリティ1つ
-    const pair = commonPairs(heroes)[0]
+    const pair = commonPairs(basis.heroes)[0]
     const abCount: Record<string, number> = {}
-    for (const h of heroes) for (const x of slotted(h)) abCount[x] = (abCount[x] ?? 0) + 1
+    for (const d of party) for (const x of slotted(d)) abCount[x] = (abCount[x] ?? 0) + 1
     const topAb = Object.keys(abCount).sort((a, b) => abCount[b] - abCount[a])[0]
-    reqs = [...els(topEls, superOne), ...(pair ? abil([pair.a, pair.b]) : topAb ? abil([topAb]) : [])]
-    if (g >= 3 && adv && !reqs.some((r) => r.tag === elementTag(adv))) reqs.push({ tag: elementTag(adv), count: 2 })
+    const tgCount: Record<string, number> = {}
+    for (const d of party) for (const t of tagsOfDef(d)) tgCount[t] = (tgCount[t] ?? 0) + 1
+    const topTags = Object.keys(tgCount).sort((a, b) => tgCount[b] - tgCount[a]).slice(0, 3)
+    reqs = [
+      ...topTags.map((t) => ({ tag: groupTag(t), count: need((d) => (tagsOfDef(d).includes(t) ? 1 : 0)) })),
+      ...topEls.map((e) => ({ tag: elementTag(e), count: need((d) => (elementInfo(d).elements.includes(e) ? (elementInfo(d).super ? 2 : 1) : 0)) })),
+      ...(pair
+        ? [{ tag: comboTag(pair.a, pair.b), count: need((d) => (slotted(d).includes(pair.a) && slotted(d).includes(pair.b) ? 1 : 0)) }]
+        : topAb
+          ? [{ tag: abilityTag(topAb), count: need((d) => (slotted(d).includes(topAb) ? 1 : 0)) }]
+          : []),
+    ]
   } else if (basis.kind === 'gimmicks') {
     reqs = [...(adv ? els([adv]) : []), ...abil(basis.gimmicks)]
   } else {
@@ -177,4 +199,17 @@ export function commonPairs(defs: MonsterDef[]): { a: string; b: string; n: numb
       }
   }
   return Object.values(count).sort((x, y) => y.n - x.n)
+}
+
+/** 刺さるキャラの仲間：タグが多く一致する子を2体まで（同じタグの子たちが一緒に活躍するように） */
+function companions(hero: MonsterDef, defs: MonsterDef[]): MonsterDef[] {
+  const mine = tagsOfDef(hero)
+  if (mine.length === 0) return []
+  return defs
+    .filter((d) => d.id !== hero.id && !d.questOnly)
+    .map((d) => ({ d, n: tagsOfDef(d).filter((t) => mine.includes(t)).length }))
+    .filter((x) => x.n > 0)
+    .sort((a, b) => b.n - a.n)
+    .slice(0, 2)
+    .map((x) => x.d)
 }

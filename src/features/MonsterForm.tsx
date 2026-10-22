@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '../store'
-import { allTags, parseTags, tagsOfDef } from '../lib/tags'
+import { allTags, ownTagsOf, parseTags } from '../lib/tags'
 import { allSeries } from '../lib/series'
 import { ATTRS, DAYS, FORM_ATTRS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type FormAttr } from '../data/exercises'
 import { FIRST_NODE_ID, TEMPLATES, canChangeTemplate, getTemplate } from '../data/evolutionTemplates'
@@ -37,7 +37,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
   )
   const [name, setName] = useState(existing?.name ?? '')
   const [series, setSeries] = useState(existing?.series ?? '')
-  const [tags, setTags] = useState<string[]>(tagsOfDef(existing))
+  const [tags, setTags] = useState<string[]>(ownTagsOf(existing))
   const [tagText, setTagText] = useState('')
   const [templateId, setTemplateId] = useState(existing?.templateId ?? (questPreset ? 'single' : selectable[0].id))
   const [attrs, setAttrs] = useState<Record<string, FormAttr>>(existing?.attrs ?? {})
@@ -147,8 +147,11 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
     // 弱点種目のうち、このモンスターの部位で選べるもの
     const weak = quest.weakSlots.find((w) => favoriteChoices.some((slot) => slot.id === w))
     if (weak) setFavoriteSlot(weak)
-    // ボスのタグも付けて、そのクエストで強くする
-    if ((quest.bossTags ?? []).length > 0) setTags([...new Set([...tags, ...quest.bossTags!])])
+    // 求められているタグも付けて、その条件を満たせるようにする
+    const wantTags = reqs.filter((r) => r.tag.startsWith('tg:')).map((r) => r.tag.slice(3))
+    // コラボ名のタグはシリーズ欄で付くので、ここでは自分で付けるタグだけ
+    const own = wantTags.filter((t) => !allSeries(defs).includes(t))
+    if (own.length > 0) setTags([...new Set([...tags, ...own])])
   }
 
   const stages = [...new Set(template.nodes.filter((n) => n.next.length > 0).map((n) => n.stage))]
@@ -235,9 +238,9 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
           </datalist>
         </label>
         <div className="field">
-          <span>タグ（ドラゴン・侍など。同じタグのボスのクエストで、1つにつきダメージ＋{Math.round(CONFIG.tags.perTag * 100)}%）</span>
+          <span>タグ（ドラゴン・侍など。クエストの「求められる編成」の条件になる。多く持つほど条件をまとめて満たせる）</span>
           <div className="chips" role="group" aria-label="タグ">
-            {[...new Set([...tags, ...allTags(defs)])].map((t) => {
+            {[...new Set([...tags, ...allTags(defs, true)])].map((t) => {
               const on = tags.includes(t)
               return (
                 <button key={t} type="button" className={`chip small${on ? ' on' : ''}`} onClick={() => setTags(on ? tags.filter((x) => x !== t) : [...tags, t])}>

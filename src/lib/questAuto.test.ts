@@ -21,20 +21,21 @@ describe('おまかせのクエスト', () => {
       ({ id, name: id, templateId: 'linear3', images: {}, rarity: 'superRare', element, abilities, createdAt: 0 }) as unknown as MonsterDef
     const heroes = [sr('a', 'fire', ['バリア', 'ミラー']), sr('b', 'fire', ['ミラー', 'バリア']), sr('c', 'light', ['シールド', 'リジェネ'])]
     const reqs = basisRequirements({ kind: 'hero', heroes }, 'kyukyoku', undefined)
+    // 理想の6体は a×4・b・c。究極はその約2/3：炎5→3、光1→1、バリアとミラー両方5→3
     expect(reqs).toEqual([
-      { tag: 'el:fire', count: 2 },
-      { tag: 'el:light', count: 2 },
-      { tag: 'ab2:バリア|ミラー', count: 2 }, // 2体が両方持っている
+      { tag: 'el:fire', count: 3 },
+      { tag: 'el:light', count: 1 },
+      { tag: 'ab2:バリア|ミラー', count: 3 },
     ])
   })
   it('超絶：刺さるキャラ（アビリティ2つの激レア）の属性と、アビリティを両方もつ条件になる', () => {
     const hero = { id: 'h', name: 'h', templateId: 'linear3', images: {}, rarity: 'superRare', element: 'fire', abilities: ['バリア', 'ミラー'], createdAt: 0 } as unknown as MonsterDef
     const r = autoQuestSetup(boss, 'chozetsu', 'boss', [], ['バリア', 'シールド', 'リジェネ', 'ミラー'], undefined, [hero])
     expect(r.heroId).toBe('h')
+    // 仲間がいないので理想の6体はこの子×6。超絶はその約5/6
     expect(r.requirements).toEqual([
-      { tag: 'el:fire', count: 3 },
-      { tag: 'ab2:バリア|ミラー', count: 2 },
-      { tag: 'el:wood', count: 2 }, // ボスに有利な属性も少し
+      { tag: 'el:fire', count: 5 },
+      { tag: 'ab2:バリア|ミラー', count: 5 },
     ])
   })
   it('超究極：同じコラボの子が刺さるキャラになる', () => {
@@ -43,7 +44,8 @@ describe('おまかせのクエスト', () => {
     const collabBoss = { ...boss, series: '鬼' }
     const r = autoQuestSetup(collabBoss, 'chokyukyoku', 'boss', [], [], undefined, [mk('a'), mk('b', '鬼'), mk('c')])
     expect(r.heroId).toBe('b')
-    expect(r.requirements.find((x) => x.tag.startsWith('ab2:'))?.count).toBe(3)
+    expect(r.requirements.find((x) => x.tag.startsWith('ab2:'))?.count).toBe(6) // 超究極は理想どおり
+    expect(r.requirements.find((x) => x.tag === 'tg:鬼')?.count).toBe(6) // コラボ名もタグとして求められる
   })
   it('ほかのクエストであまり使っていないアビリティを選ぶ', () => {
     const used = [{ id: 'q', requirements: [{ tag: 'ab:バリア', count: 2 }, { tag: 'ab:シールド', count: 2 }, { tag: 'ab:リジェネ', count: 2 }] }]
@@ -66,5 +68,15 @@ describe('おまかせのクエスト', () => {
     expect(fitsQuest(mk('wood'), q)).toBe(true) // 水に有利
     expect(fitsQuest(mk('light'), q)).toBe(true) // 条件の属性
     expect(fitsQuest(mk('fire'), q)).toBe(false)
+  })
+  it('タグ3つの子と1つの子たち：その子4体＋ほか2体が最適になる条件', () => {
+    const mk = (id: string, tags: string[]) =>
+      ({ id, name: id, templateId: 'linear3', images: {}, rarity: 'superRare', tags, createdAt: 0 }) as unknown as MonsterDef
+    const reqs = basisRequirements({ kind: 'hero', heroes: [mk('a', ['竜', '侍', '神']), mk('b', ['竜']), mk('c', ['竜'])] }, 'chokyukyoku', undefined)
+    expect(reqs).toEqual([
+      { tag: 'tg:竜', count: 6 },
+      { tag: 'tg:侍', count: 4 },
+      { tag: 'tg:神', count: 4 },
+    ])
   })
 })

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../store'
+import { allTags } from '../lib/tags'
 import { CONFIG } from '../config/gameConfig'
 import { DAYS, FORM_ATTRS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type FormAttr } from '../data/exercises'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
@@ -7,7 +8,7 @@ import { QuestBanner } from '../components/QuestBanner'
 import { COLLAB_GRADES, DIFFICULTIES, GRADES, defaultBossHp, defaultHp, gradeOf, questGold, standardSessionDamage } from '../lib/quest'
 import { allGimmicks, selectableGimmicks, abilityName, abilitySlots } from '../lib/gimmick'
 import { ELEMENTS, ELEMENT_COLOR, ELEMENT_LABEL, advantageElements, elementInfo } from '../lib/element'
-import { abilityTag, elementTag, ownedSupply, requirementsOf, tagLabel, comboTag, tagAbilities } from '../lib/formation'
+import { abilityTag, elementTag, ownedSupply, requirementsOf, tagLabel, comboTag, tagAbilities, groupTag } from '../lib/formation'
 import { CORE_LABEL } from '../lib/cores'
 import { autoQuestSetup, basisRequirements, type Basis } from '../lib/questAuto'
 import { seriesOf } from '../lib/series'
@@ -386,6 +387,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
         <div className="chips" role="group" aria-label="条件を足す">
           {[
             ...ELEMENTS.map(elementTag),
+            ...allTags(defs).map(groupTag),
             ...allAbilities.map(abilityTag),
             // 2つのアビリティを両方もつ
             ...allAbilities.flatMap((g, i) => allAbilities.slice(i + 1).map((h) => comboTag(g, h))),

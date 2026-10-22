@@ -3,7 +3,6 @@ import { DAYS, SLOTS, type FormAttr } from '../data/exercises'
 import { attackOf } from './stats'
 import { formationOf, requirementsOf } from './formation'
 import { elementInfo, hasAdvantage } from './element'
-import { tagRate } from './tags'
 import { nodeAttr, type Challenge, type MonsterDef, type OwnedMonster, type Quest, type QuestDifficulty, type QuestGrade, type SetRecord } from '../types'
 
 export const DIFFICULTIES: QuestDifficulty[] = ['easy', 'normal', 'hard']
@@ -54,11 +53,6 @@ export function setHit(set: SetInfo, quest: Quest, party: Member[], label: strin
     }
     if (partAttr && attrOf(m) === partAttr) d *= q.partMatch
     if (weak) d *= q.weakSlot
-    const tr = tagRate(m.def, quest)
-    if (tr > 1) {
-      d *= tr
-      notes.add(`${m.def.name}はタグ一致`)
-    }
     if (m.def.favoriteSlot === set.slotId) {
       d *= q.favorite
       notes.add(`${m.def.name}の得意種目`)
