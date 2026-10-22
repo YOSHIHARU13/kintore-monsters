@@ -5,6 +5,7 @@ import { FIRST_NODE_ID, getNode, getTemplate } from '../data/evolutionTemplates'
 import { CONFIG } from '../config/gameConfig'
 import { boughtCap, evolutionCost, fusionCost, isExpFull, planPour } from '../lib/evolution'
 import { Gauge } from '../components/Gauge'
+import { Stars } from '../components/Stars'
 import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
 import { investedFor, isHidden, monsterName, nodeAttr, plusName, type MonsterDef, type OwnedMonster } from '../types'
@@ -31,6 +32,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
           <div className="beat-title">ジョグレス進化！！</div>
           <MonsterImage imageId={born.def.images[FIRST_NODE_ID]} size={180} />
           <div className="beat-title">{monsterName(born.def, FIRST_NODE_ID)}</div>
+          <Stars def={born.def} nodeId={FIRST_NODE_ID} />
           <div className="beat-sub">が生まれた！</div>
           <button className="btn primary" onClick={() => go({ name: 'monster', id: born.id })}>
             会いに行く
@@ -103,6 +105,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
           <MonsterImage imageId={def.images[mon.nodeId]} size={200} plus={mon.plus} shiny={mon.shiny} />
         </div>
         <h1 className="title">{plusName(def, mon)}</h1>
+        <Stars def={def} nodeId={mon.nodeId} />
         <p style={{ color: ATTR_COLOR[attr] }}>
           {FORM_ATTR_LABEL[attr]}属性・{node.label}
         </p>

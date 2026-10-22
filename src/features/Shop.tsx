@@ -6,11 +6,12 @@ import { Stepper } from '../components/Stepper'
 import { MonsterImage } from '../components/MonsterImage'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { ATTR_COLOR, type Go } from '../nav'
-import { monsterName, type MonsterDef, type RarityKey } from '../types'
+import { monsterName } from '../types'
+import { HatchReveal, type Hatched } from '../components/HatchReveal'
+import { Stars } from '../components/Stars'
 import { GachaBanner } from '../components/GachaBanner'
 import { percent, rarityOf, rateTable, tierRates } from '../lib/gacha'
 
-type Hatched = { def: MonsterDef; monsterId: string; shiny: boolean; pity: boolean; rarity: RarityKey }
 
 export function Shop({ go }: { go: Go }) {
   const { state, defs, owned, gachas, buyEgg, hatchEgg, buyExp } = useStore()
@@ -105,7 +106,11 @@ export function Shop({ go }: { go: Go }) {
                       <li key={def.id}>
                         <span className="monster-row">
                           <MonsterImage imageId={def.images[FIRST_NODE_ID]} silhouette={!met(def.id)} size={40} />
-                          {met(def.id) ? monsterName(def, FIRST_NODE_ID) : '？？？'}
+                          <span>
+                            {met(def.id) ? monsterName(def, FIRST_NODE_ID) : '？？？'}
+                            <br />
+                            <Stars def={def} nodeId={FIRST_NODE_ID} />
+                          </span>
                         </span>
                         <span className="tag">{percent(r)}</span>
                       </li>
@@ -152,37 +157,12 @@ export function Shop({ go }: { go: Go }) {
       </section>
 
       {hatched && (
-        <div
-          className={`beat-overlay${hatched.shiny || hatched.rarity === 'superRare' ? ' clear-overlay' : ''}`}
-          onClick={() => setHatched(null)}
-        >
-          <div className="beat-burst" />
-          {(hatched.shiny || hatched.rarity === 'superRare') && <div className="beat-burst reverse" />}
-          {(hatched.shiny || hatched.rarity === 'superRare') &&
-            Array.from({ length: 42 }, (_, i) => <i key={i} className="spark" style={{ ['--i' as string]: i }} />)}
-          <div className="beat-text">
-            {hatched.shiny && <div className="beat-title">✨ 色違い！！ ✨</div>}
-            {hatched.pity && <div className="beat-sub">天井で確定！</div>}
-            {hatched.rarity !== 'normal' && (
-              <div className={`beat-title rarity-${hatched.rarity}`}>
-                {CONFIG.gacha.rarities[hatched.rarity].label}
-                {hatched.rarity === 'hazure' ? '…' : '！'}
-              </div>
-            )}
-            <MonsterImage imageId={hatched.def.images[FIRST_NODE_ID]} size={180} shiny={hatched.shiny} />
-            <div className="beat-title">{monsterName(hatched.def, FIRST_NODE_ID)}</div>
-            <div className="beat-sub">が生まれた！</div>
-            <button
-              className="btn primary"
-              onClick={(e) => {
-                e.stopPropagation()
-                go({ name: 'monster', id: hatched.monsterId })
-              }}
-            >
-              会いに行く
-            </button>
-          </div>
-        </div>
+        <HatchReveal
+          key={hatched.monsterId}
+          hatched={hatched}
+          onClose={() => setHatched(null)}
+          onMeet={() => go({ name: 'monster', id: hatched.monsterId })}
+        />
       )}
     </div>
   )

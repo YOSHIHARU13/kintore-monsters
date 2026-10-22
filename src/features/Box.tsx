@@ -3,6 +3,7 @@ import { FORM_ATTR_LABEL } from '../data/exercises'
 import { getNode, getTemplate } from '../data/evolutionTemplates'
 import { MonsterImage } from '../components/MonsterImage'
 import { CONFIG } from '../config/gameConfig'
+import { Stars } from '../components/Stars'
 import { ATTR_COLOR, type Go } from '../nav'
 import { nodeAttr, plusName, type MonsterDef, type OwnedMonster } from '../types'
 
@@ -35,6 +36,7 @@ export function Box({ go }: { go: Go }) {
             <button key={mon.id} className="tile" onClick={() => go({ name: 'monster', id: mon.id })}>
               <MonsterImage imageId={def.images[mon.nodeId]} size={96} plus={mon.plus} shiny={mon.shiny} />
               <strong>{plusName(def, mon)}</strong>
+              <Stars def={def} nodeId={mon.nodeId} />
               <span className="small" style={{ color: ATTR_COLOR[nodeAttr(def, mon.nodeId)] }}>
                 {FORM_ATTR_LABEL[nodeAttr(def, mon.nodeId)]}・{node.stage}段階
               </span>

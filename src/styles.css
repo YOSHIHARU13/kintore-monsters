@@ -460,6 +460,104 @@ h2 {
   flex-direction: column;
   gap: 6px;
 }
+/* 星 */
+.stars {
+  letter-spacing: -1px;
+  font-size: 0.85rem;
+  line-height: 1.2;
+}
+.stars.rarity-normal {
+  color: #9ec5ff;
+}
+.stars.rarity-jogress,
+.hatch-stars.rarity-jogress {
+  background: linear-gradient(90deg, #ef476f, #ffd166, #06d6a0, #4cc9f0, #b388ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* 孵化の演出：揺れる → 光の色でレア度 → 星が並ぶ */
+.hatch-overlay {
+  --glow: #ffffff;
+}
+.hatch-overlay.glow-normal {
+  --glow: #4c8dff;
+}
+.hatch-overlay.glow-rare {
+  --glow: #ffd166;
+}
+.hatch-overlay.glow-superRare {
+  --glow: #ff4fd8;
+}
+.hatch-egg {
+  font-size: 7rem;
+  line-height: 1;
+  position: relative;
+  z-index: 1;
+}
+.hatch-egg.shaking {
+  animation: egg-shake 0.55s ease-in-out infinite;
+}
+.hatch-egg.cracked {
+  animation: pop 0.3s;
+  filter: drop-shadow(0 0 24px var(--glow)) drop-shadow(0 0 48px var(--glow));
+}
+.hatch-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 42%, var(--glow), transparent 60%);
+  opacity: 0.55;
+  animation: fade-in 0.4s;
+  pointer-events: none;
+}
+.glow-superRare .hatch-glow {
+  background: conic-gradient(from 0deg at 50% 42%, #ef476f, #ffd166, #06d6a0, #4cc9f0, #b388ff, #ef476f);
+  mask: radial-gradient(circle at 50% 42%, #000 0, transparent 65%);
+  -webkit-mask: radial-gradient(circle at 50% 42%, #000 0, transparent 65%);
+  animation: spin 3s linear infinite;
+}
+.hatch-stars {
+  font-size: 2rem;
+  letter-spacing: 2px;
+  min-height: 2.6rem;
+  position: relative;
+  z-index: 1;
+}
+.hatch-stars span {
+  opacity: 0;
+  display: inline-block;
+}
+.hatch-stars span.on {
+  opacity: 1;
+  animation: slam 0.25s;
+}
+.hatch-stars.rarity-hazure {
+  color: #c9cbd6;
+}
+.hatch-stars.rarity-normal {
+  color: #9ec5ff;
+}
+.hatch-stars.rarity-rare {
+  color: #ffd166;
+}
+.hatch-stars.rarity-superRare {
+  color: #ff8be6;
+  text-shadow: 0 0 12px #ff4fd8;
+}
+@keyframes egg-shake {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-14deg);
+  }
+  75% {
+    transform: rotate(14deg);
+  }
+}
+
 /* ガチャ */
 .rarity-row {
   display: flex;

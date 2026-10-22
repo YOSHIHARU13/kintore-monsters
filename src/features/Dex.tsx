@@ -2,6 +2,7 @@ import { useStore } from '../store'
 import { FORM_ATTR_LABEL } from '../data/exercises'
 import { getNode, getTemplate, pathTo } from '../data/evolutionTemplates'
 import { MonsterImage } from '../components/MonsterImage'
+import { Stars } from '../components/Stars'
 import { ATTR_COLOR, type Go } from '../nav'
 import { isHidden, monsterName, nodeAttr } from '../types'
 import { CONFIG } from '../config/gameConfig'
@@ -97,6 +98,7 @@ export function Dex({ go }: { go: Go }) {
                     size={72}
                   />
                   <strong className="small">{isFound ? monsterName(def, node.id) : '？？？'}</strong>
+                  <Stars def={def} nodeId={node.id} />
                   <span className="small" style={{ color: isFound ? ATTR_COLOR[attr] : undefined }}>
                     {isFound ? `${FORM_ATTR_LABEL[attr]}・` : ''}
                     {node.stage}段階

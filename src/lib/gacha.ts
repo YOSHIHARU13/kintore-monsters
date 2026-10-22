@@ -1,4 +1,5 @@
 import { CONFIG } from '../config/gameConfig'
+import { getNode, getTemplate } from '../data/evolutionTemplates'
 import { isHidden, type MonsterDef, type RarityKey } from '../types'
 
 export const RARITY_KEYS = Object.keys(CONFIG.gacha.rarities) as RarityKey[]
@@ -79,4 +80,16 @@ export function draw(table: Rate[], pulls: number, random: number): MonsterDef |
 export function percent(rate: number): string {
   const p = rate * 100
   return `${p >= 10 ? p.toFixed(1).replace(/\.0$/, '') : p.toFixed(2).replace(/\.?0+$/, '')}%`
+}
+
+/** その形態の星の数。生まれたときはレア度で決まり、進化するたびに1つ増える */
+export function starsOf(def: MonsterDef, nodeId: string): number {
+  const template = getTemplate(def.templateId)
+  const stage = getNode(template, nodeId).stage
+  if (isHidden(def)) {
+    // 隠しモンスターは最終形態で★7になるように数える
+    const finalStage = Math.max(...template.nodes.map((n) => n.stage))
+    return CONFIG.gacha.jogressStars - (finalStage - stage)
+  }
+  return CONFIG.gacha.rarities[rarityOf(def)].startStars + stage - 1
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { draw, isPity, percent, pickFrom, rateTable, tierRates } from './gacha'
+import { draw, isPity, percent, pickFrom, rateTable, starsOf, tierRates } from './gacha'
 import type { MonsterDef } from '../types'
 
 const def = (id: string, extra: Partial<MonsterDef> = {}): MonsterDef => ({
@@ -61,5 +61,16 @@ describe('ガチャ', () => {
     expect(percent(10 / 17)).toBe('58.8%')
     expect(percent(0.03)).toBe('3%')
     expect(percent(1 / 21)).toBe('4.76%')
+  })
+
+  it('星：生まれたときはレア度で決まり、進化ごとに+1。ジョグレスは最終形態で★7', () => {
+    expect(starsOf(def('a', { rarity: 'hazure', templateId: 'early2' }), 'n2')).toBe(2)
+    expect(starsOf(def('a'), 'n1')).toBe(2)
+    expect(starsOf(def('a'), 'n3')).toBe(4)
+    expect(starsOf(def('a', { rarity: 'rare', templateId: 'lateBranch' }), 'n3b')).toBe(5)
+    expect(starsOf(def('a', { rarity: 'superRare' }), 'n1')).toBe(4)
+    expect(starsOf(def('a', { rarity: 'superRare' }), 'n3')).toBe(6)
+    expect(starsOf(def('a', { recipe: ['x', 'y'], templateId: 'single' }), 'n1')).toBe(7)
+    expect(starsOf(def('a', { recipe: ['x', 'y'] }), 'n1')).toBe(5) // 3段のジョグレスは 5 → 6 → 7
   })
 })

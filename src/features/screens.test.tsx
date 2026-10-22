@@ -278,6 +278,7 @@ describe('画面の表示', () => {
     const shop = await render(<Shop go={go} />)
     expect(shop.textContent).toContain('色違い 1/20')
     await click('を引く')
+    await click('スキップ')
     expect(shop.textContent).toContain('色違い！！')
     expect(shop.querySelector('.shiny')).not.toBeNull()
   })
@@ -303,6 +304,9 @@ describe('画面の表示', () => {
     const shop = await render(<Shop go={go} />)
     await click('「いつものガチャ」を引く')
     expect(fake.store.hatchEgg).toHaveBeenCalledWith('default')
+    expect(shop.textContent).not.toContain('が生まれた！') // まずはタマゴが揺れる
+    await click('スキップ')
+    expect(shop.textContent).toContain('★★') // ノーマルは★2で生まれる
     expect(shop.textContent).toContain('アシガメ')
     expect(shop.textContent).toContain('が生まれた！')
     await click('会いに行く')
@@ -466,8 +470,29 @@ describe('画面の表示', () => {
     fake.store.hatchEgg = vi.fn(() => ({ def: { ...defs[1], rarity: 'superRare' }, monsterId: 'o2', shiny: false, pity: true }))
     const shop = await render(<Shop go={go} />)
     await click('を引く')
+    await click('スキップ')
     expect(shop.textContent).toContain('天井で確定！')
     expect(shop.textContent).toContain('激レア！')
+  })
+
+  it('ショップ：タマゴが揺れて、光の色と星が順に出てからモンスターが出る', async () => {
+    vi.useFakeTimers()
+    try {
+      fake.store.hatchEgg = vi.fn(() => ({ def: { ...defs[1], rarity: 'superRare' }, monsterId: 'o2', shiny: false, pity: false }))
+      const shop = await render(<Shop go={go} />)
+      await click('を引く')
+      expect(shop.querySelector('.hatch-egg.shaking')).not.toBeNull()
+      await act(async () => vi.advanceTimersByTime(1100))
+      expect(shop.querySelector('.glow-superRare .hatch-glow')).not.toBeNull()
+      await act(async () => vi.advanceTimersByTime(800))
+      for (let i = 0; i < 4; i++) await act(async () => vi.advanceTimersByTime(280))
+      expect(shop.querySelectorAll('.hatch-stars span.on')).toHaveLength(4) // 激レアは★4で生まれる
+      await act(async () => vi.advanceTimersByTime(560))
+      expect(shop.textContent).toContain('激レア！')
+      expect(shop.textContent).toContain('が生まれた！')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('ガチャ編集：中身をレア度ごとに見せ、名前と色違いの確率を保存できる', async () => {

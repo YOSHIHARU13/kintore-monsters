@@ -119,16 +119,19 @@ export const CONFIG = {
     // レア度ごとの確率（合計1）。同じレア度のモンスターで山分けする
     // ハズレとノーマルはどのガチャからも出る。レアと激レアは選んだガチャだけ（ガチャの「顔」）
     rarities: {
-      hazure: { label: 'ハズレ', rate: 0.5, everyGacha: true, hint: 'どのガチャからも出る。2段階で終わるような軽いやつ' },
-      normal: { label: 'ノーマル', rate: 0.35, everyGacha: true, hint: 'どのガチャからも出る。3段階まで進化する普通のやつ' },
-      rare: { label: 'レア', rate: 0.12, everyGacha: false, hint: '選んだガチャだけ。分岐ありのかっこいいやつ' },
+      hazure: { label: 'ハズレ', rate: 0.5, startStars: 1, everyGacha: true, hint: 'どのガチャからも出る。2段階で終わるような軽いやつ' },
+      normal: { label: 'ノーマル', rate: 0.35, startStars: 2, everyGacha: true, hint: 'どのガチャからも出る。3段階まで進化する普通のやつ' },
+      rare: { label: 'レア', rate: 0.12, startStars: 3, everyGacha: false, hint: '選んだガチャだけ。分岐ありのかっこいいやつ' },
       superRare: {
         label: '激レア',
         rate: 0.03,
+        startStars: 4,
         everyGacha: false,
         hint: '選んだガチャだけ（フェス限）。ジョグレスの素材になる、いちばんかっこいいやつ',
       },
     },
+    // 星：生まれたときはレア度の startStars、進化するたびに1つ増える。ジョグレスの隠しモンスターは最終形態で jogressStars
+    jogressStars: 7,
     // 天井：同じガチャで、激レアが出ないままこの回数目を引くと激レア確定
     pity: { rarity: 'superRare' as const, pulls: 30 },
     shinyRateChoices: [1 / 50, 1 / 20, 1 / 10, 1 / 5], // ガチャごとに選べる色違いの確率
