@@ -86,8 +86,7 @@ export const CONFIG = {
     favorite: 1.2,
   },
 
-  // ギミックとアビリティ：ボスはギミックを持ち、対応するアビリティ（例：バリア → バリアブレイカー）を持たないモンスターは
-  // 未対応のギミック1つにつき攻撃が penaltyPerGimmick 減る（2つで半分）
+  // アビリティ：クエストの編成の条件になる。名前はギミック（バリア）→ アビリティ（バリアブレイカー）の組で持つ
   gimmicks: {
     // ギミック → それに対応するアビリティ。見た目に縛られない抽象的な名前にしてある
     defaults: {
@@ -100,9 +99,6 @@ export const CONFIG = {
       リジェネ: 'リジェネストッパー',
       ミラー: 'ミラーシャッター',
     } as Record<string, string>,
-    maxPerBoss: 3,
-    penaltyPerGimmick: 0.25,
-    minRate: 0.25,
     // 持てるアビリティの数（レア度の格）。ジョグレスは jogress
     slots: { hazure: 0, normal: 1, rare: 1, superRare: 2, jogress: 3 }, // 素材に激レアが入るジョグレスは +1
   },
@@ -112,11 +108,9 @@ export const CONFIG = {
   quest: {
     // 1回ぶんのダメージ = 基本値 × 攻撃するモンスターの攻撃力 ÷ attackUnit × 補正
     attackUnit: 3000,
-    setDamage: 10, // 筋トレ1セット（その部位の属性のモンスターと、無属性のモンスターが攻撃）
+    setDamage: 2.5, // 筋トレ1セット（全員が攻撃。セットの部位と一致するモンスターは × partMatch）
+    partMatch: 2,
     rollerDamage: 4, // 腹筋ローラー1セット（全員で攻撃）
-    advantage: 2, // 属性の相性が有利
-    superAdvantage: 3, // 超属性（同じ属性どうしのジョグレス）で有利
-    disadvantage: 0.5, // 相性が不利
     weakSlot: 2, // ボスの弱点種目のセット
     favorite: 1.5, // 攻撃したモンスターの得意種目のセット
     maxWeakSlots: 2,
@@ -135,6 +129,17 @@ export const CONFIG = {
       hard: { label: '上級', plus: 2, gold: 250, hpRatio: 2.5 },
     },
     partySize: 6, // 出撃できる数
+  },
+
+  // 編成：クエストの条件（炎が3、バリアブレイカーが3…）を出撃する6体の合計で満たす
+  // 編成倍率 = base ＋（1 − base）× そろい具合 ＋ 条件を超えた数 × perExtra（上限 max）
+  // 何もそろっていないと ×0.4、ちょうどそろうと ×1.0（普通にその日のメニューをやれば倒せる）
+  formation: {
+    base: 0.4,
+    perExtra: 0.15,
+    max: 2.5,
+    maxRequirements: 6,
+    elementIcon: { fire: '🔥', water: '💧', wood: '🌿', light: '✨', dark: '🌑' },
   },
 
   // 合体：最終形態に同じモンスター（段階は問わない）を食べさせると＋1。＋が上がるほど枠が豪華になる

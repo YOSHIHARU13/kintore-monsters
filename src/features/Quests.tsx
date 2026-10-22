@@ -7,6 +7,7 @@ import { QuestBanner } from '../components/QuestBanner'
 import { bannerNodeOf } from '../components/GachaBanner'
 import { useBattle } from '../components/BattleBar'
 import { questGold } from '../lib/quest'
+import { formationOf, requirementsOf } from '../lib/formation'
 import { CORE_LABEL } from '../lib/cores'
 import type { QuestReward } from '../store'
 import type { Go } from '../nav'
@@ -67,7 +68,12 @@ export function Quests({ go }: { go: Go }) {
               </strong>
               <Gauge value={Math.max(0, battle.hp - battle.damage)} max={battle.hp} color="#ef476f" />
               <span className="muted small">
-                与えたダメージ {battle.damage.toLocaleString()} ／ HP {battle.hp.toLocaleString()}・今日中に倒そう
+                与えたダメージ {battle.damage.toLocaleString()} ／ HP {battle.hp.toLocaleString()}・編成倍率 ×
+                {formationOf(
+                  battle.party.map((m) => m.def),
+                  requirementsOf(battle.quest),
+                ).rate.toFixed(2)}
+                ・今日中に倒そう
               </span>
             </div>
           </div>

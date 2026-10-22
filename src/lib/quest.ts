@@ -1,8 +1,7 @@
 import { CONFIG } from '../config/gameConfig'
 import { DAYS, type FormAttr } from '../data/exercises'
-import { elementInfo, elementRate } from './element'
 import { attackOf } from './stats'
-import { gimmickRate, unmatchedGimmicks } from './gimmick'
+import { formationOf, requirementsOf } from './formation'
 import { nodeAttr, type Challenge, type MonsterDef, type OwnedMonster, type Quest, type QuestDifficulty, type SetRecord } from '../types'
 
 export const DIFFICULTIES: QuestDifficulty[] = ['easy', 'normal', 'hard']
@@ -10,11 +9,6 @@ export const DIFFICULTIES: QuestDifficulty[] = ['easy', 'normal', 'hard']
 export interface Member {
   mon: OwnedMonster
   def: MonsterDef
-}
-
-/** 属性の相性の倍率（炎→木→水→炎、光⇔闇） */
-export function affinityOf(member: Member, quest: Pick<Quest, 'element'>): number {
-  return elementRate(elementInfo(member.def), quest.element)
 }
 
 /** ダメージの計算に使う強さ：攻撃力 ÷ attackUnit（★1の攻撃力で1） */
@@ -34,59 +28,57 @@ export interface Hit {
 
 type SetInfo = Pick<SetRecord, 'slotId' | 'day' | 'eligible'>
 
-/** 1セットぶんのダメージ。その部位の属性のモンスターと無属性のモンスターが攻撃する（ローラーは全員） */
-export function setHit(set: SetInfo, quest: Quest, party: Member[], label: string): Hit {
+/** 1セットぶんのダメージ。全員が攻撃し、セットの部位と一致するモンスターは強い（ローラーは全員同じ）。最後に編成倍率がかかる */
+export function setHit(set: SetInfo, quest: Quest, party: Member[], label: string, rate = 1): Hit {
   const q = CONFIG.quest
   const roller = set.day === 'bonus'
   const partAttr = roller ? null : DAYS[set.day as keyof typeof DAYS].attr
-  const attackers = party.filter((m) => roller || attrOf(m) === 'none' || attrOf(m) === partAttr)
   const weak = quest.weakSlots.includes(set.slotId)
   const base = roller ? q.rollerDamage : q.setDamage
   const notes = new Set<string>()
   if (weak) notes.add('弱点種目')
-  if (attackers.length === 0) {
-    // 攻撃できるモンスターがいなければ、自分で殴る
+  if (party.length === 0) {
+    // 出撃メンバーがいなければ、自分で殴る
     return { label, damage: Math.round(base * (weak ? q.weakSlot : 1)), notes: [...notes, '素手'] }
   }
   let damage = 0
-  for (const m of attackers) {
-    const a = affinityOf(m, quest)
-    let d = base * powerOf(m) * a
+  for (const m of party) {
+    let d = base * powerOf(m)
+    if (partAttr && attrOf(m) === partAttr) d *= q.partMatch
     if (weak) d *= q.weakSlot
     if (m.def.favoriteSlot === set.slotId) {
       d *= q.favorite
       notes.add(`${m.def.name}の得意種目`)
     }
-    // ボスのギミックに対応できていなければ、そのぶん攻撃が減る
-    const missing = unmatchedGimmicks(m.def, quest)
-    d *= gimmickRate(m.def, quest)
-    if (missing.length > 0) notes.add(`${m.def.name}は${missing.join('・')}で弱体`)
-    if (a > 1) notes.add(`${m.def.name}の相性◎`)
-    if (a < 1) notes.add(`${m.def.name}の相性×`)
     damage += d
   }
-  return { label, damage: Math.round(damage), notes: [...notes] }
+  return { label, damage: Math.round(damage * rate), notes: [...notes] }
 }
 
 /** 挑戦を始めてからの攻撃（報酬が出るセットだけ数える） */
 export function questHits(quest: Quest, party: Member[], sets: SetRecord[], exerciseName: (slotId: string) => string): Hit[] {
   const perSlot: Record<string, number> = {}
+  const { rate } = formationOf(
+    party.map((m) => m.def),
+    requirementsOf(quest),
+  )
   return sets
     .filter((s) => s.eligible)
     .map((s) => {
       perSlot[s.slotId] = (perSlot[s.slotId] ?? 0) + 1
-      return setHit(s, quest, party, `${exerciseName(s.slotId)} ${perSlot[s.slotId]}セット目`)
+      return setHit(s, quest, party, `${exerciseName(s.slotId)} ${perSlot[s.slotId]}セット目`, rate)
     })
 }
 
 /**
  * HPの目安：1回のトレーニングで与えるダメージ。
- * 攻撃力9,000（ノーマルの★3くらい）が6体（各属性2体）、相性・弱点なしで、1部位ぶん（5種目×3セット）＋ローラー3セット。
+ * 攻撃力9,000（ノーマルの★3くらい）が6体（各部位2体）、編成がちょうどそろっていて弱点なしで、1部位ぶん（5種目×3セット）＋ローラー3セット。
  */
 export function standardSessionDamage(): number {
   const q = CONFIG.quest
   const power = 9000 / q.attackUnit
-  const sets = 5 * CONFIG.sets.perExercise * q.setDamage * power * 2 // その部位の属性の2体が攻撃
+  // 部位が一致する2体は ×partMatch、残りの4体はそのまま
+  const sets = 5 * CONFIG.sets.perExercise * q.setDamage * power * (2 * q.partMatch + 4)
   const roller = CONFIG.sets.perExercise * q.rollerDamage * power * 6
   return Math.round(sets + roller)
 }

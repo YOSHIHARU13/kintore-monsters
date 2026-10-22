@@ -16,11 +16,14 @@ describe('登録画面の被り・不足', () => {
     def('b', { attr: 'legs', attrs: { n1: 'legs', n2: 'legs', n3: 'legs' } }),
   ]
   const quests = [
-    quest('q1', { element: 'wood', gimmicks: ['バリア', 'シールド'], weakSlots: ['wed1'] }), // 適正は炎
-    quest('q2', { element: 'fire', gimmicks: ['シールド'] }), // 適正は水
+    quest('q1', {
+      requirements: [{ tag: 'el:fire', count: 3 }, { tag: 'ab:バリア', count: 2 }, { tag: 'ab:シールド', count: 2 }],
+      weakSlots: ['wed1'],
+    }),
+    quest('q2', { requirements: [{ tag: 'el:water', count: 3 }, { tag: 'ab:シールド', count: 2 }] }),
   ]
 
-  it('属性：持っている数と、相性◎になるボスの数。部位は数だけ', () => {
+  it('属性：持っている数と、その属性を求めるクエストの数。部位は数だけ', () => {
     const e = elementSupply(defs, quests)
     expect(e.fire).toEqual({ have: 1, need: 1 })
     expect(e.water).toEqual({ have: 0, need: 1 })
@@ -35,11 +38,13 @@ describe('登録画面の被り・不足', () => {
     expect(slotSupply('wed1', defs, quests)).toEqual({ have: 0, need: 1 })
   })
 
-  it('刺さるクエスト：相性・ギミック・得意種目で◎○×', () => {
+  it('刺さるクエスト：編成の条件に貢献できるか', () => {
     const draft = def('new', { rarity: 'superRare', element: 'fire', abilities: ['バリア', 'シールド'], favoriteSlot: 'wed1' })
-    const fits = questFits(draft, quests, (g) => `${g}ブレイカー`)
-    expect(fits[0].grade).toBe('◎') // 炎は木に強い・ギミック全対応・得意種目が弱点
-    expect(fits[1].grade).toBe('○') // 炎どうしは普通
+    const fits = questFits(draft, quests, { バリア: 'バリアブレイカー', シールド: 'シールドクラッシャー' })
+    expect(fits[0].grade).toBe('◎')
+    expect(fits[0].reasons).toEqual(['🔥炎', 'バリアブレイカー', 'シールドクラッシャー', '得意種目が弱点'])
+    expect(fits[1].reasons).toEqual(['シールドクラッシャー'])
+    expect(questFits(def('x', { element: 'light' }), quests, {}).every((f) => f.grade === '×')).toBe(true)
   })
 
   it('同じ構成のモンスターを見つける', () => {

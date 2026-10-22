@@ -1,7 +1,8 @@
 import { ATTRS, SLOTS, type Attr, type FormAttr } from '../data/exercises'
 import { getTemplate } from '../data/evolutionTemplates'
-import { abilitySlots, unmatchedGimmicks } from './gimmick'
-import { ELEMENTS, advantageElements, elementInfo, elementRate } from './element'
+import { abilitySlots } from './gimmick'
+import { ELEMENTS, elementInfo } from './element'
+import { abilityTag, elementTag, requirementsOf, tagLabel, tagsOf } from './formation'
 import { isHidden, nodeAttr, type Element, type MonsterDef, type Quest } from '../types'
 
 /**
@@ -45,7 +46,7 @@ export function elementSupply(defs: MonsterDef[], quests: Quest[], selfId?: stri
       e,
       {
         have: list.filter((d) => elementInfo(d).elements.includes(e)).length,
-        need: quests.filter((q) => advantageElements(q.element).includes(e)).length,
+        need: quests.filter((q) => requirementsOf(q).some((r) => r.tag === elementTag(e))).length,
       },
     ]),
   ) as Record<Element, Supply>
@@ -54,7 +55,7 @@ export function elementSupply(defs: MonsterDef[], quests: Quest[], selfId?: stri
 export function abilitySupply(gimmick: string, defs: MonsterDef[], quests: Quest[], selfId?: string): Supply {
   return {
     have: others(defs, selfId).filter((d) => (d.abilities ?? []).slice(0, abilitySlots(d)).includes(gimmick)).length,
-    need: quests.filter((q) => q.gimmicks?.includes(gimmick)).length,
+    need: quests.filter((q) => requirementsOf(q).some((r) => r.tag === abilityTag(gimmick))).length,
   }
 }
 
@@ -67,27 +68,19 @@ export function slotSupply(slotId: string, defs: MonsterDef[], quests: Quest[], 
 
 export interface Fit {
   quest: Quest
-  grade: '◎' | '○' | '×'
+  grade: '◎' | '×'
   reasons: string[]
 }
 
-/** 今の設定で、各クエストにどれくらい刺さるか */
-export function questFits(draft: MonsterDef, quests: Quest[], abilityLabel: (g: string) => string): Fit[] {
+/** 今の設定で、各クエストの編成にどれくらい貢献できるか（貢献できる条件があれば◎） */
+export function questFits(draft: MonsterDef, quests: Quest[], names: Record<string, string>): Fit[] {
+  const own = tagsOf(draft)
   return quests.map((quest) => {
-    const best = elementRate(elementInfo(draft), quest.element)
-    const missing = unmatchedGimmicks(draft, quest)
-    const covered = (quest.gimmicks ?? []).filter((g) => !missing.includes(g))
-    const fav = !!draft.favoriteSlot && quest.weakSlots.includes(draft.favoriteSlot)
-    const reasons: string[] = []
-    if (best > 1) reasons.push('相性◎')
-    if (best < 1) reasons.push('相性×')
-    reasons.push(...covered.map(abilityLabel))
-    if (missing.length > 0) reasons.push(`${missing.join('・')}で弱体`)
-    if (fav) reasons.push('得意種目が弱点')
-    // 相性・ギミック・得意種目をまとめて点数にする
-    const score = (best > 1 ? 2 : best < 1 ? -2 : 0) - missing.length + (fav ? 1 : 0)
-    const grade = score >= 2 ? '◎' : score >= 0 ? '○' : '×'
-    return { quest, grade, reasons }
+    const reasons = requirementsOf(quest)
+      .filter((r) => own[r.tag])
+      .map((r) => `${tagLabel(r.tag, names)}${own[r.tag] > 1 ? `×${own[r.tag]}` : ''}`)
+    if (draft.favoriteSlot && quest.weakSlots.includes(draft.favoriteSlot)) reasons.push('得意種目が弱点')
+    return { quest, grade: reasons.length > 0 ? '◎' : '×', reasons }
   })
 }
 

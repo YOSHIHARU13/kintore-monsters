@@ -6,10 +6,11 @@ import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { QuestBanner } from '../components/QuestBanner'
 import { DIFFICULTIES, defaultHp, questGold, standardSessionDamage } from '../lib/quest'
 import { allGimmicks } from '../lib/gimmick'
-import { ELEMENTS, ELEMENT_COLOR, ELEMENT_LABEL } from '../lib/element'
+import { ELEMENTS } from '../lib/element'
+import { abilityTag, elementTag, requirementsOf, tagLabel } from '../lib/formation'
 import { CORE_LABEL } from '../lib/cores'
 import { ATTR_COLOR, type Go } from '../nav'
-import { nodeAttr, type Element, type Quest, type QuestDifficulty } from '../types'
+import { nodeAttr, type Quest, type QuestDifficulty, type Requirement } from '../types'
 
 /** クエストを作る・編集する。ボス・弱点・HPを決める */
 export function QuestForm({ id, go }: { id?: string; go: Go }) {
@@ -24,9 +25,8 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
   const [attr, setAttr] = useState<FormAttr>(
     existing?.attr ?? (bossChoices[0] ? nodeAttr(bossChoices[0], FIRST_NODE_ID) : 'none'),
   )
-  const [element, setElement] = useState<Element | undefined>(existing?.element ?? bossChoices[0]?.element)
   const [weakSlots, setWeakSlots] = useState<string[]>(existing?.weakSlots ?? [])
-  const [gimmicks, setGimmicks] = useState<string[]>(existing?.gimmicks ?? [])
+  const [requirements, setRequirements] = useState<Requirement[]>(existing ? requirementsOf(existing) : [])
   const [newGimmick, setNewGimmick] = useState('')
   const [newAbility, setNewAbility] = useState('')
   const [customGimmicks, setCustomGimmicks] = useState<Record<string, string>>(existing?.customGimmicks ?? {})
@@ -45,10 +45,9 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
     name: name.trim() || '名前のないクエスト',
     bossDefId,
     attr,
-    element,
     weakSlots,
     kind,
-    gimmicks,
+    requirements,
     customGimmicks,
     hp,
     rank,
@@ -61,7 +60,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
     if (!name.trim()) return setError('クエストの名前を入力してください')
     if (!boss) return setError('ボスにするモンスターを選んでください')
     if (DIFFICULTIES.some((d) => !(hp[d] > 0))) return setError('HPは1以上にしてください')
-    saveQuest({ id: existing?.id, name, kind, bossDefId, attr, element, weakSlots, gimmicks, customGimmicks, hp, rank, catchphrase, theme })
+    saveQuest({ id: existing?.id, name, kind, bossDefId, attr, weakSlots, requirements, customGimmicks, hp, rank, catchphrase, theme })
     go({ name: 'quests' })
   }
 
@@ -135,10 +134,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
               onChange={(e) => {
                 setBossDefId(e.target.value)
                 const d = defs.find((x) => x.id === e.target.value)
-                if (d) {
-                  setAttr(nodeAttr(d, FIRST_NODE_ID))
-                  setElement(d.element)
-                }
+                if (d) setAttr(nodeAttr(d, FIRST_NODE_ID))
               }}
             >
               {bossChoices.map((d) => (
@@ -152,25 +148,6 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
         {!defs.some((d) => d.questOnly) && (
           <p className="muted small">図鑑の登録画面で「クエスト限定」にしたモンスターは、ガチャに出なくなり、ここでだけ選べます。</p>
         )}
-        <div className="field">
-          ボスの属性（相性：炎→木→水→炎、光⇔闇）
-          <div className="chips" role="group" aria-label="ボスの属性">
-            <button type="button" className={`chip${!element ? ' on' : ''}`} onClick={() => setElement(undefined)}>
-              無属性
-            </button>
-            {ELEMENTS.map((e) => (
-              <button
-                key={e}
-                type="button"
-                className={`chip${element === e ? ' on' : ''}`}
-                style={element === e ? { borderColor: ELEMENT_COLOR[e], color: ELEMENT_COLOR[e] } : undefined}
-                onClick={() => setElement(e)}
-              >
-                {ELEMENT_LABEL[e]}
-              </button>
-            ))}
-          </div>
-        </div>
         <div className="field">
           ボスの部位（素材クエストで落ちる核の種類）
           <div className="chips" role="group" aria-label="ボスの部位">
@@ -188,7 +165,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
           </div>
         </div>
         <div className="field">
-          弱点種目（{CONFIG.quest.maxWeakSlots}つまで・ダメージ×{CONFIG.quest.weakSlot}）
+          弱点種目（なくてもOK・{CONFIG.quest.maxWeakSlots}つまで・ダメージ×{CONFIG.quest.weakSlot}）
           <div className="chips">
             {SLOTS.map((slot) => {
               const on = weakSlots.includes(slot.id)
@@ -207,57 +184,97 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
             })}
           </div>
         </div>
-        <div className="field">
-          ギミック（{CONFIG.gimmicks.maxPerBoss}つまで）：対応するアビリティがないモンスターは、1つにつき攻撃が
-          {Math.round(CONFIG.gimmicks.penaltyPerGimmick * 100)}%減ります
-          <div className="chips" role="group" aria-label="ギミック">
-            {Object.keys(gimmickNames).map((g) => {
-              const on = gimmicks.includes(g)
-              return (
+      </section>
+
+      <section className="card">
+        <h2>求められる編成</h2>
+        <p className="muted small">
+          出撃する6体の合計で満たす条件です。ちょうどそろうと編成倍率×1.0（普通にその日のメニューで倒せる）、何もないと×
+          {CONFIG.formation.base}、超えた分は1つにつき+{CONFIG.formation.perExtra}。超属性は2、複合属性は両方に1ずつ数えます。
+        </p>
+        {requirements.length === 0 && <p className="muted small">まだ条件がありません（いつでも×1.0）。下から足してください。</p>}
+        <ul className="mini-list">
+          {requirements.map((r, i) => (
+            <li key={r.tag}>
+              <span>{tagLabel(r.tag, gimmickNames)}</span>
+              <span className="row">
                 <button
-                  key={g}
                   type="button"
-                  className={`chip${on ? ' on' : ''}`}
-                  disabled={!on && gimmicks.length >= CONFIG.gimmicks.maxPerBoss}
-                  onClick={() => setGimmicks(on ? gimmicks.filter((x) => x !== g) : [...gimmicks, g])}
+                  className="btn small"
+                  disabled={r.count <= 1}
+                  onClick={() => setRequirements(requirements.map((x, j) => (j === i ? { ...x, count: x.count - 1 } : x)))}
+                  aria-label={`${tagLabel(r.tag, gimmickNames)}を減らす`}
                 >
-                  {g}
+                  −
                 </button>
-              )
-            })}
-          </div>
-          <span className="muted small">新しいギミックを作る（ギミック名と、それに対応するアビリティ名をセットで）</span>
-          <span className="row wrap">
-            <input
-              value={newGimmick}
-              onChange={(e) => setNewGimmick(e.target.value)}
-              maxLength={8}
-              placeholder="例：ゾーン"
-              aria-label="新しいギミック"
-            />
-            <input
-              value={newAbility}
-              onChange={(e) => setNewAbility(e.target.value)}
-              maxLength={12}
-              placeholder="例：ゾーンブレイク"
-              aria-label="対応するアビリティ"
-            />
-            <button
-              type="button"
-              className="btn small"
-              disabled={!newGimmick.trim() || !newAbility.trim() || gimmicks.length >= CONFIG.gimmicks.maxPerBoss}
-              onClick={() => {
-                const g = newGimmick.trim()
-                if (!(g in gimmickNames)) setCustomGimmicks({ ...customGimmicks, [g]: newAbility.trim() })
-                if (!gimmicks.includes(g)) setGimmicks([...gimmicks, g])
-                setNewGimmick('')
-                setNewAbility('')
-              }}
-            >
-              追加
-            </button>
-          </span>
+                <strong className="num">{r.count}</strong>
+                <button
+                  type="button"
+                  className="btn small"
+                  disabled={r.count >= CONFIG.quest.partySize * 2}
+                  onClick={() => setRequirements(requirements.map((x, j) => (j === i ? { ...x, count: x.count + 1 } : x)))}
+                  aria-label={`${tagLabel(r.tag, gimmickNames)}を増やす`}
+                >
+                  ＋
+                </button>
+                <button
+                  type="button"
+                  className="btn small ghost"
+                  onClick={() => setRequirements(requirements.filter((_, j) => j !== i))}
+                  aria-label={`${tagLabel(r.tag, gimmickNames)}を消す`}
+                >
+                  ×
+                </button>
+              </span>
+            </li>
+          ))}
+        </ul>
+        <div className="chips" role="group" aria-label="条件を足す">
+          {[...ELEMENTS.map(elementTag), ...Object.keys(gimmickNames).map(abilityTag)]
+            .filter((tag) => !requirements.some((r) => r.tag === tag))
+            .map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                className="chip small"
+                disabled={requirements.length >= CONFIG.formation.maxRequirements}
+                onClick={() => setRequirements([...requirements, { tag, count: tag.startsWith('el:') ? 3 : 2 }])}
+              >
+                ＋{tagLabel(tag, gimmickNames)}
+              </button>
+            ))}
         </div>
+        <span className="muted small">新しいアビリティを作る（ギミック名と、アビリティ名をセットで）</span>
+        <span className="row wrap">
+          <input
+            value={newGimmick}
+            onChange={(e) => setNewGimmick(e.target.value)}
+            maxLength={8}
+            placeholder="例：ゾーン"
+            aria-label="新しいギミック"
+          />
+          <input
+            value={newAbility}
+            onChange={(e) => setNewAbility(e.target.value)}
+            maxLength={12}
+            placeholder="例：ゾーンブレイク"
+            aria-label="対応するアビリティ"
+          />
+          <button
+            type="button"
+            className="btn small"
+            disabled={!newGimmick.trim() || !newAbility.trim() || requirements.length >= CONFIG.formation.maxRequirements}
+            onClick={() => {
+              const g = newGimmick.trim()
+              if (!(g in gimmickNames)) setCustomGimmicks({ ...customGimmicks, [g]: newAbility.trim() })
+              if (!requirements.some((r) => r.tag === abilityTag(g))) setRequirements([...requirements, { tag: abilityTag(g), count: 2 }])
+              setNewGimmick('')
+              setNewAbility('')
+            }}
+          >
+            追加
+          </button>
+        </span>
       </section>
 
       <section className="card">

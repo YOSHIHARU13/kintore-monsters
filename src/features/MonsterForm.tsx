@@ -84,9 +84,9 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
   }
   const elSup = elementSupply(defs, quests, existing?.id)
   const attrSup = attrSupply(defs, quests, existing?.id)
-  const fits = questFits(draftFull, quests, (g) => abilityName(g, gimmickNames))
+  const fits = questFits(draftFull, quests, gimmickNames)
   const similar = similarDefs(draftFull, defs)
-  const supplyText = (sup: Supply) => `${sup.have}体${sup.need > 0 ? `／ボス${sup.need}` : ''}`
+  const supplyText = (sup: Supply) => `${sup.have}体${sup.need > 0 ? `／クエスト${sup.need}` : ''}`
   const applyRecommend = () => {
     const rec = recommend(defs, quests, Object.keys(gimmickNames), maxAbilities, existing?.id)
     if (recipe.length !== 2) setElement(rec.element)
@@ -202,7 +202,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
             </span>
           ))}
         </p>
-        <p className="muted small">部位は「どの部位のセットで攻撃するか」と「どのEXPで育つか」を決めます。相性は下の属性で決まります。</p>
+        <p className="muted small">部位は「どのEXPで育つか」と「どの部位のセットで強く攻撃するか（一致で×2）」を決めます。クエストの編成の条件になるのは、下の属性とアビリティです。</p>
         <p className="muted small">
           その形態に進化するには、その形態の属性のEXPが必要です。「無」はどの筋トレのEXPでも育ちます。
           {hasBranch && '分岐先を別々の属性にすると、どのEXPを注いだかで進化先が変わります。'}
@@ -269,7 +269,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
           </p>
         ) : (
           <div className="field">
-            属性（相性：炎→木→水→炎、光⇔闇）　数字は「持っているモンスター／相性◎になるボス」
+            属性　数字は「持っているモンスター／その属性を求めるクエスト」
             <div className="chips" role="group" aria-label="属性">
               <button type="button" className={`chip${element === '' ? ' on' : ''}`} onClick={() => setElement('')}>
                 無属性
@@ -303,7 +303,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
           </select>
         </label>
         <div className="field">
-          アビリティ（{maxAbilities}個まで・レア度で決まる）　数字は「持っているモンスター／そのギミックのボス」
+          アビリティ（{maxAbilities}個まで・レア度で決まる）　数字は「持っているモンスター／それを求めるクエスト」
           <div className="chips" role="group" aria-label="アビリティ">
             {Object.keys(gimmickNames).map((g) => {
               const on = abilities.includes(g)
@@ -323,8 +323,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
             })}
           </div>
           <span className="muted small">
-            クエストのボスのギミック（例：バリア）に対応するアビリティ（バリアブレイカー）がないと、ギミック1つにつき攻撃が
-            {Math.round(CONFIG.gimmicks.penaltyPerGimmick * 100)}%減ります。
+            クエストの「求められる編成」の条件になります。条件に合うモンスターが多いほど、編成倍率が上がります。
           </span>
         </div>
       </section>
@@ -470,7 +469,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
                       <strong className="fit fit-good">◎</strong> {quest.name}
                     </span>
                     <span className="muted small">
-                      {reasons.filter((r) => r !== '相性×' && !r.endsWith('で弱体')).join('・')}
+                      {reasons.join('・')}
                     </span>
                   </li>
                 ))}

@@ -125,6 +125,12 @@ export interface Gacha {
 
 export type QuestDifficulty = 'easy' | 'normal' | 'hard'
 
+/** クエストが求める人材の条件（タグ：'el:fire' のような属性か、'ab:バリア' のようなアビリティ） */
+export interface Requirement {
+  tag: string
+  count: number
+}
+
 export interface Quest {
   id: string
   name: string
@@ -133,7 +139,8 @@ export interface Quest {
   attr: FormAttr // ボスの部位（素材クエストで落ちる核の種類）
   element?: Element // ボスの属性（相性に使う。なければ無属性）
   weakSlots: string[] // 弱点種目（種目の枠ID）
-  gimmicks?: string[] // ギミック名（対応するアビリティを持たないモンスターは攻撃が減る）
+  requirements?: Requirement[] // 求められる編成（6体の合計で満たす）
+  gimmicks?: string[] // 旧：ギミック名（条件ができる前のクエスト。対応アビリティ2体の条件として読む）
   customGimmicks?: Record<string, string> // このクエストで作ったギミック → 対応するアビリティ名
   hp: Record<QuestDifficulty, number>
   rank?: number // ボスの格（CONFIG.quest.ranks の番号。なければ「普通」）

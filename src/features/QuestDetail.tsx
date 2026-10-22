@@ -5,11 +5,13 @@ import { FORM_ATTR_LABEL, SLOTS, exerciseOfSlot } from '../data/exercises'
 import { MonsterImage } from '../components/MonsterImage'
 import { Stars } from '../components/Stars'
 import { QuestBanner } from '../components/QuestBanner'
-import { DIFFICULTIES, affinityOf, attrOf, powerOf, questGold, rankOf, type Member } from '../lib/quest'
-import { ELEMENT_COLOR, ELEMENT_LABEL, advantageElements, elementInfo, elementName } from '../lib/element'
+import { DIFFICULTIES, attrOf, powerOf, questGold, rankOf, type Member } from '../lib/quest'
+import { formationOf, requirementsOf, shortfallHelp, tagLabel, tagsOf } from '../lib/formation'
+import { FormationPanel } from '../components/FormationPanel'
+import { elementInfo, elementName } from '../lib/element'
 import { ATTR_COLOR, type Go } from '../nav'
 import { attackOf } from '../lib/stats'
-import { abilityName, allGimmicks, gimmickRate, unmatchedGimmicks } from '../lib/gimmick'
+import { allGimmicks } from '../lib/gimmick'
 import { CORE_LABEL } from '../lib/cores'
 import { plusName, type QuestDifficulty } from '../types'
 
@@ -45,26 +47,30 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
     const slot = SLOTS.find((s) => s.id === slotId)
     return slot ? exerciseOfSlot(slot, menu).name : '？'
   }
-  const adv = advantageElements(quest.element)
-  // このボスへの効きやすさの目安：攻撃力 × 相性 × 得意種目が弱点か × 特攻が弱点か
+  const requirements = requirementsOf(quest)
+  const partyDefs = party.flatMap((id) => {
+    const mon = owned.find((o) => o.id === id)
+    const def = mon && defs.find((d) => d.id === mon.defId)
+    return def ? [def] : []
+  })
+  const formation = formationOf(partyDefs, requirements)
+  // 候補は「まだ足りていない条件にいくつ貢献できるか」の順。同じなら攻撃力の順
   const members = owned
-    .flatMap((mon): (Member & { score: number; tags: string[] })[] => {
+    .flatMap((mon): (Member & { help: number; tags: string[] })[] => {
       const def = defs.find((d) => d.id === mon.defId)
       if (!def) return []
-      const m = { mon, def }
-      const tags: string[] = []
-      const a = affinityOf(m, quest)
-      if (a > 1) tags.push('相性◎')
-      if (a < 1) tags.push('相性×')
-      const fav = !!def.favoriteSlot && quest.weakSlots.includes(def.favoriteSlot)
-      if (fav) tags.push('得意種目が弱点')
-      const missing = unmatchedGimmicks(def, quest)
-      for (const g of quest.gimmicks ?? []) if (!missing.includes(g)) tags.push(abilityName(g, names))
-      if (missing.length > 0) tags.push(`${missing.join('・')}で弱体`)
-      const score = powerOf(m) * a * (fav ? CONFIG.quest.favorite : 1) * gimmickRate(def, quest)
-      return [{ ...m, score, tags }]
+      const own = tagsOf(def)
+      const tags = requirements
+        .filter((r) => own[r.tag])
+        .map((r) => `${tagLabel(r.tag, names)}${own[r.tag] > 1 ? `×${own[r.tag]}` : ''}`)
+      if (def.favoriteSlot && quest.weakSlots.includes(def.favoriteSlot)) tags.push('得意種目が弱点')
+      return [{ mon, def, help: shortfallHelp(def, formation.rows), tags }]
     })
-    .sort((a, b) => b.score - a.score)
+    .sort((a, b) => {
+      const onA = party.includes(a.mon.id) ? 1 : 0
+      const onB = party.includes(b.mon.id) ? 1 : 0
+      return onB - onA || b.help - a.help || b.tags.length - a.tags.length || powerOf(b) - powerOf(a)
+    })
   const max = CONFIG.quest.partySize
   const switching = !!current && current.questId !== id
 
@@ -79,45 +85,20 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
       <QuestBanner quest={quest} boss={boss} />
 
       <section className="card">
+        <h2>求められる編成</h2>
+        <FormationPanel formation={formation} names={names} />
+      </section>
+
+      <section className="card">
         <h2>ボスの情報</h2>
         <ul className="mini-list">
-          <li>
-            <span>属性</span>
-            <span style={quest.element ? { color: ELEMENT_COLOR[quest.element] } : undefined}>
-              {quest.element ? ELEMENT_LABEL[quest.element] : '無属性'}
-            </span>
-          </li>
-          <li>
-            <span>適正（相性◎）</span>
-            <span>
-              {adv.length === 0
-                ? 'なし'
-                : adv.map((e) => (
-                    <span key={e} style={{ color: ELEMENT_COLOR[e] }}>
-                      {ELEMENT_LABEL[e]}{' '}
-                    </span>
-                  ))}
-            </span>
-          </li>
           <li>
             <span>弱点種目（ダメージ×{CONFIG.quest.weakSlot}）</span>
             <span>{quest.weakSlots.map(exerciseName).join('・') || 'なし'}</span>
           </li>
-          <li>
-            <span>ギミック（対応がないと1つにつき攻撃 -{Math.round(CONFIG.gimmicks.penaltyPerGimmick * 100)}%）</span>
-            <span className="gimmicks">
-              {(quest.gimmicks ?? []).length === 0
-                ? 'なし'
-                : (quest.gimmicks ?? []).map((g) => (
-                    <span key={g} className="gimmick">
-                      {g}
-                    </span>
-                  ))}
-            </span>
-          </li>
         </ul>
         <p className="muted small">
-          筋トレのセットでは、その部位（胸腕・脚・背肩）のモンスターと、部位が「無」のモンスターが攻撃します。ローラーは全員で攻撃。相性は属性（炎→木→水→炎、光⇔闇）で決まります。
+          出撃した全員が毎セット攻撃します。セットの部位（胸腕・脚・背肩）と一致するモンスターはダメージ×{CONFIG.quest.partMatch}。最後に、下の編成倍率がかかります。
         </p>
       </section>
 
@@ -151,7 +132,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
         <h2>
           出撃メンバー（{party.length}/{max}）
         </h2>
-        <p className="muted small">このボスに効きやすい順に並んでいます。</p>
+        <p className="muted small">まだ足りていない条件に貢献できる順に並んでいます。選ぶと上の編成メーターが埋まります。</p>
         <ul className="choice-list">
           {members.map((m) => {
             const on = party.includes(m.mon.id)
@@ -174,7 +155,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
                       <span className="small"> {elementName(elementInfo(m.def))}</span>
                       <span className="small"> 攻撃力 {attackOf(m.mon, m.def).toLocaleString()}</span>
                       {m.tags.map((t) => (
-                        <span key={t} className={`tag${t === '相性×' || t.endsWith('で弱体') ? ' warn' : ' keep'}`}>
+                        <span key={t} className="tag keep">
                           {' '}
                           {t}
                         </span>
