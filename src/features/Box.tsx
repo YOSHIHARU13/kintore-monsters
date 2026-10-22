@@ -2,8 +2,9 @@ import { useStore } from '../store'
 import { FORM_ATTR_LABEL } from '../data/exercises'
 import { getNode, getTemplate } from '../data/evolutionTemplates'
 import { MonsterImage } from '../components/MonsterImage'
+import { CONFIG } from '../config/gameConfig'
 import { ATTR_COLOR, type Go } from '../nav'
-import { monsterName, nodeAttr, type MonsterDef, type OwnedMonster } from '../types'
+import { nodeAttr, plusName, type MonsterDef, type OwnedMonster } from '../types'
 
 export function Box({ go }: { go: Go }) {
   const { owned, defs, state } = useStore()
@@ -20,7 +21,7 @@ export function Box({ go }: { go: Go }) {
     <div className="page">
       <h1 className="title">BOX</h1>
       <p className="muted small">
-        所持 {list.length}体。同じモンスターを何体でも持てるので、別の進化先にも育てられます。
+        所持 {list.length}体。同じモンスターを何体でも持てるので、別の進化先にも育てられます。ダブったら合体させて＋を上げることもできます（最大＋{CONFIG.fusion.maxPlus}）。
       </p>
       {owned.length === 0 && (
         <p className="muted">
@@ -32,8 +33,8 @@ export function Box({ go }: { go: Go }) {
           const node = getNode(getTemplate(def.templateId), mon.nodeId)
           return (
             <button key={mon.id} className="tile" onClick={() => go({ name: 'monster', id: mon.id })}>
-              <MonsterImage imageId={def.images[mon.nodeId]} size={96} />
-              <strong>{monsterName(def, mon.nodeId)}</strong>
+              <MonsterImage imageId={def.images[mon.nodeId]} size={96} plus={mon.plus} />
+              <strong>{plusName(def, mon)}</strong>
               <span className="small" style={{ color: ATTR_COLOR[nodeAttr(def, mon.nodeId)] }}>
                 {FORM_ATTR_LABEL[nodeAttr(def, mon.nodeId)]}・{node.stage}段階
               </span>

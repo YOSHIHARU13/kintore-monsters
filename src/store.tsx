@@ -16,9 +16,9 @@ import {
 import { db } from './lib/firebase'
 import { CONFIG } from './config/gameConfig'
 import { ATTRS, DAYS, type Attr, type FormAttr } from './data/exercises'
-import { FIRST_NODE_ID, canChangeTemplate, getNode, getTemplate } from './data/evolutionTemplates'
+import { FIRST_NODE_ID, canChangeTemplate, getNode, getTemplate, pathTo } from './data/evolutionTemplates'
 import { dateKey, prevDateKey, weekStartKey } from './lib/date'
-import { evolutionCost, isExpFull, planPour } from './lib/evolution'
+import { evolutionCost, fusionCost, isExpFull, planPour } from './lib/evolution'
 import { abstinenceGold, stepsGold } from './lib/rewards'
 import { isWeekCleared } from './lib/week'
 import { compressImage } from './lib/imageCompress'
@@ -89,6 +89,8 @@ interface Store {
   hatchEgg: () => { def: MonsterDef; monsterId: string } | null
   pourExp: (monsterId: string, toNodeId: string, from: ExpSource) => void
   evolve: (monsterId: string, toNodeId: string) => void
+  /** foodId のモンスターを monsterId に食べさせて＋1にする（同じモンスター同士だけ） */
+  fuse: (monsterId: string, foodId: string) => void
   setActive: (monsterId: string) => void
   saveMonsterDef: (input: MonsterDefInput) => Promise<void>
   loadImage: (imageId: string) => Promise<string | null>
@@ -358,6 +360,46 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       if (!isExpFull(cost, investedFor(mon, toNodeId, node.next[0])) || state.gold < cost.gold) return
       // 選ばなかった進化先に注いでいたEXPは、元の財布に返す
       const update: DocumentData = { gold: increment(-cost.gold) }
+      addRefund(update, mon, def, node.next.filter((n) => n !== toNodeId))
+      const batch = writeBatch(db)
+      batch.update(doc(db, base, 'ownedMonsters', monsterId), {
+        nodeId: toNodeId,
+        investedBy: {},
+        investedFrom: {},
+        invested: zeroExp(),
+      })
+      batch.update(stateRef, update)
+      batch.commit().catch(fail)
+    }
+
+    // 同じモンスターを食べさせて＋1（食べさせた側の＋も引き継ぐ）。食べさせた側に注いでいたEXPは財布に返す
+    const fuse: Store['fuse'] = (monsterId, foodId) => {
+      const found = findMonster(monsterId)
+      const food = findMonster(foodId)
+      if (!found || !food || monsterId === foodId || found.mon.defId !== food.mon.defId) return
+      const plus = found.mon.plus ?? 0
+      const cost = fusionCost(plus)
+      if (cost === null || state.gold < cost) return
+      const update: DocumentData = { gold: increment(-cost) }
+      addRefund(update, food.mon, food.def, food.node.next)
+      if (state.activeMonsterId === foodId) update.activeMonsterId = monsterId
+      // 食べさせた側の姿まで見つけた形態は、図鑑から消えないように引き継ぐ
+      const template = getTemplate(food.def.templateId)
+      const discovered = [
+        ...new Set([...(found.mon.discovered ?? []), ...(food.mon.discovered ?? []), ...pathTo(template, food.mon.nodeId)]),
+      ]
+      const batch = writeBatch(db)
+      batch.update(doc(db, base, 'ownedMonsters', monsterId), {
+        plus: Math.min(CONFIG.fusion.maxPlus, plus + 1 + (food.mon.plus ?? 0)),
+        discovered,
+      })
+      batch.delete(doc(db, base, 'ownedMonsters', foodId))
+      batch.update(stateRef, update)
+      batch.commit().catch(fail)
+    }
+
+    /** nodeIds の進化先に注いでいたEXPを、注いだ元の財布に返すよう update に足す */
+    const addRefund = (update: DocumentData, mon: OwnedMonster, def: MonsterDef, nodeIds: string[]) => {
       const giveBack = (attr: Attr, exp: { trained?: number; bought?: number } | undefined) => {
         for (const kind of ['trained', 'bought'] as const) {
           const amount = exp?.[kind] ?? 0
@@ -374,12 +416,13 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         refund[attr].trained += exp?.trained ?? 0
         refund[attr].bought += exp?.bought ?? 0
       }
-      for (const other of node.next.filter((n) => n !== toNodeId)) {
+      const firstNext = getNode(getTemplate(def.templateId), mon.nodeId).next[0]
+      for (const other of nodeIds) {
         const sources = mon.investedFrom?.[other]
         for (const attr of [...ATTRS, 'any'] as const) add(attr, sources?.[attr])
         // 旧形式のデータ（注いだ元の記録がない分）は、その進化先の属性の財布に返す
         const otherAttr = nodeAttr(def, other)
-        if (other === node.next[0] && otherAttr !== 'none') add(otherAttr, mon.invested)
+        if (other === firstNext && otherAttr !== 'none') add(otherAttr, mon.invested)
         if (otherAttr !== 'none') {
           for (const kind of ['trained', 'bought'] as const) {
             const recorded = [...ATTRS, 'any' as const].reduce((sum, attr) => sum + (sources?.[attr]?.[kind] ?? 0), 0)
@@ -389,15 +432,6 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       }
       for (const attr of ATTRS) giveBack(attr, refund[attr])
       if (refund.any.trained > 0) update.anyExp = increment(refund.any.trained)
-      const batch = writeBatch(db)
-      batch.update(doc(db, base, 'ownedMonsters', monsterId), {
-        nodeId: toNodeId,
-        investedBy: {},
-        investedFrom: {},
-        invested: zeroExp(),
-      })
-      batch.update(stateRef, update)
-      batch.commit().catch(fail)
     }
 
     const setActive: Store['setActive'] = (monsterId) => updateState({ activeMonsterId: monsterId })
@@ -469,6 +503,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       hatchEgg,
       pourExp,
       evolve,
+      fuse,
       setActive,
       saveMonsterDef,
       loadImage,

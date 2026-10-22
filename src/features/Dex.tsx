@@ -13,7 +13,7 @@ export function Dex({ go }: { go: Go }) {
     const template = getTemplate(def.templateId)
     const mons = owned.filter((o) => o.defId === def.id)
     // 進化は一方通行なので、持っている1体ずつの「今の姿までの道のり」を合わせたものが発見済み
-    const found = new Set(mons.flatMap((mon) => pathTo(template, mon.nodeId)))
+    const found = new Set(mons.flatMap((mon) => [...pathTo(template, mon.nodeId), ...(mon.discovered ?? [])]))
     return { def, template, found, count: mons.length }
   })
   const foundCount = entries.reduce((sum, e) => sum + e.found.size, 0)

@@ -3,15 +3,16 @@ import { useStore } from '../store'
 import { ATTRS, ATTR_LABEL, FORM_ATTR_LABEL, type Attr } from '../data/exercises'
 import { getNode, getTemplate } from '../data/evolutionTemplates'
 import { CONFIG } from '../config/gameConfig'
-import { boughtCap, evolutionCost, isExpFull, planPour } from '../lib/evolution'
+import { boughtCap, evolutionCost, fusionCost, isExpFull, planPour } from '../lib/evolution'
 import { Gauge } from '../components/Gauge'
 import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
-import { investedFor, monsterName, nodeAttr } from '../types'
+import { investedFor, nodeAttr, plusName } from '../types'
 
 export function MonsterDetail({ id, go }: { id: string; go: Go }) {
-  const { owned, defs, state, pourExp, evolve, setActive } = useStore()
+  const { owned, defs, state, pourExp, evolve, fuse, setActive } = useStore()
   const [evolved, setEvolved] = useState(0)
+  const [foodId, setFoodId] = useState<string | null>(null)
   const mon = owned.find((o) => o.id === id)
   const def = mon && defs.find((d) => d.id === mon.defId)
 
@@ -31,6 +32,10 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
   const cost = node.next.length > 0 ? evolutionCost(node.stage) : null
   const attr = nodeAttr(def, mon.nodeId)
   const branching = node.next.length > 1
+  const plus = mon.plus ?? 0
+  const fuseCost = fusionCost(plus)
+  // 食べさせられるのは同じモンスターの別の個体
+  const foods = owned.filter((o) => o.defId === mon.defId && o.id !== mon.id)
 
   const doEvolve = (toNodeId: string) => {
     evolve(id, toNodeId)
@@ -46,9 +51,9 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
 
       <section className="card center">
         <div className={evolved ? 'evolve-flash' : ''} key={evolved}>
-          <MonsterImage imageId={def.images[mon.nodeId]} size={200} />
+          <MonsterImage imageId={def.images[mon.nodeId]} size={200} plus={mon.plus} />
         </div>
-        <h1 className="title">{monsterName(def, mon.nodeId)}</h1>
+        <h1 className="title">{plusName(def, mon)}</h1>
         <p style={{ color: ATTR_COLOR[attr] }}>
           {FORM_ATTR_LABEL[attr]}属性・{node.label}
         </p>
@@ -157,6 +162,57 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
           <p className="muted">これ以上は進化しません。おつかれさま！</p>
         </section>
       )}
+
+      <section className="card">
+        <h2>
+          合体（＋{plus}／{CONFIG.fusion.maxPlus}）
+        </h2>
+        {fuseCost === null ? (
+          <p className="muted">＋{CONFIG.fusion.maxPlus}に到達！ これ以上は合体できません。</p>
+        ) : (
+          <>
+            <p className="muted small">
+              同じモンスターを食べさせると＋1。＋が上がるほど枠が豪華になります（銅→銀→金→金の光→虹）。食べさせた側は
+              いなくなりますが、注いでいたEXPは財布に戻り、図鑑の発見も消えません。
+            </p>
+            {foods.length === 0 ? (
+              <p className="muted small">食べさせられる{def.name}がいません。タマゴでダブったら合体できます。</p>
+            ) : (
+              <ul className="mini-list">
+                {foods.map((food) => (
+                  <li key={food.id}>
+                    <span className="monster-row">
+                      <MonsterImage imageId={def.images[food.nodeId]} size={48} plus={food.plus} />
+                      {plusName(def, food)}・{getNode(template, food.nodeId).stage}段階
+                    </span>
+                    {foodId === food.id ? (
+                      <button
+                        className="btn primary small"
+                        disabled={state.gold < fuseCost}
+                        onClick={() => {
+                          fuse(id, food.id)
+                          setFoodId(null)
+                          setEvolved(Date.now())
+                          navigator.vibrate?.([60, 40, 200])
+                        }}
+                      >
+                        本当に食べさせる（{fuseCost}G）
+                      </button>
+                    ) : (
+                      <button className="btn small" onClick={() => setFoodId(food.id)}>
+                        食べさせる
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="muted small">
+              ＋{plus + 1}にするのに {fuseCost}G（所持 {state.gold}G）
+            </p>
+          </>
+        )}
+      </section>
     </div>
   )
 }

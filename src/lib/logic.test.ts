@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { calcTarget, judgeSet, recentSessions, suggestProgression } from './target'
 import { abstinenceGold, calcSetReward, stepsGold } from './rewards'
-import { boughtCap, evolutionCost, isExpFull, planPour } from './evolution'
+import { boughtCap, evolutionCost, fusionCost, isExpFull, planPour } from './evolution'
 import { CONFIG } from '../config/gameConfig'
 import { EXERCISES, SLOTS, TASK_SLOTS } from '../data/exercises'
 import { weekStartKey } from './date'
@@ -151,6 +151,9 @@ describe('進化', () => {
   const cost = evolutionCost(1)!
   it('初期コスト', () => {
     expect(cost).toEqual({ exp: 150, gold: 100 })
+    expect(fusionCost(0)).toBe(100)
+    expect(fusionCost(4)).toBe(500)
+    expect(fusionCost(5)).toBeNull()
     expect(evolutionCost(4)).toEqual({ exp: 2500, gold: 1500 })
     expect(evolutionCost(5)).toBeNull()
   })

@@ -605,6 +605,95 @@ h2 {
   }
 }
 
+/* 合体の＋に応じた枠（＋1 銅 → ＋2 銀 → ＋3 金 → ＋4 金の光 → ＋5 虹） */
+.frame {
+  position: relative;
+  padding: 4px;
+  border-radius: 18px;
+  flex-shrink: 0;
+  display: inline-block;
+  line-height: 0;
+}
+.frame .monster-img {
+  display: block;
+}
+.frame-plus {
+  position: absolute;
+  right: -4px;
+  bottom: -6px;
+  line-height: 1.2;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  background: #0b0c12;
+  color: #fff;
+  border: 2px solid currentColor;
+}
+.frame.plus-1 {
+  background: linear-gradient(135deg, #b87333, #e6a46a, #8a5226);
+}
+.frame.plus-1 .frame-plus {
+  color: #e6a46a;
+}
+.frame.plus-2 {
+  background: linear-gradient(135deg, #9aa3ad, #f2f5f8, #7d8590);
+}
+.frame.plus-2 .frame-plus {
+  color: #e3e8ee;
+}
+.frame.plus-3 {
+  background: linear-gradient(135deg, #c9971c, #ffe17a, #b07d0b);
+  box-shadow: 0 0 10px rgba(255, 209, 102, 0.45);
+}
+.frame.plus-3 .frame-plus,
+.frame.plus-4 .frame-plus {
+  color: #ffd166;
+}
+.frame.plus-4 {
+  background: conic-gradient(from var(--frame-angle, 0deg), #b07d0b, #ffe17a, #fff6cf, #ffe17a, #b07d0b);
+  box-shadow: 0 0 16px rgba(255, 209, 102, 0.7);
+  animation: frame-spin 4s linear infinite;
+}
+.frame.plus-5 {
+  padding: 5px;
+  background: conic-gradient(
+    from var(--frame-angle, 0deg),
+    #ef476f,
+    #ffd166,
+    #06d6a0,
+    #4cc9f0,
+    #b388ff,
+    #ef476f
+  );
+  box-shadow:
+    0 0 14px rgba(255, 255, 255, 0.5),
+    0 0 28px rgba(179, 136, 255, 0.55);
+  animation: frame-spin 3s linear infinite;
+}
+.frame.plus-5 .frame-plus {
+  color: #fff;
+  background: linear-gradient(90deg, #ef476f, #ffd166, #06d6a0, #4cc9f0, #b388ff);
+  border-color: #fff;
+  text-shadow: 0 1px 2px #0008;
+}
+@property --frame-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes frame-spin {
+  to {
+    --frame-angle: 360deg;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .frame.plus-4,
+  .frame.plus-5 {
+    animation: none;
+  }
+}
+
 /* モンスター */
 .monster-img {
   object-fit: contain;

@@ -132,6 +132,7 @@ beforeEach(() => {
     hatchEgg: vi.fn(() => ({ def: defs[1], monsterId: 'o2' })),
     pourExp: vi.fn(),
     evolve: vi.fn(),
+    fuse: vi.fn(),
     setActive: vi.fn(),
     saveMonsterDef: vi.fn(async () => {}),
     loadImage: vi.fn(async () => null),
@@ -287,6 +288,22 @@ describe('画面の表示', () => {
     expect(el.textContent).not.toContain('進化の石')
     await click('進化する（300G）')
     expect(fake.store.evolve).toHaveBeenCalledWith('o1', 'n3a')
+  })
+
+  it('モンスター詳細：同じモンスターを食べさせて＋1、枠が付く', async () => {
+    fake.store.owned = [
+      { ...owned[0], plus: 2 },
+      { id: 'o3', defId: 'm1', nodeId: 'n1', obtainedAt: 3 },
+      { id: 'o4', defId: 'm2', nodeId: 'n1', obtainedAt: 4 },
+    ]
+    const el = await render(<MonsterDetail id="o1" go={go} />)
+    expect(el.textContent).toContain('ムキドラゴ＋2')
+    expect(el.textContent).toContain('合体（＋2／5）')
+    expect(el.querySelector('.frame.plus-2')).not.toBeNull()
+    expect(el.textContent).not.toContain('アシガメ') // 別のモンスターは食べさせられない
+    await click('食べさせる')
+    await click('本当に食べさせる（300G）')
+    expect(fake.store.fuse).toHaveBeenCalledWith('o1', 'o3')
   })
 
   it('モンスター詳細：手持ちのEXPがあれば進化先を選んで注げる', async () => {

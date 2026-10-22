@@ -7,7 +7,7 @@ import { CONFIG } from '../config/gameConfig'
 import { Gauge } from '../components/Gauge'
 import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
-import { monsterName, nodeAttr } from '../types'
+import { nodeAttr, plusName } from '../types'
 import { isWeekCleared, partProgress, slotDone } from '../lib/week'
 import { abstinenceGold } from '../lib/rewards'
 import { StepTable } from './Morning'
@@ -134,9 +134,9 @@ export function Home({ go }: { go: Go }) {
         <h2>育成中のモンスター</h2>
         {active && activeDef ? (
           <button className="monster-row" onClick={() => go({ name: 'monster', id: active.id })}>
-            <MonsterImage imageId={activeDef.images[active.nodeId]} size={88} />
+            <MonsterImage imageId={activeDef.images[active.nodeId]} size={88} plus={active.plus} />
             <div>
-              <strong>{monsterName(activeDef, active.nodeId)}</strong>
+              <strong>{plusName(activeDef, active)}</strong>
               <div className="muted">
                 {FORM_ATTR_LABEL[nodeAttr(activeDef, active.nodeId)]}・{getNode(getTemplate(activeDef.templateId), active.nodeId).label}
               </div>

@@ -72,6 +72,12 @@ export interface MonsterDef {
   createdAt: number
 }
 
+/** 合体の＋を付けた名前（例：ショルベアー＋3） */
+export function plusName(def: MonsterDef, mon: OwnedMonster): string {
+  const name = monsterName(def, mon.nodeId)
+  return mon.plus ? `${name}＋${mon.plus}` : name
+}
+
 /** その段階での名前。段階ごとの名前が未設定なら全体の名前 */
 export function monsterName(def: MonsterDef, nodeId: string): string {
   return def.names?.[nodeId]?.trim() || def.name
@@ -84,6 +90,8 @@ export interface OwnedMonster {
   investedBy?: Record<string, AttrExp> // 進化先のnodeId → その進化に向けて注いだEXP
   investedFrom?: Record<string, Partial<Record<ExpSource, AttrExp>>> // 進化先 → どの財布から注いだか（返却用）
   invested?: AttrExp // 旧形式（通常ルートに注いだEXP）
+  plus?: number // 合体で上げた＋の数（0〜最大）
+  discovered?: string[] // 合体で食べさせた個体が見つけていた形態（図鑑から消さないため）
   obtainedAt: number
 }
 
