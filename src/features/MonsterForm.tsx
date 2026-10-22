@@ -377,7 +377,8 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
             })}
           </div>
           <span className="muted small">
-            クエストの「求められる編成」の条件になります。持てる数はレア度で決まります（ハズレ・ノーマル0、レア・激レア1、ジョグレス2）。
+            クエストの「求められる編成」の条件になります。持てる数はレア度で決まります（ハズレ・ノーマル{CONFIG.gimmicks.slots.normal}、レア{CONFIG.gimmicks.slots.rare}、激レア
+            {CONFIG.gimmicks.slots.superRare}、ジョグレス{CONFIG.gimmicks.slots.jogress}）。
           </span>
         </div>
         </details>
