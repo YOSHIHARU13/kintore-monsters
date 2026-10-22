@@ -8,9 +8,9 @@ import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { ATTR_COLOR, type Go } from '../nav'
 import { monsterName, type MonsterDef, type RarityKey } from '../types'
 import { GachaBanner } from '../components/GachaBanner'
-import { percent, rarityOf, rateTable } from '../lib/gacha'
+import { percent, rarityOf, rateTable, tierRates } from '../lib/gacha'
 
-type Hatched = { def: MonsterDef; monsterId: string; shiny: boolean; rarity: RarityKey }
+type Hatched = { def: MonsterDef; monsterId: string; shiny: boolean; pity: boolean; rarity: RarityKey }
 
 export function Shop({ go }: { go: Go }) {
   const { state, defs, owned, gachas, buyEgg, hatchEgg, buyExp } = useStore()
@@ -19,19 +19,21 @@ export function Shop({ go }: { go: Go }) {
   const [hatched, setHatched] = useState<Hatched | null>(null)
   const [gachaId, setGachaId] = useState(() => {
     // 最初は、中身がいるガチャのうち、いちばん新しいものを選んでおく
-    const withMembers = gachas.filter((g) => rateTable(g, defs).length > 0)
+    const withMembers = gachas.filter((g) => rateTable(g.id, defs).length > 0)
     return (withMembers[withMembers.length - 1] ?? gachas[0]).id
   })
 
   const gacha = gachas.find((g) => g.id === gachaId) ?? gachas[0]
-  const table = rateTable(gacha, defs)
+  const table = rateTable(gacha.id, defs)
+  const hasPityTier = table.some((t) => t.rarity === CONFIG.gacha.pity.rarity)
+  const pityLeft = CONFIG.gacha.pity.pulls - (state.pity[gacha.id] ?? 0)
   const met = (defId: string) => owned.some((o) => o.defId === defId) || (state.dexFound[defId]?.length ?? 0) > 0
-  const anyEggDefs = gachas.some((g) => rateTable(g, defs).length > 0)
+  const anyEggDefs = gachas.some((g) => rateTable(g.id, defs).length > 0)
   const canBuyEgg = state.gold >= CONFIG.shop.eggPrice && anyEggDefs
   const canHatch = state.eggs > 0 && table.length > 0
   const hatch = () => {
     const result = hatchEgg(gacha.id)
-    if (result) setHatched({ ...result, rarity: result.def.common ? 'normal' : rarityOf(gacha, result.def.id) })
+    if (result) setHatched({ ...result, rarity: rarityOf(result.def) })
   }
   const expCost = amount * CONFIG.shop.goldPerExp
   const maxAmount = Math.max(
@@ -58,7 +60,7 @@ export function Shop({ go }: { go: Go }) {
             <GachaBanner
               key={g.id}
               gacha={g}
-              count={rateTable(g, defs).length}
+              count={rateTable(g.id, defs).length}
               selected={g.id === gacha.id}
               onClick={() => setGachaId(g.id)}
             />
@@ -85,22 +87,32 @@ export function Shop({ go }: { go: Go }) {
             <button className="btn primary wide" disabled={!canHatch} onClick={hatch}>
               「{gacha.name}」を引く（タマゴ1個）
             </button>
+            {hasPityTier && (
+              <p className="small center bonus-reward">
+                {CONFIG.gacha.rarities[CONFIG.gacha.pity.rarity].label}確定まで あと{pityLeft}回
+              </p>
+            )}
             <h3 className="small">提供割合（✨色違い 1/{Math.round(1 / gacha.shinyRate)}）</h3>
-            <ul className="mini-list">
-              {[...table]
-                .sort((a, b) => a.rate - b.rate)
-                .map(({ def, rarity, rate }) => (
-                  <li key={def.id}>
-                    <span className="monster-row">
-                      <MonsterImage imageId={def.images[FIRST_NODE_ID]} silhouette={!met(def.id)} size={40} />
-                      {met(def.id) ? monsterName(def, FIRST_NODE_ID) : '？？？'}
-                    </span>
-                    <span className={`tag rarity-${def.common ? 'common' : rarity}`}>
-                      {def.common ? 'ハズレ枠' : CONFIG.gacha.rarities[rarity].label} {percent(rate)}
-                    </span>
-                  </li>
-                ))}
-            </ul>
+            {[...tierRates(table)].reverse().map(({ rarity, rate, count }) => (
+              <div key={rarity}>
+                <h3 className={`small rarity-title rarity-${rarity}`}>
+                  {CONFIG.gacha.rarities[rarity].label} 合計{percent(rate)}（{count}種）
+                </h3>
+                <ul className="mini-list">
+                  {table
+                    .filter((t) => t.rarity === rarity)
+                    .map(({ def, rate: r }) => (
+                      <li key={def.id}>
+                        <span className="monster-row">
+                          <MonsterImage imageId={def.images[FIRST_NODE_ID]} silhouette={!met(def.id)} size={40} />
+                          {met(def.id) ? monsterName(def, FIRST_NODE_ID) : '？？？'}
+                        </span>
+                        <span className="tag">{percent(r)}</span>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            ))}
           </>
         )}
       </section>
@@ -150,8 +162,12 @@ export function Shop({ go }: { go: Go }) {
             Array.from({ length: 42 }, (_, i) => <i key={i} className="spark" style={{ ['--i' as string]: i }} />)}
           <div className="beat-text">
             {hatched.shiny && <div className="beat-title">✨ 色違い！！ ✨</div>}
-            {!hatched.def.common && hatched.rarity !== 'normal' && (
-              <div className={`beat-title rarity-${hatched.rarity}`}>{CONFIG.gacha.rarities[hatched.rarity].label}！</div>
+            {hatched.pity && <div className="beat-sub">天井で確定！</div>}
+            {hatched.rarity !== 'normal' && (
+              <div className={`beat-title rarity-${hatched.rarity}`}>
+                {CONFIG.gacha.rarities[hatched.rarity].label}
+                {hatched.rarity === 'hazure' ? '…' : '！'}
+              </div>
             )}
             <MonsterImage imageId={hatched.def.images[FIRST_NODE_ID]} size={180} shiny={hatched.shiny} />
             <div className="beat-title">{monsterName(hatched.def, FIRST_NODE_ID)}</div>

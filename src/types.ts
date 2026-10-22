@@ -28,6 +28,7 @@ export interface GameState {
   lastCheckinDate: string | null // 最後に朝の記録をつけた「前日」の日付
   dexFound: Record<string, string[]> // 合体・ジョグレスでいなくなった個体が見つけていた形態（defId → nodeId）
   dexShiny: Record<string, boolean> // 色違いを見つけたモンスター（defId）
+  pity: Record<string, number> // ガチャごとの、激レアが出ないまま引いた回数（天井用）
   activeMonsterId: string | null
 }
 
@@ -75,7 +76,8 @@ export interface MonsterDef {
   names?: Record<string, string> // nodeId → その段階だけの名前（なければ name を使う）
   recipe?: string[] // 隠しモンスターのレシピ（2体の defId）。あればタマゴからは生まれず、ジョグレスでだけ生まれる
   gachas?: string[] // 入っているガチャのID（最大3つ）。なければ「いつものガチャ」
-  common?: boolean // ハズレ枠：どのガチャからも出る
+  rarity?: RarityKey // レア度（なければノーマル）
+  common?: boolean // 旧形式：ハズレ枠（レア度ができる前のデータ）
   createdAt: number
 }
 
@@ -85,14 +87,13 @@ export function plusName(def: MonsterDef, mon: OwnedMonster): string {
   return mon.plus ? `${name}＋${mon.plus}` : name
 }
 
-export type RarityKey = 'normal' | 'rare' | 'superRare'
+export type RarityKey = 'hazure' | 'normal' | 'rare' | 'superRare'
 
 export interface Gacha {
   id: string
   name: string
   bannerImageId: string | null
   shinyRate: number
-  rarity: Record<string, RarityKey> // defId → そのガチャでのレア度（なければノーマル）
   createdAt: number
   builtin: boolean // 「いつものガチャ」（消せない）
 }

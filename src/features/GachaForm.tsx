@@ -4,18 +4,15 @@ import { CONFIG } from '../config/gameConfig'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { MonsterImage } from '../components/MonsterImage'
 import { GachaBanner } from '../components/GachaBanner'
-import { percent, rateTable } from '../lib/gacha'
+import { percent, rateTable, tierRates } from '../lib/gacha'
 import type { Go } from '../nav'
-import { monsterName, type Gacha, type RarityKey } from '../types'
-
-const RARITY_KEYS = Object.keys(CONFIG.gacha.rarities) as RarityKey[]
+import { monsterName, type Gacha } from '../types'
 
 export function GachaForm({ id, go }: { id?: string; go: Go }) {
   const { gachas, defs, saveGacha, deleteGacha } = useStore()
   const existing = id ? gachas.find((g) => g.id === id) : undefined
   const [name, setName] = useState(existing?.name ?? '')
   const [shinyRate, setShinyRate] = useState(existing?.shinyRate ?? CONFIG.shop.shinyRate)
-  const [rarity, setRarity] = useState<Record<string, RarityKey>>(existing?.rarity ?? {})
   const [banner, setBanner] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -28,11 +25,10 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
     name: name.trim() || '名前のないガチャ',
     bannerImageId: existing?.bannerImageId ?? null,
     shinyRate,
-    rarity,
     createdAt: existing?.createdAt ?? 0,
     builtin: existing?.builtin ?? false,
   }
-  const table = existing ? rateTable(draft, defs) : []
+  const table = existing ? rateTable(existing.id, defs) : []
 
   const save = async () => {
     if (!name.trim()) {
@@ -42,7 +38,7 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
     setSaving(true)
     setError(null)
     try {
-      const savedId = await saveGacha({ id: existing?.id, name, shinyRate, rarity, banner: banner ?? undefined })
+      const savedId = await saveGacha({ id: existing?.id, name, shinyRate, banner: banner ?? undefined })
       go(existing ? { name: 'shop' } : { name: 'gachaForm', id: savedId })
     } catch (e) {
       console.error(e)
@@ -87,40 +83,32 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
 
       {existing && (
         <section className="card">
-          <h2>中身とレア度（全{table.length}種）</h2>
+          <h2>中身（全{table.length}種）</h2>
           <p className="muted small">
-            モンスターをこのガチャに入れる・外すのは、図鑑の登録画面で選びます（1体につき{CONFIG.gacha.maxPerMonster}
-            つまで）。レア度ごとの出やすさは ノーマル{CONFIG.gacha.rarities.normal.weight}：レア
-            {CONFIG.gacha.rarities.rare.weight}：激レア{CONFIG.gacha.rarities.superRare.weight}。ハズレ枠はどのガチャからも出ます。
+            ハズレとノーマルはどのガチャからも出ます。レアと激レアは、図鑑の登録画面でこのガチャを選んだモンスターだけが出ます（1体につき
+            {CONFIG.gacha.maxPerMonster}つまで）。レア度も登録画面で決めます。
           </p>
           {table.length === 0 && <p className="warn small">まだモンスターが入っていません。</p>}
-          <ul className="choice-list">
-            {table.map(({ def, rarity: r, rate }) => (
-              <li key={def.id} className="rarity-row">
-                <span className="monster-row">
-                  <MonsterImage imageId={def.images[FIRST_NODE_ID]} size={40} />
-                  <span>
-                    {monsterName(def, FIRST_NODE_ID)}
-                    {def.common && <span className="muted small">（ハズレ枠）</span>}
-                    <br />
-                    <span className="muted small">{percent(rate)}</span>
-                  </span>
-                </span>
-                <span className="chips">
-                  {RARITY_KEYS.map((k) => (
-                    <button
-                      key={k}
-                      type="button"
-                      className={`chip small${r === k ? ' on' : ''}`}
-                      onClick={() => setRarity({ ...rarity, [def.id]: k })}
-                    >
-                      {CONFIG.gacha.rarities[k].label}
-                    </button>
+          {tierRates(table).map(({ rarity, rate, count }) => (
+            <div key={rarity}>
+              <h3 className={`small rarity-title rarity-${rarity}`}>
+                {CONFIG.gacha.rarities[rarity].label} 合計{percent(rate)}（{count}種）
+              </h3>
+              <ul className="mini-list">
+                {table
+                  .filter((t) => t.rarity === rarity)
+                  .map(({ def, rate: r }) => (
+                    <li key={def.id}>
+                      <span className="monster-row">
+                        <MonsterImage imageId={def.images[FIRST_NODE_ID]} size={40} />
+                        {monsterName(def, FIRST_NODE_ID)}
+                      </span>
+                      <span className="tag">{percent(r)}</span>
+                    </li>
                   ))}
-                </span>
-              </li>
-            ))}
-          </ul>
+              </ul>
+            </div>
+          ))}
         </section>
       )}
 

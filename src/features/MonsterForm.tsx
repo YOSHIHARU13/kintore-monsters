@@ -6,7 +6,8 @@ import { evolutionCost } from '../lib/evolution'
 import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
 import { CONFIG } from '../config/gameConfig'
-import { isHidden } from '../types'
+import { isHidden, type RarityKey } from '../types'
+import { RARITY_KEYS, rarityOf } from '../lib/gacha'
 
 export function MonsterForm({ id, go }: { id?: string; go: Go }) {
   const { defs, gachas, saveMonsterDef } = useStore()
@@ -21,7 +22,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
   const [names, setNames] = useState<Record<string, string>>(existing?.names ?? {})
   const [files, setFiles] = useState<Record<string, File>>({})
   const [inGachas, setInGachas] = useState<string[]>(existing?.gachas ?? [])
-  const [common, setCommon] = useState(existing?.common === true)
+  const [rarity, setRarity] = useState<RarityKey>(existing ? rarityOf(existing) : 'normal')
   const [recipe, setRecipe] = useState<string[]>(existing?.recipe?.length === 2 ? existing.recipe : [])
   // レシピに使えるのは、タマゴから生まれる普通のモンスター（自分以外）
   const parents = defs.filter((d) => d.id !== existing?.id && !isHidden(d))
@@ -41,6 +42,10 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
   const save = async () => {
     if (!name.trim()) {
       setError('名前を入力してください')
+      return
+    }
+    if (templateId === 'single' && recipe.length !== 2) {
+      setError('「1形態だけ」は隠しモンスター（ジョグレス）専用です。下の「隠しモンスターにする」をオンにしてください')
       return
     }
     if (recipe.length === 2 && recipe.some((r) => !parents.some((p) => p.id === r))) {
@@ -68,7 +73,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
         recipe,
         // 消したガチャのIDは残さない
         gachas: inGachas.filter((g) => gachas.some((x) => x.id === g && !x.builtin)),
-        common,
+        rarity,
       })
       go({ name: 'registry' })
     } catch (e) {
@@ -111,6 +116,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
 
         <p className="muted small">
           進化コスト（自動）：
+          {stages.length === 0 && '進化しません'}
           {stages
             .map((stage) => {
               const cost = evolutionCost(stage)
@@ -178,13 +184,23 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
 
       {recipe.length !== 2 && (
         <section className="card">
-          <h2>入るガチャ（{CONFIG.gacha.maxPerMonster}つまで）</h2>
-          <label className="row">
-            <input type="checkbox" checked={common} onChange={(e) => setCommon(e.target.checked)} />
-            ハズレ枠にする（どのガチャからも出る）
-          </label>
-          {!common && (
+          <h2>レア度とガチャ</h2>
+          <div className="chips" role="group" aria-label="レア度">
+            {RARITY_KEYS.map((r) => (
+              <button
+                key={r}
+                type="button"
+                className={`chip rarity-${r}${rarity === r ? ' on' : ''}`}
+                onClick={() => setRarity(r)}
+              >
+                {CONFIG.gacha.rarities[r].label}
+              </button>
+            ))}
+          </div>
+          <p className="muted small">{CONFIG.gacha.rarities[rarity].hint}</p>
+          {!CONFIG.gacha.rarities[rarity].everyGacha && (
             <>
+              <h3 className="small">入るガチャ（{CONFIG.gacha.maxPerMonster}つまで）</h3>
               <div className="chips">
                 {gachas
                   .filter((g) => !g.builtin)
@@ -204,7 +220,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
                   })}
               </div>
               <p className="muted small">
-                どれも選ばなければ「{gachas[0].name}」に入ります。ガチャはショップで作れます。レア度はガチャの編集画面で決めます。
+                どれも選ばなければ「{gachas[0].name}」に入ります。ガチャはショップで作れます。
               </p>
             </>
           )}

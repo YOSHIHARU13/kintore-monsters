@@ -1,53 +1,65 @@
 import { describe, expect, it } from 'vitest'
-import { percent, pickFrom, rateTable } from './gacha'
-import type { Gacha, MonsterDef } from '../types'
+import { draw, isPity, percent, pickFrom, rateTable, tierRates } from './gacha'
+import type { MonsterDef } from '../types'
 
 const def = (id: string, extra: Partial<MonsterDef> = {}): MonsterDef => ({
   id, name: id, attr: 'none', templateId: 'linear3', images: {}, createdAt: 0, ...extra,
 })
-const gacha: Gacha = {
-  id: 'g1', name: 'テスト', bannerImageId: null, shinyRate: 0.05, rarity: { b: 'rare', c: 'superRare' }, createdAt: 0, builtin: false,
-}
 
 describe('ガチャ', () => {
   const defs = [
-    def('a', { gachas: ['g1'] }),
-    def('b', { gachas: ['g1', 'g2'] }),
-    def('c', { gachas: ['g1'] }),
-    def('x', { gachas: ['g2'] }), // 別のガチャ
-    def('z', { common: true }), // ハズレ枠
-    def('h', { gachas: ['g1'], recipe: ['a', 'b'] }), // 隠しモンスターは出ない
-    def('n'), // どこにも入れていない → いつものガチャ
+    def('h1', { rarity: 'hazure' }),
+    def('h2', { common: true }), // 旧形式のハズレ枠もハズレ
+    def('n1'), // レア度なし → ノーマル（どのガチャからも出る）
+    def('r1', { rarity: 'rare', gachas: ['g1'] }),
+    def('s1', { rarity: 'superRare', gachas: ['g1', 'g2'] }),
+    def('s2', { rarity: 'superRare', gachas: ['g2'] }), // 別のガチャ
+    def('x', { rarity: 'superRare', gachas: ['g1'], recipe: ['h1', 'n1'] }), // 隠しモンスターは出ない
+    def('d1', { rarity: 'rare' }), // ガチャを選んでいないレア → いつものガチャ
   ]
 
-  it('中身はそのガチャのモンスターとハズレ枠。確率はレア度の重みで決まる', () => {
-    const table = rateTable(gacha, defs)
-    expect(table.map((r) => r.def.id)).toEqual(['a', 'b', 'c', 'z'])
+  it('レア度ごとの確率を、同じレア度のモンスターで山分けする', () => {
+    const table = rateTable('g1', defs)
+    expect(table.map((r) => r.def.id)).toEqual(['h1', 'h2', 'n1', 'r1', 's1'])
     const rate = Object.fromEntries(table.map((r) => [r.def.id, r.rate]))
-    expect(rate.a).toBeCloseTo(10 / 24)
-    expect(rate.b).toBeCloseTo(3 / 24)
-    expect(rate.c).toBeCloseTo(1 / 24)
-    expect(rate.z).toBeCloseTo(10 / 24)
+    expect(rate.h1).toBeCloseTo(0.25)
+    expect(rate.h2).toBeCloseTo(0.25)
+    expect(rate.n1).toBeCloseTo(0.35)
+    expect(rate.r1).toBeCloseTo(0.12)
+    expect(rate.s1).toBeCloseTo(0.03)
+    expect(tierRates(table).map((t) => t.count)).toEqual([2, 1, 1, 1])
   })
 
-  it('どこにも入れていないモンスターは、いつものガチャに入る', () => {
-    const builtin = { ...gacha, id: 'default', rarity: {} }
-    expect(rateTable(builtin, defs).map((r) => r.def.id)).toEqual(['z', 'n'])
+  it('いないレア度の確率は、いるレア度に比率のまま回す', () => {
+    const table = rateTable('default', defs) // ハズレ・ノーマル・レア（d1）だけ
+    expect(table.map((r) => r.def.id)).toEqual(['h1', 'h2', 'n1', 'd1'])
+    const total = 0.5 + 0.35 + 0.12
+    expect(table.find((r) => r.def.id === 'd1')!.rate).toBeCloseTo(0.12 / total)
+    expect(table.reduce((sum, r) => sum + r.rate, 0)).toBeCloseTo(1)
   })
 
   it('確率どおりに選ぶ', () => {
-    const table = rateTable(gacha, defs)
-    expect(pickFrom(table, 0)?.id).toBe('a')
-    expect(pickFrom(table, 10 / 24 + 0.001)?.id).toBe('b')
-    expect(pickFrom(table, 13 / 24 + 0.001)?.id).toBe('c')
-    expect(pickFrom(table, 0.9999)?.id).toBe('z')
+    const table = rateTable('g1', defs)
+    expect(pickFrom(table, 0)?.id).toBe('h1')
+    expect(pickFrom(table, 0.6)?.id).toBe('n1')
+    expect(pickFrom(table, 0.9)?.id).toBe('r1')
+    expect(pickFrom(table, 0.99)?.id).toBe('s1')
     expect(pickFrom([], 0.5)).toBeNull()
+  })
+
+  it('天井：激レアが出ないまま30回目は激レア確定（激レアがいないガチャでは起きない）', () => {
+    const table = rateTable('g1', defs)
+    expect(isPity(28, table)).toBe(false)
+    expect(isPity(29, table)).toBe(true)
+    expect(draw(table, 29, 0)?.id).toBe('s1')
+    expect(draw(table, 0, 0)?.id).toBe('h1')
+    expect(isPity(29, rateTable('default', defs))).toBe(false)
   })
 
   it('確率の表示', () => {
     expect(percent(0.5)).toBe('50%')
-    expect(percent(10 / 21)).toBe('47.6%')
+    expect(percent(10 / 17)).toBe('58.8%')
+    expect(percent(0.03)).toBe('3%')
     expect(percent(1 / 21)).toBe('4.76%')
-    expect(percent(0.05)).toBe('5%')
   })
 })

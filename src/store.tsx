@@ -24,8 +24,8 @@ import { evolutionCost, fusionCost, isExpFull, planPour } from './lib/evolution'
 import { habitLabelOf, stepsGold } from './lib/rewards'
 import { isWeekCleared } from './lib/week'
 import { compressImage } from './lib/imageCompress'
-import { pickFrom, rateTable } from './lib/gacha'
-import { investedFor, isHidden, nodeAttr, type Gacha, type RarityKey, type AttrExp, type Checkin, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
+import { draw, isPity, rarityOf, rateTable } from './lib/gacha'
+import { investedFor, isHidden, nodeAttr, type AttrExp, type Checkin, type Gacha, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
 
 const zeroExp = () => ({ trained: 0, bought: 0 })
 
@@ -48,6 +48,7 @@ function initialState(): GameState {
     lastCheckinDate: null,
     dexFound: {},
     dexShiny: {},
+    pity: {},
     activeMonsterId: null,
   }
 }
@@ -85,14 +86,13 @@ export interface MonsterDefInput {
   files: Record<string, File> // nodeId → 新しくアップロードする画像
   recipe: string[] // 隠しモンスターのレシピ（2体の defId）。普通のモンスターは空
   gachas: string[] // 入るガチャのID（最大3つ。空なら「いつものガチャ」）
-  common: boolean // ハズレ枠（どのガチャからも出る）
+  rarity: RarityKey
 }
 
 export interface GachaInput {
   id?: string
   name: string
   shinyRate: number
-  rarity: Record<string, RarityKey>
   banner?: File // 新しいバナー画像
 }
 
@@ -103,7 +103,6 @@ function toGacha(id: string, data: DocumentData | undefined): Gacha {
     name: data?.name?.trim() || (builtin ? CONFIG.gacha.defaultName : '名前のないガチャ'),
     bannerImageId: data?.bannerImageId ?? null,
     shinyRate: data?.shinyRate ?? CONFIG.shop.shinyRate,
-    rarity: data?.rarity ?? {},
     createdAt: data?.createdAt ?? 0,
     builtin,
   }
@@ -132,7 +131,7 @@ interface Store {
   buyExp: (attr: Attr, amount: number) => void
   buyEgg: () => void
   /** タマゴを孵す。選んだガチャから、確率どおりに1体（ダブりあり） */
-  hatchEgg: (gachaId: string) => { def: MonsterDef; monsterId: string; shiny: boolean } | null
+  hatchEgg: (gachaId: string) => { def: MonsterDef; monsterId: string; shiny: boolean; pity: boolean } | null
   /** ガチャを作る・編集する。保存したガチャのID */
   saveGacha: (input: GachaInput) => Promise<string>
   /** ガチャを消す（入っていたモンスターはそのガチャから外れる）。「いつものガチャ」は消せない */
@@ -371,7 +370,10 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const gacha = gachas.find((g) => g.id === gachaId)
       if (!gacha || state.eggs <= 0) return null
       // 隠しモンスターはタマゴからは生まれない（rateTable が外す）
-      const def = pickFrom(rateTable(gacha, defs), Math.random())
+      const table = rateTable(gacha.id, defs)
+      const pulls = state.pity[gacha.id] ?? 0
+      const pity = isPity(pulls, table)
+      const def = draw(table, pulls, Math.random())
       if (!def) return null
       const shiny = Math.random() < gacha.shinyRate
       const ref = doc(collection(db, base, 'ownedMonsters'))
@@ -386,10 +388,11 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       })
       const update: DocumentData = { eggs: increment(-1) }
       if (shiny) update[`dexShiny.${def.id}`] = true
+      update[`pity.${gacha.id}`] = rarityOf(def) === CONFIG.gacha.pity.rarity ? 0 : pulls + 1
       if (!state.activeMonsterId) update.activeMonsterId = ref.id
       batch.update(stateRef, update)
       batch.commit().catch(fail)
-      return { def, monsterId: ref.id, shiny }
+      return { def, monsterId: ref.id, shiny, pity }
     }
 
     const findMonster = (monsterId: string) => {
@@ -606,7 +609,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         names: input.names,
         recipe: input.recipe,
         gachas: input.gachas.slice(0, CONFIG.gacha.maxPerMonster),
-        common: input.common,
+        rarity: input.rarity,
+        common: false,
         createdAt: existing?.createdAt ?? Date.now(),
       })
       batch.commit().catch(fail)
@@ -643,7 +647,6 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         name: input.name.trim(),
         bannerImageId,
         shinyRate: input.shinyRate,
-        rarity: input.rarity,
         createdAt: current?.createdAt || Date.now(),
       })
       batch.commit().catch(fail)

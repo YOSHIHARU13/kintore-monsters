@@ -501,20 +501,22 @@ h2 {
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
   color: #fff;
 }
-.tag.rarity-rare {
+.rarity-title {
+  margin: 10px 0 4px;
+}
+.rarity-hazure {
+  color: var(--muted);
+}
+.rarity-normal {
+  color: var(--text);
+}
+.rarity-rare {
   color: #4cc9f0;
   font-weight: 700;
 }
-.tag.rarity-superRare,
-.beat-title.rarity-superRare {
+.rarity-superRare {
   color: #ffd166;
   font-weight: 800;
-}
-.beat-title.rarity-rare {
-  color: #4cc9f0;
-}
-.tag.rarity-common {
-  color: var(--muted);
 }
 .bonus-reward {
   color: var(--primary);

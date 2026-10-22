@@ -116,12 +116,21 @@ export const CONFIG = {
     maxPerMonster: 3,
     defaultId: 'default', // どのガチャにも入れていないモンスターが入るガチャ（消せない）
     defaultName: 'いつものガチャ',
-    // レア度ごとの重み。出る確率は「そのモンスターの重み ÷ ガチャ全体の重みの合計」
+    // レア度ごとの確率（合計1）。同じレア度のモンスターで山分けする
+    // ハズレとノーマルはどのガチャからも出る。レアと激レアは選んだガチャだけ（ガチャの「顔」）
     rarities: {
-      normal: { label: 'ノーマル', weight: 10 },
-      rare: { label: 'レア', weight: 3 },
-      superRare: { label: '激レア', weight: 1 },
+      hazure: { label: 'ハズレ', rate: 0.5, everyGacha: true, hint: 'どのガチャからも出る。2段階で終わるような軽いやつ' },
+      normal: { label: 'ノーマル', rate: 0.35, everyGacha: true, hint: 'どのガチャからも出る。3段階まで進化する普通のやつ' },
+      rare: { label: 'レア', rate: 0.12, everyGacha: false, hint: '選んだガチャだけ。分岐ありのかっこいいやつ' },
+      superRare: {
+        label: '激レア',
+        rate: 0.03,
+        everyGacha: false,
+        hint: '選んだガチャだけ（フェス限）。ジョグレスの素材になる、いちばんかっこいいやつ',
+      },
     },
+    // 天井：同じガチャで、激レアが出ないままこの回数目を引くと激レア確定
+    pity: { rarity: 'superRare' as const, pulls: 30 },
     shinyRateChoices: [1 / 50, 1 / 20, 1 / 10, 1 / 5], // ガチャごとに選べる色違いの確率
   },
 
