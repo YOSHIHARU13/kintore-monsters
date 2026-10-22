@@ -3,6 +3,7 @@ import { awakenOf, imageOf } from '../lib/art'
 import { useStore } from '../store'
 import { gachaSeries, seriesStatus, statusLabel } from '../lib/series'
 import { availableEvents, upcomingEvents } from '../lib/events'
+import { ACTIVE_HINT, activeToday } from '../lib/missions'
 import { ATTRS, ATTR_LABEL, type Attr } from '../data/exercises'
 import { CONFIG } from '../config/gameConfig'
 import { Stepper } from '../components/Stepper'
@@ -23,8 +24,9 @@ import { isReady, percent, pickupCount, rarityOf, rateTable, tierRates } from '.
 
 
 export function Shop({ go }: { go: Go }) {
-  const { state, defs, owned, gachas, today, seriesPeriods, buyEgg, hatchEgg, hatchMany, freePull, buyExp, exchangeCores } = useStore()
+  const { state, defs, owned, gachas, today, yesterday, todaySets, seriesPeriods, buyEgg, hatchEgg, hatchMany, freePull, buyExp, exchangeCores } = useStore()
   const freeEvents = availableEvents(state, today)
+  const active = activeToday(state, todaySets, today, yesterday)
   const upcoming = upcomingEvents(today).slice(0, 3)
   const [multi, setMulti] = useState<HatchResult[] | null>(null)
   const [attr, setAttr] = useState<Attr>('chestArms')
@@ -117,14 +119,16 @@ export function Shop({ go }: { go: Go }) {
               <button
                 key={ev.id}
                 className="btn primary wide free-pull"
+                disabled={!active}
                 onClick={() => {
                   const results = freePull(ev.id, gacha.id)
                   if (results.length > 0) setMulti(results)
                 }}
               >
-                🎁 {ev.label}を「{gacha.name}」で引く（無料）
+                {active ? `🎁 ${ev.label}を「${gacha.name}」で引く（無料）` : `🔒 ${ev.label}`}
               </button>
             ))}
+            {freeEvents.length > 0 && !active && <p className="muted small">{ACTIVE_HINT}</p>}
             <div className="pull-buttons">
               <button className="btn primary pull-1" disabled={!canHatch} onClick={hatch}>
                 1回引く

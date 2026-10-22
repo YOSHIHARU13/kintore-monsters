@@ -35,7 +35,7 @@ import { finalAttrs, recommend } from './lib/coverage'
 import { abilitySlots, jogressGradeOf, selectableGimmicks } from './lib/gimmick'
 import { boostActive } from './lib/boosters'
 import { availableEvents, claimKey } from './lib/events'
-import { currentStats, loginReward, type Reward } from './lib/missions'
+import { activeToday, currentStats, loginReward, type Reward } from './lib/missions'
 import { builtinMaterialQuests } from './lib/materials'
 import type { Period, Periods } from './lib/series'
 import { towerCleared, towerFloors, towerMonth, type TowerFloor } from './lib/tower'
@@ -554,7 +554,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     /** ログインボーナス：1日1回 */
     const claimLogin: Store['claimLogin'] = () => {
       const key = `login:${dateKey()}`
-      if (state.claims?.[key]) return null
+      if (state.claims?.[key] || !activeToday(state, todaySets, today, yesterday)) return null
       const { reward } = loginReward(state)
       const update: DocumentData = { [`claims.${key}`]: true, loginDays: increment(1) }
       addReward(update, reward)
@@ -595,7 +595,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     const freePull: Store['freePull'] = (eventId, gachaId) => {
       const today = dateKey()
       const ev = availableEvents(state, today).find((e) => e.id === eventId)
-      if (!ev) return []
+      if (!ev || !activeToday(state, todaySets, today, yesterday)) return []
       return pull(gachaId, ev.pulls, { free: true, guaranteed: ev.guaranteed, claim: claimKey(ev, today) })
     }
 

@@ -130,3 +130,18 @@ export function dexMissions(defs: MonsterDef[], owned: OwnedMonster[], state: Ga
 
 export const isClaimed = (state: Pick<GameState, 'claims'>, key: string) => state.claims?.[key] === true
 export const canClaim = (state: Pick<GameState, 'claims'>, m: Mission) => m.have >= m.need && !isClaimed(state, m.key)
+
+/**
+ * 今日なにか1つやったか（筋トレ1セット・習慣・朝の歩数の記録）。
+ * ログインボーナスと無料ガチャは、これをやってから受け取れる（開くだけではもらえない）
+ */
+export function activeToday(
+  state: Pick<GameState, 'habitDate' | 'lastCheckinDate'>,
+  todaySets: unknown[],
+  today: string,
+  yesterday: string,
+): boolean {
+  return todaySets.length > 0 || state.habitDate === today || state.lastCheckinDate === yesterday
+}
+
+export const ACTIVE_HINT = '今日、筋トレ1セット・習慣・朝の歩数の記録のどれか1つをやると受け取れます'

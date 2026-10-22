@@ -1,6 +1,6 @@
 import { useStore } from '../store'
 import { LoginBonus, Gifts } from './Missions'
-import { canClaim, dailyMissions, dexMissions, weeklyMissions } from '../lib/missions'
+import { activeToday, canClaim, dailyMissions, dexMissions, weeklyMissions } from '../lib/missions'
 import { isLuckMax } from '../lib/fusion'
 import { availableEvents } from '../lib/events'
 import { awakenOf, imageOf } from '../lib/art'
@@ -47,7 +47,7 @@ export function Home({ go }: { go: Go }) {
       </button>
       {freeEvents.length > 0 && (
         <button className="card free-banner" onClick={() => go({ name: 'shop' })}>
-          🎁 今日は{freeEvents.map((e) => e.label).join('・')}の日！ ショップで引こう
+          🎁 今日は{freeEvents.map((e) => e.label).join('・')}の日！ {activeToday(state, todaySets, today, yesterday) ? 'ショップで引こう' : '1つやって引こう'}
         </button>
       )}
       <section className="card">

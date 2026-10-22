@@ -10,6 +10,8 @@ import {
   loginReward,
   rewardText,
   weeklyMissions,
+  activeToday,
+  ACTIVE_HINT,
   type Mission,
 } from '../lib/missions'
 import type { Go } from '../nav'
@@ -72,7 +74,8 @@ export function Missions({ go }: { go: Go }) {
 
 /** ログインボーナス（1日1回・7日周期） */
 export function LoginBonus() {
-  const { state, today, claimLogin } = useStore()
+  const { state, today, yesterday, todaySets, claimLogin } = useStore()
+  const active = activeToday(state, todaySets, today, yesterday)
   const [got, setGot] = useState<string | null>(null)
   const claimed = isClaimed(state, `login:${today}`)
   if (claimed && !got) return null
@@ -94,6 +97,7 @@ export function LoginBonus() {
           </div>
           <button
             className="btn primary wide"
+            disabled={!active}
             onClick={() => {
               const r = claimLogin()
               if (r) setGot(rewardText(r))
@@ -101,6 +105,7 @@ export function LoginBonus() {
           >
             受け取る（{rewardText(reward)}）
           </button>
+          {!active && <p className="muted small">🔒 {ACTIVE_HINT}</p>}
         </>
       )}
     </section>

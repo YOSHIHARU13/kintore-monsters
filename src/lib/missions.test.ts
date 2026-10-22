@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canClaim, currentStats, dailyMissions, dexMissions, loginReward, weeklyMissions } from './missions'
+import { activeToday, canClaim, currentStats, dailyMissions, dexMissions, loginReward, weeklyMissions } from './missions'
 import type { GameState, MonsterDef, SetRecord } from '../types'
 
 const state = (extra: Partial<GameState> = {}) =>
@@ -42,5 +42,12 @@ describe('ミッション', () => {
     const ms = dexMissions(defs, [{ id: 'o', defId: 'a', nodeId: 'n1', obtainedAt: 0 }], state())
     expect(ms.find((m) => m.need === 50)?.have).toBe(50)
     expect(ms.filter((m) => canClaim(state(), m)).map((m) => m.need)).toEqual([10, 25, 50])
+  })
+  it('ログインボーナスと無料ガチャは、今日なにか1つやってから', () => {
+    const st = state({ lastCheckinDate: '2026-10-21' })
+    expect(activeToday(st, [], today, '2026-10-22')).toBe(false) // 開いただけ
+    expect(activeToday(st, [set(today)], today, '2026-10-22')).toBe(true) // 筋トレ1セット
+    expect(activeToday(state({ habitDate: today }), [], today, '2026-10-22')).toBe(true) // 習慣
+    expect(activeToday(state({ lastCheckinDate: '2026-10-22' }), [], today, '2026-10-22')).toBe(true) // 朝の記録
   })
 })
