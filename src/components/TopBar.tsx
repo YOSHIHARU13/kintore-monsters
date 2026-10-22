@@ -4,7 +4,7 @@ import { ATTRS, ATTR_LABEL, type Attr } from '../data/exercises'
 import { ATTR_COLOR, type Go } from '../nav'
 import { CORE_KEYS, CORE_LABEL } from '../lib/cores'
 
-type Key = 'gold' | 'eggs' | Attr | 'any' | 'cores'
+type Key = 'gold' | 'coins' | 'eggs' | Attr | 'any' | 'cores'
 interface Pop {
   id: number
   key: Key
@@ -18,6 +18,7 @@ export function TopBar({ go }: { go: Go }) {
   const { state } = useStore()
   const values: Record<Key, number> = {
     gold: state.gold,
+    coins: state.coins ?? 0,
     eggs: state.eggs,
     chestArms: state.exp.chestArms.trained + state.exp.chestArms.bought,
     legs: state.exp.legs.trained + state.exp.legs.bought,
@@ -40,7 +41,7 @@ export function TopBar({ go }: { go: Go }) {
     const t = setTimeout(() => setPops((p) => p.filter((x) => !added.includes(x))), POP_MS)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values.gold, values.eggs, values.chestArms, values.legs, values.backShoulders, values.any, values.cores])
+  }, [values.gold, values.coins, values.eggs, values.chestArms, values.legs, values.backShoulders, values.any, values.cores])
 
   const item = (key: Key, icon: string, value: number, color?: string) => (
     <span className="topbar-item" style={color ? { color } : undefined}>
@@ -60,6 +61,7 @@ export function TopBar({ go }: { go: Go }) {
     <header className="topbar">
       <button className="topbar-main" onClick={() => setOpen(!open)} aria-expanded={open} aria-label="所持の内訳">
         {item('gold', '💰', values.gold, 'var(--gold)')}
+        {item('coins', '🪙', values.coins, '#ffd166')}
         {item('eggs', '🥚', values.eggs)}
         {item('cores', '💎', values.cores, '#9be7ff')}
         {ATTRS.map((a) => (

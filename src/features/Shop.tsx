@@ -60,16 +60,16 @@ export function Shop({ go }: { go: Go }) {
     const results = hatchMany(gacha.id, multiCount)
     if (results.length > 0) setMulti(results)
   }
-  const expCost = amount * CONFIG.shop.goldPerExp
+  const expCost = amount * CONFIG.shop.coinsPerExp
   const maxAmount = Math.max(
     CONFIG.shop.expBuyStep,
-    Math.floor(state.gold / CONFIG.shop.goldPerExp / CONFIG.shop.expBuyStep) * CONFIG.shop.expBuyStep,
+    Math.floor((state.coins ?? 0) / CONFIG.shop.coinsPerExp / CONFIG.shop.expBuyStep) * CONFIG.shop.expBuyStep,
   )
 
   return (
     <div className="page">
       <h1 className="title">ショップ</h1>
-      <p className="gold">所持 {state.gold}G</p>
+      <p className="gold">所持 {state.gold}G・🪙{state.coins ?? 0}</p>
 
       <section className="card gacha-stage">
         <div className="gacha-tabs" role="tablist" aria-label="ガチャ">
@@ -223,7 +223,7 @@ export function Shop({ go }: { go: Go }) {
       <section className="card">
         <h2>EXPを買う</h2>
         <p className="muted small">
-          {CONFIG.shop.goldPerExp}G＝1EXP。購入EXPは、各進化に必要なEXPの
+          進化コイン🪙{CONFIG.shop.coinsPerExp}＝1EXP。購入EXPは、各進化に必要なEXPの
           {Math.round(CONFIG.shop.boughtExpMaxRatio * 100)}%までしか使えません。
         </p>
         <div className="chips">
@@ -246,8 +246,8 @@ export function Shop({ go }: { go: Go }) {
           step={CONFIG.shop.expBuyStep}
           unit="EXP"
         />
-        <button className="btn primary wide" disabled={state.gold < expCost} onClick={() => buyExp(attr, amount)}>
-          {ATTR_LABEL[attr]}EXP {amount} を買う（{expCost}G）
+        <button className="btn primary wide" disabled={(state.coins ?? 0) < expCost} onClick={() => buyExp(attr, amount)}>
+          {ATTR_LABEL[attr]}EXP {amount} を買う（🪙{expCost}）
         </button>
         <p className="small muted">
           手持ちの購入EXP：{ATTRS.map((a) => `${ATTR_LABEL[a]} ${state.exp[a].bought}`).join('／')}

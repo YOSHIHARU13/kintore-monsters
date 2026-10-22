@@ -72,7 +72,7 @@ export const CONFIG = {
 
   // ショップ
   shop: {
-    goldPerExp: 5, // 1EXPを買うのに必要なゴールド
+    coinsPerExp: 5, // 1EXPを買うのに必要な進化コイン
     expBuyStep: 10, // EXP購入の±ボタン1回分
     boughtExpMaxRatio: 0.5, // 購入EXPで埋められるのは進化必要EXPのこの割合まで
     eggPrice: 50, // 歩数5000歩・瞑想5分でちょうど1個
@@ -160,6 +160,10 @@ export const CONFIG = {
     chokyukyoku: { element: 3, abilities: 2, abilityCount: 2, weak: 2 },
     material: { element: 2, abilities: 0, abilityCount: 0, weak: 1 },
   },
+  // 進化コイン：進化・ジョグレス・EXPの購入に使う（Gはガチャとブースター用）。クエストでGと同じだけもらえる
+  coins: {
+    quest: { easy: 60, normal: 120, hard: 250 } as Record<'easy' | 'normal' | 'hard', number>, // コインの金庫（素材クエスト）
+  },
   // ミッション・ログインボーナス・図鑑の達成報酬・一度きりのプレゼント
   missions: {
     daily: { reward: { gold: 20 }, allReward: { eggs: 1 }, habitMinutes: 5 },
@@ -189,6 +193,7 @@ export const CONFIG = {
         reward: { eggs: 30, gold: 500 },
         boosters: ['habit', 'exp', 'quest'],
       },
+      { id: 'coinStart', label: '進化コイン実装記念', reward: { coins: 1000 } },
     ] as { id: string; label: string; reward: Reward; boosters?: BoosterKey[] }[],
   },
   // 無料ガチャのイベント：その日のうちに、好きなガチャで引ける（卵は減らない）
@@ -203,7 +208,7 @@ export const CONFIG = {
   boosters: {
     habit: { icon: '🧘', label: 'ブースター', price: 150, text: '次の記録のGが2倍、その日の上限もなし' },
     exp: { icon: '💪', label: '筋トレブースター', price: 300, text: '次の10セットのEXPが2倍', sets: 10 },
-    quest: { icon: '⚔️', label: '討伐ブースター', price: 250, text: '次のクエスト報酬（Gと核）が2倍' },
+    quest: { icon: '⚔️', label: '討伐ブースター', price: 250, text: '次のクエスト報酬（G・コイン・核）が2倍' },
   },
   // 試練の塔：毎月10階を自動で作る。下から1階ずつ挑戦し、各階の報酬は月に1回だけ
   tower: {
@@ -241,11 +246,11 @@ export const CONFIG = {
     // 素材：同じ属性の別のモンスターで＋1（同じモンスターは運のほうに食べさせる）
     gain: { sameElement: 1 },
     costs: [
-      { exp: 100, gold: 100 }, // ＋0→＋1
-      { exp: 200, gold: 200 },
-      { exp: 300, gold: 300 },
-      { exp: 400, gold: 400 },
-      { exp: 500, gold: 500 }, // ＋4→＋5
+      { exp: 100, coins: 100 }, // ＋0→＋1
+      { exp: 200, coins: 200 },
+      { exp: 300, coins: 300 },
+      { exp: 400, coins: 400 },
+      { exp: 500, coins: 500 }, // ＋4→＋5
     ],
   },
 
@@ -260,7 +265,7 @@ export const CONFIG = {
 
   // ジョグレス：レシピの2体を＋5（最終形態）まで育てて合わせると、隠しモンスターが生まれる
   jogress: {
-    gold: 600,
+    coins: 600, // 進化コイン
     cores: 2, // 無垢の核
     superRareBonus: 1500, // 素材の激レア1体につき、攻撃力の上乗せ
   },
@@ -284,10 +289,10 @@ export const CONFIG = {
   // 進化コスト（上から 1→2, 2→3, 3→4, 4→5）
   // 1体をじっくりより、たくさん育てる：その部位の日のトレーニング1回（約180EXP）で★1→★3まで届く
   evolutionCosts: [
-    { exp: 40, gold: 30, cores: 0 },
-    { exp: 120, gold: 60, cores: 1 }, // ★2→★3 は、進化先の属性の核が要る
-    { exp: 1200, gold: 750 },
-    { exp: 2500, gold: 1500 },
+    { exp: 40, coins: 30, cores: 0 },
+    { exp: 120, coins: 60, cores: 1 }, // ★2→★3 は、進化先の属性の核が要る
+    { exp: 1200, coins: 750 },
+    { exp: 2500, coins: 1500 },
   ],
 
   // 画像の圧縮

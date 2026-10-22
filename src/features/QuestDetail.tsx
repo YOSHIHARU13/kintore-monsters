@@ -176,7 +176,9 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
             </p>
           </>
         )}
-        {quest.kind === 'material' ? (
+        {quest.drop === 'coins' ? (
+          <p className="small core-drop">🪙 進化コイン {CONFIG.coins.quest[difficulty]}（核は落ちません）</p>
+        ) : quest.kind === 'material' ? (
           <p className="small core-drop">
             💎 {CORE_LABEL[quest.attr]}：{Math.round(CONFIG.cores.drop[difficulty].rate * 100)}%で落ちる
             {CONFIG.cores.drop[difficulty].double > 0 && `（${Math.round(CONFIG.cores.drop[difficulty].double * 100)}%で2個）`}

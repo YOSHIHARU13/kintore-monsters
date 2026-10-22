@@ -13,7 +13,8 @@ describe('いつでもある素材クエスト', () => {
       def('h2', { attrs: { n1: 'legs' }, rarity: 'hazure', element: 'water' }),
     ] as MonsterDef[]
     const qs = builtinMaterialQuests(defs, '2026-10-23')
-    expect(qs.map((q) => q.attr)).toEqual(['chestArms', 'legs', 'backShoulders', 'none'])
+    expect(qs.map((q) => q.attr)).toEqual(['chestArms', 'legs', 'backShoulders', 'none', 'none'])
+    expect(qs[4]).toMatchObject({ id: 'mat-coins', drop: 'coins' }) // コインの金庫
     expect(qs.every((q) => q.kind === 'material' && q.builtin)).toBe(true)
     const legs = (date: string) => builtinMaterialQuests(defs, date).find((q) => q.attr === 'legs')!
     expect(['h1', 'h2']).toContain(legs('2026-10-23').bossDefId)

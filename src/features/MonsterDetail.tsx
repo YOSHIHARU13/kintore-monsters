@@ -186,10 +186,10 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
                     {full ? (
                       <button
                         className="btn primary small"
-                        disabled={state.gold < cost.gold || (state.cores[nextAttr] ?? 0) < (cost.cores ?? 0)}
+                        disabled={(state.coins ?? 0) < cost.coins || (state.cores[nextAttr] ?? 0) < (cost.cores ?? 0)}
                         onClick={() => doEvolve(nextId)}
                       >
-                        進化する（{cost.gold}G{cost.cores ? `・${CORE_LABEL[nextAttr]}×${cost.cores}` : ''}）
+                        進化する（🪙{cost.coins}{cost.cores ? `・${CORE_LABEL[nextAttr]}×${cost.cores}` : ''}）
                       </button>
                     ) : (
                       <>
@@ -240,7 +240,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
             })}
           </div>
           <p className="muted small">
-            所持 {state.gold}G。購入EXPで埋められるのは必要EXPの{Math.round(CONFIG.shop.boughtExpMaxRatio * 100)}
+            所持 🪙{state.coins ?? 0}。購入EXPで埋められるのは必要EXPの{Math.round(CONFIG.shop.boughtExpMaxRatio * 100)}
             %までです。
             {branching && '選ばなかった進化先に注いだEXPは、進化したときに戻ってきます。'}
           </p>
@@ -296,8 +296,8 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
             <h2>ジョグレス</h2>
           </summary>
           <p className="muted small">
-            レシピの2体が条件を満たしたら、合わせて隠しモンスターを生めます（{CONFIG.jogress.gold}
-            G、2体はいなくなります。図鑑の発見は残ります）。
+            レシピの2体が条件を満たしたら、合わせて隠しモンスターを生めます（🪙{CONFIG.jogress.coins}
+            、2体はいなくなります。図鑑の発見は残ります）。
           </p>
           <ul className="mini-list">
             {recipes.map(({ hidden, met, partnerDef, partners, need, ready }) => (
@@ -321,7 +321,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
                       <button
                         key={key}
                         className="btn primary small"
-                        disabled={state.gold < CONFIG.jogress.gold || (state.cores.none ?? 0) < CONFIG.jogress.cores}
+                        disabled={(state.coins ?? 0) < CONFIG.jogress.coins || (state.cores.none ?? 0) < CONFIG.jogress.cores}
                         onClick={() => {
                           const newId = jogress(id, partner.id, hidden.id)
                           setPartnerKey(null)
@@ -331,7 +331,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
                           }
                         }}
                       >
-                        本当にジョグレスする（{CONFIG.jogress.gold}G・{CORE_LABEL.none}×{CONFIG.jogress.cores}）
+                        本当にジョグレスする（🪙{CONFIG.jogress.coins}・{CORE_LABEL.none}×{CONFIG.jogress.cores}）
                       </button>
                     ) : (
                       <button key={key} className="btn small" onClick={() => setPartnerKey(key)}>

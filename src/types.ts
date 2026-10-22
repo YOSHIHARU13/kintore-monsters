@@ -17,6 +17,7 @@ export type BoosterKey = 'habit' | 'exp' | 'quest'
 
 export interface GameState {
   gold: number
+  coins: number // 進化コイン（進化・ジョグレス・EXPの購入）
   eggs: number
   exp: Record<Attr, AttrExp>
   lifetimeExp: Record<Attr, number>
@@ -159,6 +160,7 @@ export interface Quest {
   name: string // 空ならボスの名前を出す
   autoName?: boolean // 名前を付けていない（読み込むときに付く。保存はしない）
   builtin?: boolean // 最初から用意されている素材クエスト（編集・削除できない）
+  drop?: 'coins' // 素材クエストで、核の代わりに進化コインが出る（コインの金庫）
   kind?: 'boss' | 'material' // ボスクエスト（ボスが手に入る）か、素材クエスト（核が落ちる）か。なければボス
   bossDefId: string // ボス（倒すと手に入るモンスター。素材クエストでは見た目だけ）
   attr: FormAttr // ボスの部位（素材クエストで落ちる核の種類）

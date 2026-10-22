@@ -4,7 +4,7 @@ import type { AttrExp } from '../types'
 
 export interface EvoCost {
   exp: number
-  gold: number
+  coins: number // 進化コイン
   cores?: number // 進化先の属性の核
 }
 
@@ -20,12 +20,12 @@ export function evolutionCost(stage: number): EvoCost | null {
 export function nextCost(template: EvoTemplate, node: EvoNode): EvoCost | null {
   if (node.next.length === 0) return null
   const toStage = getNode(template, node.next[0]).stage
-  const total: EvoCost = { exp: 0, gold: 0, cores: 0 }
+  const total: EvoCost = { exp: 0, coins: 0, cores: 0 }
   for (let stage = node.stage; stage < toStage; stage++) {
     const c = evolutionCost(stage)
     if (!c) return null
     total.exp += c.exp
-    total.gold += c.gold
+    total.coins += c.coins
     total.cores = (total.cores ?? 0) + (c.cores ?? 0)
   }
   return total

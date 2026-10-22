@@ -273,7 +273,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
               const cost = nextCost(template, n)
               const to = template.nodes.find((x) => x.id === n.next[0])!.stage
               return cost
-                ? `★${n.stage}→★${to} ${cost.exp}EXP＋${cost.gold}G${cost.cores ? `＋核${cost.cores}` : ''}`
+                ? `★${n.stage}→★${to} ${cost.exp}EXP＋🪙${cost.coins}${cost.cores ? `＋核${cost.cores}` : ''}`
                 : ''
             })
             .join('／')}
@@ -599,7 +599,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
         </label>
         <p className="muted small">
           隠しモンスターはタマゴからは生まれません。レシピの2体がどちらも条件を満たしたら、ジョグレスで生まれます（
-          {CONFIG.jogress.gold}G＋無垢の核×{CONFIG.jogress.cores}、2体はいなくなります）。同じモンスター2体でもOK。
+          🪙{CONFIG.jogress.coins}＋無垢の核×{CONFIG.jogress.cores}、2体はいなくなります）。同じモンスター2体でもOK。
           素材に激レアが入ると、攻撃力が上がります（激レア1体につき +
           {CONFIG.jogress.superRareBonus.toLocaleString()}）。
         </p>

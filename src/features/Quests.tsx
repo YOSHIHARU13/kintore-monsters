@@ -106,7 +106,7 @@ export function Quests({ go }: { go: Go }) {
       {got && (
         <section className="card center">
           <h2>
-            {got.towerFloor ? `試練の塔 ${got.towerFloor}階 突破！` : '討伐成功！'} +{got.gold}G
+            {got.towerFloor ? `試練の塔 ${got.towerFloor}階 突破！` : '討伐成功！'} +{got.gold}G・🪙{got.coins ?? 0}
           </h2>
           {got.boosted && <p className="tag keep">⚔️ 討伐ブースターで報酬2倍！</p>}
           {got.eggs > 0 && <p>🥚 卵 ×{got.eggs} を手に入れた！</p>}
@@ -184,8 +184,10 @@ export function Quests({ go }: { go: Go }) {
               報酬を受け取る（
               {towerFloor
                 ? towerRewardText(towerFloor, defs, state)
-                : battle.quest.kind === 'material'
-                  ? `${CORE_LABEL[battle.quest.attr]}のチャンス`
+                : battle.quest.drop === 'coins'
+                  ? `🪙${CONFIG.coins.quest[battle.challenge.difficulty]}`
+                  : battle.quest.kind === 'material'
+                    ? `${CORE_LABEL[battle.quest.attr]}のチャンス`
                   : `${battle.boss?.name}${dropPlus(battle.quest) > 0 ? `＋${dropPlus(battle.quest)}` : ''}`}
               {!towerFloor && `・${questGold(battle.quest, battle.challenge.difficulty)}G`}）
             </button>

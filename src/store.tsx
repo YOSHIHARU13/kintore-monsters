@@ -47,6 +47,7 @@ const zeroExp = () => ({ trained: 0, bought: 0 })
 function initialState(): GameState {
   return {
     gold: 0,
+    coins: 0,
     eggs: CONFIG.shop.starterEggs,
     exp: { chestArms: zeroExp(), legs: zeroExp(), backShoulders: zeroExp() },
     lifetimeExp: { chestArms: 0, legs: 0, backShoulders: 0 },
@@ -150,6 +151,7 @@ export interface QuestReward {
   coreKey: FormAttr
   corePity: boolean // 天井で確定したか
   gold: number
+  coins?: number // もらえた進化コイン
 }
 
 export interface GachaInput {
@@ -541,6 +543,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     const addReward = (update: DocumentData, reward: Reward, boosters: BoosterKey[] = []) => {
       if (reward.eggs) update.eggs = increment(reward.eggs)
       if (reward.gold) update.gold = increment(reward.gold)
+      if (reward.coins) update.coins = increment(reward.coins)
       for (const b of [...(reward.booster ? [reward.booster] : []), ...boosters]) update[`boosters.${b}`] = increment(1)
     }
     const claimReward: Store['claimReward'] = (key, reward, boosters) => {
@@ -563,9 +566,9 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     }
 
     const buyExp: Store['buyExp'] = (attr, amount) => {
-      const cost = amount * CONFIG.shop.goldPerExp
-      if (amount <= 0 || state.gold < cost) return
-      updateState({ gold: increment(-cost), [`exp.${attr}.bought`]: increment(amount) })
+      const cost = amount * CONFIG.shop.coinsPerExp
+      if (amount <= 0 || (state.coins ?? 0) < cost) return
+      updateState({ coins: increment(-cost), [`exp.${attr}.bought`]: increment(amount) })
     }
 
     const buyBooster: Store['buyBooster'] = (key) => {
@@ -700,11 +703,11 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const found = findMonster(monsterId)
       if (!found?.cost || !found.node.next.includes(toNodeId)) return
       const { mon, def, node, cost } = found
-      if (!isExpFull(cost, investedFor(mon, toNodeId, node.next[0])) || state.gold < cost.gold) return
+      if (!isExpFull(cost, investedFor(mon, toNodeId, node.next[0])) || (state.coins ?? 0) < cost.coins) return
       const coreKey = nodeAttr(def, toNodeId)
       if ((state.cores[coreKey] ?? 0) < (cost.cores ?? 0)) return
       // 選ばなかった進化先に注いでいたEXPは、元の財布に返す
-      const update: DocumentData = { gold: increment(-cost.gold) }
+      const update: DocumentData = { coins: increment(-cost.coins) }
       if (cost.cores) update[`cores.${coreKey}`] = increment(-cost.cores)
       const refund = newRefund()
       addRefund(refund, mon, def, node.next.filter((n) => n !== toNodeId))
@@ -729,8 +732,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       if (found.node.next.length > 0) return
       const plus = found.mon.plus ?? 0
       const cost = fusionCost(plus)
-      if (!cost || !isExpFull(cost, found.mon.plusExp ?? zeroExp()) || state.gold < cost.gold) return
-      const update: DocumentData = { gold: increment(-cost.gold) }
+      if (!cost || !isExpFull(cost, found.mon.plusExp ?? zeroExp()) || (state.coins ?? 0) < cost.coins) return
+      const update: DocumentData = { coins: increment(-cost.coins) }
       consume(update, [food])
       const batch = writeBatch(db)
       batch.update(doc(db, base, 'ownedMonsters', monsterId), {
@@ -772,10 +775,10 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const pair = [a.mon.defId, b.mon.defId].sort().join()
       if ([...hidden.recipe].sort().join() !== pair) return null
       if (!isJogressReady(a.mon, a.def, hidden) || !isJogressReady(b.mon, b.def, hidden)) return null
-      if (state.gold < CONFIG.jogress.gold || (state.cores.none ?? 0) < CONFIG.jogress.cores) return null
+      if ((state.coins ?? 0) < CONFIG.jogress.coins || (state.cores.none ?? 0) < CONFIG.jogress.cores) return null
       const shiny = false // 色違いはなくなった
       const ref = doc(collection(db, base, 'ownedMonsters'))
-      const update: DocumentData = { gold: increment(-CONFIG.jogress.gold), 'cores.none': increment(-CONFIG.jogress.cores) }
+      const update: DocumentData = { coins: increment(-CONFIG.jogress.coins), 'cores.none': increment(-CONFIG.jogress.cores) }
       consume(update, [a, b])
       if (shiny) update[`dexShiny.${hidden.id}`] = true
       const batch = writeBatch(db)
@@ -1063,10 +1066,15 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const boost = state.boosts?.quest ? 2 : 1
       const gold = Math.round(questGold(battle.quest, c.difficulty) * bonus.goldRate * boost)
       const coreKey = battle.quest.attr
+      const coinQuest = material && battle.quest.drop === 'coins'
+      const coins = Math.round(
+        (coinQuest ? CONFIG.coins.quest[c.difficulty] : questGold(battle.quest, c.difficulty)) * bonus.goldRate * boost,
+      )
       const batch = writeBatch(db)
       const update: DocumentData = {
         ...(boost > 1 ? { 'boosts.quest': false } : {}),
         gold: increment(gold),
+        coins: increment(coins),
         questClears: increment(1),
         [`clearedQuests.${battle.quest.id}`]: increment(1),
         challenge: null,
@@ -1075,7 +1083,9 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       let monsterId: string | null = null
       let cores = 0
       let corePity = false
-      if (material) {
+      if (coinQuest) {
+        // コインの金庫：核の代わりに、たくさんの進化コイン
+      } else if (material) {
         // 素材クエスト：核が落ちる（毎回ではない。続けて落ちないと確定）
         const drop = rollCoreDrop(c.difficulty, state.coreMisses[battle.quest.id] ?? 0, Math.random, bonus.coreRate)
         cores = drop.count
@@ -1105,6 +1115,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       batch.commit().catch(fail)
       return {
         boosted: boost > 1,
+        coins,
         monsterId,
         defId: battle.boss?.id ?? null,
         cores,
@@ -1123,6 +1134,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const bonus = luckBonus(party)
       const boost = state.boosts?.quest ? 2 : 1
       const gold = Math.round(floor.reward.gold * bonus.goldRate * boost)
+      const coins = gold // 進化コインもGと同じだけ
       const cores = floor.reward.cores * boost
       const batch = writeBatch(db)
       const update: DocumentData = {
@@ -1130,6 +1142,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         gold: increment(gold),
         questClears: increment(1),
         tower: { month, cleared: floor.floor },
+        coins: increment(coins),
         challenge: null,
       }
       bumpStats(update, { quest: 1, strict: isStrict(floor.quest) ? 1 : 0 })
@@ -1158,6 +1171,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         monsterId,
         defId: floor.reward.monsterDefId,
         cores,
+        coins,
         coreKey: floor.quest.attr,
         booster: floor.reward.booster,
         boosted: boost > 1,

@@ -62,6 +62,7 @@ const state: GameState = {
   boosts: {},
   freeClaims: {},
   claims: {},
+  coins: 500,
   loginDays: 0,
   stats: null,
   cores: { chestArms: 2, none: 2 },
@@ -421,7 +422,7 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('脚EXPで進化')
     expect(el.textContent).toContain('0/120')
     expect(el.textContent).not.toContain('進化の石')
-    await click('進化する（60G・剛腕の核×1）')
+    await click('進化する（🪙60・剛腕の核×1）')
     expect(fake.store.evolve).toHaveBeenCalledWith('o1', 'n3a')
   })
 
@@ -446,7 +447,7 @@ describe('画面の表示', () => {
       id: 'h1', name: 'カイザードラ', attr: 'none', templateId: 'linear3', images: {}, recipe: ['m1', 'm2'], createdAt: 3,
     }
     fake.store.defs = [...defs, hidden]
-    fake.store.state = { ...state, gold: 1500 }
+    fake.store.state = { ...state, coins: 1500 }
     fake.store.owned = [
       { id: 'o1', defId: 'm1', nodeId: 'n3a', obtainedAt: 1 },
       { id: 'o2', defId: 'm2', nodeId: 'n3', obtainedAt: 2 },
@@ -454,7 +455,7 @@ describe('画面の表示', () => {
     const el = await render(<MonsterDetail id="o1" go={go} />)
     expect(el.textContent).toContain('？？？（★4で誕生）← ムキドラ ＆ アシガメ：どちらも最終形態（★3以上）')
     await click('アシガメとジョグレス')
-    await click('本当にジョグレスする（600G・無垢の核×2）')
+    await click('本当にジョグレスする（🪙600・無垢の核×2）')
     expect(fake.store.jogress).toHaveBeenCalledWith('o1', 'o2', 'h1')
     expect(el.textContent).toContain('ジョグレス進化！！')
     expect(el.textContent).toContain('カイザードラ')
@@ -976,7 +977,7 @@ describe('画面の表示', () => {
 
   it('モンスター登録：名前を入れて保存', async () => {
     const el = await render(<MonsterForm go={go} />)
-    expect(el.textContent).toContain('★1→★2 40EXP＋30G')
+    expect(el.textContent).toContain('★1→★2 40EXP＋🪙30')
     await click('保存する')
     expect(el.textContent).toContain('名前を入力してください')
     const type = async (input: HTMLInputElement, value: string) =>
