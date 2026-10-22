@@ -7,9 +7,14 @@ import { isHidden, type MonsterDef, type OwnedMonster } from '../types'
  * 攻撃力：形態の格 × perStar ＋ レア度の上乗せ ＋ ＋の数 × perPlus。クエストのダメージと相棒の倍率はこの数字で決まる。
  * 形態の格は「星 − formStarBase」（★1で1、★2で2…）
  */
+/** その1体の星（神化していれば＋1） */
+export function monStars(mon: Pick<OwnedMonster, 'nodeId' | 'shinka'>, def: MonsterDef): number {
+  return starsOf(def, mon.nodeId) + (mon.shinka ? 1 : 0)
+}
+
 export function attackOf(mon: OwnedMonster, def: MonsterDef): number {
   const { perStar } = CONFIG.attack
-  const level = starsOf(def, mon.nodeId) - CONFIG.gacha.formStarBase
+  const level = monStars(mon, def) - CONFIG.gacha.formStarBase
   const bonus = isHidden(def)
     ? CONFIG.gacha.jogressAttackBonus + (def.jogressGrade ?? 0) * CONFIG.jogress.superRareBonus
     : def.questOnly

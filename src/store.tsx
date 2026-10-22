@@ -34,6 +34,7 @@ import { autoPartners } from './lib/partner'
 import { finalAttrs, recommend } from './lib/coverage'
 import { abilitySlots, jogressGradeOf, selectableGimmicks } from './lib/gimmick'
 import { boostActive } from './lib/boosters'
+import { canShinka, shinkaFoods } from './lib/shinka'
 import { availableEvents, claimKey } from './lib/events'
 import { activeToday, currentStats, loginReady, loginReward, type Reward } from './lib/missions'
 import { builtinMaterialQuests } from './lib/materials'
@@ -253,6 +254,7 @@ interface Store {
   bulkFeed: () => { kept: number; fed: number }
   /** ＋5の2体を合わせて隠しモンスターを生む。生まれた個体のID */
   jogress: (monsterId: string, partnerId: string, hiddenDefId: string) => string | null
+  shinka: (monsterId: string, foodId: string) => boolean
   saveMonsterDef: (input: MonsterDefInput) => Promise<void>
   /** 属性・得意種目・アビリティを、足りないものでまとめて埋める（1体ずつ、前に埋めた分も数えて） */
   autoTuneDefs: (ids: string[]) => void
@@ -783,6 +785,23 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     }
 
     // レシピの2体（どちらも最終形態の＋5）を合わせて、隠しモンスターを生む。2体はいなくなる
+    /** 神化：最終形態の激レアに、同じ属性の降臨モンスターを1体食べさせて★4にする */
+    const shinka: Store['shinka'] = (monsterId, foodId) => {
+      const found = findMonster(monsterId)
+      const food = findMonster(foodId)
+      if (!found || !food || monsterId === foodId || !canShinka(found.mon, found.def)) return false
+      if (!shinkaFoods(found.def, [food.mon], defs, new Set()).length) return false
+      if ((state.coins ?? 0) < CONFIG.shinka.coins) return false
+      const update: DocumentData = { coins: increment(-CONFIG.shinka.coins) }
+      consume(update, [food])
+      const batch = writeBatch(db)
+      batch.update(doc(db, base, 'ownedMonsters', monsterId), { shinka: true })
+      batch.delete(doc(db, base, 'ownedMonsters', foodId))
+      batch.update(stateRef, update)
+      batch.commit().catch(fail)
+      return true
+    }
+
     const jogress: Store['jogress'] = (monsterId, partnerId, hiddenDefId) => {
       const a = findMonster(monsterId)
       const b = findMonster(partnerId)
@@ -1250,6 +1269,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       feedLuck,
       bulkFeed,
       jogress,
+      shinka,
       saveMonsterDef,
       autoTuneDefs,
       loadImage,

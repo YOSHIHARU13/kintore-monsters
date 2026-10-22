@@ -2510,3 +2510,8 @@ details.tuning[open] > summary {
   font-size: 0.72rem;
   font-weight: 900;
 }
+
+.shinka-card {
+  border: 1px solid #ffd166;
+  background: linear-gradient(160deg, rgba(255, 209, 102, 0.12), rgba(138, 43, 226, 0.12));
+}

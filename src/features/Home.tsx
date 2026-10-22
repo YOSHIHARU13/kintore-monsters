@@ -114,7 +114,7 @@ export function Home({ go }: { go: Go }) {
             <button key={mon.id} className="monster-row goal-row" onClick={() => go({ name: 'monster', id: mon.id })}>
               <MonsterImage imageId={imageOf(def, mon.nodeId)} awaken={awakenOf(def, mon.nodeId)} glow={glowOf(def)} size={56} plus={mon.plus} shiny={mon.shiny} />
               <span className="goal-body">
-                <strong>{plusName(def, mon)}</strong> <Stars def={def} nodeId={mon.nodeId} />
+                <strong>{plusName(def, mon)}</strong> <Stars def={def} nodeId={mon.nodeId} mon={mon} />
                 <Gauge value={have} max={need} />
                 <span className="muted small">
                   {kind === 'evolve' ? '進化' : `＋${(mon.plus ?? 0) + 1}`}まで あと{Math.max(0, need - have)}EXP

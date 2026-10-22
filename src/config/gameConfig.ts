@@ -160,6 +160,10 @@ export const CONFIG = {
     chokyukyoku: { element: 3, abilities: 2, abilityCount: 2, weak: 2 },
     material: { element: 2, abilities: 0, abilityCount: 0, weak: 1 },
   },
+  // 神化：最終形態のガチャの激レアが、降臨モンスター1体（同じ属性）を素材に★4になる
+  shinka: {
+    coins: 300,
+  },
   // 進化コイン：進化・ジョグレス・EXPの購入に使う（Gはガチャとブースター用）。クエストでGと同じだけもらえる
   coins: {
     quest: { easy: 60, normal: 120, hard: 250 } as Record<'easy' | 'normal' | 'hard', number>, // コインの金庫（素材クエスト）

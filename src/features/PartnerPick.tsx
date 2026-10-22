@@ -59,7 +59,7 @@ export function PartnerPick({ slotId, go }: { slotId: string; go: Go }) {
                 <span className="monster-row">
                   <MonsterImage imageId={imageOf(def, mon.nodeId)} awaken={awakenOf(def, mon.nodeId)} glow={glowOf(def)} size={48} plus={mon.plus} shiny={mon.shiny} />
                   <span>
-                    {plusName(def, mon)} <Stars def={def} nodeId={mon.nodeId} />
+                    {plusName(def, mon)} <Stars def={def} nodeId={mon.nodeId} mon={mon} />
                     <br />
                     <span className="small">攻撃力 {attackOf(mon, def).toLocaleString()}　</span>
                     <strong className="bonus-reward">EXP{rateText(rate)}</strong>

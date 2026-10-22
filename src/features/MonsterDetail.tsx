@@ -1,6 +1,10 @@
 import { useState } from 'react'
 import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { useStore } from '../store'
+import { canShinka, shinkaFoods } from '../lib/shinka'
+import { protectedIds } from '../lib/fusion'
+import { rarityOf } from '../lib/gacha'
+import { elementInfo, elementName } from '../lib/element'
 import { ATTRS, ATTR_LABEL, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type Attr } from '../data/exercises'
 import { FIRST_NODE_ID, getNode, getTemplate } from '../data/evolutionTemplates'
 import { CONFIG } from '../config/gameConfig'
@@ -17,7 +21,9 @@ import { ATTR_COLOR, type Go } from '../nav'
 import { investedFor, isHidden, monsterName, nodeAttr, plusName, type MonsterDef } from '../types'
 
 export function MonsterDetail({ id, go }: { id: string; go: Go }) {
-  const { owned, defs, state, menu, pourExp, evolve, feedLuck, jogress } = useStore()
+  const { owned, defs, state, menu, today, pourExp, evolve, feedLuck, jogress, shinka } = useStore()
+  const [shinkaPick, setShinkaPick] = useState<string | null>(null)
+  const [shinkaNow, setShinkaNow] = useState(false)
   const [evolved, setEvolved] = useState(0)
   const [confirmAllLuck, setConfirmAllLuck] = useState(false)
   const [partnerKey, setPartnerKey] = useState<string | null>(null)
@@ -77,6 +83,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
     return true
   })
   const luckGain = Math.min(CONFIG.luck.max, luckTotal) - luckOf(mon)
+  const shinkaChoices = canShinka(mon, def) ? shinkaFoods(def, owned, defs, protectedIds(state, today)) : []
   // このモンスターがレシピに入っている隠しモンスターと、その相手になれる個体
   const recipes = defs
     .filter((d) => isHidden(d) && d.recipe!.includes(mon.defId))
@@ -111,6 +118,22 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
 
   return (
     <div className="page">
+      {shinkaNow && (
+        <div className="beat-overlay clear-overlay" onClick={() => setShinkaNow(false)}>
+          <div className="beat-burst" />
+          <div className="beat-burst reverse" />
+          {Array.from({ length: 42 }, (_, i) => (
+            <i key={i} className="spark" style={{ ['--i' as string]: i }} />
+          ))}
+          <div className="beat-text">
+            <div className="beat-title">神化！！</div>
+            <MonsterImage imageId={imageOf(def, mon.nodeId)} glow="jogress" size={180} />
+            <div className="beat-title">{plusName(def, mon)}</div>
+            <Stars def={def} nodeId={mon.nodeId} mon={{ shinka: true }} />
+            <div className="beat-sub">★4になった！</div>
+          </div>
+        </div>
+      )}
       {luckMaxNow && (
         <div className="beat-overlay clear-overlay" onClick={() => setLuckMaxNow(false)}>
           <div className="beat-burst" />
@@ -138,7 +161,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
           <MonsterImage imageId={imageOf(def, mon.nodeId)} awaken={awakenOf(def, mon.nodeId)} glow={glowOf(def)} size={200} plus={mon.plus} shiny={mon.shiny} />
         </div>
         <h1 className="title">{plusName(def, mon)}</h1>
-        <Stars def={def} nodeId={mon.nodeId} />
+        <Stars def={def} nodeId={mon.nodeId} mon={mon} />
         <p className="small">
           攻撃力 <strong>{attackOf(mon, def).toLocaleString()}</strong>　
           {isLuckMax(mon) ? <span className="luck-max">運極</span> : <span>運 {luckOf(mon)}</span>}
@@ -246,6 +269,56 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
           </p>
         </section>
       ) : null}
+
+      {!isHidden(def) && !def.questOnly && rarityOf(def) === 'superRare' && (
+        <section className="card shinka-card">
+          <h2>🌟 神化{mon.shinka ? '済み（★4）' : '（★4へ）'}</h2>
+          {mon.shinka ? (
+            <p className="small">神化した激レアです。攻撃力が★4ぶん上がっています。</p>
+          ) : !canShinka(mon, def) ? (
+            <p className="muted small">最終形態まで育てると、同じ属性の降臨モンスター1体を素材に★4へ神化できます。</p>
+          ) : (
+            <>
+              <p className="muted small">
+                同じ属性の降臨モンスター1体と🪙{CONFIG.shinka.coins}で、★4に神化します（素材の降臨はいなくなります）。
+              </p>
+              {shinkaChoices.length === 0 ? (
+                <p className="warn small">素材になる降臨モンスター（{elementName(elementInfo(def))}）がいません。降臨クエストで手に入れよう。</p>
+              ) : (
+                <>
+                  <ul className="choice-list">
+                    {shinkaChoices.map((f) => (
+                      <li key={f.mon.id}>
+                        <button className={`choice${shinkaPick === f.mon.id ? ' on' : ''}`} onClick={() => setShinkaPick(f.mon.id)}>
+                          <span className="monster-row">
+                            <MonsterImage imageId={imageOf(f.def, f.mon.nodeId)} size={40} />
+                            <span>
+                              {f.def.name} <Stars def={f.def} nodeId={f.mon.nodeId} mon={f.mon} />
+                            </span>
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    className="btn primary wide"
+                    disabled={!shinkaPick || (state.coins ?? 0) < CONFIG.shinka.coins}
+                    onClick={() => {
+                      if (shinkaPick && shinka(id, shinkaPick)) {
+                        setShinkaPick(null)
+                        setShinkaNow(true)
+                        navigator.vibrate?.([80, 40, 80, 40, 300])
+                      }
+                    }}
+                  >
+                    神化する（🪙{CONFIG.shinka.coins}・所持 🪙{state.coins ?? 0}）
+                  </button>
+                </>
+              )}
+            </>
+          )}
+        </section>
+      )}
 
       <details className="card fold" open={luckFoods.length > 0 && !isLuckMax(mon)}>
         <summary>

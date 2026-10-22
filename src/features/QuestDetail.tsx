@@ -236,7 +236,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
                     <MonsterImage imageId={imageOf(m.def, m.mon.nodeId)} awaken={awakenOf(m.def, m.mon.nodeId)} glow={glowOf(m.def)} size={44} plus={m.mon.plus} shiny={m.mon.shiny} />
                     <span>
                       {on ? '✓ ' : ''}
-                      {plusName(m.def, m.mon)} <Stars def={m.def} nodeId={m.mon.nodeId} />
+                      {plusName(m.def, m.mon)} <Stars def={m.def} nodeId={m.mon.nodeId} mon={m.mon} />
                       <br />
                       <span className="small" style={{ color: ATTR_COLOR[attrOf(m)] }}>
                         {FORM_ATTR_LABEL[attrOf(m)]}

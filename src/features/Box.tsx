@@ -11,7 +11,7 @@ import { MonsterTabs } from '../components/MonsterTabs'
 import type { Go } from '../nav'
 import { RARITY_KEYS, rarityOf, starsOf } from '../lib/gacha'
 import { ELEMENTS, ELEMENT_COLOR, ELEMENT_LABEL, elementInfo } from '../lib/element'
-import { attackOf } from '../lib/stats'
+import { attackOf, monStars } from '../lib/stats'
 import { isLuckMax, luckOf } from '../lib/fusion'
 import { isHidden, nodeAttr, plusName, type Element, type MonsterDef, type OwnedMonster } from '../types'
 
@@ -56,9 +56,9 @@ export function Box({ go }: { go: Go }) {
   })
   const order: Record<Sort, (a: Row, b: Row) => number> = {
     new: (a, b) => b.mon.obtainedAt - a.mon.obtainedAt,
-    stars: (a, b) => starsOf(b.def, b.mon.nodeId) - starsOf(a.def, a.mon.nodeId) || (b.mon.plus ?? 0) - (a.mon.plus ?? 0),
+    stars: (a, b) => monStars(b.mon, b.def) - monStars(a.mon, a.def),
     attack: (a, b) => attackOf(b.mon, b.def) - attackOf(a.mon, a.def),
-    rarity: (a, b) => rarityRank(b.def) - rarityRank(a.def) || starsOf(b.def, b.mon.nodeId) - starsOf(a.def, a.mon.nodeId),
+    rarity: (a, b) => rarityRank(b.def) - rarityRank(a.def) || monStars(b.mon, b.def) - monStars(a.mon, a.def),
     luck: (a, b) => luckOf(b.mon) - luckOf(a.mon),
     dex: (a, b) => a.index - b.index || a.mon.obtainedAt - b.mon.obtainedAt,
   }
@@ -147,7 +147,7 @@ export function Box({ go }: { go: Go }) {
               {partnerIds.has(mon.id) && <span className="box-partner">相</span>}
               {isLuckMax(mon) && <span className="box-luck">運極</span>}
               <MonsterImage imageId={imageOf(def, mon.nodeId)} awaken={awakenOf(def, mon.nodeId)} glow={glowOf(def)} size={56} plus={mon.plus} shiny={mon.shiny} />
-              <Stars def={def} nodeId={mon.nodeId} />
+              <Stars def={def} nodeId={mon.nodeId} mon={mon} />
               <span className="box-name">{plusName(def, mon)}</span>
             </button>
           )

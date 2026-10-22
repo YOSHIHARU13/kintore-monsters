@@ -207,6 +207,7 @@ export interface OwnedMonster {
   plusExp?: AttrExp // 次の＋に向けて注いだEXP
   plusFrom?: Partial<Record<ExpSource, AttrExp>> // 次の＋に向けて、どの財布から注いだか（返却用）
   shiny?: boolean // 色違い
+  shinka?: boolean // 神化：最終形態の激レアが、降臨を素材に★4になった
   obtainedAt: number
 }
 
