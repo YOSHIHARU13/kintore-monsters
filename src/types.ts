@@ -86,6 +86,7 @@ export interface MonsterDef {
   favoriteSlot?: string // 得意種目（種目の枠ID）
   jogressBirthStars?: number // 隠しモンスターが生まれるときの星（素材はこの1つ下以上）
   jogressPlus?: number // 隠しモンスターの素材に必要な＋（なければ最大）
+  fixedStars?: number // 進化しない（1形態だけの）クエスト限定モンスターの星（なければ fixedStarsDefault）
   jogressGrade?: number // 素材のうち激レアの数（0〜2）。保存するときに計算する。強さとアビリティの数に効く
   questOnly?: boolean // クエスト限定（ガチャには出ない。クエストのボスとして倒すと手に入る）
   abilities?: string[] // アビリティ：対応するギミック名で持つ（例：'バリア' ならバリアブレイカー）

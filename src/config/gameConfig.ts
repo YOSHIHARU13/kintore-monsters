@@ -230,6 +230,8 @@ export const CONFIG = {
     jogressDefaultBirth: 4,
     jogressBirthChoices: [3, 4],
     jogressAttackBonus: 4500,
+    fixedStarsDefault: 3, // 進化しない降臨モンスターの星（★1〜★3で選べる）
+    fixedStarsChoices: [1, 2, 3],
     // 天井：同じガチャで、激レアが出ないままこの回数目を引くと激レア確定
     pity: { rarity: 'superRare' as const, pulls: 30 },
     shinyRateChoices: [1 / 50, 1 / 20, 1 / 10, 1 / 5], // ガチャごとに選べる色違いの確率

@@ -87,8 +87,8 @@ export const TEMPLATES: EvoTemplate[] = [
   },
   {
     id: 'single',
-    name: '1形態だけ（ジョグレス用）',
-    description: '進化しない。隠しモンスター（ジョグレス）向け',
+    name: '1形態だけ（ジョグレス・降臨用）',
+    description: '進化しない。隠しモンスターか、クエスト限定のモンスター向け',
     nodes: [{ id: 'n1', stage: 1, label: '唯一の形態', next: [] }],
   },
   {

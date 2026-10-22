@@ -33,6 +33,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
   const [names, setNames] = useState<Record<string, string>>(existing?.names ?? {})
   const [files, setFiles] = useState<Record<string, File>>({})
   const [birthStars, setBirthStars] = useState(existing?.jogressBirthStars ?? CONFIG.gacha.jogressDefaultBirth)
+  const [fixedStars, setFixedStars] = useState(existing?.fixedStars ?? CONFIG.gacha.fixedStarsDefault)
   const [jogressPlus, setJogressPlus] = useState(existing?.jogressPlus ?? CONFIG.fusion.maxPlus)
   const [questOnly, setQuestOnly] = useState(existing?.questOnly === true)
   const [favoriteSlot, setFavoriteSlot] = useState(existing?.favoriteSlot ?? '')
@@ -62,6 +63,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
     rarity,
     recipe,
     jogressBirthStars: birthStars,
+    fixedStars,
     createdAt: 0,
   }
   // 被りや不足を見るための集計（自分以外のモンスターと、作ってあるクエストから）
@@ -92,8 +94,8 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
       setError('名前を入力してください')
       return
     }
-    if (templateId === 'single' && recipe.length !== 2) {
-      setError('「1形態だけ」は隠しモンスター（ジョグレス）専用です。下の「隠しモンスターにする」をオンにしてください')
+    if (templateId === 'single' && recipe.length !== 2 && !questOnly) {
+      setError('「1形態だけ」は、隠しモンスター（ジョグレス）か、クエスト限定のモンスター専用です。下でどちらかをオンにしてください')
       return
     }
     if (recipe.length === 2 && recipe.some((r) => !parents.some((p) => p.id === r))) {
@@ -127,6 +129,7 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
         questOnly: recipe.length !== 2 && questOnly,
         jogressBirthStars: birthStars,
         jogressPlus,
+        fixedStars,
       })
       go({ name: 'registry' })
     } catch (e) {
@@ -310,6 +313,21 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
             <input type="checkbox" checked={questOnly} onChange={(e) => setQuestOnly(e.target.checked)} />
             クエスト限定にする（ガチャには出ず、クエストのボスとして倒すと手に入る）
           </label>
+          {questOnly && templateId === 'single' && (
+            <div className="field">
+              進化しないので、星を決めます
+              <div className="chips" role="group" aria-label="進化しないモンスターの星">
+                {CONFIG.gacha.fixedStarsChoices.map((n) => (
+                  <button key={n} type="button" className={`chip${fixedStars === n ? ' on' : ''}`} onClick={() => setFixedStars(n)}>
+                    ★{n}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {questOnly && templateId !== 'single' && (
+            <p className="muted small">進化しない降臨モンスターにしたいときは、上の進化ツリーで「1形態だけ」を選んでください。</p>
+          )}
           {!questOnly && !CONFIG.gacha.rarities[rarity].everyGacha && (
             <>
               <h3 className="small">入るガチャ（{CONFIG.gacha.maxPerMonster}つまで）</h3>

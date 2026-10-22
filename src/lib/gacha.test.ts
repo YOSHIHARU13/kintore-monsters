@@ -72,5 +72,8 @@ describe('ガチャ', () => {
     expect(starsOf(def('a', { recipe: ['x', 'y'], templateId: 'single' }), 'n1')).toBe(4) // 決めていなければ★4
     expect(starsOf(def('a', { recipe: ['x', 'y'], templateId: 'early2', jogressBirthStars: 3 }), 'n2')).toBe(4) // ★3誕生 → ★4
     expect(starsOf(def('a', { recipe: ['x', 'y'], jogressBirthStars: 3 }), 'n3')).toBe(4) // ★4より上にはならない
+    // 進化しない降臨モンスターは、登録画面で決めた星（決めていなければ★3）
+    expect(starsOf(def('a', { questOnly: true, templateId: 'single' }), 'n1')).toBe(3)
+    expect(starsOf(def('a', { questOnly: true, templateId: 'single', fixedStars: 2 }), 'n1')).toBe(2)
   })
 })

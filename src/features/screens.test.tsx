@@ -798,6 +798,30 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('脚竜の巣')
   })
 
+  it('モンスター登録：進化しない降臨モンスターは「1形態だけ」＋クエスト限定で、星を選べる', async () => {
+    const el = await render(<MonsterForm go={go} />)
+    const type = async (input: HTMLInputElement, value: string) =>
+      act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value)
+        input.dispatchEvent(new Event('input', { bubbles: true }))
+      })
+    await type(el.querySelector('input')!, 'コウリンオー')
+    const select = el.querySelector('select')!
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(select, 'single')
+      select.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    await click('保存する')
+    expect(el.textContent).toContain('クエスト限定のモンスター専用です')
+    const questOnly = [...el.querySelectorAll('label.row')].find((l) => l.textContent?.includes('クエスト限定にする'))!
+    await act(async () => questOnly.querySelector('input')!.click())
+    await act(async () => el.querySelector('[aria-label="進化しないモンスターの星"]')!.querySelectorAll('button')[1].click())
+    await click('保存する')
+    expect(fake.store.saveMonsterDef).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'コウリンオー', templateId: 'single', questOnly: true, fixedStars: 2 }),
+    )
+  })
+
   it('モンスター登録：入るガチャは3つまで', async () => {
     fake.store.gachas = [gachas[0], ...[1, 2, 3, 4].map((n) => gacha(`g${n}`, `ガチャ${n}`, { createdAt: n }))]
     const el = await render(<MonsterForm go={go} />)

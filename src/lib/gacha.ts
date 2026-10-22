@@ -105,6 +105,8 @@ export function starsOf(def: MonsterDef, nodeId: string): number {
     // 隠しモンスターは、レシピで決めた「生まれるときの星」から数える
     return Math.min(CONFIG.gacha.maxStars, (def.jogressBirthStars ?? CONFIG.gacha.jogressDefaultBirth) + stage - 1)
   }
+  // 進化しない（1形態だけの）降臨モンスターは、登録画面で決めた星
+  if (template.nodes.length === 1) return def.fixedStars ?? CONFIG.gacha.fixedStarsDefault
   return Math.min(CONFIG.gacha.maxStars, CONFIG.gacha.formStarBase + stage)
 }
 

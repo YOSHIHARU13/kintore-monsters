@@ -102,6 +102,7 @@ export interface MonsterDefInput {
   questOnly: boolean
   jogressBirthStars: number // 隠しモンスターが生まれるときの星
   jogressPlus: number // 隠しモンスターの素材に必要な＋
+  fixedStars: number // 進化しない降臨モンスターの星
   favoriteSlot: string // 得意種目の枠ID（なしは空）
   abilities: string[] // アビリティ（対応するギミック名）
 }
@@ -692,6 +693,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         common: false,
         favoriteSlot: input.favoriteSlot,
         questOnly: input.questOnly,
+        fixedStars: input.fixedStars,
         abilities: input.abilities,
         ...(input.recipe.length === 2
           ? {
