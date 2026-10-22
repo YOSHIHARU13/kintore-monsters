@@ -378,8 +378,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         const autoName = !q.name?.trim()
         const name = autoName ? (boss?.name ?? '名前のないクエスト') : q.name
         return boss ? { ...q, name, autoName, element: elementInfo(boss).elements[0] } : { ...q, name, autoName }
-      }).concat(builtinMaterialQuests(defs)),
-    [questDocs, defs],
+      }).concat(builtinMaterialQuests(defs, today)),
+    [questDocs, defs, today],
   )
   const yesterday = useMemo(() => prevDateKey(today), [today])
   const tower = useMemo(() => towerFloors(towerMonth(today), defs, selectableGimmicks(quests)), [today, defs, quests])

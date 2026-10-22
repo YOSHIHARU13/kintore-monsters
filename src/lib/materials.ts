@@ -11,17 +11,17 @@ export const MATERIAL_PREFIX = 'mat-'
 
 /**
  * いつでも遊べる素材クエスト：核の種類ごとに1つ、最初から用意しておく（作らなくていい）。
- * 敵の見た目はハズレのモンスターから（その部位のハズレがいなければノーマル、それもいなければ誰か）。
+ * 敵はハズレのモンスターから日替わり（その部位のハズレを優先）。敵の属性が変わるので、求められる編成も毎日変わる。
  */
-export function builtinMaterialQuests(defs: MonsterDef[]): Quest[] {
+export function builtinMaterialQuests(defs: MonsterDef[], today: string): Quest[] {
   const looks = defs.filter((d) => !isHidden(d) && !d.questOnly)
-  return CORE_KEYS.map((attr) => {
-    const samePart = looks.filter((d) => nodeAttr(d, FIRST_NODE_ID) === attr)
-    const enemy =
-      samePart.find((d) => rarityOf(d) === 'hazure') ??
-      samePart.find((d) => rarityOf(d) === 'normal') ??
-      looks.find((d) => rarityOf(d) === 'hazure') ??
-      looks[0]
+  const hazure = looks.filter((d) => rarityOf(d) === 'hazure')
+  const day = Math.floor(Date.parse(`${today}T12:00:00Z`) / 86400000)
+  return CORE_KEYS.map((attr, i) => {
+    const samePart = hazure.filter((d) => nodeAttr(d, FIRST_NODE_ID) === attr)
+    const pool = samePart.length > 0 ? samePart : hazure.length > 0 ? hazure : looks
+    // 核の種類ごとにずらして、同じ日に同じ敵が並ばないように
+    const enemy = pool.length > 0 ? pool[(day + i) % pool.length] : undefined
     const setup = enemy ? autoQuestSetup(enemy, 'kiwami', 'material', [], []) : { requirements: [], weakSlots: [] }
     return {
       id: `${MATERIAL_PREFIX}${attr}`,

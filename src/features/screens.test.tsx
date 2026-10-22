@@ -412,11 +412,11 @@ describe('画面の表示', () => {
     const el = await render(<MonsterDetail id="o1" go={go} />)
     // 胸腕の進化先は満タン（旧形式のデータも通常ルートに数える）、脚の進化先はまだ0
     expect(el.textContent).toContain('胸腕EXPで進化')
-    expect(el.textContent).toContain('500/500')
+    expect(el.textContent).toContain('/120')
     expect(el.textContent).toContain('脚EXPで進化')
-    expect(el.textContent).toContain('0/500')
+    expect(el.textContent).toContain('0/120')
     expect(el.textContent).not.toContain('進化の石')
-    await click('進化する（200G・剛腕の核×2）')
+    await click('進化する（60G・剛腕の核×1）')
     expect(fake.store.evolve).toHaveBeenCalledWith('o1', 'n3a')
   })
 
@@ -490,7 +490,7 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('無属性：どのEXPでも進化')
     await click('背肩のEXPを注ぐ（+60）')
     expect(fake.store.pourExp).toHaveBeenCalledWith('o1', 'n3b', 'backShoulders')
-    await click('胸腕のEXPを注ぐ（+300・うち購入 100）')
+    await click('胸腕のEXPを注ぐ（+')
     expect(fake.store.pourExp).toHaveBeenCalledWith('o1', 'n3b', 'chestArms')
   })
 
@@ -971,7 +971,7 @@ describe('画面の表示', () => {
 
   it('モンスター登録：名前を入れて保存', async () => {
     const el = await render(<MonsterForm go={go} />)
-    expect(el.textContent).toContain('★1→★2 150EXP＋100G')
+    expect(el.textContent).toContain('★1→★2 40EXP＋30G')
     await click('保存する')
     expect(el.textContent).toContain('名前を入力してください')
     const type = async (input: HTMLInputElement, value: string) =>

@@ -151,33 +151,33 @@ describe('今週のタスク', () => {
 describe('進化', () => {
   const cost = evolutionCost(1)!
   it('初期コスト', () => {
-    expect(cost).toEqual({ exp: 150, gold: 100, cores: 0 })
+    expect(cost).toEqual({ exp: 40, gold: 30, cores: 0 })
     expect(fusionCost(0)).toEqual({ exp: 100, gold: 100 })
     expect(fusionCost(4)).toEqual({ exp: 500, gold: 500 })
     expect(fusionCost(5)).toBeNull()
-    expect(evolutionCost(2)).toEqual({ exp: 500, gold: 200, cores: 2 }) // ★2→★3 は核が要る
+    expect(evolutionCost(2)).toEqual({ exp: 120, gold: 60, cores: 1 }) // ★2→★3 は核が要る
     // ワープ進化（★1→★3）は、1→2 と 2→3 の合計
     const warp = getTemplate('warp')
-    expect(nextCost(warp, warp.nodes[0])).toEqual({ exp: 650, gold: 300, cores: 2 })
+    expect(nextCost(warp, warp.nodes[0])).toEqual({ exp: 160, gold: 90, cores: 1 })
     expect(nextCost(warp, warp.nodes[1])).toBeNull()
     expect(evolutionCost(4)).toEqual({ exp: 2500, gold: 1500 })
     expect(evolutionCost(5)).toBeNull()
   })
   it('購入EXPは必要EXPの半分まで', () => {
-    expect(boughtCap(cost)).toBe(75)
-    expect(planPour(cost, { trained: 0, bought: 0 }, { trained: 0, bought: 500 })).toEqual({ trained: 0, bought: 75 })
-    expect(planPour(cost, { trained: 0, bought: 75 }, { trained: 40, bought: 500 })).toEqual({
-      trained: 40,
+    expect(boughtCap(cost)).toBe(20)
+    expect(planPour(cost, { trained: 0, bought: 0 }, { trained: 0, bought: 500 })).toEqual({ trained: 0, bought: 20 })
+    expect(planPour(cost, { trained: 0, bought: 20 }, { trained: 40, bought: 500 })).toEqual({
+      trained: 20,
       bought: 0,
     })
   })
   it('必要量を超えては注がない', () => {
-    expect(planPour(cost, { trained: 100, bought: 0 }, { trained: 300, bought: 300 })).toEqual({
+    expect(planPour(cost, { trained: 30, bought: 0 }, { trained: 300, bought: 300 })).toEqual({
       trained: 0,
-      bought: 50,
+      bought: 10,
     })
-    expect(isExpFull(cost, { trained: 100, bought: 50 })).toBe(true)
-    expect(isExpFull(cost, { trained: 100, bought: 49 })).toBe(false)
+    expect(isExpFull(cost, { trained: 30, bought: 10 })).toBe(true)
+    expect(isExpFull(cost, { trained: 30, bought: 9 })).toBe(false)
   })
 })
 
