@@ -43,10 +43,16 @@ export function autoQuestSetup(
     if (q.id === selfId) continue
     for (const r of requirementsOf(q)) for (const g of tagAbilities(r.tag)) used[g] = (used[g] ?? 0) + 1
   }
-  const ranked = gimmicks
+  // 登録されているモンスター（降臨以外）が実際に持っているアビリティだけから選ぶ（誰も持っていない条件にしない）
+  const holders = defs.filter((d) => !d.questOnly)
+  const have = (g: string) => holders.filter((d) => slotted(d).includes(g)).length
+  const real = gimmicks.filter((g) => have(g) > 0)
+  const ranked = (holders.length > 0 && real.length > 0 ? real : gimmicks)
     .map((g, i) => ({ g, n: used[g] ?? 0, tie: (i + seed) % gimmicks.length }))
-    .sort((x, y) => x.n - y.n || x.tie - y.tie)
+    .sort((x, y) => x.n - y.n || have(y.g) - have(x.g) || x.tie - y.tie)
     .map((x) => x.g)
+  // 2つを両方持つ組み合わせ：実際にその2つを持っている子がいるものから
+  const pairs = commonPairs(holders)
   // 2つ目の属性：有利な属性とボスの属性以外から
   const second = ELEMENTS.filter((e) => e !== adv && e !== bossEl)[seed % 3]
 
@@ -56,11 +62,13 @@ export function autoQuestSetup(
     const hero = pickHero(boss, grade, defs, seed)
     if (hero) {
       heroId = hero.id
-      requirements = basisRequirements({ kind: 'hero', hero }, grade, boss)
+      requirements = basisRequirements({ kind: 'hero', heroes: [hero] }, grade, boss)
     } else {
       if (adv) requirements.push({ tag: elementTag(adv), count: 3 })
       if (second) requirements.push({ tag: elementTag(second), count: 3 })
-      if (ranked.length >= 2) requirements.push({ tag: comboTag(ranked[0], ranked[1]), count: 2 })
+      const pair = [...pairs].sort((x, y) => (used[x.a] ?? 0) + (used[x.b] ?? 0) - ((used[y.a] ?? 0) + (used[y.b] ?? 0)) || y.n - x.n)[0]
+      if (pair) requirements.push({ tag: comboTag(pair.a, pair.b), count: 2 })
+      else if (ranked[0]) requirements.push({ tag: abilityTag(ranked[0]), count: 2 })
     }
   } else if (kind !== 'material' && grade === 'kyukyoku') {
     if (adv) requirements.push({ tag: elementTag(adv), count: 2 })
@@ -106,7 +114,7 @@ export function autoGradeOf(def: MonsterDef): QuestGrade {
 
 /** 条件の作り方：刺さるキャラ・接待するギミック・属性のどれかから */
 export type Basis =
-  | { kind: 'hero'; hero: MonsterDef }
+  | { kind: 'hero'; heroes: MonsterDef[] } // 1〜3体。その子たちに共通する属性とアビリティから
   | { kind: 'gimmicks'; gimmicks: string[] } // 1つか2つ（2つなら「両方もつ」）
   | { kind: 'elements'; elements: Element[] } // 1つか2つ
 
@@ -132,8 +140,18 @@ export function basisRequirements(basis: Basis, grade: QuestGrade, boss: Monster
     list.length >= 2 ? [{ tag: comboTag(list[0], list[1]), count: ABILITY[g] }] : list.map((x) => ({ tag: abilityTag(x), count: ABILITY[g] }))
   let reqs: Requirement[] = []
   if (basis.kind === 'hero') {
-    const el = elementInfo(basis.hero)
-    reqs = [...els(el.elements, el.super), ...abil((basis.hero.abilities ?? []).slice(0, Math.min(2, abilitySlots(basis.hero))))]
+    const heroes = basis.heroes
+    // 属性：選んだ子たちに多い順に2つまで（1体だけで超属性なら、その属性を多めに）
+    const elCount: Partial<Record<Element, number>> = {}
+    for (const h of heroes) for (const e of elementInfo(h).elements) elCount[e] = (elCount[e] ?? 0) + 1
+    const topEls = (Object.keys(elCount) as Element[]).sort((a, b) => elCount[b]! - elCount[a]!).slice(0, 2)
+    const superOne = heroes.length === 1 && elementInfo(heroes[0]).super
+    // アビリティ：選んだ子たちが「両方」持っている組み合わせのうち、いちばん多いもの。なければ多いアビリティ1つ
+    const pair = commonPairs(heroes)[0]
+    const abCount: Record<string, number> = {}
+    for (const h of heroes) for (const x of slotted(h)) abCount[x] = (abCount[x] ?? 0) + 1
+    const topAb = Object.keys(abCount).sort((a, b) => abCount[b] - abCount[a])[0]
+    reqs = [...els(topEls, superOne), ...(pair ? abil([pair.a, pair.b]) : topAb ? abil([topAb]) : [])]
     if (g >= 3 && adv && !reqs.some((r) => r.tag === elementTag(adv))) reqs.push({ tag: elementTag(adv), count: 2 })
   } else if (basis.kind === 'gimmicks') {
     reqs = [...(adv ? els([adv]) : []), ...abil(basis.gimmicks)]
@@ -141,4 +159,22 @@ export function basisRequirements(basis: Basis, grade: QuestGrade, boss: Monster
     reqs = [...els(basis.elements), ...(g >= 1 && extraAbility ? abil([extraAbility]) : [])]
   }
   return reqs.slice(0, CONFIG.formation.maxRequirements)
+}
+
+/** その子が実際に使えるアビリティ（持てる数まで） */
+const slotted = (d: MonsterDef) => (d.abilities ?? []).slice(0, abilitySlots(d))
+
+/** 「両方もつ」の組み合わせと、それを持っている子の数（多い順） */
+export function commonPairs(defs: MonsterDef[]): { a: string; b: string; n: number }[] {
+  const count: Record<string, { a: string; b: string; n: number }> = {}
+  for (const d of defs) {
+    const list = slotted(d)
+    for (let i = 0; i < list.length; i++)
+      for (let j = i + 1; j < list.length; j++) {
+        const [a, b] = [list[i], list[j]].sort()
+        const key = `${a}|${b}`
+        count[key] = { a, b, n: (count[key]?.n ?? 0) + 1 }
+      }
+  }
+  return Object.values(count).sort((x, y) => y.n - x.n)
 }

@@ -5,7 +5,7 @@ import { DAYS, FORM_ATTRS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type FormAttr
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { QuestBanner } from '../components/QuestBanner'
 import { COLLAB_GRADES, DIFFICULTIES, GRADES, defaultBossHp, defaultHp, gradeOf, questGold, standardSessionDamage } from '../lib/quest'
-import { allGimmicks, selectableGimmicks, abilityName } from '../lib/gimmick'
+import { allGimmicks, selectableGimmicks, abilityName, abilitySlots } from '../lib/gimmick'
 import { ELEMENTS, ELEMENT_COLOR, ELEMENT_LABEL, advantageElements, elementInfo } from '../lib/element'
 import { abilityTag, elementTag, ownedSupply, requirementsOf, tagLabel, comboTag, tagAbilities } from '../lib/formation'
 import { CORE_LABEL } from '../lib/cores'
@@ -41,11 +41,11 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
   const gimmickNames = { ...allGimmicks(quests), ...customGimmicks }
   const allAbilities = [...new Set([...selectableGimmicks(quests), ...Object.keys(customGimmicks)])]
   // 選んだもと（刺さるキャラ・ギミック・属性）
-  const heroDef = defs.find((d) => d.id === stars[0])
+  const heroDefs = defs.filter((d) => stars.includes(d.id))
   const basis: Basis | null =
     basisKind === 'hero'
-      ? heroDef
-        ? { kind: 'hero', hero: heroDef }
+      ? heroDefs.length > 0
+        ? { kind: 'hero', heroes: heroDefs }
         : null
       : basisKind === 'gimmicks'
         ? pickedGimmicks.length > 0
@@ -55,7 +55,9 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
           ? { kind: 'elements', elements: pickedElements }
           : null
   // 属性から作るときに足す、ほかのクエストであまり使われていないアビリティ
+  const elementHolders = defs.filter((d) => !d.questOnly && elementInfo(d).elements.some((e) => pickedElements.includes(e)))
   const leastUsed = allAbilities
+    .filter((g) => elementHolders.some((d) => (d.abilities ?? []).slice(0, abilitySlots(d)).includes(g)))
     .map((g) => ({ g, n: quests.filter((q) => q.id !== existing?.id && requirementsOf(q).some((r) => tagAbilities(r.tag).includes(g))).length }))
     .sort((a, b) => a.n - b.n)[0]?.g
   const [kind, setKind] = useState<'boss' | 'material'>(existing?.kind ?? 'boss')
@@ -266,7 +268,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
           <div className="segmented small-seg" role="tablist" aria-label="条件の作り方">
             {(
               [
-                ['hero', '🎯 刺さるキャラ'],
+                ['hero', '🎯 刺さるキャラ（3体まで）'],
                 ['gimmicks', '🧩 ギミックを接待'],
                 ['elements', '🎨 属性'],
               ] as const
@@ -284,8 +286,9 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
                   <button
                     key={d.id}
                     type="button"
-                    className={`chip small${stars[0] === d.id ? ' on' : ''}`}
-                    onClick={() => setStars(stars[0] === d.id ? [] : [d.id])}
+                    className={`chip small${stars.includes(d.id) ? ' on' : ''}`}
+                    disabled={!stars.includes(d.id) && stars.length >= 3}
+                    onClick={() => setStars(stars.includes(d.id) ? stars.filter((x) => x !== d.id) : [...stars, d.id])}
                   >
                     {d.name}
                   </button>
@@ -330,7 +333,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
             </div>
           )}
           <button type="button" className="btn small" disabled={!basis} onClick={() => basis && editRequirements(basisRequirements(basis, grade, boss, leastUsed))}>
-            {basisKind === 'hero' ? 'このキャラが刺さる条件にする' : basisKind === 'gimmicks' ? 'このギミックの条件にする' : 'この属性の条件にする'}
+            {basisKind === 'hero' ? `選んだ${stars.length || ''}体が刺さる条件にする` : basisKind === 'gimmicks' ? 'このギミックの条件にする' : 'この属性の条件にする'}
           </button>
           <span className="muted small">
             ガチャのキャラがまだいなくても、ギミックや属性から作っておけます。あとで作ったキャラは、モンスター登録の「🎯 このクエスト用にする」で合わせられます。

@@ -1,17 +1,31 @@
 import { describe, expect, it } from 'vitest'
-import { autoGradeOf, autoQuestSetup } from './questAuto'
+import { autoGradeOf, autoQuestSetup, basisRequirements } from './questAuto'
 import { fitsQuest, isStrict } from './quest'
 import type { MonsterDef } from '../types'
 
 const boss = { id: 'b1', name: 'アシリュウ', templateId: 'single', attrs: { n1: 'legs' }, images: {}, element: 'water', questOnly: true, rarity: 'superRare', createdAt: 0 } as unknown as MonsterDef
 
 describe('おまかせのクエスト', () => {
-  it('超絶：刺さるキャラがいなければ、2つの属性を3ずつ＋アビリティ2つを両方もつ', () => {
-    const r = autoQuestSetup(boss, 'chozetsu', 'boss', [], ['バリア', 'シールド', 'リジェネ', 'ミラー'])
+  it('超絶：刺さるキャラがいなければ、2つの属性を3ずつ＋実際に誰かが両方持っている組み合わせ', () => {
+    const normal = (id: string, abilities: string[]) =>
+      ({ id, name: id, templateId: 'linear3', images: {}, rarity: 'normal', abilities, createdAt: 0 }) as unknown as MonsterDef
+    // ノーマルは1つしか持てないので、両方もつ子はいない → アビリティ1つの条件になる（誰も持っていない組み合わせにはしない）
+    const r = autoQuestSetup(boss, 'chozetsu', 'boss', [], ['バリア', 'シールド', 'リジェネ', 'ミラー'], undefined, [normal('n', ['ミラー'])])
     expect(r.requirements[0]).toEqual({ tag: 'el:wood', count: 3 }) // 水には木が有利
     expect(r.requirements[1]).toMatchObject({ tag: expect.stringMatching(/^el:/), count: 3 })
-    expect(r.requirements[2]).toMatchObject({ tag: expect.stringMatching(/^ab2:/), count: 2 })
+    expect(r.requirements[2]).toEqual({ tag: 'ab:ミラー', count: 2 }) // 持っている子がいるアビリティ
     expect(r.weakSlots.length).toBeGreaterThan(0)
+  })
+  it('刺さるキャラを3体選ぶと、その子たちに多い属性と、両方持っている組み合わせで条件を作る', () => {
+    const sr = (id: string, element: string, abilities: string[]) =>
+      ({ id, name: id, templateId: 'linear3', images: {}, rarity: 'superRare', element, abilities, createdAt: 0 }) as unknown as MonsterDef
+    const heroes = [sr('a', 'fire', ['バリア', 'ミラー']), sr('b', 'fire', ['ミラー', 'バリア']), sr('c', 'light', ['シールド', 'リジェネ'])]
+    const reqs = basisRequirements({ kind: 'hero', heroes }, 'kyukyoku', undefined)
+    expect(reqs).toEqual([
+      { tag: 'el:fire', count: 2 },
+      { tag: 'el:light', count: 2 },
+      { tag: 'ab2:バリア|ミラー', count: 2 }, // 2体が両方持っている
+    ])
   })
   it('超絶：刺さるキャラ（アビリティ2つの激レア）の属性と、アビリティを両方もつ条件になる', () => {
     const hero = { id: 'h', name: 'h', templateId: 'linear3', images: {}, rarity: 'superRare', element: 'fire', abilities: ['バリア', 'ミラー'], createdAt: 0 } as unknown as MonsterDef

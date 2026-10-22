@@ -674,7 +674,7 @@ describe('画面の表示', () => {
     const el = await render(<QuestForm go={go} />)
     const group = el.querySelector('[aria-label="活躍させたいモンスター"]')!
     await act(async () => [...group.querySelectorAll('button')].find((b) => b.textContent === 'ムキドラ')!.click())
-    await click('このキャラが刺さる条件にする')
+    await click('体が刺さる条件にする')
     expect(el.textContent).toContain('🔥炎')
     expect(el.textContent).toContain('バリアブレイカー')
     expect(el.textContent).toContain('持っている 1（今の手持ちだと×1.0に届かない）') // 炎3に対して手持ちは1
