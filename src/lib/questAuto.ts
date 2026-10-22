@@ -2,11 +2,11 @@ import { CONFIG } from '../config/gameConfig'
 import { DAYS, SLOTS } from '../data/exercises'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { ELEMENTS, advantageElements, elementInfo } from './element'
-import { abilityTag, comboTag, elementTag, groupTag, requirementsOf, tagAbilities } from './formation'
+import { abilityTag, comboTag, elementTag, requirementsOf, tagAbilities } from './formation'
 import { abilitySlots } from './gimmick'
 import { rarityOf } from './gacha'
 import { seriesOf } from './series'
-import { tagsOfDef } from './tags'
+import { tagMates } from './tags'
 import { isHidden, nodeAttr, type Element, type MonsterDef, type Quest, type QuestGrade, type RarityKey, type Requirement } from '../types'
 
 /** 文字列から決まる数（同じボスなら毎回同じ結果に） */
@@ -20,8 +20,9 @@ function hash(s: string): number {
  * おまかせのクエスト：格に合わせて、編成の条件と弱点種目を自動で決める。
  * - 上級・極：ボスに有利な属性（適正）＋アビリティ
  * - 究極：2つの属性を半分ずつ（例：炎2・水2）＋アビリティ
- * - 超絶・超究極：「刺さるキャラ」を1体決めて、その子の属性とアビリティ2つを「両方もつ」条件にする
- *   （超究極は同じコラボの子から）。いなければ、2つの属性を3ずつ＋アビリティ2つを両方もつ。
+ * - ボスとタグが一致する子（因縁のある仲間・同じコラボ）がいれば、どの格でも、その子たちが刺さる条件にする
+ * - 超絶・超究極：タグの仲間がいなければ「刺さるキャラ」を1体決めて、その子の属性とアビリティ2つを「両方もつ」条件にする
+ *   （超究極は同じコラボの子から）。それもいなければ、2つの属性を3ずつ＋アビリティ2つを両方もつ。
  * アビリティは、ほかのクエストであまり求められていないものから選ぶ（偏らないように）。
  */
 export function autoQuestSetup(
@@ -58,11 +59,16 @@ export function autoQuestSetup(
 
   let requirements: Requirement[] = []
   let heroId: string | undefined
-  if (kind !== 'material' && (grade === 'chozetsu' || grade === 'chokyukyoku')) {
+  // ボスとタグが一致する子（因縁のある仲間・同じコラボ）がいれば、その子たちが刺さる条件にする
+  const mates = kind === 'material' ? [] : tagMates(boss, defs).slice(0, 3)
+  if (mates.length > 0) {
+    heroId = mates[0].id
+    requirements = basisRequirements({ kind: 'hero', heroes: mates }, grade, boss)
+  } else if (kind !== 'material' && (grade === 'chozetsu' || grade === 'chokyukyoku')) {
     const hero = pickHero(boss, grade, defs, seed)
     if (hero) {
       heroId = hero.id
-      requirements = basisRequirements({ kind: 'hero', heroes: [hero, ...companions(hero, defs)] }, grade, boss)
+      requirements = basisRequirements({ kind: 'hero', heroes: [hero] }, grade, boss)
     } else {
       if (adv) requirements.push({ tag: elementTag(adv), count: 3 })
       if (second) requirements.push({ tag: elementTag(second), count: 3 })
@@ -95,12 +101,7 @@ function pickHero(boss: MonsterDef, grade: QuestGrade, defs: MonsterDef[], seed:
   const series = seriesOf(boss)
   const same = able.filter((d) => series !== '' && seriesOf(d) === series)
   const base = grade === 'chokyukyoku' && same.length > 0 ? same : able
-  // ボスとタグが多く一致する子を優先
-  const bossTags = tagsOfDef(boss)
-  const shared = (d: MonsterDef) => tagsOfDef(d).filter((t) => bossTags.includes(t)).length
-  const best = Math.max(0, ...base.map(shared))
-  const pool = best > 0 ? base.filter((d) => shared(d) === best) : base
-  return pool.length > 0 ? pool[seed % pool.length] : undefined
+  return base.length > 0 ? base[seed % base.length] : undefined
 }
 
 /** まとめて作るときの格：レア度から（激レア→超絶、ノーマル→究極、ハズレ→上級） */
@@ -128,7 +129,7 @@ const GRADE_SCALE = [0.34, 0.5, 0.67, 0.84, 1]
 
 /** 理想の6体：条件を多く持つ子ほど多く入れる（1体なら6体、2体なら4＋2、3体なら4＋1＋1） */
 export function idealParty(heroes: MonsterDef[]): MonsterDef[] {
-  const richness = (d: MonsterDef) => tagsOfDef(d).length + elementInfo(d).elements.length + slotted(d).length
+  const richness = (d: MonsterDef) => elementInfo(d).elements.length + slotted(d).length
   const sorted = [...heroes].sort((a, b) => richness(b) - richness(a)).slice(0, 3)
   const weights = sorted.length === 1 ? [6] : sorted.length === 2 ? [4, 2] : [4, 1, 1]
   return sorted.flatMap((d, i) => Array.from({ length: weights[i] }, () => d))
@@ -150,8 +151,8 @@ export function basisRequirements(basis: Basis, grade: QuestGrade, boss: Monster
     list.length >= 2 ? [{ tag: comboTag(list[0], list[1]), count: ABILITY[g] }] : list.map((x) => ({ tag: abilityTag(x), count: ABILITY[g] }))
   let reqs: Requirement[] = []
   if (basis.kind === 'hero') {
-    // 理想の6体：いちばん条件（タグ・属性・アビリティ）を多く持つ子を中心に、ほかの子で残りを埋める
-    // 例：3体選んで1体がタグ3つなら、その子4体＋ほか1体ずつ。条件の数は、その6体が満たす数から逆算する
+    // 理想の6体：いちばん属性・アビリティを多く持つ子を中心に（4体）、ほかの子で残りを埋める。
+    // 条件の数は、その6体が満たす数から逆算する（だから、選んだ子たちで組むと最適になる）
     const party = idealParty(basis.heroes)
     const scale = GRADE_SCALE[g]
     const need = (has: (d: MonsterDef) => number) =>
@@ -163,11 +164,7 @@ export function basisRequirements(basis: Basis, grade: QuestGrade, boss: Monster
     const abCount: Record<string, number> = {}
     for (const d of party) for (const x of slotted(d)) abCount[x] = (abCount[x] ?? 0) + 1
     const topAb = Object.keys(abCount).sort((a, b) => abCount[b] - abCount[a])[0]
-    const tgCount: Record<string, number> = {}
-    for (const d of party) for (const t of tagsOfDef(d)) tgCount[t] = (tgCount[t] ?? 0) + 1
-    const topTags = Object.keys(tgCount).sort((a, b) => tgCount[b] - tgCount[a]).slice(0, 3)
     reqs = [
-      ...topTags.map((t) => ({ tag: groupTag(t), count: need((d) => (tagsOfDef(d).includes(t) ? 1 : 0)) })),
       ...topEls.map((e) => ({ tag: elementTag(e), count: need((d) => (elementInfo(d).elements.includes(e) ? (elementInfo(d).super ? 2 : 1) : 0)) })),
       ...(pair
         ? [{ tag: comboTag(pair.a, pair.b), count: need((d) => (slotted(d).includes(pair.a) && slotted(d).includes(pair.b) ? 1 : 0)) }]
@@ -201,15 +198,3 @@ export function commonPairs(defs: MonsterDef[]): { a: string; b: string; n: numb
   return Object.values(count).sort((x, y) => y.n - x.n)
 }
 
-/** 刺さるキャラの仲間：タグが多く一致する子を2体まで（同じタグの子たちが一緒に活躍するように） */
-function companions(hero: MonsterDef, defs: MonsterDef[]): MonsterDef[] {
-  const mine = tagsOfDef(hero)
-  if (mine.length === 0) return []
-  return defs
-    .filter((d) => d.id !== hero.id && !d.questOnly)
-    .map((d) => ({ d, n: tagsOfDef(d).filter((t) => mine.includes(t)).length }))
-    .filter((x) => x.n > 0)
-    .sort((a, b) => b.n - a.n)
-    .slice(0, 2)
-    .map((x) => x.d)
-}

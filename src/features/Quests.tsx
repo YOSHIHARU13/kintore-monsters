@@ -73,9 +73,9 @@ export function Quests({ go }: { go: Go }) {
     }
     setMade(pending.length)
   }
-  // 超絶・超究極の条件を、新しいおまかせ（刺さるキャラ）で作り直す
+  // ボスクエストの条件を、新しいおまかせ（タグの仲間・刺さるキャラ）で作り直す
   const [confirmRedo, setConfirmRedo] = useState(false)
-  const topQuests = quests.filter((q) => !q.builtin && q.kind !== 'material' && ['chozetsu', 'chokyukyoku'].includes(gradeOf(q)))
+  const topQuests = quests.filter((q) => !q.builtin && q.kind !== 'material')
   const redoTop = () => {
     const gimmicks = selectableGimmicks(quests)
     const sofar: Pick<Quest, 'id' | 'requirements' | 'gimmicks'>[] = quests.filter((q) => !topQuests.includes(q))
@@ -366,8 +366,8 @@ export function Quests({ go }: { go: Go }) {
         {topQuests.length > 0 && (
           <button className={`btn small${confirmRedo ? ' primary' : ' ghost'}`} onClick={() => (confirmRedo ? redoTop() : setConfirmRedo(true))}>
             {confirmRedo
-              ? `本当に超絶・超究極${topQuests.length}個の条件を作り直す（手で変えた条件は消えます）`
-              : '🎯 超絶・超究極の条件を「刺さるキャラ」方式で作り直す'}
+              ? `本当にボスクエスト${topQuests.length}個の条件を作り直す（手で変えた条件は消えます）`
+              : '🎯 ボスクエストの条件を、タグの仲間・刺さるキャラから作り直す'}
           </button>
         )}
         {made !== null && <div className="result keep">{made}個のクエストを作りました・作り直しました</div>}

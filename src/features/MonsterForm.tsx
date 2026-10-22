@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '../store'
-import { allTags, ownTagsOf, parseTags } from '../lib/tags'
+import { ownTagsOf, parseTags, tagSuggestions } from '../lib/tags'
 import { allSeries } from '../lib/series'
 import { ATTRS, DAYS, FORM_ATTRS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type FormAttr } from '../data/exercises'
 import { FIRST_NODE_ID, TEMPLATES, canChangeTemplate, getTemplate } from '../data/evolutionTemplates'
@@ -147,11 +147,6 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
     // 弱点種目のうち、このモンスターの部位で選べるもの
     const weak = quest.weakSlots.find((w) => favoriteChoices.some((slot) => slot.id === w))
     if (weak) setFavoriteSlot(weak)
-    // 求められているタグも付けて、その条件を満たせるようにする
-    const wantTags = reqs.filter((r) => r.tag.startsWith('tg:')).map((r) => r.tag.slice(3))
-    // コラボ名のタグはシリーズ欄で付くので、ここでは自分で付けるタグだけ
-    const own = wantTags.filter((t) => !allSeries(defs).includes(t))
-    if (own.length > 0) setTags([...new Set([...tags, ...own])])
   }
 
   const stages = [...new Set(template.nodes.filter((n) => n.next.length > 0).map((n) => n.stage))]
@@ -238,9 +233,9 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
           </datalist>
         </label>
         <div className="field">
-          <span>タグ（ドラゴン・侍など。クエストの「求められる編成」の条件になる。多く持つほど条件をまとめて満たせる）</span>
+          <span>タグ（因縁のある子どうしの目印。コラボの子のタグはそのコラボの中だけ。ボスと同じタグの子が刺さるように、クエストの条件が自動で作られます。コラボ名は自動でタグになります）</span>
           <div className="chips" role="group" aria-label="タグ">
-            {[...new Set([...tags, ...allTags(defs, true)])].map((t) => {
+            {[...new Set([...tags, ...tagSuggestions(defs, series)])].map((t) => {
               const on = tags.includes(t)
               return (
                 <button key={t} type="button" className={`chip small${on ? ' on' : ''}`} onClick={() => setTags(on ? tags.filter((x) => x !== t) : [...tags, t])}>

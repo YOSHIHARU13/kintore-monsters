@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../store'
-import { allTags } from '../lib/tags'
+import { tagMates } from '../lib/tags'
 import { CONFIG } from '../config/gameConfig'
 import { DAYS, FORM_ATTRS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type FormAttr } from '../data/exercises'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
@@ -8,7 +8,7 @@ import { QuestBanner } from '../components/QuestBanner'
 import { COLLAB_GRADES, DIFFICULTIES, GRADES, defaultBossHp, defaultHp, gradeOf, questGold, standardSessionDamage } from '../lib/quest'
 import { allGimmicks, selectableGimmicks, abilityName, abilitySlots } from '../lib/gimmick'
 import { ELEMENTS, ELEMENT_COLOR, ELEMENT_LABEL, advantageElements, elementInfo } from '../lib/element'
-import { abilityTag, elementTag, ownedSupply, requirementsOf, tagLabel, comboTag, tagAbilities, groupTag } from '../lib/formation'
+import { abilityTag, elementTag, ownedSupply, requirementsOf, tagLabel, comboTag, tagAbilities } from '../lib/formation'
 import { CORE_LABEL } from '../lib/cores'
 import { autoQuestSetup, basisRequirements, type Basis } from '../lib/questAuto'
 import { seriesOf } from '../lib/series'
@@ -258,7 +258,12 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
           おまかせ：格に合わせて条件を決めます。超絶・超究極は「刺さるキャラ」を1体選んで、その子の属性と、アビリティを両方もつ条件にします（超究極は同じコラボの子から）。弱点種目はボスの部位から。手で変えるとおまかせは止まります。
         </p>
         {auto && heroId && (
-          <p className="small">🎯 刺さるキャラ：{defs.find((d) => d.id === heroId)?.name}</p>
+          <p className="small">
+            🎯 刺さるキャラ：
+            {boss && tagMates(boss, defs).length > 0
+              ? `${tagMates(boss, defs).slice(0, 3).map((d) => d.name).join('・')}（ボスとタグが同じ）`
+              : defs.find((d) => d.id === heroId)?.name}
+          </p>
         )}
         <p className="muted small">
           出撃する6体の合計で満たす条件です。ちょうどそろうと編成倍率×1.0（普通にその日のメニューで倒せる）、何もないと×
@@ -279,6 +284,11 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
               </button>
             ))}
           </div>
+          {basisKind === 'hero' && boss && tagMates(boss, defs).length > 0 && (
+            <button type="button" className="btn small ghost" onClick={() => setStars(tagMates(boss, defs).slice(0, 3).map((d) => d.id))}>
+              🏷️ ボスとタグが同じ子を選ぶ（{tagMates(boss, defs).slice(0, 3).map((d) => d.name).join('・')}）
+            </button>
+          )}
           {basisKind === 'hero' && (
             <div className="chips" role="group" aria-label="活躍させたいモンスター">
               {defs
@@ -387,7 +397,6 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
         <div className="chips" role="group" aria-label="条件を足す">
           {[
             ...ELEMENTS.map(elementTag),
-            ...allTags(defs).map(groupTag),
             ...allAbilities.map(abilityTag),
             // 2つのアビリティを両方もつ
             ...allAbilities.flatMap((g, i) => allAbilities.slice(i + 1).map((h) => comboTag(g, h))),

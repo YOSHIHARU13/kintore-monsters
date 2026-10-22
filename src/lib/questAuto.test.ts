@@ -45,7 +45,7 @@ describe('おまかせのクエスト', () => {
     const r = autoQuestSetup(collabBoss, 'chokyukyoku', 'boss', [], [], undefined, [mk('a'), mk('b', '鬼'), mk('c')])
     expect(r.heroId).toBe('b')
     expect(r.requirements.find((x) => x.tag.startsWith('ab2:'))?.count).toBe(6) // 超究極は理想どおり
-    expect(r.requirements.find((x) => x.tag === 'tg:鬼')?.count).toBe(6) // コラボ名もタグとして求められる
+    expect(r.requirements.some((x) => x.tag.startsWith('tg:'))).toBe(false) // タグそのものは条件にしない
   })
   it('ほかのクエストであまり使っていないアビリティを選ぶ', () => {
     const used = [{ id: 'q', requirements: [{ tag: 'ab:バリア', count: 2 }, { tag: 'ab:シールド', count: 2 }, { tag: 'ab:リジェネ', count: 2 }] }]
@@ -69,14 +69,17 @@ describe('おまかせのクエスト', () => {
     expect(fitsQuest(mk('light'), q)).toBe(true) // 条件の属性
     expect(fitsQuest(mk('fire'), q)).toBe(false)
   })
-  it('タグ3つの子と1つの子たち：その子4体＋ほか2体が最適になる条件', () => {
-    const mk = (id: string, tags: string[]) =>
-      ({ id, name: id, templateId: 'linear3', images: {}, rarity: 'superRare', tags, createdAt: 0 }) as unknown as MonsterDef
-    const reqs = basisRequirements({ kind: 'hero', heroes: [mk('a', ['竜', '侍', '神']), mk('b', ['竜']), mk('c', ['竜'])] }, 'chokyukyoku', undefined)
-    expect(reqs).toEqual([
-      { tag: 'tg:竜', count: 6 },
-      { tag: 'tg:侍', count: 4 },
-      { tag: 'tg:神', count: 4 },
+  it('ボスとタグが同じ子たち（因縁の仲間）が刺さる条件になる。タグそのものは条件にしない', () => {
+    const mk = (id: string, element: string, abilities: string[], tags: string[], series?: string) =>
+      ({ id, name: id, templateId: 'linear3', images: {}, rarity: 'superRare', element, abilities, tags, series, createdAt: 0 }) as unknown as MonsterDef
+    const rival = { ...boss, tags: ['因縁'] } as MonsterDef
+    const defs = [mk('a', 'fire', ['バリア', 'ミラー'], ['因縁']), mk('b', 'fire', ['バリア', 'ミラー'], []), mk('c', 'dark', ['シールド', 'リジェネ'], ['因縁'], '鬼')]
+    const r = autoQuestSetup(rival, 'kyukyoku', 'boss', [], ['バリア', 'シールド', 'リジェネ', 'ミラー'], undefined, defs)
+    // 「因縁」が一致するのは a だけ（c はコラボの子なので、コラボの中だけのタグ）
+    expect(r.heroId).toBe('a')
+    expect(r.requirements).toEqual([
+      { tag: 'el:fire', count: 4 },
+      { tag: 'ab2:バリア|ミラー', count: 4 },
     ])
   })
 })
