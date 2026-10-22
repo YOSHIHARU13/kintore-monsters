@@ -404,17 +404,24 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
       {quests.length > 0 && (
         <section className="card">
           <h2>このモンスターが刺さるクエスト</h2>
-          <p className="muted small">最終形態で、今の設定（属性・得意種目・アビリティ）のまま戦ったときの目安です。</p>
-          <ul className="mini-list">
-            {fits.map(({ quest, grade, reasons }) => (
-              <li key={quest.id}>
-                <span>
-                  <strong className={`fit fit-${grade === '◎' ? 'good' : grade === '○' ? 'ok' : 'bad'}`}>{grade}</strong> {quest.name}
-                </span>
-                <span className="muted small">{reasons.join('・') || '可もなく不可もなく'}</span>
-              </li>
-            ))}
-          </ul>
+          {fits.filter((f) => f.grade === '◎').length === 0 ? (
+            <p className="muted small">今の設定だと、特に刺さるクエストはまだありません。</p>
+          ) : (
+            <ul className="mini-list">
+              {fits
+                .filter((f) => f.grade === '◎')
+                .map(({ quest, reasons }) => (
+                  <li key={quest.id}>
+                    <span>
+                      <strong className="fit fit-good">◎</strong> {quest.name}
+                    </span>
+                    <span className="muted small">
+                      {reasons.filter((r) => r !== '相性×' && !r.endsWith('で弱体')).join('・')}
+                    </span>
+                  </li>
+                ))}
+            </ul>
+          )}
         </section>
       )}
       {similar.length > 0 && (
