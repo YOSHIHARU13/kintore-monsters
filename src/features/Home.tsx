@@ -1,4 +1,5 @@
 import { useStore } from '../store'
+import { availableEvents } from '../lib/events'
 import { awakenOf, imageOf } from '../lib/art'
 import { ATTRS, ATTR_LABEL, DAYS, DAY_KEYS, TASK_SLOTS, exerciseOfSlot } from '../data/exercises'
 import { CONFIG } from '../config/gameConfig'
@@ -13,7 +14,8 @@ import { BoosterPanel } from '../components/BoosterPanel'
 import { HabitCard } from '../components/HabitCard'
 
 export function Home({ go }: { go: Go }) {
-  const { state, menu, weekSets, defs, owned, yesterday, yesterdayCheckin } = useStore()
+  const { state, menu, weekSets, defs, owned, yesterday, yesterdayCheckin, today } = useStore()
+  const freeEvents = availableEvents(state, today)
   const gaugeMax = Math.max(100, ...ATTRS.map((a) => state.lifetimeExp[a]))
   const progress = partProgress(weekSets)
   const remaining = DAY_KEYS.reduce((sum, day) => sum + progress[day].total - progress[day].done, 0)
@@ -27,6 +29,11 @@ export function Home({ go }: { go: Go }) {
 
   return (
     <div className="page">
+      {freeEvents.length > 0 && (
+        <button className="card free-banner" onClick={() => go({ name: 'shop' })}>
+          🎁 今日は{freeEvents.map((e) => e.label).join('・')}の日！ ショップで引こう
+        </button>
+      )}
       <section className="card">
         <h2>☀️ 朝の記録</h2>
         {morningDone ? (

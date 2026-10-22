@@ -1,3 +1,4 @@
+import type { FreePullEvent } from '../lib/events'
 // ============================================================
 // ゲームの数値はすべてこのファイルにまとめてあります。
 // バランスを調整したいときは、ここの数字だけを書き換えてください。
@@ -156,6 +157,14 @@ export const CONFIG = {
     chozetsu: { element: 3, abilities: 2, abilityCount: 2, weak: 2 },
     chokyukyoku: { element: 3, abilities: 2, abilityCount: 2, weak: 2 },
     material: { element: 2, abilities: 0, abilityCount: 0, weak: 1 },
+  },
+  // 無料ガチャのイベント：その日のうちに、好きなガチャで引ける（卵は減らない）
+  events: {
+    freePulls: [
+      { id: 'thursday', label: '木曜の無料10連', pulls: 10, weekday: 4 },
+      { id: 'monthStart', label: '月初めの無料10連', pulls: 10, monthDay: 1 },
+      { id: 'monthMid', label: '15日の激レア確定ガチャ', pulls: 1, monthDay: 15, guaranteed: true },
+    ] as FreePullEvent[],
   },
   // ブースター：回数制の道具。使うと次の1回（EXPは次の数セット）だけ効く。期限なし
   boosters: {

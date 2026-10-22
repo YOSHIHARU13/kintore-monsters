@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { awakenOf, imageOf } from '../lib/art'
 import { useStore } from '../store'
+import { availableEvents, upcomingEvents } from '../lib/events'
 import { ATTRS, ATTR_LABEL, type Attr } from '../data/exercises'
 import { CONFIG } from '../config/gameConfig'
 import { Stepper } from '../components/Stepper'
@@ -21,7 +22,9 @@ import { isReady, percent, pickupCount, rarityOf, rateTable, tierRates } from '.
 
 
 export function Shop({ go }: { go: Go }) {
-  const { state, defs, owned, gachas, buyEgg, hatchEgg, hatchMany, buyExp, exchangeCores } = useStore()
+  const { state, defs, owned, gachas, today, buyEgg, hatchEgg, hatchMany, freePull, buyExp, exchangeCores } = useStore()
+  const freeEvents = availableEvents(state, today)
+  const upcoming = upcomingEvents(today).slice(0, 3)
   const [multi, setMulti] = useState<HatchResult[] | null>(null)
   const [attr, setAttr] = useState<Attr>('chestArms')
   const [amount, setAmount] = useState(CONFIG.shop.expBuyStep)
@@ -106,6 +109,18 @@ export function Shop({ go }: { go: Go }) {
           </p>
         ) : (
           <>
+            {freeEvents.map((ev) => (
+              <button
+                key={ev.id}
+                className="btn primary wide free-pull"
+                onClick={() => {
+                  const results = freePull(ev.id, gacha.id)
+                  if (results.length > 0) setMulti(results)
+                }}
+              >
+                🎁 {ev.label}を「{gacha.name}」で引く（無料）
+              </button>
+            ))}
             <div className="pull-buttons">
               <button className="btn primary pull-1" disabled={!canHatch} onClick={hatch}>
                 1回引く
@@ -150,6 +165,28 @@ export function Shop({ go }: { go: Go }) {
             </details>
           </>
         )}
+      </section>
+
+      <section className="card">
+        <h2>📅 無料ガチャの日</h2>
+        <ul className="mini-list">
+          {freeEvents.map((ev) => (
+            <li key={ev.id}>
+              <span>{ev.label}</span>
+              <span className="tag keep">今日！</span>
+            </li>
+          ))}
+          {upcoming.map(({ event, date, days }) => (
+            <li key={event.id}>
+              <span>
+                {event.label}
+                <span className="muted small"> {Number(date.slice(5, 7))}/{Number(date.slice(8))}</span>
+              </span>
+              <span className="tag">あと{days}日</span>
+            </li>
+          ))}
+        </ul>
+        <p className="muted small">その日のうちに、好きなガチャで引けます（卵は減りません）。</p>
       </section>
 
       <BoosterPanel />

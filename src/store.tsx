@@ -34,6 +34,7 @@ import { autoPartners } from './lib/partner'
 import { finalAttrs, recommend } from './lib/coverage'
 import { abilitySlots, jogressGradeOf, selectableGimmicks } from './lib/gimmick'
 import { boostActive } from './lib/boosters'
+import { availableEvents, claimKey } from './lib/events'
 import { builtinMaterialQuests } from './lib/materials'
 import { towerCleared, towerFloors, towerMonth, type TowerFloor } from './lib/tower'
 import { elementInfo, jogressElementOf } from './lib/element'
@@ -72,6 +73,7 @@ function initialState(): GameState {
     tower: null,
     boosters: {},
     boosts: {},
+    freeClaims: {},
     cores: {},
     coreMisses: {},
   }
@@ -225,6 +227,7 @@ interface Store {
   hatchEgg: (gachaId: string) => HatchResult | null
   /** まとめて引く（タマゴの数まで）。引けた分だけ返す */
   hatchMany: (gachaId: string, count: number) => HatchResult[]
+  freePull: (eventId: string, gachaId: string) => HatchResult[]
   /** ガチャを作る・編集する。保存したガチャのID */
   saveGacha: (input: GachaInput) => Promise<string>
   /** ガチャを消す（入っていたモンスターはそのガチャから外れる）。「いつものガチャ」は消せない */
@@ -536,9 +539,18 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     }
 
     // count 回まとめて引く。1回ずつ天井の回数を数え直し、1つの書き込みにまとめる
-    const hatchMany: Store['hatchMany'] = (gachaId, count) => {
+    const hatchMany: Store['hatchMany'] = (gachaId, count) => pull(gachaId, Math.min(count, state.eggs), {})
+
+    /** 無料ガチャのイベント：卵を使わずに引く（その日1回だけ） */
+    const freePull: Store['freePull'] = (eventId, gachaId) => {
+      const today = dateKey()
+      const ev = availableEvents(state, today).find((e) => e.id === eventId)
+      if (!ev) return []
+      return pull(gachaId, ev.pulls, { free: true, guaranteed: ev.guaranteed, claim: claimKey(ev, today) })
+    }
+
+    const pull = (gachaId: string, times: number, opts: { free?: boolean; guaranteed?: boolean; claim?: string }) => {
       const gacha = gachas.find((g) => g.id === gachaId)
-      const times = Math.min(count, state.eggs)
       if (!gacha || times <= 0) return []
       // 隠しモンスターはタマゴからは生まれない（rateTable が外す）
       const table = rateTable(gacha.id, defs)
@@ -548,8 +560,10 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       let pulls = state.pity[gacha.id] ?? 0
       const results: HatchResult[] = []
       for (let i = 0; i < times; i++) {
-        const pity = isPity(pulls, table)
-        const def = draw(table, pulls, Math.random())
+        // 確定ガチャの1回目は、激レアの中から
+        const sure = opts.guaranteed && i === 0 && table.some((t) => t.rarity === CONFIG.gacha.pity.rarity)
+        const pity = sure || isPity(pulls, table)
+        const def = draw(table, sure ? CONFIG.gacha.pity.pulls : pulls, Math.random())
         if (!def) break
         const shiny = Math.random() < gacha.shinyRate
         const ref = doc(collection(db, base, 'ownedMonsters'))
@@ -566,7 +580,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         pulls = rarityOf(def) === CONFIG.gacha.pity.rarity ? 0 : pulls + 1
         results.push({ def, monsterId: ref.id, shiny, pity })
       }
-      update.eggs = increment(-results.length)
+      if (!opts.free) update.eggs = increment(-results.length)
+      if (opts.claim) update[`freeClaims.${opts.claim}`] = true
       update[`pity.${gacha.id}`] = pulls
       batch.update(stateRef, update)
       batch.commit().catch(fail)
@@ -1138,6 +1153,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       useBooster,
       hatchEgg,
       hatchMany,
+      freePull,
       pourExp,
       evolve,
       pourPlusExp,

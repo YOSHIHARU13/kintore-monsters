@@ -60,6 +60,7 @@ const state: GameState = {
   tower: null,
   boosters: {},
   boosts: {},
+  freeClaims: {},
   cores: { chestArms: 2, none: 2 },
   coreMisses: {},
 }
