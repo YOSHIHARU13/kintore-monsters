@@ -8,6 +8,10 @@ import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { ATTR_COLOR, type Go } from '../nav'
 import { monsterName } from '../types'
 import { HatchReveal, type Hatched } from '../components/HatchReveal'
+import { MultiReveal } from '../components/MultiReveal'
+import type { HatchResult } from '../store'
+
+const MULTI_MAX = 10
 import { CORE_KEYS, CORE_LABEL } from '../lib/cores'
 import { Stars } from '../components/Stars'
 import { GachaBanner, featuredOf, pickupsOf } from '../components/GachaBanner'
@@ -15,7 +19,8 @@ import { isReady, percent, pickupCount, rarityOf, rateTable, tierRates } from '.
 
 
 export function Shop({ go }: { go: Go }) {
-  const { state, defs, owned, gachas, buyEgg, hatchEgg, buyExp, exchangeCores } = useStore()
+  const { state, defs, owned, gachas, buyEgg, hatchEgg, hatchMany, buyExp, exchangeCores } = useStore()
+  const [multi, setMulti] = useState<HatchResult[] | null>(null)
   const [attr, setAttr] = useState<Attr>('chestArms')
   const [amount, setAmount] = useState(CONFIG.shop.expBuyStep)
   const [hatched, setHatched] = useState<Hatched | null>(null)
@@ -38,6 +43,11 @@ export function Shop({ go }: { go: Go }) {
     const result = hatchEgg(gacha.id)
     if (result) setHatched({ ...result, rarity: rarityOf(result.def) })
   }
+  const multiCount = Math.min(state.eggs, MULTI_MAX)
+  const hatchMulti = () => {
+    const results = hatchMany(gacha.id, multiCount)
+    if (results.length > 0) setMulti(results)
+  }
   const expCost = amount * CONFIG.shop.goldPerExp
   const maxAmount = Math.max(
     CONFIG.shop.expBuyStep,
@@ -49,37 +59,38 @@ export function Shop({ go }: { go: Go }) {
       <h1 className="title">ショップ</h1>
       <p className="gold">所持 {state.gold}G</p>
 
-      <section className="card">
-        <h2>ガチャ</h2>
-        <p>
-          手持ちのタマゴ：<strong>{state.eggs}個</strong>
-          <span className="muted small">（タマゴ1個で1回引けます）</span>
-        </p>
-        <button className="btn wide" disabled={!canBuyEgg} onClick={buyEgg}>
-          タマゴを買う（{CONFIG.shop.eggPrice}G）
-        </button>
-        <div className="gacha-list">
+      <section className="card gacha-stage">
+        <div className="gacha-tabs" role="tablist" aria-label="ガチャ">
           {gachas.map((g) => (
-            <GachaBanner
+            <button
               key={g.id}
-              gacha={g}
-              count={rateTable(g.id, defs).length}
-              featured={featuredOf(g, rateTable(g.id, defs), defs)}
-              pickups={pickupsOf(rateTable(g.id, defs))}
-              selected={g.id === gacha.id}
+              role="tab"
+              aria-selected={g.id === gacha.id}
+              className={`gacha-tab${g.id === gacha.id ? ' on' : ''}`}
               onClick={() => setGachaId(g.id)}
-            />
+            >
+              {g.name}
+            </button>
           ))}
+          <button className="gacha-tab add" onClick={() => go({ name: 'gachaForm' })}>
+            ＋
+          </button>
         </div>
-        <button className="btn small" onClick={() => go({ name: 'gachaForm' })}>
-          ＋ ガチャを作る
-        </button>
-      </section>
-
-      <section className="card">
-        <div className="part-head">
-          <h2>{gacha.name}</h2>
-          <button className="btn small" onClick={() => go({ name: 'gachaForm', id: gacha.id })}>
+        <GachaBanner
+          gacha={gacha}
+          count={table.length}
+          featured={featuredOf(gacha, table, defs)}
+          pickups={pickupsOf(table)}
+          selected
+        />
+        <div className="egg-bar">
+          <span>
+            🥚 タマゴ <strong className="num">{state.eggs}</strong>個
+          </span>
+          <button className="btn small" disabled={!canBuyEgg} onClick={buyEgg}>
+            タマゴを買う（{CONFIG.shop.eggPrice}G）
+          </button>
+          <button className="btn small ghost" onClick={() => go({ name: 'gachaForm', id: gacha.id })}>
             編集
           </button>
         </div>
@@ -91,9 +102,16 @@ export function Shop({ go }: { go: Go }) {
           </p>
         ) : (
           <>
-            <button className="btn primary wide" disabled={!canHatch} onClick={hatch}>
-              「{gacha.name}」を引く（タマゴ1個）
-            </button>
+            <div className="pull-buttons">
+              <button className="btn primary pull-1" disabled={!canHatch} onClick={hatch}>
+                1回引く
+                <span className="small">🥚×1</span>
+              </button>
+              <button className="btn primary pull-many" disabled={!canHatch || multiCount < 2} onClick={hatchMulti}>
+                {multiCount >= 2 ? `${multiCount}連で引く` : 'まとめて引く'}
+                <span className="small">🥚×{Math.max(2, multiCount)}</span>
+              </button>
+            </div>
             {hasPityTier && (
               <p className="small center bonus-reward">
                 {CONFIG.gacha.rarities[CONFIG.gacha.pity.rarity].label}確定まで あと{pityLeft}回
@@ -185,6 +203,9 @@ export function Shop({ go }: { go: Go }) {
         </p>
       </section>
 
+      {multi && (
+        <MultiReveal results={multi} onClose={() => setMulti(null)} onMeet={(id) => go({ name: 'monster', id })} />
+      )}
       {hatched && (
         <HatchReveal
           key={hatched.monsterId}

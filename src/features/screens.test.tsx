@@ -108,11 +108,11 @@ async function render(el: ReactElement) {
   return container
 }
 
-const tapBanner = async (name: string) => {
-  const banner = container.querySelector<HTMLElement>(`[role="button"][aria-label="${name}"]`)
-  if (!banner) throw new Error(`バナーが見つかりません: ${name}`)
+const tapTab = async (name: string) => {
+  const tab = [...container.querySelectorAll<HTMLElement>('.gacha-tab')].find((t) => t.textContent === name)
+  if (!tab) throw new Error(`ガチャのタブが見つかりません: ${name}`)
   await act(async () => {
-    banner.click()
+    tab.click()
   })
 }
 
@@ -371,7 +371,7 @@ describe('画面の表示', () => {
     fake.store.hatchEgg = vi.fn(() => ({ def: defs[1], monsterId: 'o2', shiny: true, pity: false }))
     const shop = await render(<Shop go={go} />)
     expect(shop.textContent).toContain('色違い 1/20')
-    await click('を引く')
+    await click('1回引く')
     await click('スキップ')
     expect(shop.textContent).toContain('色違い！！')
     expect(shop.querySelector('.shiny')).not.toBeNull()
@@ -399,7 +399,7 @@ describe('画面の表示', () => {
     expect(dex2.querySelector('.sheet')!.textContent).toContain('所持 2体')
     expect((await render(<Box go={go} />)).textContent).toContain('所持 2体')
     const shop = await render(<Shop go={go} />)
-    await click('「いつものガチャ」を引く')
+    await click('1回引く')
     expect(fake.store.hatchEgg).toHaveBeenCalledWith('default')
     expect(shop.textContent).not.toContain('が生まれた！') // まずはタマゴが揺れる
     await click('スキップ')
@@ -562,7 +562,7 @@ describe('画面の表示', () => {
     ]
     const el = await render(<Shop go={go} />)
     // 引けるガチャのうち、いちばん新しいものが選ばれている
-    expect(el.textContent).toContain('「脚まつり」を引く')
+    expect(el.querySelector('.gacha-tab.on')!.textContent).toBe('脚まつり')
     expect(el.textContent).toContain('全5種')
     expect(el.textContent).toContain('激レア 合計3%（1種）')
     expect(el.textContent).toContain('レア 合計12%（2種）')
@@ -571,11 +571,11 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('激レア確定まで あと3回')
     expect(el.textContent).toContain('？？？') // まだ会っていないモンスターは名前を伏せる
     // いつものガチャにはレア・激レアがいないので、その分がハズレとノーマルに回る
-    await tapBanner('いつものガチャ')
+    await tapTab('いつものガチャ')
     expect(el.textContent).toContain('全2種')
     expect(el.textContent).toContain('ハズレ 合計58.8%')
     expect(el.textContent).not.toContain('確定まで')
-    await click('「いつものガチャ」を引く')
+    await click('1回引く')
     expect(fake.store.hatchEgg).toHaveBeenCalledWith('default')
   })
 
@@ -583,10 +583,10 @@ describe('画面の表示', () => {
     fake.store.gachas = [gachas[0], gacha('g1', '脚まつり', { createdAt: 1 })]
     fake.store.defs = [...defs, { id: 'r1', name: 'ツノウサ', attr: 'legs', templateId: 'linear3', images: {}, rarity: 'rare', gachas: ['g1'], createdAt: 5 }]
     const el = await render(<Shop go={go} />)
-    expect(el.textContent).toContain('「いつものガチャ」を引く') // 引けるガチャが選ばれている
-    await tapBanner('脚まつり')
+    expect(el.querySelector('.gacha-tab.on')!.textContent).toBe('いつものガチャ') // 引けるガチャが選ばれている
+    await tapTab('脚まつり')
     expect(el.textContent).toContain('準備中：ピックアップ（レア以上）があと2体')
-    expect(el.textContent).not.toContain('「脚まつり」を引く')
+    expect(el.textContent).not.toContain('1回引く')
   })
 
   it('ガチャ作成：レア以上からピックアップを選ぶと、その場で確率が出る', async () => {
@@ -800,10 +800,52 @@ describe('画面の表示', () => {
     expect(chest.querySelector('button')!.disabled).toBe(true)
   })
 
+  it('BOX：アイコンの一覧を並び替え・属性で絞り込みできる', async () => {
+    fake.store.defs = [{ ...defs[0], element: 'fire' }, { ...defs[1], element: 'water' }]
+    fake.store.owned = [owned[0], { id: 'o2', defId: 'm2', nodeId: 'n1', obtainedAt: 5 }]
+    fake.store.state = { ...state, partners: { mon1: 'o1' } }
+    const el = await render(<Box go={go} />)
+    const names = () => [...el.querySelectorAll('.box-cell')].map((c) => c.getAttribute('aria-label'))
+    expect(names()).toEqual(['アシガメ', 'ムキドラゴ']) // 入手が新しい順
+    expect(el.querySelector('.box-cell[aria-label="ムキドラゴ"] .box-partner')).not.toBeNull() // 相棒マーク
+    await click('攻撃力')
+    expect(names()).toEqual(['ムキドラゴ', 'アシガメ'])
+    const filter = el.querySelector('[aria-label="属性で絞り込み"]')!
+    await act(async () => [...filter.querySelectorAll('button')].find((b) => b.textContent === '水')!.click())
+    expect(names()).toEqual(['アシガメ'])
+  })
+
+  it('習慣：1分・3分から記録でき、タイマーでも計れる', async () => {
+    const { HabitCard } = await import('../components/HabitCard')
+    fake.store.state = { ...state, habitMode: 'minutes', habitLabel: '瞑想' }
+    await render(<HabitCard />)
+    await click('3分')
+    expect(fake.store.recordHabit).toHaveBeenCalledWith(3)
+    await click('タイマーではじめる')
+    expect(container.textContent).toContain('終わる（0分を記録）')
+    await click('やめる')
+    expect(container.textContent).toContain('タイマーではじめる')
+  })
+
+  it('ショップ：まとめて引くと、結果が一覧で出る', async () => {
+    fake.store.state = { ...state, eggs: 4 }
+    fake.store.hatchMany = vi.fn(() => [
+      { def: defs[0], monsterId: 'a', shiny: false, pity: false },
+      { def: { ...defs[1], rarity: 'superRare' }, monsterId: 'b', shiny: false, pity: true },
+    ])
+    const el = await render(<Shop go={go} />)
+    await click('4連で引く')
+    expect(fake.store.hatchMany).toHaveBeenCalledWith('default', 4)
+    expect(el.textContent).toContain('2連の結果')
+    expect(el.querySelector('.multi-cell.rarity-superRare')!.textContent).toContain('激レア・確定')
+    await act(async () => (el.querySelector('.multi-cell.rarity-superRare') as HTMLButtonElement).click())
+    expect(go).toHaveBeenCalledWith({ name: 'monster', id: 'b' })
+  })
+
   it('ショップ：天井で激レアが出ると演出に出る', async () => {
     fake.store.hatchEgg = vi.fn(() => ({ def: { ...defs[1], rarity: 'superRare' }, monsterId: 'o2', shiny: false, pity: true }))
     const shop = await render(<Shop go={go} />)
-    await click('を引く')
+    await click('1回引く')
     await click('スキップ')
     expect(shop.textContent).toContain('天井で確定！')
     expect(shop.textContent).toContain('激レア！')
@@ -814,7 +856,7 @@ describe('画面の表示', () => {
     try {
       fake.store.hatchEgg = vi.fn(() => ({ def: { ...defs[1], rarity: 'superRare' }, monsterId: 'o2', shiny: false, pity: false }))
       const shop = await render(<Shop go={go} />)
-      await click('を引く')
+      await click('1回引く')
       expect(shop.querySelector('.hatch-egg.shaking')).not.toBeNull()
       await act(async () => vi.advanceTimersByTime(1100))
       expect(shop.querySelector('.glow-superRare .hatch-glow')).not.toBeNull()

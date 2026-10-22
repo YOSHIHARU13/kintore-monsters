@@ -1,13 +1,38 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { formatClock } from '../lib/date'
 import { useStore } from '../store'
 import { CONFIG } from '../config/gameConfig'
 import { habitGoldNow, habitLabelOf } from '../lib/rewards'
+
+const TIMER_KEY = 'habitTimerStartedAt'
 
 /** 習慣（瞑想など）を、やった直後にその場で記録する。Gもその場でもらえる */
 export function HabitCard() {
   const { state, today, recordHabit } = useStore()
   const [minutesText, setMinutesText] = useState('')
   const [flash, setFlash] = useState<string | null>(null)
+  // タイマー：はじめた時刻から数える（画面を閉じても、戻ってきたら続きから）
+  const [startedAt, setStartedAt] = useState<number | null>(() => {
+    try {
+      const saved = Number(localStorage.getItem(TIMER_KEY))
+      return saved > 0 ? saved : null
+    } catch {
+      return null
+    }
+  })
+  const [now, setNow] = useState(Date.now())
+  useEffect(() => {
+    try {
+      if (startedAt) localStorage.setItem(TIMER_KEY, String(startedAt))
+      else localStorage.removeItem(TIMER_KEY)
+    } catch {
+      // 保存できなくてもタイマーは動く
+    }
+    if (!startedAt) return
+    const t = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [startedAt])
+  const elapsedSec = startedAt ? Math.max(0, (now - startedAt) / 1000) : 0
   const label = habitLabelOf(state)
   const byMinutes = state.habitMode === 'minutes'
   const todayMinutes = state.habitDate === today ? state.habitMinutesToday : 0
@@ -35,12 +60,35 @@ export function HabitCard() {
       {byMinutes ? (
         <>
           <div className="row wrap">
-            {[5, 10, 15, 20].map((m) => (
+            {[1, 3, 5, 10].map((m) => (
               <button key={m} className="btn" onClick={() => record(m)}>
                 {m}分（+{habitGoldNow(state, today, m)}G）
               </button>
             ))}
           </div>
+          {startedAt === null ? (
+            <button className="btn wide" onClick={() => setStartedAt(Date.now())}>
+              ▶ タイマーではじめる
+            </button>
+          ) : (
+            <div className="habit-timer">
+              <strong className="num">{formatClock(elapsedSec)}</strong>
+              <button
+                className="btn primary"
+                onClick={() => {
+                  const m = Math.floor(elapsedSec / 60)
+                  setStartedAt(null)
+                  if (m >= 1) record(m)
+                  else setFlash('1分たっていないので、記録しませんでした')
+                }}
+              >
+                終わる（{Math.floor(elapsedSec / 60)}分を記録）
+              </button>
+              <button className="btn small ghost" onClick={() => setStartedAt(null)}>
+                やめる
+              </button>
+            </div>
+          )}
           <div className="row">
             <input
               type="number"

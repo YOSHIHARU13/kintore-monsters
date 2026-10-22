@@ -881,6 +881,16 @@ details.fold[open] > summary {
   font-weight: 700;
 }
 
+.habit-timer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.habit-timer strong {
+  font-size: 1.8rem;
+}
+
 /* 登録・編集の一覧 */
 .tile.todo {
   border-color: var(--warn);
@@ -1100,6 +1110,37 @@ details.tuning[open] > summary {
     transform: translateY(40px);
     opacity: 0;
   }
+}
+
+.box-cell {
+  padding-top: 6px;
+}
+.box-cell .frame {
+  padding: 2px;
+}
+.box-cell .frame-plus {
+  font-size: 0.6rem;
+  padding: 0 4px;
+}
+.box-name {
+  font-size: 0.6rem;
+  font-weight: 700;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.box-partner {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  z-index: 2;
+  font-size: 0.6rem;
+  font-weight: 900;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--primary);
+  color: var(--primary-text);
 }
 
 /* クエストの格 */
@@ -1336,6 +1377,101 @@ details.tuning[open] > summary {
   .slide-hero .hero-monster {
     animation: none;
   }
+}
+
+/* ガチャの画面：タブ・大きいバナー・引くボタン */
+.gacha-stage {
+  gap: 10px;
+}
+.gacha-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.gacha-tabs::-webkit-scrollbar {
+  display: none;
+}
+.gacha-tab {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--card2);
+  font-weight: 700;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.gacha-tab.on {
+  background: var(--primary);
+  color: var(--primary-text);
+  border-color: var(--primary);
+}
+.gacha-tab.add {
+  width: 34px;
+  padding: 6px 0;
+}
+.gacha-stage .slide {
+  aspect-ratio: 1.9 / 1;
+  min-height: 170px;
+}
+.gacha-stage .slide-hero .hero-monster .monster-img {
+  width: 190px !important;
+  height: 190px !important;
+}
+.egg-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.egg-bar > span {
+  flex: 1;
+}
+.pull-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.pull-buttons .btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 8px;
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+.pull-many {
+  background: linear-gradient(120deg, #ff8a3d, #ffd166);
+}
+.multi-reveal {
+  max-width: 440px;
+}
+.multi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+.multi-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 2px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  animation: pop 0.35s both;
+}
+.multi-cell.rarity-rare {
+  border-color: #4cc9f0;
+}
+.multi-cell.rarity-superRare {
+  border-color: #ffd166;
+  box-shadow: 0 0 14px #ff4fd8;
+}
+.multi-cell.shiny-cell {
+  box-shadow: 0 0 14px #fff;
 }
 
 /* ガチャ */

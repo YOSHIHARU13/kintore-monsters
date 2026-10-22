@@ -115,6 +115,13 @@ export interface MonsterDefInput {
 
 export type QuestInput = Omit<Quest, 'id' | 'createdAt'> & { id?: string }
 
+export interface HatchResult {
+  def: MonsterDef
+  monsterId: string
+  shiny: boolean
+  pity: boolean // 天井で確定したか
+}
+
 export interface QuestReward {
   monsterId: string | null // 手に入ったボス（素材クエストでは null）
   cores: number // 落ちた核の数
@@ -190,7 +197,9 @@ interface Store {
   buyExp: (attr: Attr, amount: number) => void
   buyEgg: () => void
   /** タマゴを孵す。選んだガチャから、確率どおりに1体（ダブりあり） */
-  hatchEgg: (gachaId: string) => { def: MonsterDef; monsterId: string; shiny: boolean; pity: boolean } | null
+  hatchEgg: (gachaId: string) => HatchResult | null
+  /** まとめて引く（タマゴの数まで）。引けた分だけ返す */
+  hatchMany: (gachaId: string, count: number) => HatchResult[]
   /** ガチャを作る・編集する。保存したガチャのID */
   saveGacha: (input: GachaInput) => Promise<string>
   /** ガチャを消す（入っていたモンスターはそのガチャから外れる）。「いつものガチャ」は消せない */
@@ -463,34 +472,44 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       updateState({ gold: increment(-CONFIG.shop.eggPrice), eggs: increment(1) })
     }
 
-    const hatchEgg: Store['hatchEgg'] = (gachaId) => {
+    // count 回まとめて引く。1回ずつ天井の回数を数え直し、1つの書き込みにまとめる
+    const hatchMany: Store['hatchMany'] = (gachaId, count) => {
       const gacha = gachas.find((g) => g.id === gachaId)
-      if (!gacha || state.eggs <= 0) return null
+      const times = Math.min(count, state.eggs)
+      if (!gacha || times <= 0) return []
       // 隠しモンスターはタマゴからは生まれない（rateTable が外す）
       const table = rateTable(gacha.id, defs)
-      if (!isReady(gacha, table)) return null
-      const pulls = state.pity[gacha.id] ?? 0
-      const pity = isPity(pulls, table)
-      const def = draw(table, pulls, Math.random())
-      if (!def) return null
-      const shiny = Math.random() < gacha.shinyRate
-      const ref = doc(collection(db, base, 'ownedMonsters'))
+      if (!isReady(gacha, table)) return []
       const batch = writeBatch(db)
-      batch.set(ref, {
-        defId: def.id,
-        nodeId: FIRST_NODE_ID,
-        investedBy: {},
-        investedFrom: {},
-        shiny,
-        obtainedAt: Date.now(),
-      })
-      const update: DocumentData = { eggs: increment(-1) }
-      if (shiny) update[`dexShiny.${def.id}`] = true
-      update[`pity.${gacha.id}`] = rarityOf(def) === CONFIG.gacha.pity.rarity ? 0 : pulls + 1
+      const update: DocumentData = {}
+      let pulls = state.pity[gacha.id] ?? 0
+      const results: HatchResult[] = []
+      for (let i = 0; i < times; i++) {
+        const pity = isPity(pulls, table)
+        const def = draw(table, pulls, Math.random())
+        if (!def) break
+        const shiny = Math.random() < gacha.shinyRate
+        const ref = doc(collection(db, base, 'ownedMonsters'))
+        batch.set(ref, {
+          defId: def.id,
+          nodeId: FIRST_NODE_ID,
+          investedBy: {},
+          investedFrom: {},
+          shiny,
+          obtainedAt: Date.now() + i, // まとめて引いても入手順がずれないように
+        })
+        if (shiny) update[`dexShiny.${def.id}`] = true
+        pulls = rarityOf(def) === CONFIG.gacha.pity.rarity ? 0 : pulls + 1
+        results.push({ def, monsterId: ref.id, shiny, pity })
+      }
+      update.eggs = increment(-results.length)
+      update[`pity.${gacha.id}`] = pulls
       batch.update(stateRef, update)
       batch.commit().catch(fail)
-      return { def, monsterId: ref.id, shiny, pity }
+      return results
     }
+
+    const hatchEgg: Store['hatchEgg'] = (gachaId) => hatchMany(gachaId, 1)[0] ?? null
 
     const findMonster = (monsterId: string) => {
       const mon = owned.find((o) => o.id === monsterId)
@@ -935,6 +954,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       buyExp,
       buyEgg,
       hatchEgg,
+      hatchMany,
       pourExp,
       evolve,
       pourPlusExp,
