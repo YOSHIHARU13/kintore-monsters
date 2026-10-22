@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { useStore } from '../store'
+import { bulkFeedTarget, planBulkFeed, protectedIds } from '../lib/fusion'
 import { SeriesChips } from '../components/SeriesChips'
 import { inSeries, seriesOf, type SeriesFilter } from '../lib/series'
 import { FORM_ATTRS, FORM_ATTR_LABEL, type FormAttr } from '../data/exercises'
 import { MonsterImage } from '../components/MonsterImage'
-import { CONFIG } from '../config/gameConfig'
 import { Stars } from '../components/Stars'
 import { MonsterTabs } from '../components/MonsterTabs'
 import type { Go } from '../nav'
@@ -24,7 +24,11 @@ const rarityRank = (def: MonsterDef) => (isHidden(def) ? RARITY_KEYS.length : RA
 
 /** BOX：モンストのように小さいアイコンを並べる。並び替えと絞り込みつき */
 export function Box({ go }: { go: Go }) {
-  const { owned, defs, state } = useStore()
+  const { owned, defs, state, today, bulkFeed } = useStore()
+  const [confirmFeed, setConfirmFeed] = useState(false)
+  const [fedMsg, setFedMsg] = useState<string | null>(null)
+  const feedPlans = planBulkFeed(owned, defs, protectedIds(state, today), starsOf, bulkFeedTarget)
+  const feedCount = feedPlans.reduce((n, p) => n + p.foodIds.length, 0)
   const [sort, setSort] = useState<Sort>(() => {
     try {
       return (localStorage.getItem(SORT_KEY) as Sort) || 'new'
@@ -72,8 +76,23 @@ export function Box({ go }: { go: Go }) {
       <MonsterTabs on="box" go={go} />
       <div className="dex-head">
         <strong>所持 {owned.length}体</strong>
-        <span className="muted small">合体で＋（最大＋{CONFIG.fusion.maxPlus}）</span>
       </div>
+      {feedCount > 0 && (
+        <button
+          className={`btn wide${confirmFeed ? ' primary' : ''}`}
+          onClick={() => {
+            if (!confirmFeed) return setConfirmFeed(true)
+            const r = bulkFeed()
+            setConfirmFeed(false)
+            setFedMsg(`${r.fed}体を、${r.kept}体に合成して運を上げました`)
+          }}
+        >
+          {confirmFeed
+            ? `本当に${feedCount}体を合成する（激レア・相棒・出撃中は残します）`
+            : `🍖 ノーマル以下のダブり${feedCount}体を、いちばん育っている子にまとめて合成`}
+        </button>
+      )}
+      {fedMsg && <div className="result keep">{fedMsg}</div>}
       <div className="chips" role="group" aria-label="並び替え">
         {(Object.keys(SORT_LABEL) as Sort[]).map((s) => (
           <button key={s} type="button" className={`chip small${sort === s ? ' on' : ''}`} onClick={() => changeSort(s)}>

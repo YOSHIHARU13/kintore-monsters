@@ -147,3 +147,9 @@ export function activeToday(
 }
 
 export const ACTIVE_HINT = '今日、筋トレ1セット・習慣・朝の歩数の記録のどれか1つをやると受け取れます'
+
+/** ログインボーナスは、昨日の歩数を記録してから受け取れる（開くだけではもらえない） */
+export function loginReady(state: Pick<GameState, 'lastCheckinDate'>, yesterday: string): boolean {
+  return state.lastCheckinDate === yesterday
+}
+export const LOGIN_HINT = '昨日の歩数を記録すると受け取れます（ホームの「朝の記録」から）'

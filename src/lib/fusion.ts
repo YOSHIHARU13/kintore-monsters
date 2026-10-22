@@ -1,6 +1,7 @@
 import { CONFIG } from '../config/gameConfig'
 import { elementInfo } from './element'
-import type { MonsterDef, OwnedMonster } from '../types'
+import { rarityOf } from './gacha'
+import { isHidden, type GameState, type MonsterDef, type OwnedMonster } from '../types'
 
 /**
  * ＋の素材にできるか：同じ属性を持つ、別のモンスター（無属性どうしもOK）。
@@ -37,4 +38,56 @@ export function luckAfter(base: Pick<OwnedMonster, 'luck'>, food: Pick<OwnedMons
 export function luckBonus(party: Pick<OwnedMonster, 'luck'>[]): { count: number; goldRate: number; coreRate: number } {
   const count = party.filter(isLuckMax).length
   return { count, goldRate: 1 + CONFIG.luck.goldBonus * count, coreRate: CONFIG.luck.coreBonus * count }
+}
+
+export interface FeedPlan {
+  keeperId: string // 運を集める1体
+  foodIds: string[] // 食べさせる（いなくなる）個体
+  luck: number // 食べさせたあとの運
+}
+
+/**
+ * ダブりをまとめて合成：ノーマル以下のモンスターごとに、いちばん育っている1体に同じモンスターを食べさせる。
+ * 相棒・出撃中など keep に入っている個体は食べさせない（あれば、その子に集める）。運が最大になったら止める。
+ */
+export function bulkFeedTarget(def: MonsterDef): boolean {
+  return !isHidden(def) && rarityOf(def) !== 'superRare'
+}
+
+/** 守る個体：相棒と、今日出撃しているメンバー */
+export function protectedIds(state: Pick<GameState, 'partners' | 'challenge'>, today: string): Set<string> {
+  return new Set([...Object.values(state.partners), ...(state.challenge?.date === today ? state.challenge.party : [])])
+}
+
+export function planBulkFeed(
+  owned: OwnedMonster[],
+  defs: MonsterDef[],
+  keep: Set<string>,
+  starsOf: (def: MonsterDef, nodeId: string) => number,
+  isTarget: (def: MonsterDef) => boolean,
+): FeedPlan[] {
+  const plans: FeedPlan[] = []
+  for (const def of defs.filter(isTarget)) {
+    const mons = owned.filter((o) => o.defId === def.id)
+    if (mons.length < 2) continue
+    const ranked = [...mons].sort(
+      (a, b) =>
+        Number(keep.has(b.id)) - Number(keep.has(a.id)) ||
+        starsOf(def, b.nodeId) - starsOf(def, a.nodeId) ||
+        luckOf(b) - luckOf(a) ||
+        a.obtainedAt - b.obtainedAt,
+    )
+    const keeper = ranked[0]
+    let luck = luckOf(keeper)
+    const foodIds: string[] = []
+    // 育っていない子から食べさせる
+    for (const m of ranked.slice(1).reverse()) {
+      if (luck >= CONFIG.luck.max) break
+      if (keep.has(m.id)) continue
+      luck = luckAfter({ luck }, m)
+      foodIds.push(m.id)
+    }
+    if (foodIds.length > 0) plans.push({ keeperId: keeper.id, foodIds, luck })
+  }
+  return plans
 }

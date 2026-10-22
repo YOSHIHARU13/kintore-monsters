@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { canFeed, fusionGain, isLuckMax, luckAfter, luckBonus } from './fusion'
-import type { MonsterDef } from '../types'
+import { canFeed, fusionGain, isLuckMax, luckAfter, luckBonus, planBulkFeed } from './fusion'
+import type { MonsterDef, OwnedMonster } from '../types'
 
 const def = (id: string, extra: Partial<MonsterDef> = {}): MonsterDef => ({
   id, name: id, attr: 'chestArms', templateId: 'linear3', images: {}, createdAt: 0, ...extra,
@@ -33,5 +33,32 @@ describe('運', () => {
   it('運極ボーナス：1体につき報酬G+20%、核+10%', () => {
     expect(luckBonus([{ luck: 99 }, { luck: 99 }, { luck: 5 }])).toEqual({ count: 2, goldRate: 1.4, coreRate: 0.2 })
     expect(luckBonus([])).toEqual({ count: 0, goldRate: 1, coreRate: 0 })
+  })
+})
+
+describe('ダブりをまとめて合成', () => {
+  const def = (id: string, rarity: 'hazure' | 'normal' | 'superRare') => ({ id, name: id, templateId: 'linear3', images: {}, rarity, createdAt: 0 }) as MonsterDef
+  const mon = (id: string, defId: string, nodeId = 'n1', luck = 1, obtainedAt = 0) => ({ id, defId, nodeId, luck, obtainedAt }) as OwnedMonster
+  const stars = (_d: MonsterDef, nodeId: string) => Number(nodeId.slice(1))
+  const target = (d: MonsterDef) => d.rarity !== 'superRare'
+
+  it('いちばん育っている1体に、同じモンスターを集める。激レアと相棒は対象外', () => {
+    const defs = [def('h', 'hazure'), def('n', 'normal'), def('s', 'superRare')]
+    const owned = [
+      mon('h1', 'h', 'n1', 10), mon('h2', 'h', 'n3', 10), mon('h3', 'h', 'n1', 10),
+      mon('n1', 'n', 'n1'), mon('n2', 'n', 'n2'), mon('n3', 'n', 'n1'),
+      mon('s1', 's'), mon('s2', 's'),
+    ]
+    const plans = planBulkFeed(owned, defs, new Set(['n3']), stars, target)
+    expect(plans).toEqual([
+      { keeperId: 'h2', foodIds: expect.arrayContaining(['h1', 'h3']), luck: 30 },
+      { keeperId: 'n3', foodIds: expect.arrayContaining(['n1', 'n2']), luck: 3 }, // 相棒がいればその子に集める
+    ])
+  })
+  it('運が最大になったら、それ以上は食べさせない', () => {
+    const owned = [mon('a', 'h', 'n1', 95), mon('b', 'h', 'n1', 10), mon('c', 'h', 'n1', 10)]
+    const plans = planBulkFeed(owned, [def('h', 'hazure')], new Set(), stars, target)
+    expect(plans[0].foodIds).toHaveLength(1)
+    expect(plans[0].luck).toBe(99)
   })
 })

@@ -25,17 +25,17 @@ import { fusionCost, isExpFull, nextCost, planPour } from './lib/evolution'
 import { habitGoldNow, stepsGold } from './lib/rewards'
 import { isWeekCleared } from './lib/week'
 import { compressImage } from './lib/imageCompress'
-import { draw, isPickupRarity, isPity, isReady, rarityOf, rateTable } from './lib/gacha'
+import { draw, isPickupRarity, isPity, isReady, rarityOf, rateTable, starsOf } from './lib/gacha'
 import { isJogressReady } from './lib/stats'
 import { battleOf, dropPlus, isStrict, questGold } from './lib/quest'
 import { rollBonusCore, rollCoreDrop } from './lib/cores'
-import { canFeed, fusionGain, isLuckMax, luckAfter, luckBonus } from './lib/fusion'
+import { bulkFeedTarget, canFeed, fusionGain, isLuckMax, luckAfter, luckBonus, planBulkFeed, protectedIds } from './lib/fusion'
 import { autoPartners } from './lib/partner'
 import { finalAttrs, recommend } from './lib/coverage'
 import { abilitySlots, jogressGradeOf, selectableGimmicks } from './lib/gimmick'
 import { boostActive } from './lib/boosters'
 import { availableEvents, claimKey } from './lib/events'
-import { activeToday, currentStats, loginReward, type Reward } from './lib/missions'
+import { activeToday, currentStats, loginReady, loginReward, type Reward } from './lib/missions'
 import { builtinMaterialQuests } from './lib/materials'
 import type { Period, Periods } from './lib/series'
 import { towerCleared, towerFloors, towerMonth, type TowerFloor } from './lib/tower'
@@ -250,6 +250,7 @@ interface Store {
   fuse: (monsterId: string, foodId: string) => void
   /** 同じモンスターをまとめて食べさせて運を上げる（タダ・最大99） */
   feedLuck: (monsterId: string, foodIds: string[]) => void
+  bulkFeed: () => { kept: number; fed: number }
   /** ＋5の2体を合わせて隠しモンスターを生む。生まれた個体のID */
   jogress: (monsterId: string, partnerId: string, hiddenDefId: string) => string | null
   saveMonsterDef: (input: MonsterDefInput) => Promise<void>
@@ -557,7 +558,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     /** ログインボーナス：1日1回 */
     const claimLogin: Store['claimLogin'] = () => {
       const key = `login:${dateKey()}`
-      if (state.claims?.[key] || !activeToday(state, todaySets, today, yesterday)) return null
+      if (state.claims?.[key] || !loginReady(state, yesterday)) return null
       const { reward } = loginReward(state)
       const update: DocumentData = { [`claims.${key}`]: true, loginDays: increment(1) }
       addReward(update, reward)
@@ -747,6 +748,21 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     }
 
     // 同じモンスターを食べさせて運を上げる（段階は問わない・タダ）。食べさせた側のEXPは財布に戻し、図鑑の発見も残す
+    /** ノーマル以下のダブりを、モンスターごとにいちばん育っている1体へまとめて食べさせる */
+    const bulkFeed: Store['bulkFeed'] = () => {
+      const plans = planBulkFeed(owned, defs, protectedIds(state, dateKey()), starsOf, bulkFeedTarget)
+      if (plans.length === 0) return { kept: 0, fed: 0 }
+      const update: DocumentData = {}
+      const batch = writeBatch(db)
+      const foods = plans.flatMap((p) => p.foodIds).map(findMonster).filter((f) => !!f)
+      consume(update, foods)
+      for (const p of plans) batch.update(doc(db, base, 'ownedMonsters', p.keeperId), { luck: p.luck })
+      for (const f of foods) batch.delete(doc(db, base, 'ownedMonsters', f.mon.id))
+      if (Object.keys(update).length > 0) batch.update(stateRef, update)
+      batch.commit().catch(fail)
+      return { kept: plans.length, fed: foods.length }
+    }
+
     const feedLuck: Store['feedLuck'] = (monsterId, foodIds) => {
       const found = findMonster(monsterId)
       if (!found || isLuckMax(found.mon)) return
@@ -1232,6 +1248,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       pourPlusExp,
       fuse,
       feedLuck,
+      bulkFeed,
       jogress,
       saveMonsterDef,
       autoTuneDefs,
