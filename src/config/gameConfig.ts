@@ -114,7 +114,16 @@ export const CONFIG = {
   // ガチャ：いくつでも作れる。モンスターは最大3つのガチャに入れられる
   gacha: {
     maxPerMonster: 3,
-    minPickups: 3, // 作ったガチャは、レア以上（ピックアップ）がこの数そろうとショップで引ける
+    minPickups: 3,
+    bannerMonsters: 3, // 自動バナーに出すモンスターの数
+    // 自動バナーのテーマ色
+    themes: {
+      flame: '炎',
+      ocean: '海',
+      forest: '森',
+      royal: '王',
+      night: '夜',
+    }, // 作ったガチャは、レア以上（ピックアップ）がこの数そろうとショップで引ける
     defaultId: 'default', // どのガチャにも入れていないモンスターが入るガチャ（消せない）
     defaultName: 'いつものガチャ',
     // レア度ごとの確率（合計1）。同じレア度のモンスターで山分けする

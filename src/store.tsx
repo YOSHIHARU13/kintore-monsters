@@ -93,7 +93,11 @@ export interface GachaInput {
   id?: string
   name: string
   shinyRate: number
+  catchphrase: string
+  theme: string
+  featured: string[]
   banner?: File
+  removeBanner?: boolean // 画像をやめて自動バナーにする
   pickups?: string[] // ピックアップにするモンスター（レア以上）の defId。いつものガチャでは使わない // 新しいバナー画像
 }
 
@@ -104,6 +108,9 @@ function toGacha(id: string, data: DocumentData | undefined): Gacha {
     name: data?.name?.trim() || (builtin ? CONFIG.gacha.defaultName : '名前のないガチャ'),
     bannerImageId: data?.bannerImageId ?? null,
     shinyRate: data?.shinyRate ?? CONFIG.shop.shinyRate,
+    catchphrase: data?.catchphrase ?? '',
+    theme: data?.theme ?? 'royal',
+    featured: data?.featured ?? [],
     createdAt: data?.createdAt ?? 0,
     builtin,
   }
@@ -644,11 +651,17 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         imageCache.set(imageRef.id, Promise.resolve(data))
         if (bannerImageId) batch.delete(doc(db, base, 'images', bannerImageId))
         bannerImageId = imageRef.id
+      } else if (input.removeBanner && bannerImageId) {
+        batch.delete(doc(db, base, 'images', bannerImageId))
+        bannerImageId = null
       }
       batch.set(ref, {
         name: input.name.trim(),
         bannerImageId,
         shinyRate: input.shinyRate,
+        catchphrase: input.catchphrase.trim(),
+        theme: input.theme,
+        featured: input.featured.slice(0, CONFIG.gacha.bannerMonsters),
         createdAt: current?.createdAt || Date.now(),
       })
       // ピックアップの出し入れは、モンスターの「入るガチャ」に書く（1体につき最大3つまで）

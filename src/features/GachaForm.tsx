@@ -3,7 +3,7 @@ import { useStore } from '../store'
 import { CONFIG } from '../config/gameConfig'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { MonsterImage } from '../components/MonsterImage'
-import { GachaBanner } from '../components/GachaBanner'
+import { GachaBanner, featuredOf } from '../components/GachaBanner'
 import { isPickupRarity, percent, pickupCount, rarityOf, rateTable, tierRates } from '../lib/gacha'
 import { Stars } from '../components/Stars'
 import type { Go } from '../nav'
@@ -15,6 +15,10 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
   const [name, setName] = useState(existing?.name ?? '')
   const [shinyRate, setShinyRate] = useState(existing?.shinyRate ?? CONFIG.shop.shinyRate)
   const [banner, setBanner] = useState<File | null>(null)
+  const [removeBanner, setRemoveBanner] = useState(false)
+  const [catchphrase, setCatchphrase] = useState(existing?.catchphrase ?? '')
+  const [theme, setTheme] = useState(existing?.theme ?? 'royal')
+  const [featured, setFeatured] = useState<string[]>(existing?.featured ?? [])
   const builtin = existing?.builtin ?? false
   const draftId = existing?.id ?? 'new'
   // ピックアップにできるのはレア以上（ハズレとノーマルはどのガチャにも入っている）
@@ -27,15 +31,6 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
   const [error, setError] = useState<string | null>(null)
 
   const preview = useMemo(() => (banner ? URL.createObjectURL(banner) : undefined), [banner])
-  // 編集中の内容で確率を計算し直す
-  const draft: Gacha = {
-    id: existing?.id ?? 'new',
-    name: name.trim() || '名前のないガチャ',
-    bannerImageId: existing?.bannerImageId ?? null,
-    shinyRate,
-    createdAt: existing?.createdAt ?? 0,
-    builtin: existing?.builtin ?? false,
-  }
   // 選んでいるピックアップで中身と確率を計算し直す（保存前でも見られる）
   const draftDefs = builtin
     ? defs
@@ -46,6 +41,18 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
       })
   const table = rateTable(draftId, draftDefs)
   const pickupNeed = Math.max(0, CONFIG.gacha.minPickups - pickupCount(table))
+  // 編集中の内容で確率を計算し直す
+  const draft: Gacha = {
+    id: existing?.id ?? 'new',
+    name: name.trim() || '名前のないガチャ',
+    bannerImageId: removeBanner ? null : (existing?.bannerImageId ?? null),
+    shinyRate,
+    catchphrase,
+    theme,
+    featured: featured.filter((f) => pickups.includes(f) || builtin),
+    createdAt: existing?.createdAt ?? 0,
+    builtin: existing?.builtin ?? false,
+  }
 
   const save = async () => {
     if (!name.trim()) {
@@ -55,7 +62,17 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
     setSaving(true)
     setError(null)
     try {
-      await saveGacha({ id: existing?.id, name, shinyRate, banner: banner ?? undefined, pickups: builtin ? undefined : pickups })
+      await saveGacha({
+        id: existing?.id,
+        name,
+        shinyRate,
+        catchphrase,
+        theme,
+        featured: draft.featured,
+        banner: banner ?? undefined,
+        removeBanner,
+        pickups: builtin ? undefined : pickups,
+      })
       go({ name: 'shop' })
     } catch (e) {
       console.error(e)
@@ -72,15 +89,84 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
       <h1 className="title">{existing ? 'ガチャの編集' : 'ガチャを作る'}</h1>
 
       <section className="card">
-        <GachaBanner gacha={draft} count={table.length} preview={preview} />
+        <GachaBanner gacha={draft} count={table.length} featured={featuredOf(draft, table)} preview={preview} />
         <label className="field">
           ガチャの名前
           <input value={name} onChange={(e) => setName(e.target.value)} maxLength={20} placeholder="例：脚ムキムキ祭り" />
         </label>
+        <label className="field">
+          キャッチコピー（バナーに出ます・省略可）
+          <input
+            value={catchphrase}
+            onChange={(e) => setCatchphrase(e.target.value)}
+            maxLength={24}
+            placeholder="例：伝説の脚竜、ついに降臨！"
+          />
+        </label>
+        <div className="field">
+          テーマ色
+          <div className="chips" role="group" aria-label="テーマ色">
+            {Object.entries(CONFIG.gacha.themes).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                className={`chip theme-chip theme-${key}${theme === key ? ' on' : ''}`}
+                onClick={() => setTheme(key)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {!builtin && pickups.length > 0 && (
+          <div className="field">
+            バナーに出すモンスター（{CONFIG.gacha.bannerMonsters}体まで・選ばなければレア度の高い順）
+            <div className="chips">
+              {candidates
+                .filter((d) => pickups.includes(d.id))
+                .map((d) => {
+                  const on = featured.includes(d.id)
+                  return (
+                    <button
+                      key={d.id}
+                      type="button"
+                      className={`chip${on ? ' on' : ''}`}
+                      disabled={!on && featured.length >= CONFIG.gacha.bannerMonsters}
+                      onClick={() => setFeatured(on ? featured.filter((x) => x !== d.id) : [...featured, d.id])}
+                    >
+                      {d.name}
+                    </button>
+                  )
+                })}
+            </div>
+          </div>
+        )}
+        <p className="muted small">
+          画像を選ぶと、自動のバナーの代わりにその画像を使います。
+        </p>
         <label className="btn small file-btn">
           バナー画像を選ぶ（横長がおすすめ）
-          <input type="file" accept="image/*" onChange={(e) => setBanner(e.target.files?.[0] ?? null)} />
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              setBanner(e.target.files?.[0] ?? null)
+              setRemoveBanner(false)
+            }}
+          />
         </label>
+        {(banner || (existing?.bannerImageId && !removeBanner)) && (
+          <button
+            type="button"
+            className="btn small ghost"
+            onClick={() => {
+              setBanner(null)
+              setRemoveBanner(true)
+            }}
+          >
+            画像をやめて自動のバナーにする
+          </button>
+        )}
         <div className="field">
           ✨色違いの確率
           <div className="chips">

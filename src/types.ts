@@ -94,6 +94,9 @@ export interface Gacha {
   name: string
   bannerImageId: string | null
   shinyRate: number
+  catchphrase: string // 自動バナーのキャッチコピー
+  theme: string // 自動バナーのテーマ色
+  featured: string[] // 自動バナーに出すモンスター（defId）。空ならピックアップから自動で
   createdAt: number
   builtin: boolean // 「いつものガチャ」（消せない）
 }

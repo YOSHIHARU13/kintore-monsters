@@ -65,7 +65,8 @@ const defs: MonsterDef[] = [
   { id: 'm2', name: 'アシガメ', attr: 'legs', templateId: 'linear3', images: {}, createdAt: 2 },
 ]
 const gacha = (id: string, name: string, extra: Partial<Gacha> = {}): Gacha => ({
-  id, name, bannerImageId: null, shinyRate: 1 / 20, createdAt: 0, builtin: id === 'default', ...extra,
+  id, name, bannerImageId: null, shinyRate: 1 / 20, catchphrase: '', theme: 'royal', featured: [], createdAt: 0,
+  builtin: id === 'default', ...extra,
 })
 const gachas: Gacha[] = [gacha('default', 'いつものガチャ')]
 const owned: OwnedMonster[] = [{ id: 'o1', defId: 'm1', nodeId: 'n2', invested: { trained: 250, bought: 250 }, obtainedAt: 1 }]
@@ -503,8 +504,23 @@ describe('画面の表示', () => {
         input.dispatchEvent(new Event('input', { bubbles: true }))
       })
     await type(el.querySelector('input')!, '脚まつり')
+    // 自動バナー：キャッチコピー・テーマ色・ピックアップの最終形態で組み立てる
+    await type(el.querySelector<HTMLInputElement>('input[placeholder^="例：伝説"]')!, '伝説の脚竜、降臨！')
+    await click('炎')
+    const banner = el.querySelector('.gacha-banner.auto.theme-flame')!
+    expect(banner.textContent).toContain('脚まつり')
+    expect(banner.textContent).toContain('伝説の脚竜、降臨！')
+    expect(banner.textContent).toContain('激レア登場')
+    expect(banner.querySelectorAll('.auto-monster')).toHaveLength(2)
+    const featuredChip = [...el.querySelectorAll('button.chip')].find((b) => b.textContent === 'カミドラ')!
+    await act(async () => (featuredChip as HTMLButtonElement).click())
+    expect(el.querySelector('.gacha-banner.auto')!.querySelectorAll('.auto-monster')).toHaveLength(1)
     await click('ガチャを作る')
-    expect(fake.store.saveGacha).toHaveBeenCalledWith(expect.objectContaining({ name: '脚まつり', pickups: ['r1', 's1'] }))
+    expect(fake.store.saveGacha).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: '脚まつり', pickups: ['r1', 's1'], catchphrase: '伝説の脚竜、降臨！', theme: 'flame', featured: ['s1'],
+      }),
+    )
   })
 
   it('ショップ：天井で激レアが出ると演出に出る', async () => {

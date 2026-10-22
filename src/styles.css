@@ -558,6 +558,122 @@ h2 {
   }
 }
 
+/* 自動バナー：テーマ色の背景＋放射線＋モンスター＋文字 */
+.gacha-banner.auto {
+  aspect-ratio: 3 / 1;
+  min-height: 108px;
+  --c1: #3a2a6b;
+  --c2: #b38b2a;
+  --c3: #12091f;
+  background: radial-gradient(circle at 75% 55%, var(--c2), transparent 62%),
+    linear-gradient(120deg, var(--c3), var(--c1));
+  align-items: stretch;
+}
+.theme-flame {
+  --c1: #8a1c1c;
+  --c2: #ff8a3d;
+  --c3: #2a0707;
+}
+.theme-ocean {
+  --c1: #0d3b66;
+  --c2: #4cc9f0;
+  --c3: #04121f;
+}
+.theme-forest {
+  --c1: #1b4d2b;
+  --c2: #9be564;
+  --c3: #06150b;
+}
+.theme-royal {
+  --c1: #3a2a6b;
+  --c2: #ffd166;
+  --c3: #12091f;
+}
+.theme-night {
+  --c1: #1a1a3a;
+  --c2: #b388ff;
+  --c3: #05050f;
+}
+.theme-chip.on {
+  background: linear-gradient(120deg, var(--c1), var(--c2));
+  color: #fff;
+  border-color: var(--c2);
+}
+.auto-rays {
+  position: absolute;
+  inset: -50%;
+  background: repeating-conic-gradient(from 0deg at 75% 55%, rgba(255, 255, 255, 0.13) 0 6deg, transparent 6deg 18deg);
+  animation: spin 40s linear infinite;
+  pointer-events: none;
+}
+.auto-monsters {
+  position: absolute;
+  right: 6px;
+  bottom: 0;
+  top: 0;
+  width: 58%;
+}
+.auto-monster {
+  position: absolute;
+  bottom: 4px;
+  line-height: 0;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6));
+}
+.auto-monster .monster-img {
+  background: transparent;
+}
+.auto-monster.m0 {
+  right: 22%;
+  z-index: 3;
+}
+.auto-monster.m1 {
+  right: 0;
+  bottom: 14px;
+  z-index: 2;
+}
+.auto-monster.m2 {
+  right: 52%;
+  bottom: 14px;
+  z-index: 1;
+}
+.auto-text {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 2px;
+  padding: 10px 12px;
+  max-width: 62%;
+  color: #fff;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.85);
+}
+.auto-title {
+  font-size: 1.25rem;
+  font-weight: 900;
+  line-height: 1.15;
+}
+.auto-catch {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #ffe9a8;
+}
+.auto-badge {
+  align-self: flex-start;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 1px 8px;
+  border-radius: 999px;
+  color: #1b1400;
+  background: linear-gradient(90deg, #ffd166, #ff8be6);
+  text-shadow: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .auto-rays {
+    animation: none;
+  }
+}
+
 /* ガチャ */
 .rarity-row {
   display: flex;
