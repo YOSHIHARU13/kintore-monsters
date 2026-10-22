@@ -5,6 +5,7 @@ import { partProgress, slotDone, weekCount } from '../lib/week'
 import { ATTR_COLOR, type Go } from '../nav'
 import { MusicButtons } from '../music'
 import { MonsterImage } from '../components/MonsterImage'
+import { BattleBar } from '../components/BattleBar'
 import { partnerOf, rateText } from '../lib/partner'
 
 export function Training({ go }: { go: Go }) {
@@ -64,6 +65,7 @@ export function Training({ go }: { go: Go }) {
   return (
     <div className="page">
       <MusicButtons />
+      <BattleBar go={go} />
       {songs.length === 0 && (
         <button className="btn small" onClick={() => go({ name: 'settings' })}>
           🎵 トレーニング中に流す曲を設定する

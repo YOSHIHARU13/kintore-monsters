@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { advantageAttr, affinity, checkinHits, questHits, setHit, standardWeekDamage } from './quest'
+import { advantageAttr, affinity, questHits, setHit, standardSessionDamage } from './quest'
 import type { MonsterDef, OwnedMonster, Quest, SetRecord } from '../types'
 
 const def = (id: string, extra: Partial<MonsterDef> = {}): MonsterDef => ({
@@ -55,27 +55,23 @@ describe('クエスト', () => {
     expect(b / a).toBeCloseTo((6 * 1.5) / 2) // ★6＋5 と ★2
   })
 
-  it('歩数と習慣は全員で攻撃する', () => {
-    const party = [{ mon: mon('c', 'c'), def: def('c') }, { mon: mon('l', 'l'), def: def('l', { attr: 'legs' }) }]
-    const hits = checkinHits(
-      { date: 'd', steps: 8000, habit: true, habitLabel: '瞑想', habitMinutes: 10, streak: 1, stepsGold: 0, habitGold: 0, ts: 0 },
-      quest,
-      party,
-    )
-    // 歩数：8 × (2×2 + 2×1) = 48、習慣：10 × 0.5 × 6 = 30
-    expect(hits.map((h) => h.damage)).toEqual([48, 30])
-  })
-
   it('報酬の対象外のセットは数えない', () => {
     const party = [{ mon: mon('c', 'c'), def: def('c') }]
     const sets = [
       { ...set('mon2', 'mon'), id: '1', exerciseId: 'x', ts: 1, setNo: 1, weightKg: 0, reps: 0, target: null, exp: 0, gold: 0 },
       { ...set('mon2', 'mon', { eligible: false }), id: '2', exerciseId: 'x', ts: 2, setNo: 2, weightKg: 0, reps: 0, target: null, exp: 0, gold: 0 },
     ] as SetRecord[]
-    expect(questHits(quest, party, sets, [], () => 'x')).toHaveLength(1)
+    expect(questHits(quest, party, sets, new Set(), () => 'x')).toHaveLength(1)
   })
 
-  it('HPの目安は1週間ぶんの標準的なダメージ', () => {
-    expect(standardWeekDamage()).toBeGreaterThan(1000)
+  it('HPの目安は1回のトレーニングぶん：★4が各属性2体で、1部位15セット＋ローラー3セット', () => {
+    expect(standardSessionDamage()).toBe(15 * 10 * 4 * 2 + 3 * 4 * 4 * 6)
+  })
+
+  it('連日特攻：前の日にもトレーニングしていれば効く', () => {
+    const q2 = { ...quest, weakSkill: 'streak' }
+    const m = { mon: mon('c', 'c'), def: def('c', { skill: 'streak' }) }
+    const plain = setHit(set('mon2', 'mon'), q2, [m], new Set(), '').damage
+    expect(setHit(set('mon2', 'mon'), q2, [m], new Set(['2026-10-04']), '').damage).toBe(plain * 2)
   })
 })

@@ -2,7 +2,7 @@ import { CONFIG } from '../config/gameConfig'
 import { DAYS, type Attr, type FormAttr } from '../data/exercises'
 import { prevDateKey } from './date'
 import { starsOf } from './gacha'
-import { nodeAttr, type Checkin, type MonsterDef, type OwnedMonster, type Quest, type QuestDifficulty, type SetRecord } from '../types'
+import { nodeAttr, type Challenge, type MonsterDef, type OwnedMonster, type Quest, type QuestDifficulty, type SetRecord } from '../types'
 
 export const DIFFICULTIES: QuestDifficulty[] = ['easy', 'normal', 'hard']
 
@@ -90,57 +90,68 @@ export function setHit(set: SetInfo, quest: Quest, party: Member[], trainedDates
   return { label, damage: Math.round(damage), notes: [...notes] }
 }
 
-/** 朝の記録（歩数・習慣）ぶんのダメージ。全員で攻撃する */
-export function checkinHits(checkin: Checkin, quest: Quest, party: Member[]): Hit[] {
-  const q = CONFIG.quest
-  const all = party.length > 0 ? party : []
-  const hit = (label: string, base: number, skillKey: string): Hit => {
-    if (base <= 0) return { label, damage: 0, notes: [] }
-    const notes: string[] = []
-    if (all.length === 0) return { label, damage: Math.round(base), notes: ['素手'] }
-    let damage = 0
-    for (const m of all) {
-      let d = base * powerOf(m) * affinity(attrOf(m), quest.attr)
-      if (m.def.skill === skillKey && quest.weakSkill === skillKey) {
-        d *= q.skill
-        notes.push(`${m.def.name}の${CONFIG.skills[skillKey]}`)
-      }
-      damage += d
-    }
-    return { label, damage: Math.round(damage), notes }
-  }
-  const habitPoints = checkin.habitMinutes ?? (checkin.habit ? q.habitCheckPoints : 0)
-  return [
-    hit(`${checkin.steps.toLocaleString()}歩`, Math.floor(checkin.steps / 1000) * q.stepsDamagePer1000, 'steps'),
-    hit(`習慣 ${checkin.habitMinutes !== undefined ? `${checkin.habitMinutes}分` : checkin.habit ? '○' : '×'}`, habitPoints * q.habitDamagePerPoint, 'habit'),
-  ].filter((h) => h.damage > 0)
-}
-
-/** 挑戦を始めてからの全部の攻撃 */
+/** 挑戦を始めてからの攻撃（報酬が出るセットだけ数える）。trainedDates は連日特攻の判定に使う、トレーニングした日 */
 export function questHits(
   quest: Quest,
   party: Member[],
   sets: (SetRecord & { weightUp?: boolean; extra?: boolean })[],
-  checkins: Checkin[],
+  trainedDates: Set<string>,
   exerciseName: (slotId: string) => string,
 ): Hit[] {
-  const dates = new Set(sets.map((s) => s.date))
-  const counted = sets.filter((s) => s.eligible)
   const perSlot: Record<string, number> = {}
-  const setHits = counted.map((s) => {
-    perSlot[s.slotId] = (perSlot[s.slotId] ?? 0) + 1
-    return setHit(s, quest, party, dates, `${exerciseName(s.slotId)} ${perSlot[s.slotId]}セット目`)
-  })
-  return [...setHits, ...checkins.flatMap((c) => checkinHits(c, quest, party))]
+  return sets
+    .filter((s) => s.eligible)
+    .map((s) => {
+      perSlot[s.slotId] = (perSlot[s.slotId] ?? 0) + 1
+      return setHit(s, quest, party, trainedDates, `${exerciseName(s.slotId)} ${perSlot[s.slotId]}セット目`)
+    })
 }
 
-/** HPの目安：★4を3体（胸腕・脚・背肩が1体ずつ）、相性・弱点なしで、1週間ぜんぶやったときのダメージ */
-export function standardWeekDamage(): number {
+/**
+ * HPの目安：1回のトレーニングで与えるダメージ。
+ * ★4が6体（各属性2体）、相性・弱点なしで、1部位ぶん（5種目×3セット）＋ローラー3セット。
+ */
+export function standardSessionDamage(): number {
   const q = CONFIG.quest
   const power = 4
-  const sets = 14 * CONFIG.sets.perExercise * q.setDamage * power // 各セットは、その部位の1体が攻撃
-  const roller = 7 * CONFIG.sets.perExercise * q.rollerDamage * power * 3
-  const steps = 7 * 7 * q.stepsDamagePer1000 * power * 3 // 毎日7000歩
-  const habit = 7 * 10 * q.habitDamagePerPoint * power * 3 // 毎日10分
-  return Math.round(sets + roller + steps + habit)
+  const sets = 5 * CONFIG.sets.perExercise * q.setDamage * power * 2 // その部位の属性の2体が攻撃
+  const roller = CONFIG.sets.perExercise * q.rollerDamage * power * 6
+  return Math.round(sets + roller)
+}
+
+export interface Battle {
+  challenge: Challenge
+  quest: Quest
+  boss: MonsterDef | undefined
+  party: Member[]
+  hits: Hit[]
+  damage: number
+  hp: number
+  defeated: boolean
+}
+
+/** 今日の戦いの状況。挑戦していない・日付が変わった・クエストが消えたときは null */
+export function battleOf(
+  challenge: Challenge | null,
+  today: string,
+  quests: Quest[],
+  defs: MonsterDef[],
+  owned: OwnedMonster[],
+  weekSets: SetRecord[],
+  exerciseName: (slotId: string) => string,
+): Battle | null {
+  if (!challenge || challenge.date !== today) return null
+  const quest = quests.find((q) => q.id === challenge.questId)
+  if (!quest) return null
+  const party = challenge.party.flatMap((id) => {
+    const mon = owned.find((o) => o.id === id)
+    const def = mon && defs.find((d) => d.id === mon.defId)
+    return mon && def ? [{ mon, def }] : []
+  })
+  const dates = new Set(weekSets.map((s) => s.date))
+  const sets = weekSets.filter((s) => s.ts >= challenge.startTs && s.date === today)
+  const hits = questHits(quest, party, sets, dates, exerciseName)
+  const damage = hits.reduce((sum, h) => sum + h.damage, 0)
+  const hp = quest.hp[challenge.difficulty]
+  return { challenge, quest, boss: defs.find((d) => d.id === quest.bossDefId), party, hits, damage, hp, defeated: damage >= hp }
 }

@@ -4,7 +4,7 @@ import { CONFIG } from '../config/gameConfig'
 import { DAYS, FORM_ATTRS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type FormAttr } from '../data/exercises'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { QuestBanner } from '../components/QuestBanner'
-import { DIFFICULTIES, standardWeekDamage } from '../lib/quest'
+import { DIFFICULTIES, standardSessionDamage } from '../lib/quest'
 import { ATTR_COLOR, type Go } from '../nav'
 import { nodeAttr, type Quest, type QuestDifficulty } from '../types'
 
@@ -14,9 +14,9 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
   const existing = id ? quests.find((q) => q.id === id) : undefined
   // ボスになれるのは「クエスト限定」のモンスター（いなければ全員から選べる）
   const bossChoices = defs.some((d) => d.questOnly) ? defs.filter((d) => d.questOnly) : defs
-  const week = standardWeekDamage()
+  const session = standardSessionDamage()
   const defaultHp = Object.fromEntries(
-    DIFFICULTIES.map((d) => [d, Math.round((week * CONFIG.quest.difficulties[d].hpRatio) / 100) * 100]),
+    DIFFICULTIES.map((d) => [d, Math.round((session * CONFIG.quest.difficulties[d].hpRatio) / 100) * 100]),
   ) as Record<QuestDifficulty, number>
 
   const [name, setName] = useState(existing?.name ?? '')
@@ -166,8 +166,8 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
       <section className="card">
         <h2>HP</h2>
         <p className="muted small">
-          目安：★4を3体（胸腕・脚・背肩）、相性・弱点なしで、1週間ぜんぶ（全消し・ローラー毎日・7000歩・習慣10分）やると約
-          <strong>{week.toLocaleString()}</strong>ダメージ。2周目までやったり、弱点を突いたりすると大きく増えます。
+          目安：★4が6体（各属性2体）、相性・弱点なしで、1回のトレーニング（1部位5種目×3セット＋ローラー3セット）で約
+          <strong>{session.toLocaleString()}</strong>ダメージ。相性・弱点・特攻を突いたり、2周目まで追い込んだりすると大きく増えます。
         </p>
         {DIFFICULTIES.map((d) => (
           <label key={d} className="field">
@@ -180,7 +180,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
               onChange={(e) => setHp({ ...hp, [d]: Math.max(0, Math.floor(Number(e.target.value) || 0)) })}
               aria-label={`${CONFIG.quest.difficulties[d].label}のHP`}
             />
-            <span className="muted small">目安の {Math.round((hp[d] / week) * 100)}%</span>
+            <span className="muted small">1回ぶんの {Math.round((hp[d] / session) * 10) / 10}倍</span>
           </label>
         ))}
       </section>

@@ -148,7 +148,6 @@ beforeEach(() => {
     setHabitMode: vi.fn(),
     setPartner: vi.fn(),
     quests: [],
-    weekCheckins: [],
     week: TODAY,
     saveQuest: vi.fn(),
     deleteQuest: vi.fn(),
@@ -660,11 +659,11 @@ describe('画面の表示', () => {
     await act(async () => el.querySelector('[aria-label="難易度"]')!.querySelectorAll('button')[2].click())
     expect(el.textContent).toContain('HP 6,000・ドロップ アシガメ＋2')
     await click('ムキドラゴ')
-    await click('これに挑戦する')
+    await click('出撃する')
     expect(fake.store.startChallenge).toHaveBeenCalledWith('q1', 'hard', ['o1'])
   })
 
-  it('クエスト：挑戦を始めてからの記録がダメージになり、倒したら報酬を受け取れる', async () => {
+  it('クエスト：出撃してからのセットがダメージになり、倒したらその場で報酬を受け取れる', async () => {
     const { Quests } = await import('./Quests')
     const quest = {
       id: 'q1', name: '脚竜の巣', bossDefId: 'm2', attr: 'legs' as const, weakSlots: ['mon2'], weakSkill: '',
@@ -673,7 +672,7 @@ describe('画面の表示', () => {
     fake.store.quests = [quest]
     fake.store.state = {
       ...state,
-      challenge: { week: TODAY, questId: 'q1', difficulty: 'easy', party: ['o1'], startTs: 10, cleared: false },
+      challenge: { date: TODAY, questId: 'q1', difficulty: 'easy', party: ['o1'], startTs: 10 },
     }
     // 開始前のセットは数えない。ムキドラゴ（胸腕★3）がフロアプレス（弱点）を攻撃：10 × 3 × 2（相性）× 2（弱点）= 120
     fake.store.weekSets = [past(1, 10, 5, TODAY), past(2, 10, 20, TODAY)]
@@ -682,8 +681,23 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('討伐できる！')
     await click('報酬を受け取る')
     expect(fake.store.claimQuest).toHaveBeenCalled()
+    expect(el.textContent).toContain('討伐成功！')
     await click('会いに行く')
     expect(go).toHaveBeenCalledWith({ name: 'monster', id: 'o8' })
+  })
+
+  it('クエスト：日付が変わったら時間切れ。トレーニング画面には出撃中のHPが出る', async () => {
+    const { Quests } = await import('./Quests')
+    const quest = {
+      id: 'q1', name: '脚竜の巣', bossDefId: 'm2', attr: 'legs' as const, weakSlots: [], weakSkill: '',
+      hp: { easy: 500, normal: 3000, hard: 6000 }, catchphrase: '', theme: 'flame', createdAt: 1,
+    }
+    fake.store.quests = [quest]
+    fake.store.state = { ...state, challenge: { date: '2026-10-04', questId: 'q1', difficulty: 'easy', party: ['o1'], startTs: 0 } }
+    expect((await render(<Quests go={go} />)).textContent).toContain('「脚竜の巣」は時間切れでした')
+    fake.store.state = { ...state, challenge: { date: TODAY, questId: 'q1', difficulty: 'easy', party: ['o1'], startTs: 0 } }
+    const training = await render(<Training go={go} />)
+    expect(training.textContent).toContain('⚔️ 脚竜の巣　のこりHP 500')
   })
 
   it('ショップ：天井で激レアが出ると演出に出る', async () => {

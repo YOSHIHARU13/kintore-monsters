@@ -32,7 +32,7 @@ export interface GameState {
   pity: Record<string, number> // ガチャごとの、激レアが出ないまま引いた回数（天井用）
   activeMonsterId: string | null // 旧：育成中のモンスター（今は使っていない）
   partners: Record<string, string> // 種目の枠ID → 相棒のモンスター（OwnedMonster.id）
-  challenge: Challenge | null // 今週挑戦しているクエスト
+  challenge: Challenge | null // 今日挑戦しているクエスト
   questClears: number // クエストをクリアした回数
 }
 
@@ -127,12 +127,11 @@ export interface Quest {
 }
 
 export interface Challenge {
-  week: string // 挑戦した週（その週の月曜の日付）
+  date: string // 出撃した日。日付が変わったら失敗
   questId: string
   difficulty: QuestDifficulty
   party: string[] // 出撃したモンスター（OwnedMonster.id）
-  startTs: number // この時刻からの記録がダメージになる
-  cleared: boolean // 報酬を受け取ったか
+  startTs: number // この時刻からのセットがダメージになる
 }
 
 /** ジョグレスで生まれる隠しモンスターか */

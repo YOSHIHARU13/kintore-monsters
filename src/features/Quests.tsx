@@ -1,96 +1,89 @@
 import { useState } from 'react'
 import { useStore } from '../store'
 import { CONFIG } from '../config/gameConfig'
-import { SLOTS, exerciseOfSlot } from '../data/exercises'
 import { Gauge } from '../components/Gauge'
 import { MonsterImage } from '../components/MonsterImage'
 import { QuestBanner } from '../components/QuestBanner'
 import { bannerNodeOf } from '../components/GachaBanner'
-import { questHits, type Member } from '../lib/quest'
+import { useBattle } from '../components/BattleBar'
 import type { Go } from '../nav'
-import { plusName } from '../types'
+import { plusName, type MonsterDef } from '../types'
 
-/** クエストのタブ：今週の挑戦と、クエストの一覧 */
+/** クエストのタブ：今日の戦いと、クエストの一覧 */
 export function Quests({ go }: { go: Go }) {
-  const { state, quests, defs, owned, menu, week, weekSets, weekCheckins, quitChallenge, claimQuest } = useStore()
+  const { state, quests, defs, today, quitChallenge, claimQuest } = useStore()
+  const battle = useBattle()
   const [confirmQuit, setConfirmQuit] = useState(false)
-  const [got, setGot] = useState<string | null>(null)
-
-  const c = state.challenge?.week === week ? state.challenge : null
-  const quest = c && quests.find((q) => q.id === c.questId)
-  const boss = quest && defs.find((d) => d.id === quest.bossDefId)
-  const party: Member[] = (c?.party ?? []).flatMap((id) => {
-    const mon = owned.find((o) => o.id === id)
-    const def = mon && defs.find((d) => d.id === mon.defId)
-    return mon && def ? [{ mon, def }] : []
-  })
-  const exerciseName = (slotId: string) => {
-    const slot = SLOTS.find((s) => s.id === slotId)
-    return slot ? exerciseOfSlot(slot, menu).name : '？'
-  }
-  const hits =
-    c && quest
-      ? questHits(
-          quest,
-          party,
-          weekSets.filter((s) => s.ts >= c.startTs),
-          weekCheckins.filter((k) => k.ts >= c.startTs),
-          exerciseName,
-        )
-      : []
-  const damage = hits.reduce((sum, h) => sum + h.damage, 0)
-  const hp = c && quest ? quest.hp[c.difficulty] : 0
-  const defeated = !!quest && damage >= hp
+  const [got, setGot] = useState<{ id: string; boss: MonsterDef; plus: number } | null>(null)
+  // 出撃した日のうちに倒せなかった戦い
+  const expired = state.challenge && state.challenge.date !== today ? quests.find((q) => q.id === state.challenge!.questId) : null
 
   return (
     <div className="page">
       <h1 className="title">クエスト</h1>
 
-      {c && quest ? (
+      {got && (
+        <section className="card center">
+          <h2>討伐成功！</h2>
+          <MonsterImage imageId={got.boss.images[bannerNodeOf(got.boss)]} size={140} plus={got.plus} />
+          <p>
+            {got.boss.name}
+            {got.plus > 0 ? `＋${got.plus}` : ''} を手に入れた！
+          </p>
+          <button className="btn primary wide" onClick={() => go({ name: 'monster', id: got.id })}>
+            会いに行く
+          </button>
+        </section>
+      )}
+
+      {battle ? (
         <section className="card">
           <h2>
-            今週の挑戦：{quest.name}（{CONFIG.quest.difficulties[c.difficulty].label}）
+            戦闘中：{battle.quest.name}（{CONFIG.quest.difficulties[battle.challenge.difficulty].label}）
           </h2>
-          {boss && (
-            <div className="monster-row">
-              <MonsterImage imageId={boss.images[bannerNodeOf(boss)]} size={72} silhouette={!defeated && !c.cleared} />
-              <div className="goal-body">
-                <strong>{c.cleared ? '討伐済み！' : defeated ? '討伐できる！' : `のこりHP ${(hp - damage).toLocaleString()}`}</strong>
-                <Gauge value={Math.max(0, hp - damage)} max={hp} color="#ef476f" />
-                <span className="muted small">
-                  与えたダメージ {damage.toLocaleString()} ／ HP {hp.toLocaleString()}
-                </span>
-              </div>
+          <div className="monster-row">
+            {battle.boss && (
+              <MonsterImage imageId={battle.boss.images[bannerNodeOf(battle.boss)]} size={72} silhouette={!battle.defeated} />
+            )}
+            <div className="goal-body">
+              <strong>
+                {battle.defeated ? '討伐できる！' : `のこりHP ${(battle.hp - battle.damage).toLocaleString()}`}
+              </strong>
+              <Gauge value={Math.max(0, battle.hp - battle.damage)} max={battle.hp} color="#ef476f" />
+              <span className="muted small">
+                与えたダメージ {battle.damage.toLocaleString()} ／ HP {battle.hp.toLocaleString()}・今日中に倒そう
+              </span>
             </div>
-          )}
-          {!c.cleared && defeated && (
+          </div>
+          {battle.defeated ? (
             <button
               className="btn primary wide"
               onClick={() => {
                 const id = claimQuest()
-                if (id) setGot(id)
+                if (id && battle.boss) {
+                  setGot({ id, boss: battle.boss, plus: CONFIG.quest.difficulties[battle.challenge.difficulty].plus })
+                }
               }}
             >
-              報酬を受け取る（{boss?.name}＋{CONFIG.quest.difficulties[c.difficulty].plus}・
-              {CONFIG.quest.difficulties[c.difficulty].gold}G）
+              報酬を受け取る（{battle.boss?.name}＋{CONFIG.quest.difficulties[battle.challenge.difficulty].plus}・
+              {CONFIG.quest.difficulties[battle.challenge.difficulty].gold}G）
             </button>
-          )}
-          {got && (
-            <button className="btn wide" onClick={() => go({ name: 'monster', id: got })}>
-              手に入れた{boss?.name}に会いに行く
+          ) : (
+            <button className="btn primary wide" onClick={() => go({ name: 'training' })}>
+              トレーニングで攻撃する
             </button>
           )}
           <div className="party-row">
-            {party.map((m) => (
+            {battle.party.map((m) => (
               <span key={m.mon.id} title={plusName(m.def, m.mon)}>
                 <MonsterImage imageId={m.def.images[m.mon.nodeId]} size={40} plus={m.mon.plus} shiny={m.mon.shiny} />
               </span>
             ))}
           </div>
           <details>
-            <summary className="small">攻撃の記録（{hits.length}回）</summary>
+            <summary className="small">攻撃の記録（{battle.hits.length}回）</summary>
             <ul className="mini-list">
-              {[...hits].reverse().map((h, i) => (
+              {[...battle.hits].reverse().map((h, i) => (
                 <li key={i}>
                   <span>
                     {h.label}
@@ -102,23 +95,26 @@ export function Quests({ go }: { go: Go }) {
             </ul>
           </details>
           <p className="muted small">
-            挑戦を始めてからの筋トレ・ローラー・朝の記録（歩数・習慣）が、そのままダメージになります。月曜にリセット。
+            出撃してからの筋トレとローラーが、そのままダメージになります（報酬が出るセットだけ）。日付が変わると失敗です。
           </p>
-          {!c.cleared && (
-            <button
-              className="btn ghost wide"
-              onClick={() => {
-                if (!confirmQuit) return setConfirmQuit(true)
-                quitChallenge()
-                setConfirmQuit(false)
-              }}
-            >
-              {confirmQuit ? '本当にやめる（与えたダメージは消えます）' : 'この挑戦をやめる'}
-            </button>
-          )}
+          <button
+            className="btn ghost wide"
+            onClick={() => {
+              if (!confirmQuit) return setConfirmQuit(true)
+              quitChallenge()
+              setConfirmQuit(false)
+            }}
+          >
+            {confirmQuit ? '本当に撤退する' : '撤退する'}
+          </button>
         </section>
       ) : (
-        <p className="muted">今週はまだ挑戦していません。下のクエストから選んでください。</p>
+        !got && (
+          <p className="muted">
+            {expired ? `「${expired.name}」は時間切れでした。` : ''}
+            クエストを選んで出撃すると、そのあとのトレーニングがそのまま攻撃になります。何回でも挑戦できます。
+          </p>
+        )
       )}
 
       <section className="card">
@@ -130,7 +126,7 @@ export function Quests({ go }: { go: Go }) {
               key={q.id}
               quest={q}
               boss={defs.find((d) => d.id === q.bossDefId)}
-              selected={q.id === c?.questId}
+              selected={q.id === battle?.quest.id}
               onClick={() => go({ name: 'quest', id: q.id })}
             />
           ))}
@@ -142,4 +138,3 @@ export function Quests({ go }: { go: Go }) {
     </div>
   )
 }
-

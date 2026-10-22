@@ -11,13 +11,16 @@ import { plusName, type QuestDifficulty } from '../types'
 
 /** クエストの詳細：ボスの弱点を見て、難易度と出撃メンバーを選んで挑戦する */
 export function QuestDetail({ id, go }: { id: string; go: Go }) {
-  const { state, quests, defs, owned, menu, week, startChallenge } = useStore()
+  const { state, quests, defs, owned, menu, today, startChallenge } = useStore()
   const quest = quests.find((q) => q.id === id)
-  const current = state.challenge?.week === week ? state.challenge : null
+  const current = state.challenge?.date === today ? state.challenge : null
   const [difficulty, setDifficulty] = useState<QuestDifficulty>(
     current?.questId === id ? current.difficulty : 'normal',
   )
-  const [party, setParty] = useState<string[]>(current?.questId === id ? current.party : [])
+  // 前回の出撃メンバーを最初から選んでおく（同じメンバーで周回しやすいように）
+  const [party, setParty] = useState<string[]>(
+    (state.challenge?.party ?? []).filter((p) => owned.some((o) => o.id === p)),
+  )
 
   if (!quest) {
     return (
@@ -55,8 +58,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
     })
     .sort((a, b) => b.score - a.score)
   const max = CONFIG.quest.partySize
-  const clearedThisWeek = current?.cleared === true
-  const switching = !!current && current.questId !== id && !current.cleared
+  const switching = !!current && current.questId !== id
 
   const toggle = (monId: string) =>
     setParty(party.includes(monId) ? party.filter((p) => p !== monId) : party.length < max ? [...party, monId] : party)
@@ -148,23 +150,20 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
         </ul>
       </section>
 
-      {clearedThisWeek ? (
-        <p className="muted center">今週はもうクリアしました。月曜にまた挑戦できます。</p>
-      ) : (
-        <button
-          className="btn primary wide"
-          disabled={party.length === 0}
-          onClick={() => {
-            startChallenge(quest.id, difficulty, party)
-            go({ name: 'quests' })
-          }}
-        >
-          {switching ? '今の挑戦をやめて、これに挑戦する' : current?.questId === id ? 'この内容で挑戦し直す' : 'これに挑戦する'}
-        </button>
+      <button
+        className="btn primary wide"
+        disabled={party.length === 0}
+        onClick={() => {
+          startChallenge(quest.id, difficulty, party)
+          go({ name: 'quests' })
+        }}
+      >
+        {switching ? '今の戦いをやめて、これに出撃する' : current?.questId === id ? 'この内容で出撃し直す' : '出撃する'}
+      </button>
+      {(switching || current?.questId === id) && (
+        <p className="warn small center">出撃し直すと、それまでのダメージは0に戻ります。</p>
       )}
-      {(switching || current?.questId === id) && !clearedThisWeek && (
-        <p className="warn small center">挑戦し直すと、それまでのダメージは0に戻ります。</p>
-      )}
+      <p className="muted small center">出撃したら、その日のうちに倒そう。倒すまでのセットがダメージになります。</p>
       <button className="btn small" onClick={() => go({ name: 'questForm', id: quest.id })}>
         このクエストを編集
       </button>

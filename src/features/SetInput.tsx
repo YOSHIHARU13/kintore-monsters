@@ -6,6 +6,7 @@ import { calcTarget, judgeSet, recentSessions, suggestProgression } from '../lib
 import { calcSetReward, isExtraSet, maxRewardSet } from '../lib/rewards'
 import { partnerOf, rateText } from '../lib/partner'
 import { MonsterImage } from '../components/MonsterImage'
+import { BattleBar } from '../components/BattleBar'
 import { formatClock, weekStartKey } from '../lib/date'
 import { Stepper } from '../components/Stepper'
 import { Gauge } from '../components/Gauge'
@@ -151,6 +152,7 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
         ← メニューに戻る
       </button>
       <MusicButtons />
+      <BattleBar go={go} />
       <h1 className="title">{ex.name}</h1>
       <p className="muted">
         {isBonus ? `ボーナス枠・1セット +${CONFIG.bonus.goldPerSet}G＆万能EXP +${CONFIG.bonus.anyExpPerSet}・` : ''}
