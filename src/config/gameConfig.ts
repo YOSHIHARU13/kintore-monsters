@@ -218,7 +218,7 @@ export const CONFIG = {
   gacha: {
     maxPerMonster: 3,
     minPickups: 3,
-    bannerMonsters: 3, // 自動バナーに出すモンスターの数
+    bannerMonsters: 5, // 自動バナーに出すモンスターの数（優先度の上位から）
     // 自動バナーのテーマ色
     themes: {
       flame: '炎',

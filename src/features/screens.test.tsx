@@ -74,7 +74,7 @@ const defs: MonsterDef[] = [
   { id: 'm2', name: 'アシガメ', attr: 'legs', templateId: 'linear3', images: {}, createdAt: 2 },
 ]
 const gacha = (id: string, name: string, extra: Partial<Gacha> = {}): Gacha => ({
-  id, name, bannerImageId: null, shinyRate: 1 / 20, catchphrase: '', theme: 'royal', featured: [], createdAt: 0,
+  id, name, bannerImageId: null, shinyRate: 1 / 20, catchphrase: '', theme: 'royal', featured: [], slides: [], createdAt: 0,
   builtin: id === 'default', ...extra,
 })
 const gachas: Gacha[] = [gacha('default', 'いつものガチャ')]

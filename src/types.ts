@@ -111,6 +111,9 @@ export function plusName(def: MonsterDef, mon: OwnedMonster): string {
 
 export type RarityKey = 'hazure' | 'normal' | 'superRare'
 
+/** バナーの型：上位1体のズーム・上位3体・上位5体・ほかのピックアップ一覧 */
+export type BannerSlide = 'top1' | 'top3' | 'top5' | 'pickups'
+
 export interface Gacha {
   id: string
   name: string
@@ -118,7 +121,8 @@ export interface Gacha {
   shinyRate: number
   catchphrase: string // 自動バナーのキャッチコピー
   theme: string // 自動バナーのテーマ色
-  featured: string[] // 自動バナーに出すモンスター（defId）。空ならピックアップから自動で
+  featured: string[] // 自動バナーに出すモンスター（defId）。並び順が優先度。空ならピックアップから自動で
+  slides: BannerSlide[] // バナーでスライドする型。空なら出せるものを全部
   createdAt: number
   builtin: boolean // 「いつものガチャ」（消せない）
 }

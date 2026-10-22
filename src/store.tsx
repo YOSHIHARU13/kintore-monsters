@@ -34,7 +34,7 @@ import { autoPartners } from './lib/partner'
 import { finalAttrs, recommend } from './lib/coverage'
 import { abilitySlots, jogressGradeOf, selectableGimmicks } from './lib/gimmick'
 import { elementInfo, jogressElementOf } from './lib/element'
-import { investedFor, isHidden, nodeAttr, type AttrExp, type Checkin, type Element, type Gacha, type Quest, type QuestDifficulty, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
+import { investedFor, isHidden, nodeAttr, type AttrExp, type BannerSlide, type Checkin, type Element, type Gacha, type Quest, type QuestDifficulty, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
 
 const zeroExp = () => ({ trained: 0, bought: 0 })
 
@@ -139,6 +139,7 @@ export interface GachaInput {
   catchphrase: string
   theme: string
   featured: string[]
+  slides: BannerSlide[]
   banner?: File
   removeBanner?: boolean // 画像をやめて自動バナーにする
   pickups?: string[] // ピックアップにするモンスター（レア以上）の defId。いつものガチャでは使わない // 新しいバナー画像
@@ -154,6 +155,7 @@ function toGacha(id: string, data: DocumentData | undefined): Gacha {
     catchphrase: data?.catchphrase ?? '',
     theme: data?.theme ?? 'royal',
     featured: data?.featured ?? [],
+    slides: data?.slides ?? [],
     createdAt: data?.createdAt ?? 0,
     builtin,
   }
@@ -854,6 +856,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         catchphrase: input.catchphrase.trim(),
         theme: input.theme,
         featured: input.featured.slice(0, CONFIG.gacha.bannerMonsters),
+        slides: input.slides,
         createdAt: current?.createdAt || Date.now(),
       })
       // ピックアップの出し入れは、モンスターの「入るガチャ」に書く（1体につき最大3つまで）
