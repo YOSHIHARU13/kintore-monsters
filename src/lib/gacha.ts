@@ -103,12 +103,12 @@ export function starsOf(def: MonsterDef, nodeId: string): number {
   const stage = getNode(template, nodeId).stage
   if (isHidden(def)) {
     // 隠しモンスターは、レシピで決めた「生まれるときの星」から数える
-    return (def.jogressBirthStars ?? CONFIG.gacha.jogressDefaultBirth) + stage - 1
+    return Math.min(CONFIG.gacha.maxStars, (def.jogressBirthStars ?? CONFIG.gacha.jogressDefaultBirth) + stage - 1)
   }
-  return CONFIG.gacha.formStarBase + stage
+  return Math.min(CONFIG.gacha.maxStars, CONFIG.gacha.formStarBase + stage)
 }
 
-/** 形態の呼び名：星の数（分岐があれば A・B・C を添える）。例：★5、★6-B */
+/** 形態の呼び名：星の数（分岐があれば A・B・C を添える）。例：★2、★3-B */
 export function formLabel(def: MonsterDef, nodeId: string): string {
   const branch = /[a-c]$/.exec(nodeId)?.[0]
   return `★${starsOf(def, nodeId)}${branch ? `-${branch.toUpperCase()}` : ''}`

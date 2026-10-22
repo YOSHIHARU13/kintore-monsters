@@ -91,7 +91,7 @@ export function questHits(quest: Quest, party: Member[], sets: SetRecord[], exer
 
 /**
  * HPの目安：1回のトレーニングで与えるダメージ。
- * 攻撃力9,000（ノーマルの★6くらい）が6体（各属性2体）、相性・弱点なしで、1部位ぶん（5種目×3セット）＋ローラー3セット。
+ * 攻撃力9,000（ノーマルの★3くらい）が6体（各属性2体）、相性・弱点なしで、1部位ぶん（5種目×3セット）＋ローラー3セット。
  */
 export function standardSessionDamage(): number {
   const q = CONFIG.quest

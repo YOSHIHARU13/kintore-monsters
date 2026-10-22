@@ -98,13 +98,13 @@ describe('クエスト', () => {
     expect(questGold({}, 'normal')).toBe(120) // 格を決めていなければ「普通」
   })
 
-  it('ジョグレス：途中の段階どうしでもOK（★5どうしで★6誕生）。＋の条件もレシピで決める', () => {
-    const hidden = def('h', { recipe: ['a', 'b'], jogressBirthStars: 6, jogressPlus: 0 })
-    expect(jogressNeed(hidden)).toEqual({ stars: 5, plus: 0 })
-    const normal = def('a') // ★4 → ★5 → ★6
+  it('ジョグレス：途中の段階どうしでもOK（★2どうしで★3誕生）。＋の条件もレシピで決める', () => {
+    const hidden = def('h', { recipe: ['a', 'b'], jogressBirthStars: 3, jogressPlus: 0 })
+    expect(jogressNeed(hidden)).toEqual({ stars: 2, plus: 0 })
+    const normal = def('a') // ★1 → ★2 → ★3
     expect(isJogressReady(mon('x', 'a', { nodeId: 'n1' }), normal, hidden)).toBe(false)
     expect(isJogressReady(mon('x', 'a', { nodeId: 'n2' }), normal, hidden)).toBe(true)
-    const strict = def('h2', { recipe: ['a', 'b'], jogressBirthStars: 7, jogressPlus: 5 })
+    const strict = def('h2', { recipe: ['a', 'b'], jogressBirthStars: 4, jogressPlus: 5 })
     expect(isJogressReady(mon('x', 'a', { nodeId: 'n3', plus: 4 }), normal, strict)).toBe(false)
     expect(isJogressReady(mon('x', 'a', { nodeId: 'n3', plus: 5 }), normal, strict)).toBe(true)
   })

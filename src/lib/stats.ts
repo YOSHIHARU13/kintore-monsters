@@ -4,7 +4,7 @@ import { isHidden, type MonsterDef, type OwnedMonster } from '../types'
 
 /**
  * 攻撃力：形態の格 × perStar ＋ レア度の上乗せ ＋ ＋の数 × perPlus。クエストのダメージと相棒の倍率はこの数字で決まる。
- * 形態の格は「星 − formStarBase」（1段目の★4で1、★5で2…）
+ * 形態の格は「星 − formStarBase」（★1で1、★2で2…）
  */
 export function attackOf(mon: OwnedMonster, def: MonsterDef): number {
   const { perStar, perPlus } = CONFIG.attack

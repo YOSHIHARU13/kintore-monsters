@@ -80,7 +80,7 @@ export const CONFIG = {
     starterEggs: 1, // 開始時にもらえるタマゴ
   },
 
-  // 攻撃力 = 形態の格（★4で1、★5で2…）× perStar ＋ レア度の上乗せ ＋ ＋の数 × perPlus
+  // 攻撃力 = 星の数 × perStar ＋ レア度の上乗せ ＋ ＋の数 × perPlus
   attack: {
     perStar: 3000,
     perPlus: 1500,
@@ -205,12 +205,13 @@ export const CONFIG = {
         hint: '選んだガチャだけ（フェス限）。ジョグレスの素材になる、いちばんかっこいいやつ',
       },
     },
-    // 星は進化形態だけで決まる（レア度は関係ない）：1段目が★(formStarBase+1)、進化するたびに1つ増える
+    // 星は進化形態だけで決まる（レア度は関係ない）：1段目が★1、進化するたびに1つ増える（最大 maxStars）
     // ジョグレスの隠しモンスターは、レシピで決めた「生まれるときの星」から（決めていなければ jogressDefaultBirth）
     // レア度は星には出さず、攻撃力の上乗せ（attackBonus）にだけ効く。ジョグレスは jogressAttackBonus
-    formStarBase: 3,
-    jogressDefaultBirth: 6,
-    jogressBirthChoices: [5, 6, 7, 8],
+    formStarBase: 0,
+    maxStars: 4, // 星はここまで（ジョグレスの★4が最上位）
+    jogressDefaultBirth: 4,
+    jogressBirthChoices: [3, 4],
     jogressAttackBonus: 4500,
     // 天井：同じガチャで、激レアが出ないままこの回数目を引くと激レア確定
     pity: { rarity: 'superRare' as const, pulls: 30 },

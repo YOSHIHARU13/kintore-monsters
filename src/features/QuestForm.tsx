@@ -227,7 +227,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
         </div>
         <p className="muted small">格を選ぶと、初級・中級・上級のHPが入り直します（HPは手で書き換えてもOK）。格が高いほど報酬のGも増えます。</p>
         <p className="muted small">
-          目安：攻撃力9,000くらい（ノーマルの★6）が6体（各属性2体）、相性・弱点なしで、1回のトレーニング（1部位5種目×3セット＋ローラー3セット）で約
+          目安：攻撃力9,000くらい（ノーマルの★3）が6体（各属性2体）、相性・弱点なしで、1回のトレーニング（1部位5種目×3セット＋ローラー3セット）で約
           <strong>{session.toLocaleString()}</strong>ダメージ。相性・弱点・特攻を突いたり、2周目まで追い込んだりすると大きく増えます。
         </p>
         {DIFFICULTIES.map((d) => (

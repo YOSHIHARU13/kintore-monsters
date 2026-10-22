@@ -63,14 +63,14 @@ describe('ガチャ', () => {
     expect(percent(1 / 21)).toBe('4.76%')
   })
 
-  it('星は進化形態だけで決まる（レア度は関係ない）：★4 → ★5 → ★6。ジョグレスはレシピの星から', () => {
-    expect(starsOf(def('a', { rarity: 'hazure', templateId: 'early2' }), 'n2')).toBe(5)
-    expect(starsOf(def('a'), 'n1')).toBe(4)
-    expect(starsOf(def('a', { rarity: 'superRare' }), 'n1')).toBe(4)
-    expect(starsOf(def('a'), 'n3')).toBe(6)
-    expect(starsOf(def('a', { rarity: 'rare', templateId: 'lateBranch' }), 'n3b')).toBe(6)
-    expect(starsOf(def('a', { recipe: ['x', 'y'], templateId: 'single' }), 'n1')).toBe(6) // 決めていなければ★6
-    expect(starsOf(def('a', { recipe: ['x', 'y'], jogressBirthStars: 6 }), 'n3')).toBe(8) // ★6 → ★7 → ★8
-    expect(starsOf(def('a', { recipe: ['x', 'y'], templateId: 'early2', jogressBirthStars: 5 }), 'n2')).toBe(6)
+  it('星は進化形態だけで決まる（レア度は関係ない）：★1 → ★2 → ★3。ジョグレスは★4が上限', () => {
+    expect(starsOf(def('a', { rarity: 'hazure', templateId: 'early2' }), 'n2')).toBe(2)
+    expect(starsOf(def('a'), 'n1')).toBe(1)
+    expect(starsOf(def('a', { rarity: 'superRare' }), 'n1')).toBe(1)
+    expect(starsOf(def('a'), 'n3')).toBe(3)
+    expect(starsOf(def('a', { rarity: 'rare', templateId: 'lateBranch' }), 'n3b')).toBe(3)
+    expect(starsOf(def('a', { recipe: ['x', 'y'], templateId: 'single' }), 'n1')).toBe(4) // 決めていなければ★4
+    expect(starsOf(def('a', { recipe: ['x', 'y'], templateId: 'early2', jogressBirthStars: 3 }), 'n2')).toBe(4) // ★3誕生 → ★4
+    expect(starsOf(def('a', { recipe: ['x', 'y'], jogressBirthStars: 3 }), 'n3')).toBe(4) // ★4より上にはならない
   })
 })

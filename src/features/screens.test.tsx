@@ -383,7 +383,7 @@ describe('画面の表示', () => {
     expect(fake.store.hatchEgg).toHaveBeenCalledWith('default')
     expect(shop.textContent).not.toContain('が生まれた！') // まずはタマゴが揺れる
     await click('スキップ')
-    expect(shop.querySelectorAll('.hatch-stars span')).toHaveLength(4) // 生まれたときは、レア度に関係なく★4
+    expect(shop.querySelectorAll('.hatch-stars span')).toHaveLength(1) // 生まれたときは、レア度に関係なく★1
     expect(shop.textContent).toContain('アシガメ')
     expect(shop.textContent).toContain('が生まれた！')
     await click('会いに行く')
@@ -452,7 +452,7 @@ describe('画面の表示', () => {
       { id: 'o2', defId: 'm2', nodeId: 'n3', plus: 5, obtainedAt: 2 },
     ]
     const el = await render(<MonsterDetail id="o1" go={go} />)
-    expect(el.textContent).toContain('？？？（★6で誕生）← ムキドラ ＆ アシガメ：どちらも★5以上・＋5以上')
+    expect(el.textContent).toContain('？？？（★4で誕生）← ムキドラ ＆ アシガメ：どちらも★3以上・＋5以上')
     await click('アシガメ＋5とジョグレス')
     await click('本当にジョグレスする（1000G）')
     expect(fake.store.jogress).toHaveBeenCalledWith('o1', 'o2', 'h1')
@@ -470,7 +470,7 @@ describe('画面の表示', () => {
     fake.store.state = { ...state, dexFound: { m1: ['n1', 'n2', 'n3b'] }, dexShiny: { m1: true } }
     const dex = await render(<Dex go={go} />)
     expect(dex.textContent).toContain('ジョグレスのレシピ')
-    expect(dex.textContent).toContain('いちばん育っているのは★5')
+    expect(dex.textContent).toContain('いちばん育っているのは★2')
     expect(dex.textContent).toContain('アシガメ未所持')
     expect(dex.textContent).not.toContain('カイザードラ')
     expect(dex.textContent).toContain('ヤミムキドラ')
@@ -504,7 +504,7 @@ describe('画面の表示', () => {
       Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(select, 'lateBranch3')
       select.dispatchEvent(new Event('change', { bubbles: true }))
     })
-    expect(el.textContent).toContain('★6-C') // 分岐の3つ目（形態は星で表す）
+    expect(el.textContent).toContain('★3-C') // 分岐の3つ目（形態は星で表す）
     await click('保存する')
     expect(fake.store.saveMonsterDef).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -607,9 +607,9 @@ describe('画面の表示', () => {
       { id: 'j1', name: 'カイザードラ', attr: 'none', templateId: 'single', images: {}, recipe: ['s1', 'm1'], createdAt: 7 },
     ]
     const el = await render(<GachaForm id="g1" go={go} />)
-    const chip = [...el.querySelectorAll('button.chip')].find((b) => b.textContent === '★6 カイザードラ（ジョグレス）')!
+    const chip = [...el.querySelectorAll('button.chip')].find((b) => b.textContent === '★4 カイザードラ（ジョグレス）')!
     await act(async () => (chip as HTMLButtonElement).click())
-    expect(el.querySelector('.gacha-banner.auto')!.textContent).toContain('ジョグレスで★6')
+    expect(el.querySelector('.gacha-banner.auto')!.textContent).toContain('ジョグレスで★4')
     await click('保存する')
     expect(fake.store.saveGacha).toHaveBeenCalledWith(expect.objectContaining({ featured: ['j1'] }))
   })
@@ -725,7 +725,7 @@ describe('画面の表示', () => {
       expect(shop.querySelector('.glow-superRare .hatch-glow')).not.toBeNull()
       await act(async () => vi.advanceTimersByTime(800))
       for (let i = 0; i < 4; i++) await act(async () => vi.advanceTimersByTime(280))
-      expect(shop.querySelectorAll('.hatch-stars span.on')).toHaveLength(4) // 激レアは★4で生まれる
+      expect(shop.querySelectorAll('.hatch-stars span.on')).toHaveLength(1) // 激レアでも生まれたときは★1
       await act(async () => vi.advanceTimersByTime(560))
       expect(shop.textContent).toContain('激レア！')
       expect(shop.textContent).toContain('が生まれた！')
