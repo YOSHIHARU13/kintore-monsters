@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { useStore } from '../store'
+import { sharedTags } from '../lib/tags'
 import { CONFIG } from '../config/gameConfig'
 import { DAYS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot } from '../data/exercises'
 import { MonsterImage } from '../components/MonsterImage'
@@ -73,6 +74,8 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
         .map((r) => `${tagLabel(r.tag, names)}${own[r.tag] > 1 ? `×${own[r.tag]}` : ''}`)
       if (def.favoriteSlot && quest.weakSlots.includes(def.favoriteSlot)) tags.push('得意種目が弱点')
       if (fitsQuest(def, quest)) tags.unshift('属性◎')
+      const shared = sharedTags(def, quest)
+      if (shared.length > 0) tags.unshift(`🏷️${shared.join('・')}`)
       else if (isStrict(quest)) tags.push('半減')
       return [{ mon, def, help: shortfallHelp(def, formation.rows), tags }]
     })
@@ -81,7 +84,9 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
       const onB = party.includes(b.mon.id) ? 1 : 0
       const advA = fitsQuest(a.def, quest) ? 1 : 0
       const advB = fitsQuest(b.def, quest) ? 1 : 0
-      return onB - onA || advB - advA || b.help - a.help || b.tags.length - a.tags.length || powerOf(b) - powerOf(a)
+      const tagA = sharedTags(a.def, quest).length
+      const tagB = sharedTags(b.def, quest).length
+      return onB - onA || tagB - tagA || advB - advA || b.help - a.help || b.tags.length - a.tags.length || powerOf(b) - powerOf(a)
     })
   const max = CONFIG.quest.partySize
   // 選んだメンバーで、各部位の日に1回トレーニングしたときのダメージの見込み
@@ -133,6 +138,12 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
                   </span>
                 ))}
               </span>
+            </li>
+          )}
+          {(quest.bossTags ?? []).length > 0 && (
+            <li>
+              <span>タグ（一致1つにつきダメージ＋{Math.round(CONFIG.tags.perTag * 100)}%）</span>
+              <span>🏷️{quest.bossTags!.join('・')}</span>
             </li>
           )}
           <li>

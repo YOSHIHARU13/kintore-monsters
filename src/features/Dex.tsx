@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { useStore } from '../store'
+import { TagChips } from '../components/TagChips'
+import { tagsOfDef } from '../lib/tags'
 import { SeriesChips } from '../components/SeriesChips'
 import { inSeries, seriesOf, type SeriesFilter } from '../lib/series'
 import { CONFIG } from '../config/gameConfig'
@@ -34,6 +36,7 @@ export function Dex({ go }: { go: Go }) {
   const [filter, setFilter] = useState<Filter>('all')
   const [open, setOpen] = useState<Entry | null>(null)
   const [series, setSeries] = useState<SeriesFilter>('all')
+  const [tag, setTag] = useState('')
 
   let no = 0
   const entries: Entry[] = defs.flatMap((def) => {
@@ -48,6 +51,7 @@ export function Dex({ go }: { go: Go }) {
   const list = entries
     .filter((e) => (filter === 'found' ? e.found : filter === 'missing' ? !e.found : true))
     .filter((e) => inSeries(series, seriesOf(e.def)))
+    .filter((e) => tag === '' || tagsOfDef(e.def).includes(tag))
 
   // レシピの1体ぶんの進み具合
   const progressOf = (defId: string, hidden: MonsterDef) => {
@@ -83,6 +87,7 @@ export function Dex({ go }: { go: Go }) {
         ))}
       </div>
       <SeriesChips value={series} onChange={setSeries} />
+      <TagChips value={tag} onChange={setTag} />
       {defs.length === 0 && <p className="muted">まだモンスターが登録されていません。</p>}
 
       <div className="dex-grid">

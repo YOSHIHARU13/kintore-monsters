@@ -111,6 +111,7 @@ export interface MonsterDef {
   jogressSuper?: boolean // 同じ属性どうしのジョグレスなら超属性
   favoriteSlot?: string // 得意種目（種目の枠ID）
   series?: string // シリーズ（コラボ名）。空なら通常
+  tags?: string[] // タグ（ドラゴン・侍…）。同じタグのボスのクエストで強い
   jogressBirthStars?: number // 隠しモンスターが生まれるときの星（素材はこの1つ下以上）
   jogressPlus?: number // 隠しモンスターの素材に必要な＋（なければ0）
   fixedStars?: number // 進化しない（1形態だけの）クエスト限定モンスターの星（なければ fixedStarsDefault）
@@ -161,6 +162,7 @@ export interface Quest {
   autoName?: boolean // 名前を付けていない（読み込むときに付く。保存はしない）
   builtin?: boolean // 最初から用意されている素材クエスト（編集・削除できない）
   drop?: 'coins' // 素材クエストで、核の代わりに進化コインが出る（コインの金庫）
+  bossTags?: string[] // ボスのタグ（読み込むときに付く。保存はしない）
   kind?: 'boss' | 'material' // ボスクエスト（ボスが手に入る）か、素材クエスト（核が落ちる）か。なければボス
   bossDefId: string // ボス（倒すと手に入るモンスター。素材クエストでは見た目だけ）
   attr: FormAttr // ボスの部位（素材クエストで落ちる核の種類）

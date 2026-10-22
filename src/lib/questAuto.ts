@@ -6,6 +6,7 @@ import { abilityTag, comboTag, elementTag, requirementsOf, tagAbilities } from '
 import { abilitySlots } from './gimmick'
 import { rarityOf } from './gacha'
 import { seriesOf } from './series'
+import { tagsOfDef } from './tags'
 import { isHidden, nodeAttr, type Element, type MonsterDef, type Quest, type QuestGrade, type RarityKey, type Requirement } from '../types'
 
 /** 文字列から決まる数（同じボスなら毎回同じ結果に） */
@@ -85,7 +86,12 @@ function pickHero(boss: MonsterDef, grade: QuestGrade, defs: MonsterDef[], seed:
   )
   const series = seriesOf(boss)
   const same = able.filter((d) => series !== '' && seriesOf(d) === series)
-  const pool = grade === 'chokyukyoku' && same.length > 0 ? same : able
+  const base = grade === 'chokyukyoku' && same.length > 0 ? same : able
+  // ボスとタグが多く一致する子を優先
+  const bossTags = tagsOfDef(boss)
+  const shared = (d: MonsterDef) => tagsOfDef(d).filter((t) => bossTags.includes(t)).length
+  const best = Math.max(0, ...base.map(shared))
+  const pool = best > 0 ? base.filter((d) => shared(d) === best) : base
   return pool.length > 0 ? pool[seed % pool.length] : undefined
 }
 

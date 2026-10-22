@@ -38,6 +38,7 @@ import { canShinka, shinkaFoods } from './lib/shinka'
 import { availableEvents, claimKey } from './lib/events'
 import { activeToday, currentStats, loginReady, loginReward, type Reward } from './lib/missions'
 import { builtinMaterialQuests } from './lib/materials'
+import { tagsOfDef } from './lib/tags'
 import type { Period, Periods } from './lib/series'
 import { towerCleared, towerFloors, towerMonth, type TowerFloor } from './lib/tower'
 import { elementInfo, jogressElementOf } from './lib/element'
@@ -129,6 +130,7 @@ export interface MonsterDefInput {
   element: Element | '' // 属性（無属性は空）
   favoriteSlot: string // 得意種目の枠ID（なしは空）
   series?: string // シリーズ（コラボ名）。空なら通常
+  tags?: string[] // タグ
   abilities: string[] // アビリティ（対応するギミック名）
 }
 
@@ -397,8 +399,10 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         const boss = defs.find((d) => d.id === q.bossDefId)
         const autoName = !q.name?.trim()
         const name = autoName ? (boss?.name ?? '名前のないクエスト') : q.name
-        return boss ? { ...q, name, autoName, element: elementInfo(boss).elements[0] } : { ...q, name, autoName }
-      }).concat(builtinMaterialQuests(defs, today)),
+        return boss
+          ? { ...q, name, autoName, element: elementInfo(boss).elements[0], bossTags: tagsOfDef(boss) }
+          : { ...q, name, autoName }
+      }).concat(builtinMaterialQuests(defs, today).map((q) => ({ ...q, bossTags: tagsOfDef(defs.find((d) => d.id === q.bossDefId)) }))),
     [questDocs, defs, today],
   )
   const yesterday = useMemo(() => prevDateKey(today), [today])
@@ -919,6 +923,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         element: input.element || null,
         favoriteSlot: input.favoriteSlot,
         series: input.series?.trim() || null,
+        tags: input.tags ?? [],
         questOnly: input.questOnly,
         tower: input.questOnly && input.tower === true,
         fixedStars: input.fixedStars,
@@ -1044,7 +1049,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     }
 
     const saveQuest: Store['saveQuest'] = (input) => {
-      const { id, ...data } = input
+      // 読み込むときに付けた項目は保存しない
+      const { id, autoName: _a, builtin: _b, bossTags: _t, ...data } = input
       const current = id ? quests.find((q) => q.id === id) : undefined
       const ref = id ? doc(db, base, 'quests', id) : doc(collection(db, base, 'quests'))
       setDoc(ref, {

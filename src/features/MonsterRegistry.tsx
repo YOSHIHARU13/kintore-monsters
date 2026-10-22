@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { imageOf } from '../lib/art'
 import { useStore } from '../store'
+import { TagChips } from '../components/TagChips'
+import { tagsOfDef } from '../lib/tags'
 import { SeriesChips } from '../components/SeriesChips'
 import { allSeries, inSeries, seriesOf, type SeriesFilter } from '../lib/series'
 import { PeriodInput } from '../components/PeriodInput'
@@ -43,6 +45,7 @@ export function MonsterRegistry({ go }: { go: Go }) {
   const [filter, setFilter] = useState<Filter>('all')
   const [query, setQuery] = useState('')
   const [series, setSeries] = useState<SeriesFilter>('all')
+  const [tag, setTag] = useState('')
   const [tuned, setTuned] = useState<number | null>(null)
   const hasMet = (defId: string) => owned.some((o) => o.defId === defId) || (state.dexFound[defId]?.length ?? 0) > 0
   const ownedCount = defs.filter((d) => hasMet(d.id)).length
@@ -59,6 +62,7 @@ export function MonsterRegistry({ go }: { go: Go }) {
   const matches = (d: MonsterDef) => {
     if (query.trim() && !d.name.includes(query.trim())) return false
     if (!inSeries(series, seriesOf(d))) return false
+    if (tag !== '' && !tagsOfDef(d).includes(tag)) return false
     if (filter === 'todo') return todosOf(d).length > 0
     if (filter === 'gacha') return !isHidden(d) && !d.questOnly
     if (filter === 'quest') return d.questOnly === true
@@ -128,6 +132,7 @@ export function MonsterRegistry({ go }: { go: Go }) {
         ))}
       </div>
       <SeriesChips value={series} onChange={setSeries} />
+      <TagChips value={tag} onChange={setTag} />
       <input
         className="search"
         value={query}
