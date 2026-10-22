@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { draw, isPity, percent, pickFrom, rateTable, starsOf, tierRates } from './gacha'
+import { draw, isPity, jogressStarsOf, percent, pickFrom, rateTable, starsOf, tierRates } from './gacha'
 import type { MonsterDef } from '../types'
 
 const def = (id: string, extra: Partial<MonsterDef> = {}): MonsterDef => ({
@@ -70,7 +70,14 @@ describe('ガチャ', () => {
     expect(starsOf(def('a', { rarity: 'rare', templateId: 'lateBranch' }), 'n3b')).toBe(5)
     expect(starsOf(def('a', { rarity: 'superRare' }), 'n1')).toBe(4)
     expect(starsOf(def('a', { rarity: 'superRare' }), 'n3')).toBe(6)
-    expect(starsOf(def('a', { recipe: ['x', 'y'], templateId: 'single' }), 'n1')).toBe(7)
-    expect(starsOf(def('a', { recipe: ['x', 'y'] }), 'n1')).toBe(5) // 3段のジョグレスは 5 → 6 → 7
+    expect(starsOf(def('a', { recipe: ['x', 'y'], templateId: 'single' }), 'n1')).toBe(8)
+    expect(starsOf(def('a', { recipe: ['x', 'y'], templateId: 'single', jogressStars: 7 }), 'n1')).toBe(7)
+    expect(starsOf(def('a', { recipe: ['x', 'y'] }), 'n1')).toBe(6) // 3段のジョグレスは 6 → 7 → 8
+  })
+
+  it('ジョグレスの星：ガチャ同士は★8、クエストのモンスターが入ると★7', () => {
+    const defs = [def('g1'), def('g2'), def('q1', { questOnly: true })]
+    expect(jogressStarsOf(['g1', 'g2'], defs)).toBe(8)
+    expect(jogressStarsOf(['g1', 'q1'], defs)).toBe(7)
   })
 })

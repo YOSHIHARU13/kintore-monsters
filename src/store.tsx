@@ -25,7 +25,7 @@ import { evolutionCost, fusionCost, isExpFull, planPour } from './lib/evolution'
 import { habitGoldOf, habitLabelOf, stepsGold } from './lib/rewards'
 import { isWeekCleared } from './lib/week'
 import { compressImage } from './lib/imageCompress'
-import { draw, isPickupRarity, isPity, isReady, rarityOf, rateTable } from './lib/gacha'
+import { draw, isPickupRarity, isPity, isReady, jogressStarsOf, rarityOf, rateTable } from './lib/gacha'
 import { battleOf } from './lib/quest'
 import { investedFor, isHidden, nodeAttr, type AttrExp, type Checkin, type Gacha, type Quest, type QuestDifficulty, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
 
@@ -673,8 +673,14 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         favoriteSlot: input.favoriteSlot,
         questOnly: input.questOnly,
         skill: input.skill,
+        ...(input.recipe.length === 2 ? { jogressStars: jogressStarsOf(input.recipe, defs) } : {}),
         createdAt: existing?.createdAt ?? Date.now(),
       })
+      // このモンスターを素材にする隠しモンスターの星を計算し直す（クエスト限定にした・外したとき）
+      const updated = defs.map((d) => (d.id === defRef.id ? { ...d, questOnly: input.questOnly } : d))
+      for (const hidden of defs.filter((d) => isHidden(d) && d.recipe!.includes(defRef.id))) {
+        batch.update(doc(db, base, 'monsterDefs', hidden.id), { jogressStars: jogressStarsOf(hidden.recipe!, updated) })
+      }
       batch.commit().catch(fail)
     }
 

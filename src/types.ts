@@ -84,6 +84,7 @@ export interface MonsterDef {
   recipe?: string[] // 隠しモンスターのレシピ（2体の defId）。あればタマゴからは生まれず、ジョグレスでだけ生まれる
   gachas?: string[] // 入っているガチャのID（最大3つ）。なければ「いつものガチャ」
   favoriteSlot?: string // 得意種目（種目の枠ID）
+  jogressStars?: number // 隠しモンスターの最終形態の星（レシピの素材で決まる。保存するときに計算する）
   questOnly?: boolean // クエスト限定（ガチャには出ない。クエストのボスとして倒すと手に入る）
   skill?: string // 特攻スキル（CONFIG.skills のキー）
   rarity?: RarityKey // レア度（なければノーマル）

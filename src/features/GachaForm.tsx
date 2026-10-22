@@ -3,8 +3,8 @@ import { useStore } from '../store'
 import { CONFIG } from '../config/gameConfig'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { MonsterImage } from '../components/MonsterImage'
-import { GachaBanner, featuredOf, jogressOf } from '../components/GachaBanner'
-import { isPickupRarity, percent, pickupCount, rarityOf, rateTable, tierRates } from '../lib/gacha'
+import { GachaBanner, bannerNodeOf, featuredOf, jogressOf } from '../components/GachaBanner'
+import { isPickupRarity, percent, pickupCount, rarityOf, rateTable, starsOf, tierRates } from '../lib/gacha'
 import { Stars } from '../components/Stars'
 import type { Go } from '../nav'
 import { isHidden, monsterName, type Gacha } from '../types'
@@ -135,7 +135,7 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
                       disabled={!on && featured.length >= CONFIG.gacha.bannerMonsters}
                       onClick={() => setFeatured(on ? featured.filter((x) => x !== d.id) : [...featured, d.id])}
                     >
-                      {isHidden(d) ? `★7 ${d.name}（ジョグレス）` : d.name}
+                      {isHidden(d) ? `★${starsOf(d, bannerNodeOf(d))} ${d.name}（ジョグレス）` : d.name}
                     </button>
                   )
                 })}

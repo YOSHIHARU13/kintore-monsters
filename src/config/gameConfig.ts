@@ -181,8 +181,9 @@ export const CONFIG = {
         hint: '選んだガチャだけ（フェス限）。ジョグレスの素材になる、いちばんかっこいいやつ',
       },
     },
-    // 星：生まれたときはレア度の startStars、進化するたびに1つ増える。ジョグレスの隠しモンスターは最終形態で jogressStars
-    jogressStars: 7,
+    // 星：生まれたときはレア度の startStars、進化するたびに1つ増える
+    // ジョグレスの隠しモンスターは最終形態で、ガチャのモンスター同士なら gacha、クエストのモンスターが入るなら withQuest
+    jogressStars: { gacha: 8, withQuest: 7 },
     // 天井：同じガチャで、激レアが出ないままこの回数目を引くと激レア確定
     pity: { rarity: 'superRare' as const, pulls: 30 },
     shinyRateChoices: [1 / 50, 1 / 20, 1 / 10, 1 / 5], // ガチャごとに選べる色違いの確率

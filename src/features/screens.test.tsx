@@ -606,9 +606,9 @@ describe('画面の表示', () => {
       { id: 'j1', name: 'カイザードラ', attr: 'none', templateId: 'single', images: {}, recipe: ['s1', 'm1'], createdAt: 7 },
     ]
     const el = await render(<GachaForm id="g1" go={go} />)
-    const chip = [...el.querySelectorAll('button.chip')].find((b) => b.textContent === '★7 カイザードラ（ジョグレス）')!
+    const chip = [...el.querySelectorAll('button.chip')].find((b) => b.textContent === '★8 カイザードラ（ジョグレス）')!
     await act(async () => (chip as HTMLButtonElement).click())
-    expect(el.querySelector('.gacha-banner.auto')!.textContent).toContain('ジョグレスで★7')
+    expect(el.querySelector('.gacha-banner.auto')!.textContent).toContain('ジョグレスで★8')
     await click('保存する')
     expect(fake.store.saveGacha).toHaveBeenCalledWith(expect.objectContaining({ featured: ['j1'] }))
   })

@@ -3,7 +3,7 @@ import { useStore } from '../store'
 import { CONFIG } from '../config/gameConfig'
 import { getTemplate } from '../data/evolutionTemplates'
 import { MonsterImage } from './MonsterImage'
-import { rarityOf, type Rate } from '../lib/gacha'
+import { rarityOf, starsOf, type Rate } from '../lib/gacha'
 import { isHidden, type Gacha, type MonsterDef } from '../types'
 
 /** バナーに出す姿：最終形態のうち画像があるもの（なければ画像がある中でいちばん進化した姿） */
@@ -78,7 +78,7 @@ export function GachaBanner({ gacha, count, featured = [], selected = false, onC
   }
 
   const hasSuperRare = featured.some((d) => !isHidden(d) && rarityOf(d) === 'superRare')
-  const hasJogress = featured.some(isHidden)
+  const jogressStars = Math.max(0, ...featured.filter(isHidden).map((d) => starsOf(d, bannerNodeOf(d))))
   return (
     <button
       type="button"
@@ -94,8 +94,8 @@ export function GachaBanner({ gacha, count, featured = [], selected = false, onC
         ))}
       </span>
       <span className="auto-text">
-        {(hasJogress || hasSuperRare) && (
-          <span className="auto-badge">{hasJogress ? 'ジョグレスで★7' : '激レア登場'}</span>
+        {(jogressStars > 0 || hasSuperRare) && (
+          <span className="auto-badge">{jogressStars > 0 ? `ジョグレスで★${jogressStars}` : '激レア登場'}</span>
         )}
         <strong className="auto-title">{gacha.name}</strong>
         {gacha.catchphrase && <span className="auto-catch">{gacha.catchphrase}</span>}
