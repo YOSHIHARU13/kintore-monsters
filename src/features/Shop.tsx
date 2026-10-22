@@ -63,7 +63,7 @@ export function Shop({ go }: { go: Go }) {
               key={g.id}
               gacha={g}
               count={rateTable(g.id, defs).length}
-              featured={featuredOf(g, rateTable(g.id, defs))}
+              featured={featuredOf(g, rateTable(g.id, defs), defs)}
               selected={g.id === gacha.id}
               onClick={() => setGachaId(g.id)}
             />

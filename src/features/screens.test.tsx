@@ -523,6 +523,21 @@ describe('画面の表示', () => {
     )
   })
 
+  it('ガチャ編集：ジョグレスの最強形態もバナーに出せる', async () => {
+    fake.store.gachas = [gachas[0], gacha('g1', '脚まつり', { createdAt: 1 })]
+    fake.store.defs = [
+      ...defs,
+      { id: 's1', name: 'カミドラ', attr: 'legs', templateId: 'linear3', images: {}, rarity: 'superRare', gachas: ['g1'], createdAt: 6 },
+      { id: 'j1', name: 'カイザードラ', attr: 'none', templateId: 'single', images: {}, recipe: ['s1', 'm1'], createdAt: 7 },
+    ]
+    const el = await render(<GachaForm id="g1" go={go} />)
+    const chip = [...el.querySelectorAll('button.chip')].find((b) => b.textContent === '★7 カイザードラ（ジョグレス）')!
+    await act(async () => (chip as HTMLButtonElement).click())
+    expect(el.querySelector('.gacha-banner.auto')!.textContent).toContain('ジョグレスで★7')
+    await click('保存する')
+    expect(fake.store.saveGacha).toHaveBeenCalledWith(expect.objectContaining({ featured: ['j1'] }))
+  })
+
   it('ショップ：天井で激レアが出ると演出に出る', async () => {
     fake.store.hatchEgg = vi.fn(() => ({ def: { ...defs[1], rarity: 'superRare' }, monsterId: 'o2', shiny: false, pity: true }))
     const shop = await render(<Shop go={go} />)

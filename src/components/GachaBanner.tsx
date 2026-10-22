@@ -4,7 +4,7 @@ import { CONFIG } from '../config/gameConfig'
 import { getTemplate } from '../data/evolutionTemplates'
 import { MonsterImage } from './MonsterImage'
 import { rarityOf, type Rate } from '../lib/gacha'
-import type { Gacha, MonsterDef } from '../types'
+import { isHidden, type Gacha, type MonsterDef } from '../types'
 
 /** バナーに出す姿：最終形態のうち画像があるもの（なければ画像がある中でいちばん進化した姿） */
 export function bannerNodeOf(def: MonsterDef): string {
@@ -14,10 +14,17 @@ export function bannerNodeOf(def: MonsterDef): string {
   return (final ?? withImage[withImage.length - 1] ?? nodes[0]).id
 }
 
+/** そのガチャから出るモンスターがレシピに入っている、ジョグレスの隠しモンスター */
+export function jogressOf(table: Rate[], defs: MonsterDef[]): MonsterDef[] {
+  const ids = new Set(table.map((t) => t.def.id))
+  return defs.filter((d) => isHidden(d) && d.recipe!.some((r) => ids.has(r)))
+}
+
 /** バナーに出すモンスター。選んでいなければ、ピックアップのうちレア度の高い順に */
-export function featuredOf(gacha: Gacha, table: Rate[]): MonsterDef[] {
+export function featuredOf(gacha: Gacha, table: Rate[], defs: MonsterDef[]): MonsterDef[] {
   const max = CONFIG.gacha.bannerMonsters
-  const chosen = gacha.featured.map((id) => table.find((t) => t.def.id === id)?.def).filter((d) => !!d)
+  const pool = [...table.map((t) => t.def), ...jogressOf(table, defs)]
+  const chosen = gacha.featured.map((id) => pool.find((d) => d.id === id)).filter((d) => !!d)
   if (chosen.length > 0) return chosen.slice(0, max)
   const order = ['superRare', 'rare'] as const
   return order.flatMap((r) => table.filter((t) => t.rarity === r).map((t) => t.def)).slice(0, max)
@@ -70,7 +77,8 @@ export function GachaBanner({ gacha, count, featured = [], selected = false, onC
     )
   }
 
-  const hasSuperRare = featured.some((d) => rarityOf(d) === 'superRare')
+  const hasSuperRare = featured.some((d) => !isHidden(d) && rarityOf(d) === 'superRare')
+  const hasJogress = featured.some(isHidden)
   return (
     <button
       type="button"
@@ -86,7 +94,9 @@ export function GachaBanner({ gacha, count, featured = [], selected = false, onC
         ))}
       </span>
       <span className="auto-text">
-        {hasSuperRare && <span className="auto-badge">激レア登場</span>}
+        {(hasJogress || hasSuperRare) && (
+          <span className="auto-badge">{hasJogress ? 'ジョグレスで★7' : '激レア登場'}</span>
+        )}
         <strong className="auto-title">{gacha.name}</strong>
         {gacha.catchphrase && <span className="auto-catch">{gacha.catchphrase}</span>}
         {info}

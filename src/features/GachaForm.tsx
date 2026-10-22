@@ -3,7 +3,7 @@ import { useStore } from '../store'
 import { CONFIG } from '../config/gameConfig'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { MonsterImage } from '../components/MonsterImage'
-import { GachaBanner, featuredOf } from '../components/GachaBanner'
+import { GachaBanner, featuredOf, jogressOf } from '../components/GachaBanner'
 import { isPickupRarity, percent, pickupCount, rarityOf, rateTable, tierRates } from '../lib/gacha'
 import { Stars } from '../components/Stars'
 import type { Go } from '../nav'
@@ -41,6 +41,8 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
       })
   const table = rateTable(draftId, draftDefs)
   const pickupNeed = Math.max(0, CONFIG.gacha.minPickups - pickupCount(table))
+  // ピックアップを素材にするジョグレスの隠しモンスターも、バナーに出せる
+  const jogressIds = jogressOf(table, defs).map((d) => d.id)
   // 編集中の内容で確率を計算し直す
   const draft: Gacha = {
     id: existing?.id ?? 'new',
@@ -49,7 +51,7 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
     shinyRate,
     catchphrase,
     theme,
-    featured: featured.filter((f) => pickups.includes(f) || builtin),
+    featured: featured.filter((f) => builtin || pickups.includes(f) || jogressIds.includes(f)),
     createdAt: existing?.createdAt ?? 0,
     builtin: existing?.builtin ?? false,
   }
@@ -89,7 +91,7 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
       <h1 className="title">{existing ? 'ガチャの編集' : 'ガチャを作る'}</h1>
 
       <section className="card">
-        <GachaBanner gacha={draft} count={table.length} featured={featuredOf(draft, table)} preview={preview} />
+        <GachaBanner gacha={draft} count={table.length} featured={featuredOf(draft, table, defs)} preview={preview} />
         <label className="field">
           ガチャの名前
           <input value={name} onChange={(e) => setName(e.target.value)} maxLength={20} placeholder="例：脚ムキムキ祭り" />
@@ -122,8 +124,7 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
           <div className="field">
             バナーに出すモンスター（{CONFIG.gacha.bannerMonsters}体まで・選ばなければレア度の高い順）
             <div className="chips">
-              {candidates
-                .filter((d) => pickups.includes(d.id))
+              {[...candidates.filter((d) => pickups.includes(d.id)), ...jogressOf(table, defs)]
                 .map((d) => {
                   const on = featured.includes(d.id)
                   return (
@@ -134,7 +135,7 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
                       disabled={!on && featured.length >= CONFIG.gacha.bannerMonsters}
                       onClick={() => setFeatured(on ? featured.filter((x) => x !== d.id) : [...featured, d.id])}
                     >
-                      {d.name}
+                      {isHidden(d) ? `★7 ${d.name}（ジョグレス）` : d.name}
                     </button>
                   )
                 })}
