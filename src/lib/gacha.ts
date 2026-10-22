@@ -97,20 +97,13 @@ export function percent(rate: number): string {
   return `${p >= 10 ? p.toFixed(1).replace(/\.0$/, '') : p.toFixed(2).replace(/\.?0+$/, '')}%`
 }
 
-/** ジョグレスの最終形態の星：レシピの素材がどちらもガチャのモンスターなら★8、クエストのモンスターが入るなら★7 */
-export function jogressStarsOf(recipe: string[], defs: MonsterDef[]): number {
-  const withQuest = recipe.some((id) => defs.find((d) => d.id === id)?.questOnly)
-  return withQuest ? CONFIG.gacha.jogressStars.withQuest : CONFIG.gacha.jogressStars.gacha
-}
-
 /** その形態の星の数。生まれたときはレア度で決まり、進化するたびに1つ増える */
 export function starsOf(def: MonsterDef, nodeId: string): number {
   const template = getTemplate(def.templateId)
   const stage = getNode(template, nodeId).stage
   if (isHidden(def)) {
-    // 隠しモンスターは、最終形態でレシピに応じた星（ガチャ同士★8、クエストが入ると★7）になるように数える
-    const finalStage = Math.max(...template.nodes.map((n) => n.stage))
-    return (def.jogressStars ?? CONFIG.gacha.jogressStars.gacha) - (finalStage - stage)
+    // 隠しモンスターは、レシピで決めた「生まれるときの星」から数える
+    return (def.jogressBirthStars ?? CONFIG.gacha.jogressDefaultBirth) + stage - 1
   }
   return CONFIG.gacha.rarities[rarityOf(def)].startStars + stage - 1
 }

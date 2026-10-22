@@ -84,7 +84,8 @@ export interface MonsterDef {
   recipe?: string[] // 隠しモンスターのレシピ（2体の defId）。あればタマゴからは生まれず、ジョグレスでだけ生まれる
   gachas?: string[] // 入っているガチャのID（最大3つ）。なければ「いつものガチャ」
   favoriteSlot?: string // 得意種目（種目の枠ID）
-  jogressStars?: number // 隠しモンスターの最終形態の星（レシピの素材で決まる。保存するときに計算する）
+  jogressBirthStars?: number // 隠しモンスターが生まれるときの星（素材はこの1つ下以上）
+  jogressPlus?: number // 隠しモンスターの素材に必要な＋（なければ最大）
   questOnly?: boolean // クエスト限定（ガチャには出ない。クエストのボスとして倒すと手に入る）
   skill?: string // 特攻スキル（CONFIG.skills のキー）
   rarity?: RarityKey // レア度（なければノーマル）
@@ -122,6 +123,7 @@ export interface Quest {
   weakSlots: string[] // 弱点種目（種目の枠ID）
   weakSkill: string // 弱点のやり方（CONFIG.skills のキー。なしは空）
   hp: Record<QuestDifficulty, number>
+  rank?: number // ボスの格（CONFIG.quest.ranks の番号。なければ「普通」）
   catchphrase: string
   theme: string
   createdAt: number

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { advantageAttr, affinity, questHits, setHit, standardSessionDamage } from './quest'
+import { advantageAttr, affinity, defaultHp, questGold, questHits, setHit, standardSessionDamage } from './quest'
+import { isJogressReady, jogressNeed } from './stats'
 import type { MonsterDef, OwnedMonster, Quest, SetRecord } from '../types'
 
 const def = (id: string, extra: Partial<MonsterDef> = {}): MonsterDef => ({
@@ -52,7 +53,7 @@ describe('クエスト', () => {
     const strong = { mon: mon('b', 'b', { nodeId: 'n3', plus: 5 }), def: def('b', { rarity: 'superRare' }) }
     const a = setHit(set('mon2', 'mon'), quest, [weak], new Set(), '').damage
     const b = setHit(set('mon2', 'mon'), quest, [strong], new Set(), '').damage
-    expect(b / a).toBeCloseTo((6 * 1.5) / 2) // ★6＋5 と ★2
+    expect(b / a).toBeCloseTo((6 * 3000 + 5 * 1500) / (2 * 3000)) // ★6＋5 と ★2（攻撃力の比）
   })
 
   it('報酬の対象外のセットは数えない', () => {
@@ -73,5 +74,25 @@ describe('クエスト', () => {
     const m = { mon: mon('c', 'c'), def: def('c', { skill: 'streak' }) }
     const plain = setHit(set('mon2', 'mon'), q2, [m], new Set(), '').damage
     expect(setHit(set('mon2', 'mon'), q2, [m], new Set(['2026-10-04']), '').damage).toBe(plain * 2)
+  })
+
+  it('ボスの格で、初級〜上級のHPとGがまとめて変わる', () => {
+    const weak = defaultHp(0)
+    const strong = defaultHp(4)
+    expect(strong.easy).toBeGreaterThan(weak.hard) // 極の初級は、雑魚の上級より硬い
+    expect(weak.easy).toBeLessThan(weak.normal)
+    expect(questGold({ rank: 4 }, 'easy')).toBeGreaterThan(questGold({ rank: 0 }, 'easy'))
+    expect(questGold({}, 'normal')).toBe(120) // 格を決めていなければ「普通」
+  })
+
+  it('ジョグレス：途中の段階どうしでもOK（★3どうしで★4誕生）。＋の条件もレシピで決める', () => {
+    const hidden = def('h', { recipe: ['a', 'b'], jogressBirthStars: 4, jogressPlus: 0 })
+    expect(jogressNeed(hidden)).toEqual({ stars: 3, plus: 0 })
+    const normal = def('a') // ノーマル：★2 → ★3 → ★4
+    expect(isJogressReady(mon('x', 'a', { nodeId: 'n1' }), normal, hidden)).toBe(false)
+    expect(isJogressReady(mon('x', 'a', { nodeId: 'n2' }), normal, hidden)).toBe(true)
+    const strict = def('h2', { recipe: ['a', 'b'], jogressBirthStars: 5, jogressPlus: 5 })
+    expect(isJogressReady(mon('x', 'a', { nodeId: 'n3', plus: 4 }), normal, strict)).toBe(false)
+    expect(isJogressReady(mon('x', 'a', { nodeId: 'n3', plus: 5 }), normal, strict)).toBe(true)
   })
 })

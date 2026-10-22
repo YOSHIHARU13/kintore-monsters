@@ -4,6 +4,7 @@ import { CONFIG } from '../config/gameConfig'
 import { MonsterImage } from '../components/MonsterImage'
 import { Stars } from '../components/Stars'
 import { partnerRate, rateText } from '../lib/partner'
+import { attackOf } from '../lib/stats'
 import type { Go } from '../nav'
 import { plusName } from '../types'
 
@@ -38,8 +39,8 @@ export function PartnerPick({ slotId, go }: { slotId: string; go: Go }) {
       </button>
       <h1 className="title">{ex.name}の相棒</h1>
       <p className="muted small">
-        相棒の星と＋が多いほど、この種目のEXPが増えます（星1つ +{Math.round(CONFIG.partner.perStar * 100)}%、＋1つ +
-        {Math.round(CONFIG.partner.perPlus * 100)}%）。この種目が得意なモンスターなら、さらに ×{CONFIG.partner.favorite}
+        相棒の攻撃力が高いほど、この種目のEXPが増えます（攻撃力3,000ごとに +
+        {Math.round(CONFIG.partner.perAttack * 3000 * 100)}%）。この種目が得意なモンスターなら、さらに ×{CONFIG.partner.favorite}
         。1体が相棒になれるのは1つの種目だけです。
       </p>
       {current && (
@@ -59,6 +60,7 @@ export function PartnerPick({ slotId, go }: { slotId: string; go: Go }) {
                   <span>
                     {plusName(def, mon)} <Stars def={def} nodeId={mon.nodeId} />
                     <br />
+                    <span className="small">攻撃力 {attackOf(mon, def).toLocaleString()}　</span>
                     <strong className="bonus-reward">EXP{rateText(rate)}</strong>
                     {def.favoriteSlot === slotId && <span className="tag keep"> 得意種目！</span>}
                     {other && other !== slotId && (

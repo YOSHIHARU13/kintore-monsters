@@ -21,6 +21,8 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
   const [attrs, setAttrs] = useState<Record<string, FormAttr>>(existing?.attrs ?? {})
   const [names, setNames] = useState<Record<string, string>>(existing?.names ?? {})
   const [files, setFiles] = useState<Record<string, File>>({})
+  const [birthStars, setBirthStars] = useState(existing?.jogressBirthStars ?? CONFIG.gacha.jogressDefaultBirth)
+  const [jogressPlus, setJogressPlus] = useState(existing?.jogressPlus ?? CONFIG.fusion.maxPlus)
   const [questOnly, setQuestOnly] = useState(existing?.questOnly === true)
   const [favoriteSlot, setFavoriteSlot] = useState(existing?.favoriteSlot ?? '')
   const [skill, setSkill] = useState(existing?.skill ?? '')
@@ -80,6 +82,8 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
         favoriteSlot,
         skill,
         questOnly: recipe.length !== 2 && questOnly,
+        jogressBirthStars: birthStars,
+        jogressPlus,
       })
       go({ name: 'registry' })
     } catch (e) {
@@ -276,9 +280,36 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
           隠しモンスターにする
         </label>
         <p className="muted small">
-          隠しモンスターはタマゴからは生まれません。レシピの2体をどちらも最終形態の＋{CONFIG.fusion.maxPlus}
-          まで育ててジョグレスさせると生まれます（{CONFIG.jogress.gold}G、2体はいなくなります）。同じモンスター2体でもOK。
+          隠しモンスターはタマゴからは生まれません。レシピの2体がどちらも条件を満たしたら、ジョグレスで生まれます（
+          {CONFIG.jogress.gold}G、2体はいなくなります）。同じモンスター2体でもOK。
         </p>
+        {recipe.length === 2 && (
+          <>
+            <div className="field">
+              生まれるときの星（素材はどちらも★{birthStars - 1}以上が必要）
+              <div className="chips" role="group" aria-label="生まれるときの星">
+                {CONFIG.gacha.jogressBirthChoices.map((n) => (
+                  <button key={n} type="button" className={`chip${birthStars === n ? ' on' : ''}`} onClick={() => setBirthStars(n)}>
+                    ★{n}
+                  </button>
+                ))}
+              </div>
+              <span className="muted small">
+                例：★3どうしで★4誕生 → そこから進化。★6の＋5どうしで★7誕生、なども作れます。進化するたびに★が1つ増えます。
+              </span>
+            </div>
+            <div className="field">
+              素材に必要な＋（＋1以上にすると、素材は最終形態まで育てる必要があります）
+              <div className="chips" role="group" aria-label="素材に必要な＋">
+                {Array.from({ length: CONFIG.fusion.maxPlus + 1 }, (_, n) => (
+                  <button key={n} type="button" className={`chip${jogressPlus === n ? ' on' : ''}`} onClick={() => setJogressPlus(n)}>
+                    ＋{n}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
         {recipe.length === 2 &&
           [0, 1].map((i) => (
             <label key={i} className="field">

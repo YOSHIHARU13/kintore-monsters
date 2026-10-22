@@ -25,8 +25,9 @@ import { evolutionCost, fusionCost, isExpFull, planPour } from './lib/evolution'
 import { habitGoldOf, habitLabelOf, stepsGold } from './lib/rewards'
 import { isWeekCleared } from './lib/week'
 import { compressImage } from './lib/imageCompress'
-import { draw, isPickupRarity, isPity, isReady, jogressStarsOf, rarityOf, rateTable } from './lib/gacha'
-import { battleOf } from './lib/quest'
+import { draw, isPickupRarity, isPity, isReady, rarityOf, rateTable } from './lib/gacha'
+import { isJogressReady } from './lib/stats'
+import { battleOf, questGold } from './lib/quest'
 import { investedFor, isHidden, nodeAttr, type AttrExp, type Checkin, type Gacha, type Quest, type QuestDifficulty, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
 
 const zeroExp = () => ({ trained: 0, bought: 0 })
@@ -95,6 +96,8 @@ export interface MonsterDefInput {
   gachas: string[] // 入るガチャのID（最大3つ。空なら「いつものガチャ」）
   rarity: RarityKey
   questOnly: boolean
+  jogressBirthStars: number // 隠しモンスターが生まれるときの星
+  jogressPlus: number // 隠しモンスターの素材に必要な＋
   favoriteSlot: string // 得意種目の枠ID（なしは空）
   skill: string // 特攻スキル（なしは空）
 }
@@ -563,8 +566,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       if (!a || !b || !hidden?.recipe || monsterId === partnerId) return null
       const pair = [a.mon.defId, b.mon.defId].sort().join()
       if ([...hidden.recipe].sort().join() !== pair) return null
-      const ready = (m: NonNullable<typeof a>) => m.node.next.length === 0 && (m.mon.plus ?? 0) >= CONFIG.fusion.maxPlus
-      if (!ready(a) || !ready(b) || state.gold < CONFIG.jogress.gold) return null
+      if (!isJogressReady(a.mon, a.def, hidden) || !isJogressReady(b.mon, b.def, hidden)) return null
+      if (state.gold < CONFIG.jogress.gold) return null
       const shiny = Math.random() < CONFIG.shop.shinyRate
       const ref = doc(collection(db, base, 'ownedMonsters'))
       const update: DocumentData = { gold: increment(-CONFIG.jogress.gold) }
@@ -673,14 +676,9 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         favoriteSlot: input.favoriteSlot,
         questOnly: input.questOnly,
         skill: input.skill,
-        ...(input.recipe.length === 2 ? { jogressStars: jogressStarsOf(input.recipe, defs) } : {}),
+        ...(input.recipe.length === 2 ? { jogressBirthStars: input.jogressBirthStars, jogressPlus: input.jogressPlus } : {}),
         createdAt: existing?.createdAt ?? Date.now(),
       })
-      // このモンスターを素材にする隠しモンスターの星を計算し直す（クエスト限定にした・外したとき）
-      const updated = defs.map((d) => (d.id === defRef.id ? { ...d, questOnly: input.questOnly } : d))
-      for (const hidden of defs.filter((d) => isHidden(d) && d.recipe!.includes(defRef.id))) {
-        batch.update(doc(db, base, 'monsterDefs', hidden.id), { jogressStars: jogressStarsOf(hidden.recipe!, updated) })
-      }
       batch.commit().catch(fail)
     }
 
@@ -787,6 +785,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const c = battle.challenge
       const boss = battle.boss
       const diff = CONFIG.quest.difficulties[c.difficulty]
+      const gold = questGold(battle.quest, c.difficulty)
       const shiny = Math.random() < CONFIG.shop.shinyRate
       const ref = doc(collection(db, base, 'ownedMonsters'))
       const batch = writeBatch(db)
@@ -800,7 +799,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         obtainedAt: Date.now(),
       })
       const update: DocumentData = {
-        gold: increment(diff.gold),
+        gold: increment(gold),
         questClears: increment(1),
         challenge: null,
       }

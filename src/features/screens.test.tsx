@@ -222,8 +222,9 @@ describe('画面の表示', () => {
     fake.store.defs = [{ ...defs[0], favoriteSlot: 'mon2' }, defs[1]]
     fake.store.owned = [{ ...owned[0], plus: 2 }, { id: 'o2', defId: 'm2', nodeId: 'n1', obtainedAt: 2 }]
     const pick = await render(<PartnerPick slotId="mon2" go={go} />)
-    // ムキドラゴ：★3（ノーマルの第2段階）＋2、得意種目 → (1 + 0.15 + 0.1) × 1.2 = 1.5
-    expect(pick.textContent).toContain('EXP×1.5')
+    // ムキドラゴ：★3（ノーマルの第2段階）＋2 → 攻撃力 12,000 → (1 + 0.2) × 1.2（得意種目）= 1.44
+    expect(pick.textContent).toContain('攻撃力 12,000')
+    expect(pick.textContent).toContain('EXP×1.44')
     expect(pick.textContent).toContain('得意種目！')
     await click('ムキドラゴ')
     expect(fake.store.setPartner).toHaveBeenCalledWith('mon2', 'o1')
@@ -231,7 +232,7 @@ describe('画面の表示', () => {
     const el = await render(<SetInput slotId="mon2" go={go} />)
     expect(el.textContent).toContain('相棒：ムキドラ')
     await click('11回で確定')
-    expect(fake.store.recordSet).toHaveBeenCalledWith(expect.objectContaining({ exp: 23 }), true) // 15 × 1.5
+    expect(fake.store.recordSet).toHaveBeenCalledWith(expect.objectContaining({ exp: 22 }), true) // 15 × 1.44
   })
 
   it('朝の記録：習慣を分数で記録する', async () => {
@@ -451,7 +452,7 @@ describe('画面の表示', () => {
       { id: 'o2', defId: 'm2', nodeId: 'n3', plus: 5, obtainedAt: 2 },
     ]
     const el = await render(<MonsterDetail id="o1" go={go} />)
-    expect(el.textContent).toContain('？？？ ← ムキドラ＋5 ＆ アシガメ＋5')
+    expect(el.textContent).toContain('？？？（★5で誕生）← ムキドラ ＆ アシガメ：どちらも★4以上・＋5以上')
     await click('アシガメ＋5とジョグレス')
     await click('本当にジョグレスする（1000G）')
     expect(fake.store.jogress).toHaveBeenCalledWith('o1', 'o2', 'h1')
@@ -469,7 +470,7 @@ describe('画面の表示', () => {
     fake.store.state = { ...state, dexFound: { m1: ['n1', 'n2', 'n3b'] }, dexShiny: { m1: true } }
     const dex = await render(<Dex go={go} />)
     expect(dex.textContent).toContain('ジョグレスのレシピ')
-    expect(dex.textContent).toContain('いちばん育っているのは2段階')
+    expect(dex.textContent).toContain('いちばん育っているのは★3')
     expect(dex.textContent).toContain('アシガメ未所持')
     expect(dex.textContent).not.toContain('カイザードラ')
     expect(dex.textContent).toContain('ヤミムキドラ')
@@ -606,9 +607,9 @@ describe('画面の表示', () => {
       { id: 'j1', name: 'カイザードラ', attr: 'none', templateId: 'single', images: {}, recipe: ['s1', 'm1'], createdAt: 7 },
     ]
     const el = await render(<GachaForm id="g1" go={go} />)
-    const chip = [...el.querySelectorAll('button.chip')].find((b) => b.textContent === '★8 カイザードラ（ジョグレス）')!
+    const chip = [...el.querySelectorAll('button.chip')].find((b) => b.textContent === '★5 カイザードラ（ジョグレス）')!
     await act(async () => (chip as HTMLButtonElement).click())
-    expect(el.querySelector('.gacha-banner.auto')!.textContent).toContain('ジョグレスで★8')
+    expect(el.querySelector('.gacha-banner.auto')!.textContent).toContain('ジョグレスで★5')
     await click('保存する')
     expect(fake.store.saveGacha).toHaveBeenCalledWith(expect.objectContaining({ featured: ['j1'] }))
   })

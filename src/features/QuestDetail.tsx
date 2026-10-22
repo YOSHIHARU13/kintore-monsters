@@ -5,8 +5,9 @@ import { ATTR_LABEL, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot } from '../data/exer
 import { MonsterImage } from '../components/MonsterImage'
 import { Stars } from '../components/Stars'
 import { QuestBanner } from '../components/QuestBanner'
-import { DIFFICULTIES, advantageAttr, affinity, attrOf, powerOf, type Member } from '../lib/quest'
+import { DIFFICULTIES, advantageAttr, affinity, attrOf, powerOf, questGold, rankOf, type Member } from '../lib/quest'
 import { ATTR_COLOR, type Go } from '../nav'
+import { attackOf } from '../lib/stats'
 import { plusName, type QuestDifficulty } from '../types'
 
 /** クエストの詳細：ボスの弱点を見て、難易度と出撃メンバーを選んで挑戦する */
@@ -34,6 +35,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
   }
 
   const boss = defs.find((d) => d.id === quest.bossDefId)
+  const rank = rankOf(quest)
   const exerciseName = (slotId: string) => {
     const slot = SLOTS.find((s) => s.id === slotId)
     return slot ? exerciseOfSlot(slot, menu).name : '？'
@@ -105,8 +107,8 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
           ))}
         </div>
         <p className="small">
-          HP {quest.hp[difficulty].toLocaleString()}・ドロップ {boss?.name ?? '？'}＋{CONFIG.quest.difficulties[difficulty].plus}・
-          {CONFIG.quest.difficulties[difficulty].gold}G
+          ボスの格：{rank.label}・HP {quest.hp[difficulty].toLocaleString()}・ドロップ {boss?.name ?? '？'}＋
+          {CONFIG.quest.difficulties[difficulty].plus}・{questGold(quest, difficulty)}G
         </p>
       </section>
 
@@ -134,7 +136,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
                       <span className="small" style={{ color: ATTR_COLOR[attrOf(m)] }}>
                         {FORM_ATTR_LABEL[attrOf(m)]}
                       </span>
-                      <span className="small"> 攻撃力 {Math.round(powerOf(m) * 10) / 10}</span>
+                      <span className="small"> 攻撃力 {attackOf(m.mon, m.def).toLocaleString()}</span>
                       {m.tags.map((t) => (
                         <span key={t} className={`tag${t === '相性×' ? '' : ' keep'}`}>
                           {' '}

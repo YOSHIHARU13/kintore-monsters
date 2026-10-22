@@ -4,7 +4,7 @@ import { CONFIG } from '../config/gameConfig'
 import { DAYS, FORM_ATTRS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type FormAttr } from '../data/exercises'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { QuestBanner } from '../components/QuestBanner'
-import { DIFFICULTIES, standardSessionDamage } from '../lib/quest'
+import { DIFFICULTIES, defaultHp, questGold, standardSessionDamage } from '../lib/quest'
 import { ATTR_COLOR, type Go } from '../nav'
 import { nodeAttr, type Quest, type QuestDifficulty } from '../types'
 
@@ -15,9 +15,6 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
   // ボスになれるのは「クエスト限定」のモンスター（いなければ全員から選べる）
   const bossChoices = defs.some((d) => d.questOnly) ? defs.filter((d) => d.questOnly) : defs
   const session = standardSessionDamage()
-  const defaultHp = Object.fromEntries(
-    DIFFICULTIES.map((d) => [d, Math.round((session * CONFIG.quest.difficulties[d].hpRatio) / 100) * 100]),
-  ) as Record<QuestDifficulty, number>
 
   const [name, setName] = useState(existing?.name ?? '')
   const [bossDefId, setBossDefId] = useState(existing?.bossDefId ?? bossChoices[0]?.id ?? '')
@@ -26,7 +23,8 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
   )
   const [weakSlots, setWeakSlots] = useState<string[]>(existing?.weakSlots ?? [])
   const [weakSkill, setWeakSkill] = useState(existing?.weakSkill ?? '')
-  const [hp, setHp] = useState<Record<QuestDifficulty, number>>(existing?.hp ?? defaultHp)
+  const [rank, setRank] = useState(existing?.rank ?? 1)
+  const [hp, setHp] = useState<Record<QuestDifficulty, number>>(existing?.hp ?? defaultHp(existing?.rank ?? 1))
   const [catchphrase, setCatchphrase] = useState(existing?.catchphrase ?? '')
   const [theme, setTheme] = useState(existing?.theme ?? 'flame')
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -41,6 +39,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
     weakSlots,
     weakSkill,
     hp,
+    rank,
     catchphrase,
     theme,
     createdAt: existing?.createdAt ?? 0,
@@ -50,7 +49,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
     if (!name.trim()) return setError('クエストの名前を入力してください')
     if (!boss) return setError('ボスにするモンスターを選んでください')
     if (DIFFICULTIES.some((d) => !(hp[d] > 0))) return setError('HPは1以上にしてください')
-    saveQuest({ id: existing?.id, name, bossDefId, attr, weakSlots, weakSkill, hp, catchphrase, theme })
+    saveQuest({ id: existing?.id, name, bossDefId, attr, weakSlots, weakSkill, hp, rank, catchphrase, theme })
     go({ name: 'quests' })
   }
 
@@ -164,14 +163,30 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
       </section>
 
       <section className="card">
-        <h2>HP</h2>
+        <h2>ボスの格とHP</h2>
+        <div className="chips" role="group" aria-label="ボスの格">
+          {CONFIG.quest.ranks.map((r, i) => (
+            <button
+              key={r.label}
+              type="button"
+              className={`chip${rank === i ? ' on' : ''}`}
+              onClick={() => {
+                setRank(i)
+                setHp(defaultHp(i))
+              }}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+        <p className="muted small">格を選ぶと、初級・中級・上級のHPが入り直します（HPは手で書き換えてもOK）。格が高いほど報酬のGも増えます。</p>
         <p className="muted small">
           目安：★4が6体（各属性2体）、相性・弱点なしで、1回のトレーニング（1部位5種目×3セット＋ローラー3セット）で約
           <strong>{session.toLocaleString()}</strong>ダメージ。相性・弱点・特攻を突いたり、2周目まで追い込んだりすると大きく増えます。
         </p>
         {DIFFICULTIES.map((d) => (
           <label key={d} className="field">
-            {CONFIG.quest.difficulties[d].label}（ドロップ＋{CONFIG.quest.difficulties[d].plus}・{CONFIG.quest.difficulties[d].gold}G）
+            {CONFIG.quest.difficulties[d].label}（ドロップ＋{CONFIG.quest.difficulties[d].plus}・{questGold({ rank }, d)}G）
             <input
               type="number"
               inputMode="numeric"

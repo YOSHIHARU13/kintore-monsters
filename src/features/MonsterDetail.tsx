@@ -6,9 +6,10 @@ import { CONFIG } from '../config/gameConfig'
 import { boughtCap, evolutionCost, fusionCost, isExpFull, planPour } from '../lib/evolution'
 import { Gauge } from '../components/Gauge'
 import { Stars } from '../components/Stars'
+import { attackOf, isJogressReady, jogressNeed } from '../lib/stats'
 import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
-import { investedFor, isHidden, monsterName, nodeAttr, plusName, type MonsterDef, type OwnedMonster } from '../types'
+import { investedFor, isHidden, monsterName, nodeAttr, plusName, type MonsterDef } from '../types'
 
 export function MonsterDetail({ id, go }: { id: string; go: Go }) {
   const { owned, defs, state, menu, pourExp, pourPlusExp, evolve, fuse, jogress } = useStore()
@@ -65,11 +66,6 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
   const plusFull = fuseCost !== null && isExpFull(fuseCost, plusExp)
   // 食べさせられるのは同じモンスターの別の個体（段階は問わない）
   const foods = owned.filter((o) => o.defId === mon.defId && o.id !== mon.id)
-  const isMax = isFinal && plus >= CONFIG.fusion.maxPlus
-  const isFinalOf = (o: OwnedMonster) => {
-    const d = defs.find((x) => x.id === o.defId)
-    return !!d && getNode(getTemplate(d.templateId), o.nodeId).next.length === 0
-  }
   // このモンスターがレシピに入っている隠しモンスターと、その相手になれる個体
   const recipes = defs
     .filter((d) => isHidden(d) && d.recipe!.includes(mon.defId))
@@ -81,9 +77,12 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
         hidden,
         met,
         partnerDef: defs.find((d) => d.id === partnerDefId),
-        partners: owned.filter(
-          (o) => o.defId === partnerDefId && o.id !== mon.id && (o.plus ?? 0) >= CONFIG.fusion.maxPlus && isFinalOf(o),
-        ),
+        need: jogressNeed(hidden),
+        ready: isJogressReady(mon, def, hidden),
+        partners: owned.filter((o) => {
+          const d = defs.find((x) => x.id === o.defId)
+          return o.defId === partnerDefId && o.id !== mon.id && !!d && isJogressReady(o, d, hidden)
+        }),
       }
     })
   const attrSources: Attr[] = attr === 'none' ? ATTRS : [attr]
@@ -112,6 +111,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
         </div>
         <h1 className="title">{plusName(def, mon)}</h1>
         <Stars def={def} nodeId={mon.nodeId} />
+        <p className="small">攻撃力 <strong>{attackOf(mon, def).toLocaleString()}</strong></p>
         <p style={{ color: ATTR_COLOR[attr] }}>
           {FORM_ATTR_LABEL[attr]}属性・{node.label}
         </p>
@@ -297,26 +297,28 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
       </details>
 
       {recipes.length > 0 && (
-        <details className="card fold" open={isMax}>
+        <details className="card fold" open={recipes.some((r) => r.ready)}>
           <summary>
             <h2>ジョグレス</h2>
           </summary>
           <p className="muted small">
-            最終形態の＋{CONFIG.fusion.maxPlus}どうしを合わせると、隠しモンスターが生まれます（{CONFIG.jogress.gold}
+            レシピの2体が条件を満たしたら、合わせて隠しモンスターを生めます（{CONFIG.jogress.gold}
             G、2体はいなくなります。図鑑の発見は残ります）。
           </p>
           <ul className="mini-list">
-            {recipes.map(({ hidden, met, partnerDef, partners }) => (
+            {recipes.map(({ hidden, met, partnerDef, partners, need, ready }) => (
               <li key={hidden.id} className="jogress">
                 <span>
-                  {met ? hidden.name : '？？？'} ← {def.name}＋{CONFIG.fusion.maxPlus} ＆ {partnerDef?.name ?? '？？？'}＋
-                  {CONFIG.fusion.maxPlus}
+                  {met ? hidden.name : '？？？'}（★{need.stars + 1}で誕生）← {def.name} ＆ {partnerDef?.name ?? '？？？'}
+                  ：どちらも★{need.stars}以上{need.plus > 0 ? `・＋${need.plus}以上` : ''}
                 </span>
-                {!isMax ? (
-                  <span className="muted small">このモンスターを最終形態の＋{CONFIG.fusion.maxPlus}にしよう</span>
+                {!ready ? (
+                  <span className="muted small">
+                    このモンスターを★{need.stars}以上{need.plus > 0 ? `・＋${need.plus}以上` : ''}にしよう
+                  </span>
                 ) : partners.length === 0 ? (
                   <span className="muted small">
-                    相手の{partnerDef?.name ?? '？？？'}（最終形態の＋{CONFIG.fusion.maxPlus}）がいません
+                    相手の{partnerDef?.name ?? '？？？'}（★{need.stars}以上{need.plus > 0 ? `・＋${need.plus}以上` : ''}）がいません
                   </span>
                 ) : (
                   partners.map((partner) => {

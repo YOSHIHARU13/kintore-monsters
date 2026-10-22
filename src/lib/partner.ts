@@ -1,11 +1,11 @@
 import { CONFIG } from '../config/gameConfig'
-import { starsOf } from './gacha'
+import { attackOf } from './stats'
 import type { MonsterDef, OwnedMonster } from '../types'
 
 /** そのモンスターを、その種目の枠の相棒にしたときのEXP倍率 */
 export function partnerRate(mon: OwnedMonster, def: MonsterDef, slotId: string): number {
-  const { perStar, perPlus, favorite } = CONFIG.partner
-  const base = 1 + perStar * starsOf(def, mon.nodeId) + perPlus * (mon.plus ?? 0)
+  const { perAttack, favorite } = CONFIG.partner
+  const base = 1 + perAttack * attackOf(mon, def)
   const rate = def.favoriteSlot === slotId ? base * favorite : base
   return Math.round(rate * 100) / 100
 }

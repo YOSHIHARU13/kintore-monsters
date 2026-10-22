@@ -6,6 +6,7 @@ import { MonsterImage } from '../components/MonsterImage'
 import { QuestBanner } from '../components/QuestBanner'
 import { bannerNodeOf } from '../components/GachaBanner'
 import { useBattle } from '../components/BattleBar'
+import { questGold } from '../lib/quest'
 import type { Go } from '../nav'
 import { plusName, type MonsterDef } from '../types'
 
@@ -66,7 +67,7 @@ export function Quests({ go }: { go: Go }) {
               }}
             >
               報酬を受け取る（{battle.boss?.name}＋{CONFIG.quest.difficulties[battle.challenge.difficulty].plus}・
-              {CONFIG.quest.difficulties[battle.challenge.difficulty].gold}G）
+              {questGold(battle.quest, battle.challenge.difficulty)}G）
             </button>
           ) : (
             <button className="btn primary wide" onClick={() => go({ name: 'training' })}>

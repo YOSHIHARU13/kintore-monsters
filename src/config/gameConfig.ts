@@ -80,11 +80,16 @@ export const CONFIG = {
     starterEggs: 1, // 開始時にもらえるタマゴ
   },
 
+  // 攻撃力 = 星の数 × perStar ＋ ＋の数 × perPlus
+  attack: {
+    perStar: 3000,
+    perPlus: 1500,
+  },
+
   // 種目の相棒：枠ごとに1体セットすると、その種目のEXPが増える
-  // 倍率 = 1 + 星 × perStar + ＋の数 × perPlus（得意種目の枠なら、さらに × favorite）
+  // 倍率 = 1 + 攻撃力 × perAttack（得意種目の枠なら、さらに × favorite）
   partner: {
-    perStar: 0.05,
-    perPlus: 0.05,
+    perAttack: 0.05 / 3000, // 星1つぶん（攻撃力3000）で +5%
     favorite: 1.2,
   },
 
@@ -100,16 +105,24 @@ export const CONFIG = {
   // クエスト：出撃したら、その日のうちに倒す勝負。出撃してからのセットがそのままダメージになる（何回でも挑戦できる）
   // ダメージになるのは報酬が出るセットだけ（各種目は週に2周まで、ローラーは1日3セットまで）
   quest: {
-    // 1回ぶんのダメージ = 基本値 × 攻撃するモンスターの攻撃力（星 ×（1 + ＋ × powerPerPlus））× 補正
+    // 1回ぶんのダメージ = 基本値 × 攻撃するモンスターの攻撃力 ÷ attackUnit × 補正
+    attackUnit: 3000,
     setDamage: 10, // 筋トレ1セット（その部位の属性のモンスターと、無属性のモンスターが攻撃）
     rollerDamage: 4, // 腹筋ローラー1セット（全員で攻撃）
-    powerPerPlus: 0.1,
     advantage: 2, // 相性が有利
     disadvantage: 0.5, // 相性が不利
     weakSlot: 2, // ボスの弱点種目のセット
     favorite: 1.5, // 攻撃したモンスターの得意種目のセット
     skill: 2, // 特攻スキルがボスの弱点のやり方と同じで、そのやり方ができたとき
     maxWeakSlots: 2,
+    // ボスの格：初級・中級・上級のHPとGが、まとめてこの倍率になる
+    ranks: [
+      { label: '雑魚', hp: 0.5, gold: 0.5 },
+      { label: '普通', hp: 1, gold: 1 },
+      { label: '強敵', hp: 1.6, gold: 1.5 },
+      { label: '凶悪', hp: 2.5, gold: 2.2 },
+      { label: '極', hp: 4, gold: 3.5 },
+    ],
     difficulties: {
       // hpRatio：1回のトレーニングで与えるダメージの目安に対するHPの倍率
       easy: { label: '初級', plus: 0, gold: 50, hpRatio: 0.9 },
@@ -182,8 +195,9 @@ export const CONFIG = {
       },
     },
     // 星：生まれたときはレア度の startStars、進化するたびに1つ増える
-    // ジョグレスの隠しモンスターは最終形態で、ガチャのモンスター同士なら gacha、クエストのモンスターが入るなら withQuest
-    jogressStars: { gacha: 8, withQuest: 7 },
+    // ジョグレスの隠しモンスターは、レシピで決めた「生まれるときの星」から（決めていなければ jogressDefaultBirth）
+    jogressDefaultBirth: 5,
+    jogressBirthChoices: [3, 4, 5, 6, 7],
     // 天井：同じガチャで、激レアが出ないままこの回数目を引くと激レア確定
     pity: { rarity: 'superRare' as const, pulls: 30 },
     shinyRateChoices: [1 / 50, 1 / 20, 1 / 10, 1 / 5], // ガチャごとに選べる色違いの確率

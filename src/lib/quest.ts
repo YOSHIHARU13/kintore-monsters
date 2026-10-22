@@ -1,7 +1,7 @@
 import { CONFIG } from '../config/gameConfig'
 import { DAYS, type Attr, type FormAttr } from '../data/exercises'
 import { prevDateKey } from './date'
-import { starsOf } from './gacha'
+import { attackOf } from './stats'
 import { nodeAttr, type Challenge, type MonsterDef, type OwnedMonster, type Quest, type QuestDifficulty, type SetRecord } from '../types'
 
 export const DIFFICULTIES: QuestDifficulty[] = ['easy', 'normal', 'hard']
@@ -27,9 +27,9 @@ export function advantageAttr(boss: FormAttr): Attr | null {
   return beatenBy[boss]
 }
 
-/** モンスターの攻撃力：星の数 ×（1 + ＋の数 × perPlus） */
+/** ダメージの計算に使う強さ：攻撃力 ÷ attackUnit（★1の攻撃力で1） */
 export function powerOf(member: Member): number {
-  return starsOf(member.def, member.mon.nodeId) * (1 + CONFIG.quest.powerPerPlus * (member.mon.plus ?? 0))
+  return attackOf(member.mon, member.def) / CONFIG.quest.attackUnit
 }
 
 export function attrOf(member: Member): FormAttr {
@@ -154,4 +154,23 @@ export function battleOf(
   const damage = hits.reduce((sum, h) => sum + h.damage, 0)
   const hp = quest.hp[challenge.difficulty]
   return { challenge, quest, boss: defs.find((d) => d.id === quest.bossDefId), party, hits, damage, hp, defeated: damage >= hp }
+}
+
+/** ボスの格 */
+export function rankOf(quest: Pick<Quest, 'rank'>) {
+  const ranks = CONFIG.quest.ranks
+  return ranks[Math.min(ranks.length - 1, Math.max(0, quest.rank ?? 1))]
+}
+
+/** 倒したときのゴールド：難易度のゴールド × ボスの格 */
+export function questGold(quest: Pick<Quest, 'rank'>, difficulty: QuestDifficulty): number {
+  return Math.round(CONFIG.quest.difficulties[difficulty].gold * rankOf(quest).gold)
+}
+
+/** HPの初期値：1回のトレーニングで与えるダメージの目安 × ボスの格 × 難易度（100の位で丸める） */
+export function defaultHp(rank: number): Record<QuestDifficulty, number> {
+  const hp = standardSessionDamage() * rankOf({ rank }).hp
+  return Object.fromEntries(
+    DIFFICULTIES.map((d) => [d, Math.max(100, Math.round((hp * CONFIG.quest.difficulties[d].hpRatio) / 100) * 100)]),
+  ) as Record<QuestDifficulty, number>
 }
