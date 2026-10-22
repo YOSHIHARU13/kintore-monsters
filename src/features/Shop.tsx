@@ -8,13 +8,14 @@ import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { ATTR_COLOR, type Go } from '../nav'
 import { monsterName } from '../types'
 import { HatchReveal, type Hatched } from '../components/HatchReveal'
+import { CORE_KEYS, CORE_LABEL } from '../lib/cores'
 import { Stars } from '../components/Stars'
 import { GachaBanner, featuredOf } from '../components/GachaBanner'
 import { isReady, percent, pickupCount, rarityOf, rateTable, tierRates } from '../lib/gacha'
 
 
 export function Shop({ go }: { go: Go }) {
-  const { state, defs, owned, gachas, buyEgg, hatchEgg, buyExp } = useStore()
+  const { state, defs, owned, gachas, buyEgg, hatchEgg, buyExp, exchangeCores } = useStore()
   const [attr, setAttr] = useState<Attr>('chestArms')
   const [amount, setAmount] = useState(CONFIG.shop.expBuyStep)
   const [hatched, setHatched] = useState<Hatched | null>(null)
@@ -126,6 +127,27 @@ export function Shop({ go }: { go: Go }) {
             </details>
           </>
         )}
+      </section>
+
+      <section className="card">
+        <h2>💎 核の交換所</h2>
+        <p className="muted small">余った核は、{CONFIG.cores.eggExchange}個でタマゴ1個と交換できます。</p>
+        <ul className="mini-list">
+          {CORE_KEYS.map((k) => (
+            <li key={k}>
+              <span>
+                {CORE_LABEL[k]} <strong>{state.cores[k] ?? 0}</strong>個
+              </span>
+              <button
+                className="btn small"
+                disabled={(state.cores[k] ?? 0) < CONFIG.cores.eggExchange}
+                onClick={() => exchangeCores(k)}
+              >
+                ×{CONFIG.cores.eggExchange} → タマゴ
+              </button>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section className="card">

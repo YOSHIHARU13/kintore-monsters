@@ -9,7 +9,9 @@ import { isHidden, type MonsterDef, type OwnedMonster } from '../types'
 export function attackOf(mon: OwnedMonster, def: MonsterDef): number {
   const { perStar, perPlus } = CONFIG.attack
   const level = starsOf(def, mon.nodeId) - CONFIG.gacha.formStarBase
-  const bonus = isHidden(def) ? CONFIG.gacha.jogressAttackBonus : CONFIG.gacha.rarities[rarityOf(def)].attackBonus
+  const bonus = isHidden(def)
+    ? CONFIG.gacha.jogressAttackBonus + (def.jogressGrade ?? 0) * CONFIG.jogress.superRareBonus
+    : CONFIG.gacha.rarities[rarityOf(def)].attackBonus
   return level * perStar + bonus + (mon.plus ?? 0) * perPlus
 }
 

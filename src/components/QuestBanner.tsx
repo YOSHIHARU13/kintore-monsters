@@ -2,6 +2,7 @@ import { CONFIG } from '../config/gameConfig'
 import { FORM_ATTR_LABEL } from '../data/exercises'
 import { MonsterImage } from './MonsterImage'
 import { bannerNodeOf } from './GachaBanner'
+import { CORE_LABEL } from '../lib/cores'
 import type { MonsterDef, Quest } from '../types'
 
 /** クエストのバナー：テーマ色の背景に、ボスの最終形態と名前を出す */
@@ -22,12 +23,15 @@ export function QuestBanner({ quest, boss, onClick, selected = false }: {
         )}
       </span>
       <span className="auto-text">
-        <span className="auto-badge">⚔️ クエスト・{FORM_ATTR_LABEL[quest.attr]}属性</span>
+        <span className="auto-badge">
+          {quest.kind === 'material' ? `💎 素材・${CORE_LABEL[quest.attr]}` : `⚔️ クエスト・${FORM_ATTR_LABEL[quest.attr]}属性`}
+        </span>
         <strong className="auto-title">{quest.name}</strong>
         {quest.catchphrase && <span className="auto-catch">{quest.catchphrase}</span>}
         <span className="small">
-          {CONFIG.quest.difficulties.easy.label}〜{CONFIG.quest.difficulties.hard.label}・ドロップ ＋0〜＋
-          {CONFIG.quest.difficulties.hard.plus}
+          {quest.kind === 'material'
+            ? `${CONFIG.quest.difficulties.easy.label}〜${CONFIG.quest.difficulties.hard.label}・核が落ちる（毎回ではない）`
+            : `${CONFIG.quest.difficulties.easy.label}〜${CONFIG.quest.difficulties.hard.label}・ドロップ ＋0〜＋${CONFIG.quest.difficulties.hard.plus}`}
         </span>
       </span>
     </button>

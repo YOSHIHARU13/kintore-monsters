@@ -4,6 +4,7 @@ import type { AttrExp } from '../types'
 export interface EvoCost {
   exp: number
   gold: number
+  cores?: number // 進化先の属性の核
 }
 
 /** stage（1始まり）から次の段階へ進化するコスト。最終段階なら null */

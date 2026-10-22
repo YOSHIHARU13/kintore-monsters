@@ -13,9 +13,18 @@ export function abilityName(gimmick: string, names: Record<string, string> = CON
 }
 
 /** そのモンスターが持てるアビリティの数（レア度の格） */
-export function abilitySlots(def: Pick<MonsterDef, 'recipe' | 'rarity' | 'common'>): number {
+export function abilitySlots(def: Pick<MonsterDef, 'recipe' | 'rarity' | 'common' | 'jogressGrade'>): number {
   const slots = CONFIG.gimmicks.slots
-  return isHidden(def as MonsterDef) ? slots.jogress : slots[rarityOf(def as MonsterDef)]
+  if (isHidden(def as MonsterDef)) return slots.jogress + ((def.jogressGrade ?? 0) > 0 ? 1 : 0)
+  return slots[rarityOf(def as MonsterDef)]
+}
+
+/** ジョグレスの格：レシピの素材のうち激レアの数 */
+export function jogressGradeOf(recipe: string[], defs: MonsterDef[]): number {
+  return recipe.filter((id) => {
+    const d = defs.find((x) => x.id === id)
+    return !!d && rarityOf(d) === 'superRare'
+  }).length
 }
 
 /** ボスのギミックのうち、そのモンスターが対応できていないもの */

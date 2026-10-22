@@ -28,6 +28,8 @@ import { compressImage } from './lib/imageCompress'
 import { draw, isPickupRarity, isPity, isReady, rarityOf, rateTable } from './lib/gacha'
 import { isJogressReady } from './lib/stats'
 import { battleOf, questGold } from './lib/quest'
+import { rollBonusCore, rollCoreDrop } from './lib/cores'
+import { jogressGradeOf } from './lib/gimmick'
 import { investedFor, isHidden, nodeAttr, type AttrExp, type Checkin, type Gacha, type Quest, type QuestDifficulty, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
 
 const zeroExp = () => ({ trained: 0, bought: 0 })
@@ -57,6 +59,8 @@ function initialState(): GameState {
     partners: {},
     challenge: null,
     questClears: 0,
+    cores: {},
+    coreMisses: {},
   }
 }
 
@@ -103,6 +107,14 @@ export interface MonsterDefInput {
 }
 
 export type QuestInput = Omit<Quest, 'id' | 'createdAt'> & { id?: string }
+
+export interface QuestReward {
+  monsterId: string | null // 手に入ったボス（素材クエストでは null）
+  cores: number // 落ちた核の数
+  coreKey: FormAttr
+  corePity: boolean // 天井で確定したか
+  gold: number
+}
 
 export interface GachaInput {
   id?: string
@@ -161,8 +173,10 @@ interface Store {
   /** クエストに出撃する（挑戦中のものがあれば、やめて選び直す）。その日のうちに倒す */
   startChallenge: (questId: string, difficulty: QuestDifficulty, party: string[]) => void
   quitChallenge: () => void
-  /** 討伐の報酬を受け取る。手に入ったモンスターのID */
-  claimQuest: () => string | null
+  /** 討伐の報酬を受け取る */
+  claimQuest: () => QuestReward | null
+  /** 核をタマゴ1個と交換する */
+  exchangeCores: (key: FormAttr) => void
   setSlot: (slotId: string, exerciseId: string) => void
   buyExp: (attr: Attr, amount: number) => void
   buyEgg: () => void
@@ -519,8 +533,11 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       if (!found?.cost || !found.node.next.includes(toNodeId)) return
       const { mon, def, node, cost } = found
       if (!isExpFull(cost, investedFor(mon, toNodeId, node.next[0])) || state.gold < cost.gold) return
+      const coreKey = nodeAttr(def, toNodeId)
+      if ((state.cores[coreKey] ?? 0) < (cost.cores ?? 0)) return
       // 選ばなかった進化先に注いでいたEXPは、元の財布に返す
       const update: DocumentData = { gold: increment(-cost.gold) }
+      if (cost.cores) update[`cores.${coreKey}`] = increment(-cost.cores)
       const refund = newRefund()
       addRefund(refund, mon, def, node.next.filter((n) => n !== toNodeId))
       applyRefund(update, refund)
@@ -567,10 +584,10 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const pair = [a.mon.defId, b.mon.defId].sort().join()
       if ([...hidden.recipe].sort().join() !== pair) return null
       if (!isJogressReady(a.mon, a.def, hidden) || !isJogressReady(b.mon, b.def, hidden)) return null
-      if (state.gold < CONFIG.jogress.gold) return null
+      if (state.gold < CONFIG.jogress.gold || (state.cores.none ?? 0) < CONFIG.jogress.cores) return null
       const shiny = Math.random() < CONFIG.shop.shinyRate
       const ref = doc(collection(db, base, 'ownedMonsters'))
-      const update: DocumentData = { gold: increment(-CONFIG.jogress.gold) }
+      const update: DocumentData = { gold: increment(-CONFIG.jogress.gold), 'cores.none': increment(-CONFIG.jogress.cores) }
       consume(update, [a, b])
       if (shiny) update[`dexShiny.${hidden.id}`] = true
       const batch = writeBatch(db)
@@ -676,9 +693,20 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         favoriteSlot: input.favoriteSlot,
         questOnly: input.questOnly,
         abilities: input.abilities,
-        ...(input.recipe.length === 2 ? { jogressBirthStars: input.jogressBirthStars, jogressPlus: input.jogressPlus } : {}),
+        ...(input.recipe.length === 2
+          ? {
+              jogressBirthStars: input.jogressBirthStars,
+              jogressPlus: input.jogressPlus,
+              jogressGrade: jogressGradeOf(input.recipe, defs),
+            }
+          : {}),
         createdAt: existing?.createdAt ?? Date.now(),
       })
+      // このモンスターを素材にする隠しモンスターの格を計算し直す（レア度を変えたとき）
+      const updated = defs.map((d) => (d.id === defRef.id ? { ...d, rarity: input.rarity } : d))
+      for (const hidden of defs.filter((d) => isHidden(d) && d.recipe!.includes(defRef.id))) {
+        batch.update(doc(db, base, 'monsterDefs', hidden.id), { jogressGrade: jogressGradeOf(hidden.recipe!, updated) })
+      }
       batch.commit().catch(fail)
     }
 
@@ -781,32 +809,55 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
 
     const claimQuest: Store['claimQuest'] = () => {
       const battle = battleOf(state.challenge, dateKey(), quests, defs, owned, weekSets, () => '')
-      if (!battle?.defeated || !battle.boss) return null
+      if (!battle?.defeated) return null
       const c = battle.challenge
-      const boss = battle.boss
+      const material = battle.quest.kind === 'material'
       const diff = CONFIG.quest.difficulties[c.difficulty]
       const gold = questGold(battle.quest, c.difficulty)
-      const shiny = Math.random() < CONFIG.shop.shinyRate
-      const ref = doc(collection(db, base, 'ownedMonsters'))
+      const coreKey = battle.quest.attr
       const batch = writeBatch(db)
-      batch.set(ref, {
-        defId: boss.id,
-        nodeId: FIRST_NODE_ID,
-        investedBy: {},
-        investedFrom: {},
-        plus: diff.plus,
-        shiny,
-        obtainedAt: Date.now(),
-      })
       const update: DocumentData = {
         gold: increment(gold),
         questClears: increment(1),
         challenge: null,
       }
-      if (shiny) update[`dexShiny.${boss.id}`] = true
+      let monsterId: string | null = null
+      let cores = 0
+      let corePity = false
+      if (material) {
+        // 素材クエスト：核が落ちる（毎回ではない。続けて落ちないと確定）
+        const drop = rollCoreDrop(c.difficulty, state.coreMisses[battle.quest.id] ?? 0, Math.random)
+        cores = drop.count
+        corePity = drop.pity
+        update[`coreMisses.${battle.quest.id}`] = cores > 0 ? 0 : increment(1)
+      } else {
+        const boss = battle.boss
+        if (!boss) return null
+        const shiny = Math.random() < CONFIG.shop.shinyRate
+        const ref = doc(collection(db, base, 'ownedMonsters'))
+        batch.set(ref, {
+          defId: boss.id,
+          nodeId: FIRST_NODE_ID,
+          investedBy: {},
+          investedFrom: {},
+          plus: diff.plus,
+          shiny,
+          obtainedAt: Date.now(),
+        })
+        if (shiny) update[`dexShiny.${boss.id}`] = true
+        monsterId = ref.id
+        cores = rollBonusCore(Math.random)
+      }
+      if (cores > 0) update[`cores.${coreKey}`] = increment(cores)
       batch.update(stateRef, update)
       batch.commit().catch(fail)
-      return ref.id
+      return { monsterId, cores, coreKey, corePity, gold }
+    }
+
+    const exchangeCores: Store['exchangeCores'] = (key) => {
+      const need = CONFIG.cores.eggExchange
+      if ((state.cores[key] ?? 0) < need) return
+      updateState({ [`cores.${key}`]: increment(-need), eggs: increment(1) })
     }
 
     const saveSongs: Store['saveSongs'] = (next) => {
@@ -852,6 +903,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       startChallenge,
       quitChallenge,
       claimQuest,
+      exchangeCores,
       deleteGacha,
     }
   }, [user, base, state, menu, defs, owned, songs, gachas, quests, today, yesterday, yesterdayCheckin, week, weekSets, todaySets, stateRef, menuRef, musicRef, fail])

@@ -111,7 +111,7 @@ export const CONFIG = {
     penaltyPerGimmick: 0.25,
     minRate: 0.25,
     // 持てるアビリティの数（レア度の格）。ジョグレスは jogress
-    slots: { hazure: 0, normal: 1, rare: 1, superRare: 2, jogress: 3 },
+    slots: { hazure: 0, normal: 1, rare: 1, superRare: 2, jogress: 3 }, // 素材に激レアが入るジョグレスは +1
   },
 
   // クエスト：出撃したら、その日のうちに倒す勝負。出撃してからのセットがそのままダメージになる（何回でも挑戦できる）
@@ -158,13 +158,30 @@ export const CONFIG = {
 
   // ジョグレス：レシピの2体を＋5（最終形態）まで育てて合わせると、隠しモンスターが生まれる
   jogress: {
-    gold: 1000,
+    gold: 600,
+    cores: 2, // 無垢の核
+    superRareBonus: 1500, // 素材の激レア1体につき、攻撃力の上乗せ
+  },
+
+  // 進化素材「核」：素材クエストで落ちる（毎回ではない）。余ったらショップでタマゴと交換できる
+  // 目安：★3まで育つのは週1体くらい（核2個）、素材クエストは週2回くらい → 週1.3個くらい落ちて、少し足りないくらい
+  cores: {
+    drop: {
+      easy: { rate: 0.5, double: 0 },
+      normal: { rate: 0.65, double: 0 },
+      hard: { rate: 0.8, double: 0.25 },
+    },
+    pityMisses: 3, // この回数続けて落ちなかったら、次は必ず落ちる
+    bossBonusRate: 0.15, // ボスクエストでも、たまに落ちる
+    eggExchange: 3, // この数でタマゴ1個と交換
+    materialHpRatio: 0.5, // 素材クエストのHPは、ボスクエストのこの割合
+    materialGoldRatio: 0.5,
   },
 
   // 進化コスト（上から 1→2, 2→3, 3→4, 4→5）
   evolutionCosts: [
-    { exp: 150, gold: 100 },
-    { exp: 500, gold: 300 },
+    { exp: 150, gold: 100, cores: 0 },
+    { exp: 500, gold: 200, cores: 2 }, // ★2→★3 は、進化先の属性の核が要る
     { exp: 1200, gold: 750 },
     { exp: 2500, gold: 1500 },
   ],

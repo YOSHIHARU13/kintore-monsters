@@ -30,6 +30,8 @@ export interface GameState {
   dexFound: Record<string, string[]> // 合体・ジョグレスでいなくなった個体が見つけていた形態（defId → nodeId）
   dexShiny: Record<string, boolean> // 色違いを見つけたモンスター（defId）
   pity: Record<string, number> // ガチャごとの、激レアが出ないまま引いた回数（天井用）
+  cores: Partial<Record<FormAttr, number>> // 進化素材「核」の所持数（属性ごと）
+  coreMisses: Record<string, number> // 素材クエストごとの、核が続けて落ちなかった回数（天井用）
   activeMonsterId: string | null // 旧：育成中のモンスター（今は使っていない）
   partners: Record<string, string> // 種目の枠ID → 相棒のモンスター（OwnedMonster.id）
   challenge: Challenge | null // 今日挑戦しているクエスト
@@ -84,6 +86,7 @@ export interface MonsterDef {
   favoriteSlot?: string // 得意種目（種目の枠ID）
   jogressBirthStars?: number // 隠しモンスターが生まれるときの星（素材はこの1つ下以上）
   jogressPlus?: number // 隠しモンスターの素材に必要な＋（なければ最大）
+  jogressGrade?: number // 素材のうち激レアの数（0〜2）。保存するときに計算する。強さとアビリティの数に効く
   questOnly?: boolean // クエスト限定（ガチャには出ない。クエストのボスとして倒すと手に入る）
   abilities?: string[] // アビリティ：対応するギミック名で持つ（例：'バリア' ならバリアブレイカー）
   rarity?: RarityKey // レア度（なければノーマル）
@@ -116,7 +119,8 @@ export type QuestDifficulty = 'easy' | 'normal' | 'hard'
 export interface Quest {
   id: string
   name: string
-  bossDefId: string // ボス（倒すと手に入るモンスター）
+  kind?: 'boss' | 'material' // ボスクエスト（ボスが手に入る）か、素材クエスト（核が落ちる）か。なければボス
+  bossDefId: string // ボス（倒すと手に入るモンスター。素材クエストでは見た目だけ）
   attr: FormAttr // ボスの属性（相性に使う）
   weakSlots: string[] // 弱点種目（種目の枠ID）
   gimmicks?: string[] // ギミック名（対応するアビリティを持たないモンスターは攻撃が減る）

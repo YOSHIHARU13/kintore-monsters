@@ -307,7 +307,9 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
         </label>
         <p className="muted small">
           隠しモンスターはタマゴからは生まれません。レシピの2体がどちらも条件を満たしたら、ジョグレスで生まれます（
-          {CONFIG.jogress.gold}G、2体はいなくなります）。同じモンスター2体でもOK。
+          {CONFIG.jogress.gold}G＋無垢の核×{CONFIG.jogress.cores}、2体はいなくなります）。同じモンスター2体でもOK。
+          素材に激レアが入ると、アビリティが1つ増えて、攻撃力も上がります（激レア1体につき +
+          {CONFIG.jogress.superRareBonus.toLocaleString()}）。
         </p>
         {recipe.length === 2 && (
           <>

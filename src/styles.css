@@ -862,6 +862,11 @@ details.fold[open] > summary {
   color: var(--warn);
 }
 
+.core-drop {
+  color: #9be7ff;
+  font-weight: 700;
+}
+
 /* クエスト */
 .battle-bar {
   position: sticky;

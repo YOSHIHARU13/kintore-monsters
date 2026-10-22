@@ -6,6 +6,7 @@ import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { QuestBanner } from '../components/QuestBanner'
 import { DIFFICULTIES, defaultHp, questGold, standardSessionDamage } from '../lib/quest'
 import { allGimmicks } from '../lib/gimmick'
+import { CORE_LABEL } from '../lib/cores'
 import { ATTR_COLOR, type Go } from '../nav'
 import { nodeAttr, type Quest, type QuestDifficulty } from '../types'
 
@@ -28,8 +29,9 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
   const [newAbility, setNewAbility] = useState('')
   const [customGimmicks, setCustomGimmicks] = useState<Record<string, string>>(existing?.customGimmicks ?? {})
   const gimmickNames = { ...allGimmicks(quests), ...customGimmicks }
+  const [kind, setKind] = useState<'boss' | 'material'>(existing?.kind ?? 'boss')
   const [rank, setRank] = useState(existing?.rank ?? 1)
-  const [hp, setHp] = useState<Record<QuestDifficulty, number>>(existing?.hp ?? defaultHp(existing?.rank ?? 1))
+  const [hp, setHp] = useState<Record<QuestDifficulty, number>>(existing?.hp ?? defaultHp(existing?.rank ?? 1, existing?.kind))
   const [catchphrase, setCatchphrase] = useState(existing?.catchphrase ?? '')
   const [theme, setTheme] = useState(existing?.theme ?? 'flame')
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -42,6 +44,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
     bossDefId,
     attr,
     weakSlots,
+    kind,
     gimmicks,
     customGimmicks,
     hp,
@@ -55,7 +58,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
     if (!name.trim()) return setError('クエストの名前を入力してください')
     if (!boss) return setError('ボスにするモンスターを選んでください')
     if (DIFFICULTIES.some((d) => !(hp[d] > 0))) return setError('HPは1以上にしてください')
-    saveQuest({ id: existing?.id, name, bossDefId, attr, weakSlots, gimmicks, customGimmicks, hp, rank, catchphrase, theme })
+    saveQuest({ id: existing?.id, name, kind, bossDefId, attr, weakSlots, gimmicks, customGimmicks, hp, rank, catchphrase, theme })
     go({ name: 'quests' })
   }
 
@@ -94,12 +97,36 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
       </section>
 
       <section className="card">
-        <h2>ボス</h2>
+        <h2>種類</h2>
+        <div className="chips" role="group" aria-label="クエストの種類">
+          {(['boss', 'material'] as const).map((k) => (
+            <button
+              key={k}
+              type="button"
+              className={`chip${kind === k ? ' on' : ''}`}
+              onClick={() => {
+                setKind(k)
+                setHp(defaultHp(rank, k))
+              }}
+            >
+              {k === 'boss' ? '⚔️ ボスクエスト' : '💎 素材クエスト'}
+            </button>
+          ))}
+        </div>
+        <p className="muted small">
+          {kind === 'boss'
+            ? 'ボスを倒すと、そのボスのモンスターが手に入ります（上級ほど＋が付く）。たまに核も落ちます。'
+            : `HPはボスクエストの半分くらい。ボスの属性の核（${CORE_LABEL[attr]}）が落ちます（毎回ではありません）。`}
+        </p>
+      </section>
+
+      <section className="card">
+        <h2>{kind === 'boss' ? 'ボス' : '敵'}</h2>
         {bossChoices.length === 0 ? (
           <p className="warn small">モンスターがいません。図鑑でボスにするモンスターを登録してください。</p>
         ) : (
           <label className="field">
-            倒すと手に入るモンスター
+            {kind === 'boss' ? '倒すと手に入るモンスター' : '敵の見た目（手には入りません）'}
             <select
               value={bossDefId}
               onChange={(e) => {
@@ -218,7 +245,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
               className={`chip${rank === i ? ' on' : ''}`}
               onClick={() => {
                 setRank(i)
-                setHp(defaultHp(i))
+                setHp(defaultHp(i, kind))
               }}
             >
               {r.label}

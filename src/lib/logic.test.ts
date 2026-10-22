@@ -145,10 +145,11 @@ describe('今週のタスク', () => {
 describe('進化', () => {
   const cost = evolutionCost(1)!
   it('初期コスト', () => {
-    expect(cost).toEqual({ exp: 150, gold: 100 })
+    expect(cost).toEqual({ exp: 150, gold: 100, cores: 0 })
     expect(fusionCost(0)).toEqual({ exp: 100, gold: 100 })
     expect(fusionCost(4)).toEqual({ exp: 500, gold: 500 })
     expect(fusionCost(5)).toBeNull()
+    expect(evolutionCost(2)).toEqual({ exp: 500, gold: 200, cores: 2 }) // ★2→★3 は核が要る
     expect(evolutionCost(4)).toEqual({ exp: 2500, gold: 1500 })
     expect(evolutionCost(5)).toBeNull()
   })

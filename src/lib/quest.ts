@@ -143,14 +143,15 @@ export function rankOf(quest: Pick<Quest, 'rank'>) {
   return ranks[Math.min(ranks.length - 1, Math.max(0, quest.rank ?? 1))]
 }
 
-/** 倒したときのゴールド：難易度のゴールド × ボスの格 */
-export function questGold(quest: Pick<Quest, 'rank'>, difficulty: QuestDifficulty): number {
-  return Math.round(CONFIG.quest.difficulties[difficulty].gold * rankOf(quest).gold)
+/** 倒したときのゴールド：難易度のゴールド × ボスの格（素材クエストは少なめ） */
+export function questGold(quest: Pick<Quest, 'rank' | 'kind'>, difficulty: QuestDifficulty): number {
+  const ratio = quest.kind === 'material' ? CONFIG.cores.materialGoldRatio : 1
+  return Math.round(CONFIG.quest.difficulties[difficulty].gold * rankOf(quest).gold * ratio)
 }
 
 /** HPの初期値：1回のトレーニングで与えるダメージの目安 × ボスの格 × 難易度（100の位で丸める） */
-export function defaultHp(rank: number): Record<QuestDifficulty, number> {
-  const hp = standardSessionDamage() * rankOf({ rank }).hp
+export function defaultHp(rank: number, kind: Quest['kind'] = 'boss'): Record<QuestDifficulty, number> {
+  const hp = standardSessionDamage() * rankOf({ rank }).hp * (kind === 'material' ? CONFIG.cores.materialHpRatio : 1)
   return Object.fromEntries(
     DIFFICULTIES.map((d) => [d, Math.max(100, Math.round((hp * CONFIG.quest.difficulties[d].hpRatio) / 100) * 100)]),
   ) as Record<QuestDifficulty, number>

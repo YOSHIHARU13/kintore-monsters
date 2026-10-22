@@ -54,6 +54,8 @@ const state: GameState = {
   partners: {},
   challenge: null,
   questClears: 0,
+  cores: { chestArms: 2, none: 2 },
+  coreMisses: {},
 }
 const defs: MonsterDef[] = [
   {
@@ -153,7 +155,8 @@ beforeEach(() => {
     deleteQuest: vi.fn(),
     startChallenge: vi.fn(),
     quitChallenge: vi.fn(),
-    claimQuest: vi.fn(() => 'o8'),
+    claimQuest: vi.fn(() => ({ monsterId: 'o8', cores: 1, coreKey: 'legs', corePity: false, gold: 50 })),
+    exchangeCores: vi.fn(),
     setSlot: vi.fn(),
     buyExp: vi.fn(),
     buyEgg: vi.fn(),
@@ -398,7 +401,7 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('脚EXPで進化')
     expect(el.textContent).toContain('0/500')
     expect(el.textContent).not.toContain('進化の石')
-    await click('進化する（300G）')
+    await click('進化する（200G・剛腕の核×2）')
     expect(fake.store.evolve).toHaveBeenCalledWith('o1', 'n3a')
   })
 
@@ -454,7 +457,7 @@ describe('画面の表示', () => {
     const el = await render(<MonsterDetail id="o1" go={go} />)
     expect(el.textContent).toContain('？？？（★4で誕生）← ムキドラ ＆ アシガメ：どちらも★3以上・＋5以上')
     await click('アシガメ＋5とジョグレス')
-    await click('本当にジョグレスする（1000G）')
+    await click('本当にジョグレスする（600G・無垢の核×2）')
     expect(fake.store.jogress).toHaveBeenCalledWith('o1', 'o2', 'h1')
     expect(el.textContent).toContain('ジョグレス進化！！')
     expect(el.textContent).toContain('カイザードラ')
@@ -662,7 +665,7 @@ describe('画面の表示', () => {
     expect(names[1]).toContain('バリアで弱体')
     expect(el.textContent).toContain('バリア')
     await act(async () => el.querySelector('[aria-label="難易度"]')!.querySelectorAll('button')[2].click())
-    expect(el.textContent).toContain('HP 6,000・ドロップ アシガメ＋2')
+    expect(el.textContent).toContain('HP 6,000・250Gドロップ アシガメ＋2')
     await click('ムキドラゴ')
     await click('出撃する')
     expect(fake.store.startChallenge).toHaveBeenCalledWith('q1', 'hard', ['o1'])
@@ -687,6 +690,7 @@ describe('画面の表示', () => {
     await click('報酬を受け取る')
     expect(fake.store.claimQuest).toHaveBeenCalled()
     expect(el.textContent).toContain('討伐成功！')
+    expect(el.textContent).toContain('健脚の核 ×1 がドロップ！') // ボスクエストでも、たまに核が落ちる
     await click('会いに行く')
     expect(go).toHaveBeenCalledWith({ name: 'monster', id: 'o8' })
   })
@@ -703,6 +707,33 @@ describe('画面の表示', () => {
     fake.store.state = { ...state, challenge: { date: TODAY, questId: 'q1', difficulty: 'easy', party: ['o1'], startTs: 0 } }
     const training = await render(<Training go={go} />)
     expect(training.textContent).toContain('⚔️ 脚竜の巣　のこりHP 500')
+  })
+
+  it('素材クエスト：倒すと核が落ちる（落ちないこともある）', async () => {
+    const { Quests } = await import('./Quests')
+    const quest = {
+      id: 'q2', name: '脚の修練場', kind: 'material' as const, bossDefId: 'm2', attr: 'legs' as const, weakSlots: [],
+      gimmicks: [], hp: { easy: 50, normal: 1500, hard: 3000 }, catchphrase: '', theme: 'forest', createdAt: 1,
+    }
+    fake.store.quests = [quest]
+    fake.store.state = { ...state, challenge: { date: TODAY, questId: 'q2', difficulty: 'easy', party: ['o1'], startTs: 0 } }
+    fake.store.weekSets = [past(1, 10, 5, TODAY)]
+    fake.store.claimQuest = vi.fn(() => ({ monsterId: null, cores: 0, coreKey: 'legs', corePity: false, gold: 25 }))
+    const el = await render(<Quests go={go} />)
+    expect(el.textContent).toContain('💎 素材・健脚の核')
+    await click('報酬を受け取る（健脚の核のチャンス')
+    expect(el.textContent).toContain('今回は核が落ちなかった')
+    expect(el.textContent).not.toContain('会いに行く')
+  })
+
+  it('ショップ：余った核はタマゴと交換できる', async () => {
+    fake.store.state = { ...state, cores: { legs: 3, chestArms: 1 } }
+    const el = await render(<Shop go={go} />)
+    const row = [...el.querySelectorAll('.mini-list li')].find((li) => li.textContent?.includes('健脚の核'))!
+    await act(async () => row.querySelector('button')!.click())
+    expect(fake.store.exchangeCores).toHaveBeenCalledWith('legs')
+    const chest = [...el.querySelectorAll('.mini-list li')].find((li) => li.textContent?.includes('剛腕の核'))!
+    expect(chest.querySelector('button')!.disabled).toBe(true)
   })
 
   it('ショップ：天井で激レアが出ると演出に出る', async () => {

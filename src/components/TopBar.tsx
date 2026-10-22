@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store'
 import { ATTRS, ATTR_LABEL, type Attr } from '../data/exercises'
 import { ATTR_COLOR, type Go } from '../nav'
+import { CORE_KEYS, CORE_LABEL } from '../lib/cores'
 
-type Key = 'gold' | 'eggs' | Attr | 'any'
+type Key = 'gold' | 'eggs' | Attr | 'any' | 'cores'
 interface Pop {
   id: number
   key: Key
@@ -22,6 +23,7 @@ export function TopBar({ go }: { go: Go }) {
     legs: state.exp.legs.trained + state.exp.legs.bought,
     backShoulders: state.exp.backShoulders.trained + state.exp.backShoulders.bought,
     any: state.anyExp,
+    cores: CORE_KEYS.reduce((sum, k) => sum + (state.cores[k] ?? 0), 0),
   }
   const prev = useRef(values)
   const [pops, setPops] = useState<Pop[]>([])
@@ -38,7 +40,7 @@ export function TopBar({ go }: { go: Go }) {
     const t = setTimeout(() => setPops((p) => p.filter((x) => !added.includes(x))), POP_MS)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values.gold, values.eggs, values.chestArms, values.legs, values.backShoulders, values.any])
+  }, [values.gold, values.eggs, values.chestArms, values.legs, values.backShoulders, values.any, values.cores])
 
   const item = (key: Key, icon: string, value: number, color?: string) => (
     <span className="topbar-item" style={color ? { color } : undefined}>
@@ -59,6 +61,7 @@ export function TopBar({ go }: { go: Go }) {
       <button className="topbar-main" onClick={() => setOpen(!open)} aria-expanded={open} aria-label="所持の内訳">
         {item('gold', '💰', values.gold, 'var(--gold)')}
         {item('eggs', '🥚', values.eggs)}
+        {item('cores', '💎', values.cores, '#9be7ff')}
         {ATTRS.map((a) => (
           <span key={a}>{item(a, ATTR_LABEL[a].slice(0, 1), values[a], ATTR_COLOR[a])}</span>
         ))}
@@ -76,6 +79,9 @@ export function TopBar({ go }: { go: Go }) {
             </div>
           ))}
           <div>万能EXP {values.any}（どの属性の進化にも使える）</div>
+          <div>
+            💎 {CORE_KEYS.map((k) => `${CORE_LABEL[k]} ${state.cores[k] ?? 0}`).join('・')}
+          </div>
           <div>
             ゴールド {values.gold.toLocaleString()}G・タマゴ {values.eggs}個
           </div>

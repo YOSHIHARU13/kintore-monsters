@@ -7,6 +7,8 @@ import { QuestBanner } from '../components/QuestBanner'
 import { bannerNodeOf } from '../components/GachaBanner'
 import { useBattle } from '../components/BattleBar'
 import { questGold } from '../lib/quest'
+import { CORE_LABEL } from '../lib/cores'
+import type { QuestReward } from '../store'
 import type { Go } from '../nav'
 import { plusName, type MonsterDef } from '../types'
 
@@ -15,7 +17,7 @@ export function Quests({ go }: { go: Go }) {
   const { state, quests, defs, today, quitChallenge, claimQuest } = useStore()
   const battle = useBattle()
   const [confirmQuit, setConfirmQuit] = useState(false)
-  const [got, setGot] = useState<{ id: string; boss: MonsterDef; plus: number } | null>(null)
+  const [got, setGot] = useState<(QuestReward & { boss: MonsterDef | undefined; plus: number }) | null>(null)
   // 出撃した日のうちに倒せなかった戦い
   const expired = state.challenge && state.challenge.date !== today ? quests.find((q) => q.id === state.challenge!.questId) : null
 
@@ -25,15 +27,28 @@ export function Quests({ go }: { go: Go }) {
 
       {got && (
         <section className="card center">
-          <h2>討伐成功！</h2>
-          <MonsterImage imageId={got.boss.images[bannerNodeOf(got.boss)]} size={140} plus={got.plus} />
-          <p>
-            {got.boss.name}
-            {got.plus > 0 ? `＋${got.plus}` : ''} を手に入れた！
-          </p>
-          <button className="btn primary wide" onClick={() => go({ name: 'monster', id: got.id })}>
-            会いに行く
-          </button>
+          <h2>討伐成功！ +{got.gold}G</h2>
+          {got.monsterId && got.boss && (
+            <>
+              <MonsterImage imageId={got.boss.images[bannerNodeOf(got.boss)]} size={140} plus={got.plus} />
+              <p>
+                {got.boss.name}
+                {got.plus > 0 ? `＋${got.plus}` : ''} を手に入れた！
+              </p>
+            </>
+          )}
+          {got.cores > 0 ? (
+            <p className="core-drop">
+              💎 {CORE_LABEL[got.coreKey]} ×{got.cores} がドロップ！{got.corePity ? '（確定ドロップ）' : ''}
+            </p>
+          ) : (
+            !got.monsterId && <p className="muted">今回は核が落ちなかった…（続けて落ちないと、そのうち確定で落ちます）</p>
+          )}
+          {got.monsterId && (
+            <button className="btn primary wide" onClick={() => go({ name: 'monster', id: got.monsterId! })}>
+              会いに行く
+            </button>
+          )}
         </section>
       )}
 
@@ -60,14 +75,17 @@ export function Quests({ go }: { go: Go }) {
             <button
               className="btn primary wide"
               onClick={() => {
-                const id = claimQuest()
-                if (id && battle.boss) {
-                  setGot({ id, boss: battle.boss, plus: CONFIG.quest.difficulties[battle.challenge.difficulty].plus })
+                const reward = claimQuest()
+                if (reward) {
+                  setGot({ ...reward, boss: battle.boss, plus: CONFIG.quest.difficulties[battle.challenge.difficulty].plus })
                 }
               }}
             >
-              報酬を受け取る（{battle.boss?.name}＋{CONFIG.quest.difficulties[battle.challenge.difficulty].plus}・
-              {questGold(battle.quest, battle.challenge.difficulty)}G）
+              報酬を受け取る（
+              {battle.quest.kind === 'material'
+                ? `${CORE_LABEL[battle.quest.attr]}のチャンス`
+                : `${battle.boss?.name}＋${CONFIG.quest.difficulties[battle.challenge.difficulty].plus}`}
+              ・{questGold(battle.quest, battle.challenge.difficulty)}G）
             </button>
           ) : (
             <button className="btn primary wide" onClick={() => go({ name: 'training' })}>

@@ -9,6 +9,7 @@ import { DIFFICULTIES, advantageAttr, affinity, attrOf, powerOf, questGold, rank
 import { ATTR_COLOR, type Go } from '../nav'
 import { attackOf } from '../lib/stats'
 import { abilityName, allGimmicks, gimmickRate, unmatchedGimmicks } from '../lib/gimmick'
+import { CORE_LABEL } from '../lib/cores'
 import { plusName, type QuestDifficulty } from '../types'
 
 /** クエストの詳細：ボスの弱点を見て、難易度と出撃メンバーを選んで挑戦する */
@@ -37,6 +38,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
 
   const boss = defs.find((d) => d.id === quest.bossDefId)
   const rank = rankOf(quest)
+  const misses = state.coreMisses[quest.id] ?? 0
   const names = allGimmicks(quests)
   const exerciseName = (slotId: string) => {
     const slot = SLOTS.find((s) => s.id === slotId)
@@ -104,7 +106,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
           </li>
         </ul>
         <p className="muted small">
-          筋トレのセットでは、その部位の属性のモンスター（と無属性）が攻撃します。ローラー・歩数・習慣は全員で攻撃。
+          筋トレのセットでは、その部位の属性のモンスター（と無属性）が攻撃します。ローラーは全員で攻撃。
         </p>
       </section>
 
@@ -118,9 +120,20 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
           ))}
         </div>
         <p className="small">
-          ボスの格：{rank.label}・HP {quest.hp[difficulty].toLocaleString()}・ドロップ {boss?.name ?? '？'}＋
-          {CONFIG.quest.difficulties[difficulty].plus}・{questGold(quest, difficulty)}G
+          ボスの格：{rank.label}・HP {quest.hp[difficulty].toLocaleString()}・{questGold(quest, difficulty)}G
         </p>
+        {quest.kind === 'material' ? (
+          <p className="small core-drop">
+            💎 {CORE_LABEL[quest.attr]}：{Math.round(CONFIG.cores.drop[difficulty].rate * 100)}%で落ちる
+            {CONFIG.cores.drop[difficulty].double > 0 && `（${Math.round(CONFIG.cores.drop[difficulty].double * 100)}%で2個）`}
+            {misses > 0 && `・いま${misses}回連続で落ちていない（${CONFIG.cores.pityMisses}回続くと次は確定）`}
+          </p>
+        ) : (
+          <p className="small">
+            ドロップ {boss?.name ?? '？'}＋{CONFIG.quest.difficulties[difficulty].plus}・たまに{CORE_LABEL[quest.attr]}（
+            {Math.round(CONFIG.cores.bossBonusRate * 100)}%）
+          </p>
+        )}
       </section>
 
       <section className="card">

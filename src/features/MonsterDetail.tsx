@@ -7,6 +7,7 @@ import { boughtCap, evolutionCost, fusionCost, isExpFull, planPour } from '../li
 import { Gauge } from '../components/Gauge'
 import { Stars } from '../components/Stars'
 import { Abilities } from '../components/Abilities'
+import { CORE_LABEL } from '../lib/cores'
 import { attackOf, isJogressReady, jogressNeed } from '../lib/stats'
 import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
@@ -155,10 +156,10 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
                     {full ? (
                       <button
                         className="btn primary small"
-                        disabled={state.gold < cost.gold}
+                        disabled={state.gold < cost.gold || (state.cores[nextAttr] ?? 0) < (cost.cores ?? 0)}
                         onClick={() => doEvolve(nextId)}
                       >
-                        進化する（{cost.gold}G）
+                        進化する（{cost.gold}G{cost.cores ? `・${CORE_LABEL[nextAttr]}×${cost.cores}` : ''}）
                       </button>
                     ) : (
                       <>
@@ -329,7 +330,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
                       <button
                         key={key}
                         className="btn primary small"
-                        disabled={state.gold < CONFIG.jogress.gold}
+                        disabled={state.gold < CONFIG.jogress.gold || (state.cores.none ?? 0) < CONFIG.jogress.cores}
                         onClick={() => {
                           const newId = jogress(id, partner.id, hidden.id)
                           setPartnerKey(null)
@@ -339,7 +340,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
                           }
                         }}
                       >
-                        本当にジョグレスする（{CONFIG.jogress.gold}G）
+                        本当にジョグレスする（{CONFIG.jogress.gold}G・{CORE_LABEL.none}×{CONFIG.jogress.cores}）
                       </button>
                     ) : (
                       <button key={key} className="btn small" onClick={() => setPartnerKey(key)}>
