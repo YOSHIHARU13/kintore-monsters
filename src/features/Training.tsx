@@ -73,12 +73,12 @@ export function Training({ go }: { go: Go }) {
           </button>
         </div>
         <ul className="slot-list">{slotButton(BONUS_SLOT)}</ul>
+        <p className="bonus-reward">
+          1セット <strong>+{CONFIG.bonus.goldPerSet}G</strong>・毎日{CONFIG.sets.perExercise}セットで +
+          {CONFIG.bonus.goldPerSet * CONFIG.sets.perExercise}G
+        </p>
         <p className="muted small">だるい日は1セットだけでもOK。それも出席1回に数えます。</p>
       </section>
-
-      <button className="btn wide" onClick={() => go({ name: 'cardio' })}>
-        サブメニュー（有酸素）を記録
-      </button>
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { calcTarget, judgeSet, recentSessions, suggestProgression } from './target'
-import { calcSetReward, cardioGold } from './rewards'
+import { abstinenceGold, calcSetReward, stepsGold } from './rewards'
 import { boughtCap, evolutionCost, isExpFull, planPour } from './evolution'
 import { CONFIG } from '../config/gameConfig'
 import { EXERCISES, SLOTS, TASK_SLOTS } from '../data/exercises'
@@ -58,15 +58,25 @@ describe('セット報酬', () => {
     })
     expect(calcSetReward({ isBonus: false, setNo: 2, judge: 'beat', intervalOk: false }).exp).toBe(0)
   })
-  it('腹筋ローラーは5G', () => {
+  it('腹筋ローラーは15G', () => {
     expect(calcSetReward({ isBonus: true, setNo: 3, judge: 'normal', intervalOk: true })).toMatchObject({
       exp: 0,
-      gold: 5,
+      gold: 15,
     })
     expect(calcSetReward({ isBonus: true, setNo: 4, judge: 'normal', intervalOk: true }).gold).toBe(0)
   })
-  it('有酸素は1分1G', () => {
-    expect(cardioGold(10)).toBe(10)
+  it('歩数は500歩ごとに1G（5000歩＝禁欲1日目と同じ10G）', () => {
+    expect(stepsGold(5000)).toBe(10)
+    expect(stepsGold(6499)).toBe(12)
+    expect(stepsGold(-1)).toBe(0)
+    expect(stepsGold(5000)).toBe(abstinenceGold(1))
+  })
+  it('禁欲はn日目×10G、10日目で頭打ち', () => {
+    expect(abstinenceGold(1)).toBe(10)
+    expect(abstinenceGold(2)).toBe(20)
+    expect(abstinenceGold(10)).toBe(100)
+    expect(abstinenceGold(30)).toBe(100)
+    expect(abstinenceGold(0)).toBe(0)
   })
 })
 
@@ -138,8 +148,8 @@ describe('今週のタスク', () => {
 describe('進化', () => {
   const cost = evolutionCost(1)!
   it('初期コスト', () => {
-    expect(cost).toEqual({ exp: 150, gold: 30 })
-    expect(evolutionCost(4)).toEqual({ exp: 2500, gold: 500 })
+    expect(cost).toEqual({ exp: 150, gold: 100 })
+    expect(evolutionCost(4)).toEqual({ exp: 2500, gold: 1500 })
     expect(evolutionCost(5)).toBeNull()
   })
   it('購入EXPは必要EXPの半分まで', () => {

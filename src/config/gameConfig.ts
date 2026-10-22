@@ -21,7 +21,7 @@ export const CONFIG = {
 
   // 今週のタスク（全種目×基本セット数）を全部消したときのボーナス
   weekly: {
-    clearGold: 50,
+    clearGold: 150,
   },
 
   // 重量アップ・上位種目の提案
@@ -43,36 +43,34 @@ export const CONFIG = {
     beat: 15,
   },
 
-  // 腹筋ローラー（ボーナス枠）
+  // 腹筋ローラー（ボーナス枠）。1日3セットまで
   bonus: {
-    goldPerSet: 5,
+    goldPerSet: 15,
   },
 
-  // サブメニュー（有酸素など）
-  cardio: {
-    goldPerMinute: 1,
-    danceMinuteChoices: [5, 10, 15, 20, 30],
-    presets: [
-      { id: 'fitBoxing', label: 'フィットボクシング', minutes: 10 },
-      { id: 'walkKid', label: '子どもと散歩', minutes: 5 },
-    ],
+  // 朝の記録（前日の歩数と禁欲）
+  morning: {
+    stepsPerGold: 500, // この歩数ごとに1G（5000歩で10G＝禁欲1日目と同じ）
+    maxSteps: 100_000, // 入力できる歩数の上限
+    abstinenceGoldPerDay: 10, // 禁欲n日目は n × この値（1日目10G、2日目20G…）
+    abstinenceMaxDays: 10, // ここで頭打ち（10日目以降は毎日100G）
   },
 
   // ショップ
   shop: {
-    goldPerExp: 2, // 1EXPを買うのに必要なゴールド
+    goldPerExp: 5, // 1EXPを買うのに必要なゴールド
     expBuyStep: 10, // EXP購入の±ボタン1回分
     boughtExpMaxRatio: 0.5, // 購入EXPで埋められるのは進化必要EXPのこの割合まで
-    eggPrice: 100,
+    eggPrice: 300,
     starterEggs: 1, // 開始時にもらえるタマゴ
   },
 
   // 進化コスト（上から 1→2, 2→3, 3→4, 4→5）
   evolutionCosts: [
-    { exp: 150, gold: 30 },
-    { exp: 500, gold: 100 },
-    { exp: 1200, gold: 250 },
-    { exp: 2500, gold: 500 },
+    { exp: 150, gold: 100 },
+    { exp: 500, gold: 300 },
+    { exp: 1200, gold: 750 },
+    { exp: 2500, gold: 1500 },
   ],
 
   // 画像の圧縮

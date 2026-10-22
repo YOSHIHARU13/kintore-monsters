@@ -14,7 +14,7 @@ import { Home } from './Home'
 import { Training } from './Training'
 import { SetInput } from './SetInput'
 import { MenuEdit } from './MenuEdit'
-import { Cardio } from './Cardio'
+import { Morning } from './Morning'
 import { Box } from './Box'
 import { MonsterDetail } from './MonsterDetail'
 import { Shop } from './Shop'
@@ -40,6 +40,9 @@ const state: GameState = {
   beatCount: 4,
   weeklyClears: 2,
   lastClearWeek: '2026-09-21',
+  abstinenceStreak: 3,
+  bestAbstinenceStreak: 5,
+  lastCheckinDate: '2026-10-03',
   activeMonsterId: 'o1',
 }
 const defs: MonsterDef[] = [
@@ -106,13 +109,22 @@ beforeEach(() => {
     weekSets: [],
     todaySets: [],
     songs: [],
-    todayActivities: [],
+    yesterday: '2026-10-04',
+    yesterdayCheckin: null,
     getHistory: vi.fn(async () => [past(1, 10, 1000, '2026-09-28'), past(2, 9, 2000, '2026-09-28')]),
     recordSet: vi.fn((rec: Omit<SetRecord, 'id' | 'ts' | 'date'>) => ({
       record: { ...rec, id: `new${Date.now()}`, ts: Date.now(), date: TODAY },
       weekCleared: false,
     })),
-    recordCardio: vi.fn(),
+    recordMorning: vi.fn((steps: number, abstained: boolean) => ({
+      date: '2026-10-04',
+      steps,
+      abstained,
+      streak: abstained ? 4 : 0,
+      stepsGold: Math.floor(steps / 500),
+      abstinenceGold: abstained ? 40 : 0,
+      ts: 1,
+    })),
     setSlot: vi.fn(),
     buyExp: vi.fn(),
     buyEgg: vi.fn(),
@@ -138,6 +150,8 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('累計 2週')
     expect(el.textContent).toContain('500G')
     expect(el.textContent).toContain('ムキドラゴ') // 第2段階の名前
+    expect(el.textContent).toContain('禁欲 3日継続中')
+    expect(el.textContent).toContain('禁欲4日目なら +40G')
     await click('ブルガリアンスクワット')
     expect(go).toHaveBeenCalledWith({ name: 'set', slotId: 'wed1' })
   })
@@ -194,7 +208,7 @@ describe('画面の表示', () => {
     const el = await render(<SetInput slotId="mon2" go={go} />)
     await click('回で確定')
     expect(el.textContent).toContain('今週 全消し！！')
-    expect(el.textContent).toContain('+50G')
+    expect(el.textContent).toContain('+150G')
     expect(el.textContent).toContain('累計 3週目')
   })
 
@@ -204,10 +218,35 @@ describe('画面の表示', () => {
     expect(fake.store.setSlot).toHaveBeenCalledWith('mon1', 'pushupBar')
   })
 
-  it('サブメニュー：ワンタップで記録', async () => {
-    await render(<Cardio go={go} />)
-    await click('フィットボクシング')
-    expect(fake.store.recordCardio).toHaveBeenCalledWith('fitBoxing', 'フィットボクシング', 10)
+  it('朝の記録：歩数と禁欲を入れて記録', async () => {
+    const el = await render(<Morning go={go} />)
+    expect(el.textContent).toContain('10/4の分')
+    const input = el.querySelector('input')!
+    await act(async () => {
+      const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!
+      setValue.call(input, '6500')
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    expect(el.textContent).toContain('+13G')
+    await click('してない（禁欲4日目 +40G）')
+    await click('記録する（+53G）')
+    expect(fake.store.recordMorning).toHaveBeenCalledWith(6500, true)
+    expect(el.textContent).toContain('記録しました：+53G')
+  })
+
+  it('朝の記録：「した」を選ぶと連続がリセットされる注意が出る', async () => {
+    const el = await render(<Morning go={go} />)
+    await click('した（+0G）')
+    expect(el.textContent).toContain('連続3日がリセット')
+  })
+
+  it('朝の記録：記録済みなら結果だけ出る', async () => {
+    fake.store.yesterdayCheckin = {
+      date: '2026-10-04', steps: 5000, abstained: true, streak: 4, stepsGold: 10, abstinenceGold: 40, ts: 1,
+    }
+    const el = await render(<Morning go={go} />)
+    expect(el.textContent).toContain('記録しました：+50G')
+    expect(el.textContent).toContain('禁欲 4日目')
   })
 
   it('BOX・図鑑・ショップ', async () => {
@@ -244,7 +283,7 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('脚EXPで進化')
     expect(el.textContent).toContain('0/500')
     expect(el.textContent).not.toContain('進化の石')
-    await click('進化する（100G）')
+    await click('進化する（300G）')
     expect(fake.store.evolve).toHaveBeenCalledWith('o1', 'n3a')
   })
 
@@ -288,7 +327,7 @@ describe('画面の表示', () => {
 
   it('モンスター登録：名前を入れて保存', async () => {
     const el = await render(<MonsterForm go={go} />)
-    expect(el.textContent).toContain('1→2 150EXP＋30G')
+    expect(el.textContent).toContain('1→2 150EXP＋100G')
     await click('保存する')
     expect(el.textContent).toContain('名前を入力してください')
     const type = async (input: HTMLInputElement, value: string) =>

@@ -24,6 +24,12 @@ export function calcSetReward(p: { isBonus: boolean; setNo: number; judge: Judge
   }
 }
 
-export function cardioGold(minutes: number): number {
-  return Math.max(0, Math.floor(minutes)) * CONFIG.cardio.goldPerMinute
+/** 歩数のゴールド。500歩ごとに1G */
+export function stepsGold(steps: number): number {
+  return Math.floor(Math.max(0, steps) / CONFIG.morning.stepsPerGold)
+}
+
+/** 禁欲n日目のゴールド。日数に比例して増え、上限の日数で頭打ち */
+export function abstinenceGold(day: number): number {
+  return Math.min(Math.max(0, Math.floor(day)), CONFIG.morning.abstinenceMaxDays) * CONFIG.morning.abstinenceGoldPerDay
 }

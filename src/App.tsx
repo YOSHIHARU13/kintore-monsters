@@ -9,7 +9,7 @@ import { Home } from './features/Home'
 import { Training } from './features/Training'
 import { SetInput } from './features/SetInput'
 import { MenuEdit } from './features/MenuEdit'
-import { Cardio } from './features/Cardio'
+import { Morning } from './features/Morning'
 import { Box } from './features/Box'
 import { MonsterDetail } from './features/MonsterDetail'
 import { Shop } from './features/Shop'
@@ -19,7 +19,7 @@ import { MonsterForm } from './features/MonsterForm'
 import { Settings } from './features/Settings'
 
 const TABS: { label: string; icon: string; view: View; names: View['name'][] }[] = [
-  { label: 'ホーム', icon: '🏠', view: { name: 'home' }, names: ['home', 'cardio'] },
+  { label: 'ホーム', icon: '🏠', view: { name: 'home' }, names: ['home', 'morning'] },
   { label: 'トレーニング', icon: '💪', view: { name: 'training' }, names: ['training', 'set', 'menuEdit'] },
   { label: 'モンスター', icon: '🐣', view: { name: 'box' }, names: ['box', 'monster'] },
   { label: 'ショップ', icon: '🛒', view: { name: 'shop' }, names: ['shop'] },
@@ -37,8 +37,8 @@ function Screen({ view, go }: { view: View; go: (v: View) => void }) {
       return <SetInput key={view.slotId} slotId={view.slotId} go={go} />
     case 'menuEdit':
       return <MenuEdit day={view.day} go={go} />
-    case 'cardio':
-      return <Cardio go={go} />
+    case 'morning':
+      return <Morning go={go} />
     case 'box':
       return <Box go={go} />
     case 'monster':

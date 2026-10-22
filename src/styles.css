@@ -446,6 +446,10 @@ h2 {
   background: var(--card2);
   animation: pop 0.3s;
 }
+.bonus-reward {
+  color: var(--primary);
+  font-weight: 700;
+}
 .result.keep {
   color: var(--keep);
 }

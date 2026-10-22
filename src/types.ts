@@ -18,6 +18,9 @@ export interface GameState {
   beatCount: number
   weeklyClears: number // 今週のタスクを全部消した週の累計
   lastClearWeek: string | null // 最後に全消しした週（その週の月曜の日付）
+  abstinenceStreak: number // 禁欲の連続日数（朝の記録で「してない」と答えた日の連続）
+  bestAbstinenceStreak: number
+  lastCheckinDate: string | null // 最後に朝の記録をつけた「前日」の日付
   activeMonsterId: string | null
 }
 
@@ -38,13 +41,14 @@ export interface SetRecord {
   gold: number
 }
 
-export interface Activity {
-  id: string
-  kind: string
-  label: string
-  minutes: number
-  gold: number
-  date: string
+/** 朝の記録。ドキュメントIDは記録した「前日」の日付 */
+export interface Checkin {
+  date: string // 記録の対象日（前日）
+  steps: number
+  abstained: boolean // 前日、自慰行為をしなかったか
+  streak: number // この日を含めた禁欲の連続日数（しなかった日は0）
+  stepsGold: number
+  abstinenceGold: number
   ts: number
 }
 

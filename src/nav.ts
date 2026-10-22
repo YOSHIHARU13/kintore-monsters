@@ -5,7 +5,7 @@ export type View =
   | { name: 'training' }
   | { name: 'set'; slotId: string }
   | { name: 'menuEdit'; day: Slot['day'] }
-  | { name: 'cardio' }
+  | { name: 'morning' }
   | { name: 'box' }
   | { name: 'monster'; id: string }
   | { name: 'shop' }

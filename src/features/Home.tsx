@@ -9,17 +9,36 @@ import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
 import { monsterName, nodeAttr } from '../types'
 import { isWeekCleared, partProgress, slotDone } from '../lib/week'
+import { abstinenceGold } from '../lib/rewards'
 
 export function Home({ go }: { go: Go }) {
-  const { state, menu, weekSets, defs, owned } = useStore()
+  const { state, menu, weekSets, defs, owned, yesterday, yesterdayCheckin } = useStore()
   const gaugeMax = Math.max(100, ...ATTRS.map((a) => state.lifetimeExp[a]))
   const active = owned.find((o) => o.id === state.activeMonsterId) ?? owned[0]
   const activeDef = active && defs.find((d) => d.id === active.defId)
   const progress = partProgress(weekSets)
   const remaining = DAY_KEYS.reduce((sum, day) => sum + progress[day].total - progress[day].done, 0)
 
+  const morningDone = state.lastCheckinDate === yesterday || yesterdayCheckin !== null
+
   return (
     <div className="page">
+      <section className="card">
+        <h2>☀️ 朝の記録</h2>
+        <p>
+          禁欲 <strong className="num">{state.abstinenceStreak}</strong>日継続中
+          <span className="muted small">（自己ベスト {state.bestAbstinenceStreak}日）</span>
+        </p>
+        {morningDone ? (
+          <p className="muted small">前日の分は記録済み。また明日の朝に。</p>
+        ) : (
+          <button className="btn primary wide" onClick={() => go({ name: 'morning' })}>
+            前日の歩数と禁欲を記録する（禁欲{state.abstinenceStreak + 1}日目なら +
+            {abstinenceGold(state.abstinenceStreak + 1)}G）
+          </button>
+        )}
+      </section>
+
       <section className="card">
         <h2>今週の残りタスク：{isWeekCleared(weekSets) ? '全消し達成！' : `あと${remaining}セット`}</h2>
         <p className="muted small">
@@ -74,9 +93,6 @@ export function Home({ go }: { go: Go }) {
             </div>
           )
         })}
-        <button className="btn wide" onClick={() => go({ name: 'cardio' })}>
-          サブメニュー（有酸素）を記録
-        </button>
       </section>
 
       <section className="card">

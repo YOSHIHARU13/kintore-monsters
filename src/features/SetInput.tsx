@@ -137,7 +137,7 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
       <MusicButtons />
       <h1 className="title">{ex.name}</h1>
       <p className="muted">
-        {isBonus ? 'ボーナス枠・' : ''}
+        {isBonus ? `ボーナス枠・1セット+${CONFIG.bonus.goldPerSet}G・` : ''}
         {rangeText(ex.id)}
       </p>
       <p className="small how">{ex.how}</p>

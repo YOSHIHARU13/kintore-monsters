@@ -17,12 +17,12 @@ import { db } from './lib/firebase'
 import { CONFIG } from './config/gameConfig'
 import { ATTRS, DAYS, type Attr, type FormAttr } from './data/exercises'
 import { FIRST_NODE_ID, canChangeTemplate, getNode, getTemplate } from './data/evolutionTemplates'
-import { dateKey, weekStartKey } from './lib/date'
+import { dateKey, prevDateKey, weekStartKey } from './lib/date'
 import { evolutionCost, isExpFull, planPour } from './lib/evolution'
-import { cardioGold } from './lib/rewards'
+import { abstinenceGold, stepsGold } from './lib/rewards'
 import { isWeekCleared } from './lib/week'
 import { compressImage } from './lib/imageCompress'
-import { investedFor, nodeAttr, type Activity, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
+import { investedFor, nodeAttr, type Checkin, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
 
 const zeroExp = () => ({ trained: 0, bought: 0 })
 
@@ -38,6 +38,9 @@ function initialState(): GameState {
     beatCount: 0,
     weeklyClears: 0,
     lastClearWeek: null,
+    abstinenceStreak: 0,
+    bestAbstinenceStreak: 0,
+    lastCheckinDate: null,
     activeMonsterId: null,
   }
 }
@@ -71,11 +74,13 @@ interface Store {
   today: string
   weekSets: SetRecord[] // 今週（月曜はじまり）のセット記録
   todaySets: SetRecord[]
-  todayActivities: Activity[]
+  yesterday: string // 朝の記録の対象日
+  yesterdayCheckin: Checkin | null // 前日分の朝の記録（まだなら null）
   getHistory: (exerciseId: string) => Promise<SetRecord[]>
   /** セットを記録する。このセットで今週のタスクを全部消したら weekCleared が true */
   recordSet: (rec: Omit<SetRecord, 'id' | 'ts' | 'date'>, countsBeat: boolean) => { record: SetRecord; weekCleared: boolean }
-  recordCardio: (kind: string, label: string, minutes: number) => void
+  /** 前日の歩数と禁欲を記録する。1日1回だけ */
+  recordMorning: (steps: number, abstained: boolean) => Checkin | null
   setSlot: (slotId: string, exerciseId: string) => void
   buyExp: (attr: Attr, amount: number) => void
   buyEgg: () => void
@@ -108,7 +113,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
   const [songs, setSongs] = useState<Song[]>([])
   const [today, setToday] = useState(dateKey())
   const [weekSets, setWeekSets] = useState<SetRecord[]>([])
-  const [todayActivities, setTodayActivities] = useState<Activity[]>([])
+  const [yesterdayCheckin, setYesterdayCheckin] = useState<Checkin | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const stateRef = useMemo(() => doc(db, base, 'meta', 'state'), [base])
@@ -189,19 +194,16 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     )
   }, [base, week, fail])
 
+  const yesterday = useMemo(() => prevDateKey(today), [today])
+
   useEffect(() => {
-    const unsubs = [
-      onSnapshot(
-        query(collection(db, base, 'activities'), where('date', '==', today)),
-        (snap) =>
-          setTodayActivities(
-            snap.docs.map((d) => ({ ...(d.data() as Omit<Activity, 'id'>), id: d.id })).sort((a, b) => b.ts - a.ts),
-          ),
-        fail,
-      ),
-    ]
-    return () => unsubs.forEach((u) => u())
-  }, [base, today, fail])
+    setYesterdayCheckin(null)
+    return onSnapshot(
+      doc(db, base, 'checkins', yesterday),
+      (snap) => setYesterdayCheckin(snap.exists() ? (snap.data() as Checkin) : null),
+      fail,
+    )
+  }, [base, yesterday, fail])
 
   const store = useMemo<Store | null>(() => {
     if (!state) return null
@@ -244,20 +246,29 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       return { record: { ...full, id: ref.id }, weekCleared }
     }
 
-    const recordCardio: Store['recordCardio'] = (kind, label, minutes) => {
-      const gold = cardioGold(minutes)
-      if (gold <= 0) return
-      const batch = writeBatch(db)
-      batch.set(doc(collection(db, base, 'activities')), {
-        kind,
-        label,
-        minutes: Math.floor(minutes),
-        gold,
-        date: dateKey(),
+    const recordMorning: Store['recordMorning'] = (steps, abstained) => {
+      if (state.lastCheckinDate === yesterday || yesterdayCheckin) return null
+      // 朝の記録をつけ忘れた日があっても、連続日数は途切れない（つけ忘れた日の分のゴールドは出ない）
+      const streak = abstained ? state.abstinenceStreak + 1 : 0
+      const record: Checkin = {
+        date: yesterday,
+        steps: Math.floor(Math.max(0, steps)),
+        abstained,
+        streak,
+        stepsGold: stepsGold(steps),
+        abstinenceGold: abstained ? abstinenceGold(streak) : 0,
         ts: Date.now(),
+      }
+      const batch = writeBatch(db)
+      batch.set(doc(db, base, 'checkins', yesterday), record)
+      batch.update(stateRef, {
+        gold: increment(record.stepsGold + record.abstinenceGold),
+        abstinenceStreak: streak,
+        bestAbstinenceStreak: Math.max(state.bestAbstinenceStreak, streak),
+        lastCheckinDate: yesterday,
       })
-      batch.update(stateRef, { gold: increment(gold) })
       batch.commit().catch(fail)
+      return record
     }
 
     const setSlot: Store['setSlot'] = (slotId, exerciseId) => {
@@ -436,10 +447,11 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       today,
       weekSets,
       todaySets,
-      todayActivities,
+      yesterday,
+      yesterdayCheckin,
       getHistory,
       recordSet,
-      recordCardio,
+      recordMorning,
       setSlot,
       buyExp,
       buyEgg,
@@ -451,7 +463,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       loadImage,
       saveSongs,
     }
-  }, [user, base, state, menu, defs, owned, songs, today, week, weekSets, todaySets, todayActivities, stateRef, menuRef, musicRef, fail])
+  }, [user, base, state, menu, defs, owned, songs, today, yesterday, yesterdayCheckin, week, weekSets, todaySets, stateRef, menuRef, musicRef, fail])
 
   if (!store) {
     return (
