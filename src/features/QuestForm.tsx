@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useStore } from '../store'
 import { CONFIG } from '../config/gameConfig'
 import { DAYS, FORM_ATTRS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type FormAttr } from '../data/exercises'
@@ -9,6 +9,7 @@ import { allGimmicks, selectableGimmicks } from '../lib/gimmick'
 import { ELEMENTS, ELEMENT_COLOR, ELEMENT_LABEL, advantageElements, elementInfo } from '../lib/element'
 import { abilityTag, elementTag, ownedSupply, requirementsFromMonsters, requirementsOf, tagLabel } from '../lib/formation'
 import { CORE_LABEL } from '../lib/cores'
+import { autoQuestSetup } from '../lib/questAuto'
 import { ATTR_COLOR, type Go } from '../nav'
 import { nodeAttr, type Element, type Quest, type QuestDifficulty, type QuestGrade, type Requirement } from '../types'
 
@@ -21,7 +22,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
   const bossChoices = defs.some((d) => d.questOnly) ? defs.filter((d) => d.questOnly) : defs
   const session = standardSessionDamage()
 
-  const [name, setName] = useState(existing?.name ?? '')
+  const [name, setName] = useState(existing && !existing.autoName ? existing.name : '')
   const [bossDefId, setBossDefId] = useState(existing?.bossDefId ?? bossChoices[0]?.id ?? '')
   const [attr, setAttr] = useState<FormAttr>(
     existing?.attr ?? (bossChoices[0] ? nodeAttr(bossChoices[0], FIRST_NODE_ID) : 'none'),
@@ -41,13 +42,34 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
   const [hp, setHp] = useState<Record<QuestDifficulty, number>>(existing?.hp ?? defaultHp(existing?.rank ?? 1, existing?.kind))
   const [catchphrase, setCatchphrase] = useState(existing?.catchphrase ?? '')
   const [theme] = useState(existing?.theme ?? 'flame')
+  // おまかせ：ボスと格から、編成の条件と弱点種目を自動で決める（手で変えたら止まる）
+  const [auto, setAuto] = useState(!existing)
+  const fillAuto = () => {
+    const b = defs.find((d) => d.id === bossDefId)
+    if (!b) return
+    const r = autoQuestSetup(b, grade, kind, quests, selectableGimmicks(quests), existing?.id)
+    setRequirements(r.requirements)
+    setWeakSlots(r.weakSlots)
+  }
+  useEffect(() => {
+    if (auto) fillAuto()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auto, bossDefId, grade, kind])
+  const editRequirements = (next: Requirement[]) => {
+    setAuto(false)
+    setRequirements(next)
+  }
+  const editWeakSlots = (next: string[]) => {
+    setAuto(false)
+    setWeakSlots(next)
+  }
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const boss = defs.find((d) => d.id === bossDefId)
   const draft: Quest = {
     id: existing?.id ?? 'new',
-    name: name.trim() || '名前のないクエスト',
+    name: name.trim() || boss?.name || '名前のないクエスト',
     bossDefId,
     attr,
     element,
@@ -64,7 +86,6 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
   }
 
   const save = () => {
-    if (!name.trim()) return setError('クエストの名前を入力してください')
     if (!boss) return setError('ボスにするモンスターを選んでください')
     if (DIFFICULTIES.some((d) => !(draft.hp[d] > 0))) return setError('HPは1以上にしてください')
     saveQuest({ id: existing?.id, name, kind, bossDefId, attr, element, weakSlots, requirements, customGimmicks, hp: draft.hp, rank, grade, catchphrase, theme })
@@ -81,8 +102,8 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
 
       <section className="card">
         <label className="field">
-          クエストの名前
-          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={20} placeholder="例：脚竜の巣" />
+          クエストの名前（省略可・空ならボスの名前）
+          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={20} placeholder={boss?.name ?? '例：脚竜の巣'} />
         </label>
         <label className="field">
           キャッチコピー（省略可）
@@ -182,7 +203,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
                   type="button"
                   className={`chip small${on ? ' on' : ''}`}
                   disabled={!on && weakSlots.length >= CONFIG.quest.maxWeakSlots}
-                  onClick={() => setWeakSlots(on ? weakSlots.filter((s) => s !== slot.id) : [...weakSlots, slot.id])}
+                  onClick={() => editWeakSlots(on ? weakSlots.filter((s) => s !== slot.id) : [...weakSlots, slot.id])}
                 >
                   {slot.day === 'bonus' ? '' : `${DAYS[slot.day].title}：`}
                   {exerciseOfSlot(slot, menu).name}
@@ -195,6 +216,19 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
 
       <section className="card">
         <h2>求められる編成</h2>
+        <button
+          type="button"
+          className={`btn small${auto ? ' primary' : ''}`}
+          onClick={() => {
+            setAuto(true)
+            fillAuto()
+          }}
+        >
+          ✨ おまかせで決める{auto ? '（おまかせ中）' : ''}
+        </button>
+        <p className="muted small">
+          おまかせ：ボスの属性に有利な属性と、ほかのクエストであまり使っていないアビリティを、格に合わせた数で求めます。弱点種目もボスの部位から決めます。手で変えるとおまかせは止まります。
+        </p>
         <p className="muted small">
           出撃する6体の合計で満たす条件です。ちょうどそろうと編成倍率×1.0（普通にその日のメニューで倒せる）、何もないと×
           {CONFIG.formation.base}、超えた分は1つにつき+{CONFIG.formation.perExtra}。超属性は2、複合属性は両方に1ずつ数えます。
@@ -221,7 +255,9 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
             type="button"
             className="btn small"
             disabled={stars.length === 0}
-            onClick={() => setRequirements(requirementsFromMonsters(defs.filter((d) => stars.includes(d.id))))}
+            onClick={() => {
+              editRequirements(requirementsFromMonsters(defs.filter((d) => stars.includes(d.id))))
+            }}
           >
             選んだモンスターの属性・アビリティで条件を作る
           </button>
@@ -243,7 +279,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
                   type="button"
                   className="btn small"
                   disabled={r.count <= 1}
-                  onClick={() => setRequirements(requirements.map((x, j) => (j === i ? { ...x, count: x.count - 1 } : x)))}
+                  onClick={() => editRequirements(requirements.map((x, j) => (j === i ? { ...x, count: x.count - 1 } : x)))}
                   aria-label={`${tagLabel(r.tag, gimmickNames)}を減らす`}
                 >
                   −
@@ -253,7 +289,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
                   type="button"
                   className="btn small"
                   disabled={r.count >= CONFIG.quest.partySize * 2}
-                  onClick={() => setRequirements(requirements.map((x, j) => (j === i ? { ...x, count: x.count + 1 } : x)))}
+                  onClick={() => editRequirements(requirements.map((x, j) => (j === i ? { ...x, count: x.count + 1 } : x)))}
                   aria-label={`${tagLabel(r.tag, gimmickNames)}を増やす`}
                 >
                   ＋
@@ -261,7 +297,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
                 <button
                   type="button"
                   className="btn small ghost"
-                  onClick={() => setRequirements(requirements.filter((_, j) => j !== i))}
+                  onClick={() => editRequirements(requirements.filter((_, j) => j !== i))}
                   aria-label={`${tagLabel(r.tag, gimmickNames)}を消す`}
                 >
                   ×
@@ -279,7 +315,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
                 type="button"
                 className="chip small"
                 disabled={requirements.length >= CONFIG.formation.maxRequirements}
-                onClick={() => setRequirements([...requirements, { tag, count: tag.startsWith('el:') ? 3 : 2 }])}
+                onClick={() => editRequirements([...requirements, { tag, count: tag.startsWith('el:') ? 3 : 2 }])}
               >
                 ＋{tagLabel(tag, gimmickNames)}
               </button>
@@ -308,7 +344,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
             onClick={() => {
               const g = newGimmick.trim()
               if (!(g in gimmickNames)) setCustomGimmicks({ ...customGimmicks, [g]: newAbility.trim() })
-              if (!requirements.some((r) => r.tag === abilityTag(g))) setRequirements([...requirements, { tag: abilityTag(g), count: 2 }])
+              if (!requirements.some((r) => r.tag === abilityTag(g))) editRequirements([...requirements, { tag: abilityTag(g), count: 2 }])
               setNewGimmick('')
               setNewAbility('')
             }}

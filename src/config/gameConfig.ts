@@ -142,6 +142,13 @@ export const CONFIG = {
     },
     partySize: 6, // 出撃できる数
   },
+  // おまかせのクエスト：格ごとの条件（適正の属性の数・アビリティの種類と数・弱点種目の数）
+  questAuto: {
+    kiwami: { element: 2, abilities: 1, abilityCount: 1, weak: 1 },
+    kyukyoku: { element: 3, abilities: 1, abilityCount: 2, weak: 1 },
+    chozetsu: { element: 3, abilities: 2, abilityCount: 2, weak: 2 },
+    material: { element: 2, abilities: 0, abilityCount: 0, weak: 1 },
+  },
   // ブースター：回数制の道具。使うと次の1回（EXPは次の数セット）だけ効く。期限なし
   boosters: {
     habit: { icon: '🧘', label: 'ブースター', price: 150, text: '次の記録のGが2倍、その日の上限もなし' },

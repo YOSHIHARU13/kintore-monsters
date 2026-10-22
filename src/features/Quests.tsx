@@ -5,7 +5,7 @@ import { MonsterImage } from '../components/MonsterImage'
 import { QuestBanner } from '../components/QuestBanner'
 import { bannerNodeOf } from '../components/GachaBanner'
 import { useBattle } from '../components/BattleBar'
-import { dropPlus, gradeOf, questGold, questLevelLabel } from '../lib/quest'
+import { defaultBossHp, dropPlus, gradeOf, questGold, questLevelLabel } from '../lib/quest'
 
 const VIEW_KEY = 'questListView'
 
@@ -18,19 +18,54 @@ const QUEST_GROUPS = [
 ] as const
 import { formationOf, requirementsOf } from '../lib/formation'
 import { luckBonus } from '../lib/fusion'
-import { ELEMENT_COLOR } from '../lib/element'
+import { ELEMENT_COLOR, elementInfo } from '../lib/element'
 import { CONFIG } from '../config/gameConfig'
 import { CORE_LABEL } from '../lib/cores'
 import { towerCleared, towerMonth } from '../lib/tower'
+import { autoGradeOf, autoQuestSetup } from '../lib/questAuto'
+import { selectableGimmicks } from '../lib/gimmick'
+import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { towerRewardText } from './Tower'
 import { boosterName } from '../lib/boosters'
 import type { QuestReward } from '../store'
 import type { Go } from '../nav'
-import { plusName, type MonsterDef } from '../types'
+import { nodeAttr, plusName, type MonsterDef, type Quest } from '../types'
 
 /** クエストのタブ：今日の戦いと、クエストの一覧 */
 export function Quests({ go }: { go: Go }) {
-  const { state, quests, tower, defs, today, quitChallenge, claimQuest } = useStore()
+  const { state, quests, tower, defs, today, quitChallenge, claimQuest, saveQuest } = useStore()
+  const [made, setMade] = useState<number | null>(null)
+  // まだボスクエストがない降臨モンスター（塔限定は塔でもらえるので除く）
+  const pending = defs.filter(
+    (d) => d.questOnly && !d.tower && !quests.some((q) => q.kind !== 'material' && q.bossDefId === d.id),
+  )
+  /** 降臨モンスター1体につき1つ、おまかせでボスクエストを作る（名前はボスの名前・格はレア度から） */
+  const makeAll = () => {
+    const gimmicks = selectableGimmicks(quests)
+    const sofar: Pick<Quest, 'id' | 'requirements' | 'gimmicks'>[] = [...quests]
+    for (const d of pending) {
+      const grade = autoGradeOf(d)
+      const r = autoQuestSetup(d, grade, 'boss', sofar, gimmicks)
+      const hp = defaultBossHp(grade)
+      saveQuest({
+        name: '',
+        kind: 'boss',
+        bossDefId: d.id,
+        attr: nodeAttr(d, FIRST_NODE_ID),
+        element: elementInfo(d).elements[0],
+        weakSlots: r.weakSlots,
+        requirements: r.requirements,
+        customGimmicks: {},
+        hp: { easy: hp, normal: hp, hard: hp },
+        rank: 1,
+        grade,
+        catchphrase: '',
+        theme: 'flame',
+      })
+      sofar.push({ id: `new-${d.id}`, requirements: r.requirements })
+    }
+    setMade(pending.length)
+  }
   const towerDone = towerCleared(state, towerMonth(today))
   const battle = useBattle()
   const towerFloor = battle ? tower.find((f) => f.quest.id === battle.quest.id) : undefined
@@ -274,9 +309,22 @@ export function Quests({ go }: { go: Go }) {
             </div>
           )
         })}
-        <button className="btn small" onClick={() => go({ name: 'questForm' })}>
-          ＋ クエストを作る
-        </button>
+        <div className="row wrap">
+          <button className="btn small" onClick={() => go({ name: 'questForm' })}>
+            ＋ クエストを作る
+          </button>
+          {pending.length > 0 && (
+            <button className="btn small primary" onClick={makeAll}>
+              ✨ 降臨モンスター{pending.length}体ぶん、まとめて作る
+            </button>
+          )}
+        </div>
+        {pending.length > 0 && (
+          <p className="muted small">
+            クエストがまだない降臨モンスターごとに、ボスの名前・属性で作ります。格はレア度から（激レア→超絶・ノーマル→究極・ハズレ→極）、編成の条件と弱点はおまかせ。あとから1つずつ編集できます。
+          </p>
+        )}
+        {made !== null && <div className="result keep">{made}個のクエストを作りました</div>}
       </section>
     </div>
   )

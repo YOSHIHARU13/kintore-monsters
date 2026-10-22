@@ -637,8 +637,11 @@ describe('画面の表示', () => {
     await type(el.querySelector('input')!, '脚竜の巣')
     expect(el.textContent).toContain('アシリュウ') // クエスト限定のモンスターだけがボス候補
     expect([...el.querySelectorAll('option')].map((o) => o.textContent)).not.toContain('ムキドラ')
+    // 新しいクエストは、おまかせで条件と弱点（ボスの部位＝脚の日の種目）が最初から入っている
+    expect(el.textContent).toContain('おまかせ中')
+    expect(el.textContent).toMatch(/持っている \d/)
     await click('胸腕：ダンベルカール')
-    await click('＋バリアブレイカー')
+    expect(el.textContent).not.toContain('おまかせ中') // 手で変えたら止まる
     // 新しいアビリティは、ギミック名とセットで作る
     await type(el.querySelector<HTMLInputElement>('input[aria-label="新しいギミック"]')!, 'ゾーン')
     await type(el.querySelector<HTMLInputElement>('input[aria-label="対応するアビリティ"]')!, 'ゾーンブレイク')
@@ -646,8 +649,9 @@ describe('画面の表示', () => {
     await click('クエストを作る')
     expect(fake.store.saveQuest).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: '脚竜の巣', bossDefId: 'b1', attr: 'legs', weakSlots: ['mon4'],
-        requirements: [{ tag: 'ab:バリア', count: 2 }, { tag: 'ab:ゾーン', count: 2 }],
+        name: '脚竜の巣', bossDefId: 'b1', attr: 'legs',
+        weakSlots: [expect.stringMatching(/^wed/), 'mon4'],
+        requirements: [expect.objectContaining({ tag: expect.stringMatching(/^ab:/), count: 2 }), { tag: 'ab:ゾーン', count: 2 }],
         customGimmicks: { ゾーン: 'ゾーンブレイク' },
         hp: { easy: expect.any(Number), normal: expect.any(Number), hard: expect.any(Number) },
       }),

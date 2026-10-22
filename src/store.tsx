@@ -373,7 +373,9 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     () =>
       questDocs.map((q) => {
         const boss = defs.find((d) => d.id === q.bossDefId)
-        return boss ? { ...q, element: elementInfo(boss).elements[0] } : q
+        const autoName = !q.name?.trim()
+        const name = autoName ? (boss?.name ?? '名前のないクエスト') : q.name
+        return boss ? { ...q, name, autoName, element: elementInfo(boss).elements[0] } : { ...q, name, autoName }
       }),
     [questDocs, defs],
   )
