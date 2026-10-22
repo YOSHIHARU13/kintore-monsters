@@ -30,9 +30,10 @@ import { isJogressReady } from './lib/stats'
 import { battleOf, dropPlus, questGold } from './lib/quest'
 import { rollBonusCore, rollCoreDrop } from './lib/cores'
 import { canFeed, fusionGain, isLuckMax, luckAfter, luckBonus } from './lib/fusion'
+import { autoPartners } from './lib/partner'
 import { finalAttrs, recommend } from './lib/coverage'
 import { abilitySlots, jogressGradeOf, selectableGimmicks } from './lib/gimmick'
-import { jogressElementOf } from './lib/element'
+import { elementInfo, jogressElementOf } from './lib/element'
 import { investedFor, isHidden, nodeAttr, type AttrExp, type Checkin, type Element, type Gacha, type Quest, type QuestDifficulty, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
 
 const zeroExp = () => ({ trained: 0, bought: 0 })
@@ -185,6 +186,8 @@ interface Store {
   setHabitMode: (mode: GameState['habitMode']) => void
   /** 種目の枠に相棒をセットする（null で外す）。同じモンスターは1つの枠にしか入れない */
   setPartner: (slotId: string, monsterId: string | null) => void
+  /** 全部の種目に、相棒をおまかせでセットする */
+  autoSetPartners: () => void
   saveQuest: (input: QuestInput) => void
   deleteQuest: (id: string) => void
   /** クエストに出撃する（挑戦中のものがあれば、やめて選び直す）。その日のうちに倒す */
@@ -444,6 +447,10 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
 
     const setHabitMode: Store['setHabitMode'] = (mode) => updateState({ habitMode: mode })
 
+    const autoSetPartners: Store['autoSetPartners'] = () => {
+      updateState({ partners: autoPartners(SLOTS.map((s) => s.id), owned, defs) })
+    }
+
     const setPartner: Store['setPartner'] = (slotId, monsterId) => {
       const update: DocumentData = {}
       // 同じモンスターがほかの枠にいたら外す
@@ -499,6 +506,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
           investedBy: {},
           investedFrom: {},
           shiny,
+          luck: CONFIG.luck.gachaStart,
           obtainedAt: Date.now() + i, // まとめて引いても入手順がずれないように
         })
         if (shiny) update[`dexShiny.${def.id}`] = true
@@ -793,8 +801,16 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         const slotIds = SLOTS.filter((s) => s.day === 'bonus' || parts.includes('none') || parts.includes(DAYS[s.day].attr)).map(
           (s) => s.id,
         )
-        const rec = recommend(working, quests, selectableGimmicks(quests), abilitySlots(def), def.id, slotIds)
-        const tuned = { element: rec.element, favoriteSlot: rec.favoriteSlot, abilities: rec.abilities }
+        // 決まっていないところだけ埋める（自分で決めたところは触らない）
+        const own = elementInfo(def).elements[0]
+        const rec = recommend(working, quests, selectableGimmicks(quests), abilitySlots(def), def.id, slotIds, own)
+        const tuned: Partial<MonsterDef> = {}
+        if (!def.element) tuned.element = rec.element
+        if (!def.rarity && !def.common) tuned.rarity = 'normal'
+        if (!def.favoriteSlot && rec.favoriteSlot) tuned.favoriteSlot = rec.favoriteSlot
+        const slots = abilitySlots({ ...def, ...tuned })
+        if ((def.abilities ?? []).length === 0 && slots > 0) tuned.abilities = rec.abilities.slice(0, slots)
+        if (Object.keys(tuned).length === 0) continue
         batch.update(doc(db, base, 'monsterDefs', id), tuned)
         working = working.map((d) => (d.id === id ? { ...d, ...tuned } : d))
       }
@@ -874,6 +890,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const ref = id ? doc(db, base, 'quests', id) : doc(collection(db, base, 'quests'))
       setDoc(ref, {
         ...data,
+        element: data.element ?? null,
         name: data.name.trim(),
         catchphrase: data.catchphrase.trim(),
         weakSlots: data.weakSlots.slice(0, CONFIG.quest.maxWeakSlots),
@@ -975,6 +992,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       setHabitLabel,
       setHabitMode,
       setPartner,
+      autoSetPartners,
       setSlot,
       buyExp,
       buyEgg,

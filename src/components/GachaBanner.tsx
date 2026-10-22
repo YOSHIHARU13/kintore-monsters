@@ -29,8 +29,7 @@ export function featuredOf(gacha: Gacha, table: Rate[], defs: MonsterDef[]): Mon
   const pool = [...table.map((t) => t.def), ...jogressOf(table, defs)]
   const chosen = gacha.featured.map((id) => pool.find((d) => d.id === id)).filter((d) => !!d)
   if (chosen.length > 0) return chosen.slice(0, max)
-  const order = ['superRare', 'rare'] as const
-  return order.flatMap((r) => table.filter((t) => t.rarity === r).map((t) => t.def)).slice(0, max)
+  return table.filter((t) => t.rarity === 'superRare').map((t) => t.def).slice(0, max)
 }
 
 /** ピックアップ（レア以上）。激レアを先に */

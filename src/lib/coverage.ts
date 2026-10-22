@@ -1,7 +1,7 @@
 import { ATTRS, SLOTS, type Attr, type FormAttr } from '../data/exercises'
 import { getTemplate } from '../data/evolutionTemplates'
 import { abilitySlots } from './gimmick'
-import { ELEMENTS, elementInfo } from './element'
+import { ELEMENTS, advantageElements, elementInfo } from './element'
 import { abilityTag, elementTag, requirementsOf, tagLabel, tagsOf } from './formation'
 import { isHidden, nodeAttr, type Element, type MonsterDef, type Quest } from '../types'
 
@@ -38,7 +38,12 @@ export function attrSupply(defs: MonsterDef[], _quests: Quest[], selfId?: string
   ) as Record<Attr, Supply>
 }
 
-/** 属性（炎・水・木・光・闇）の内訳：持っている数と、その属性が相性◎になるボスの数 */
+/** そのクエストがその属性を求めているか：ボスに有利な属性か、編成の条件にある属性 */
+export function wantsElement(quest: Quest, e: Element): boolean {
+  return advantageElements(quest.element).includes(e) || requirementsOf(quest).some((r) => r.tag === elementTag(e))
+}
+
+/** 属性（炎・水・木・光・闇）の内訳：持っている数と、その属性を求めるクエストの数 */
 export function elementSupply(defs: MonsterDef[], quests: Quest[], selfId?: string): Record<Element, Supply> {
   const list = others(defs, selfId)
   return Object.fromEntries(
@@ -46,7 +51,7 @@ export function elementSupply(defs: MonsterDef[], quests: Quest[], selfId?: stri
       e,
       {
         have: list.filter((d) => elementInfo(d).elements.includes(e)).length,
-        need: quests.filter((q) => requirementsOf(q).some((r) => r.tag === elementTag(e))).length,
+        need: quests.filter((q) => wantsElement(q, e)).length,
       },
     ]),
   ) as Record<Element, Supply>
@@ -100,6 +105,7 @@ export function recommend(
   slots: number,
   selfId?: string,
   slotIds: string[] = SLOTS.map((s) => s.id), // 得意種目にできる種目（モンスターの部位で決まる）
+  fixedElement?: Element, // 属性が決まっているモンスターは、その属性のまま考える
 ): { element: Element; favoriteSlot: string; abilities: string[] } {
   const gap = (s: Supply) => s.need - s.have
   const byGap = <T>(items: T[], supply: (t: T) => Supply) =>
@@ -107,9 +113,14 @@ export function recommend(
       (a, b) => gap(supply(b)) - gap(supply(a)) || supply(b).need - supply(a).need || supply(a).have - supply(b).have,
     )
   const els = elementSupply(defs, quests, selfId)
+  const element = fixedElement ?? byGap(ELEMENTS, (e) => els[e])[0]
+  // アビリティと得意種目は「同じ属性の中で」足りないものを選ぶ（闇のクエストに行くのは光のモンスターなので、光の中での層の厚さが大事）
+  const sameElement = defs.filter((d) => elementInfo(d).elements.includes(element))
+  const relevant = quests.filter((q) => wantsElement(q, element))
+  const pool = relevant.length > 0 ? relevant : quests
   return {
-    element: byGap(ELEMENTS, (e) => els[e])[0],
-    favoriteSlot: byGap(slotIds, (s) => slotSupply(s, defs, quests, selfId))[0] ?? '',
-    abilities: byGap(gimmicks, (g) => abilitySupply(g, defs, quests, selfId)).slice(0, slots),
+    element,
+    favoriteSlot: byGap(slotIds, (s) => slotSupply(s, sameElement, pool, selfId))[0] ?? '',
+    abilities: byGap(gimmicks, (g) => abilitySupply(g, sameElement, pool, selfId)).slice(0, slots),
   }
 }

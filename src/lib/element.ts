@@ -38,3 +38,24 @@ export function elementName(info: ElementInfo): string {
   const names = info.elements.map((e) => ELEMENT_LABEL[e]).join('×')
   return info.super ? `超${names}` : names
 }
+
+/** 属性の相性：炎→木→水→炎（矢印の先に強い）、光と闇はお互いに強い（モンストと同じ） */
+const BEATS: Record<Element, Element[]> = {
+  fire: ['wood'],
+  wood: ['water'],
+  water: ['fire'],
+  light: ['dark'],
+  dark: ['light'],
+}
+
+/** ボスの属性に有利な属性（適正） */
+export function advantageElements(boss: Element | undefined): Element[] {
+  if (!boss) return []
+  return ELEMENTS.filter((e) => BEATS[e].includes(boss))
+}
+
+/** そのモンスターが、ボスの属性に有利な属性を持っているか（複合属性はどちらかで有利ならOK） */
+export function hasAdvantage(def: MonsterDef, boss: Element | undefined): boolean {
+  const adv = advantageElements(boss)
+  return elementInfo(def).elements.some((e) => adv.includes(e))
+}

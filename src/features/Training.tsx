@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useStore } from '../store'
 import { BONUS_SLOT, DAYS, DAY_KEYS, dumbbellText, exerciseOfSlot, rangeText, slotsOfDay, type Slot } from '../data/exercises'
 import { CONFIG } from '../config/gameConfig'
@@ -9,7 +10,8 @@ import { BattleBar } from '../components/BattleBar'
 import { partnerOf, rateText } from '../lib/partner'
 
 export function Training({ go }: { go: Go }) {
-  const { menu, weekSets, todaySets, songs, state, owned, defs } = useStore()
+  const { menu, weekSets, todaySets, songs, state, owned, defs, autoSetPartners } = useStore()
+  const [partnerFlash, setPartnerFlash] = useState(false)
   const progress = partProgress(weekSets)
 
   // タスクの枠は今週こなしたセット数、ボーナス枠は今日こなしたセット数
@@ -71,6 +73,18 @@ export function Training({ go }: { go: Go }) {
           🎵 トレーニング中に流す曲を設定する
         </button>
       )}
+      {owned.length > 0 && (
+        <button
+          className="btn wide"
+          onClick={() => {
+            autoSetPartners()
+            setPartnerFlash(true)
+          }}
+        >
+          🤝 相棒をおまかせでセット（全部の種目にいちばん強い組み合わせ）
+        </button>
+      )}
+      {partnerFlash && <div className="result keep">相棒をセットしました</div>}
       <p className="muted small">
         今週のタスクです。どの日に、どの種目からやってもOK。1種目は{CONFIG.sets.perExercise}セットで完了、月曜にリセットされます。
         終わった種目は、余力があれば2周目（もう{CONFIG.sets.perExercise}セット、EXP{Math.round(CONFIG.sets.extraExpRatio * 100)}%）もできます。

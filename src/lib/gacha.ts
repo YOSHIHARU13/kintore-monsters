@@ -6,6 +6,7 @@ export const RARITY_KEYS = Object.keys(CONFIG.gacha.rarities) as RarityKey[]
 
 /** そのモンスターのレア度。未設定ならノーマル（ハズレ枠にしていた分はハズレ） */
 export function rarityOf(def: MonsterDef): RarityKey {
+  if (def.rarity === 'rare') return 'superRare' // 以前の「レア」は、ガチャ限定なので激レアとして扱う
   return def.rarity ?? (def.common ? 'hazure' : 'normal')
 }
 

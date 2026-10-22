@@ -40,7 +40,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
   const [files, setFiles] = useState<Record<string, File>>({})
   const [birthStars, setBirthStars] = useState(existing?.jogressBirthStars ?? CONFIG.gacha.jogressDefaultBirth)
   const [fixedStars, setFixedStars] = useState(existing?.fixedStars ?? CONFIG.gacha.fixedStarsDefault)
-  const [jogressPlus, setJogressPlus] = useState(existing?.jogressPlus ?? 0)
+  const [jogressPlus] = useState(existing?.jogressPlus ?? 0)
   const [questOnly, setQuestOnly] = useState(existing?.questOnly === true || questPreset)
   const [element, setElement] = useState<Element | ''>(existing?.element ?? '')
   const [favoriteSlot, setFavoriteSlot] = useState(existing?.favoriteSlot ?? '')
@@ -416,7 +416,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
             })}
           </div>
           <span className="muted small">
-            クエストの「求められる編成」の条件になります。持てる数はレア度で決まります（ハズレ・ノーマル{CONFIG.gimmicks.slots.normal}、レア{CONFIG.gimmicks.slots.rare}、激レア
+            クエストの「求められる編成」の条件になります。持てる数はレア度で決まります（ハズレ・ノーマル{CONFIG.gimmicks.slots.normal}、激レア
             {CONFIG.gimmicks.slots.superRare}、ジョグレス{CONFIG.gimmicks.slots.jogress}）。
           </span>
         </div>
@@ -507,7 +507,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
         {recipe.length === 2 && (
           <>
             <div className="field">
-              生まれるときの星（素材はどちらも★{birthStars - 1}以上が必要）
+              生まれるときの星（素材はどちらも最終形態で★{birthStars - 1}以上）
               <div className="chips" role="group" aria-label="生まれるときの星">
                 {CONFIG.gacha.jogressBirthChoices.map((n) => (
                   <button key={n} type="button" className={`chip${birthStars === n ? ' on' : ''}`} onClick={() => setBirthStars(n)}>
@@ -516,18 +516,8 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
                 ))}
               </div>
               <span className="muted small">
-                例：★2どうしで★3誕生 → ★4に進化。★3の＋5どうしで★4誕生、なども作れます。★4が最上位です。
+                例：★3どうしで★4誕生。★4が最上位です。
               </span>
-            </div>
-            <div className="field">
-              素材に必要な＋（＋1以上にすると、素材は最終形態まで育てる必要があります）
-              <div className="chips" role="group" aria-label="素材に必要な＋">
-                {Array.from({ length: CONFIG.fusion.maxPlus + 1 }, (_, n) => (
-                  <button key={n} type="button" className={`chip${jogressPlus === n ? ' on' : ''}`} onClick={() => setJogressPlus(n)}>
-                    ＋{n}
-                  </button>
-                ))}
-              </div>
             </div>
           </>
         )}

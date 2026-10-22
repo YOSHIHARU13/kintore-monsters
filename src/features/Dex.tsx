@@ -49,10 +49,8 @@ export function Dex({ go }: { go: Go }) {
     if (!parent) return { name: '？？？', text: '登録が見つかりません', ready: false }
     const mons = owned.filter((o) => o.defId === defId)
     if (mons.some((m) => isJogressReady(m, parent, hidden))) return { name: parent.name, text: '条件クリア ✓', ready: true }
-    const best = mons
-      .map((m) => ({ stars: starsOf(parent, m.nodeId), plus: m.plus ?? 0 }))
-      .sort((a, b) => b.stars - a.stars || b.plus - a.plus)[0]
-    const text = best ? `いちばん育っているのは★${best.stars}${best.plus > 0 ? `＋${best.plus}` : ''}` : '未所持'
+    const best = mons.map((m) => starsOf(parent, m.nodeId)).sort((a, b) => b - a)[0]
+    const text = best ? `いちばん育っているのは★${best}` : '未所持'
     return { name: parent.name, text, ready: false }
   }
 
@@ -143,8 +141,7 @@ export function Dex({ go }: { go: Go }) {
             {isHidden(open.def) && (
               <div className="recipe">
                 <strong className="small">
-                  ジョグレスのレシピ（★{jogressNeed(open.def).stars + 1}で誕生・どちらも★{jogressNeed(open.def).stars}以上
-                  {jogressNeed(open.def).plus > 0 ? `・＋${jogressNeed(open.def).plus}以上` : ''}）
+                  ジョグレスのレシピ（★{jogressNeed(open.def).stars + 1}で誕生・どちらも最終形態）
                 </strong>
                 <ul className="mini-list">
                   {open.def.recipe!.map((parentId, i) => {

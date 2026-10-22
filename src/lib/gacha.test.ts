@@ -11,30 +11,30 @@ describe('ガチャ', () => {
     def('h1', { rarity: 'hazure' }),
     def('h2', { common: true }), // 旧形式のハズレ枠もハズレ
     def('n1'), // レア度なし → ノーマル（どのガチャからも出る）
-    def('r1', { rarity: 'rare', gachas: ['g1'] }),
+    def('r1', { rarity: 'rare', gachas: ['g1'] }), // 以前の「レア」は激レアとして扱う
     def('s1', { rarity: 'superRare', gachas: ['g1', 'g2'] }),
     def('s2', { rarity: 'superRare', gachas: ['g2'] }), // 別のガチャ
     def('x', { rarity: 'superRare', gachas: ['g1'], recipe: ['h1', 'n1'] }), // 隠しモンスターは出ない
-    def('d1', { rarity: 'rare' }), // ガチャを選んでいないレア → いつものガチャ
+    def('d1', { rarity: 'superRare' }), // ガチャを選んでいない激レア → いつものガチャ
   ]
 
   it('レア度ごとの確率を、同じレア度のモンスターで山分けする', () => {
     const table = rateTable('g1', defs)
     expect(table.map((r) => r.def.id)).toEqual(['h1', 'h2', 'n1', 'r1', 's1'])
     const rate = Object.fromEntries(table.map((r) => [r.def.id, r.rate]))
-    expect(rate.h1).toBeCloseTo(0.25)
-    expect(rate.h2).toBeCloseTo(0.25)
-    expect(rate.n1).toBeCloseTo(0.35)
-    expect(rate.r1).toBeCloseTo(0.12)
-    expect(rate.s1).toBeCloseTo(0.03)
-    expect(tierRates(table).map((t) => t.count)).toEqual([2, 1, 1, 1])
+    // ハズレ45%・ノーマル40%・激レア15%（そのガチャ限定）
+    expect(rate.h1).toBeCloseTo(0.225)
+    expect(rate.h2).toBeCloseTo(0.225)
+    expect(rate.n1).toBeCloseTo(0.4)
+    expect(rate.r1).toBeCloseTo(0.075)
+    expect(rate.s1).toBeCloseTo(0.075)
+    expect(tierRates(table).map((t) => t.count)).toEqual([2, 1, 2])
   })
 
   it('いないレア度の確率は、いるレア度に比率のまま回す', () => {
-    const table = rateTable('default', defs) // ハズレ・ノーマル・レア（d1）だけ
-    expect(table.map((r) => r.def.id)).toEqual(['h1', 'h2', 'n1', 'd1'])
-    const total = 0.5 + 0.35 + 0.12
-    expect(table.find((r) => r.def.id === 'd1')!.rate).toBeCloseTo(0.12 / total)
+    const table = rateTable('g3', defs) // 激レアがいないガチャ：ハズレとノーマルだけ
+    expect(table.map((r) => r.def.id)).toEqual(['h1', 'h2', 'n1'])
+    expect(table.find((r) => r.def.id === 'n1')!.rate).toBeCloseTo(0.4 / 0.85)
     expect(table.reduce((sum, r) => sum + r.rate, 0)).toBeCloseTo(1)
   })
 
@@ -51,9 +51,9 @@ describe('ガチャ', () => {
     const table = rateTable('g1', defs)
     expect(isPity(28, table)).toBe(false)
     expect(isPity(29, table)).toBe(true)
-    expect(draw(table, 29, 0)?.id).toBe('s1')
+    expect(draw(table, 29, 0)?.id).toBe('r1')
     expect(draw(table, 0, 0)?.id).toBe('h1')
-    expect(isPity(29, rateTable('default', defs))).toBe(false)
+    expect(isPity(29, rateTable('g3', defs))).toBe(false)
   })
 
   it('確率の表示', () => {

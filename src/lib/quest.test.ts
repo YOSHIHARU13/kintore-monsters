@@ -37,14 +37,24 @@ describe('クエスト', () => {
     expect(setHit(set('mon4', 'mon'), quest, [fav], '', 2).damage).toBe(45)
   })
 
-  it('星と＋が多いほど攻撃力が上がる', () => {
+  it('星とレア度で攻撃力が決まる', () => {
     const weak = { mon: mon('a', 'a'), def: def('a') }
-    const strong = { mon: mon('b', 'b', { nodeId: 'n3', plus: 5 }), def: def('b', { rarity: 'superRare' }) }
+    const strong = { mon: mon('b', 'b', { nodeId: 'n3' }), def: def('b', { rarity: 'superRare' }) }
     // 端数の丸めで比がずれないよう、倍率を大きくして比べる
     const a = setHit(set('mon2', 'mon'), quest, [weak], '', 100).damage
     const b = setHit(set('mon2', 'mon'), quest, [strong], '', 100).damage
-    // ノーマルの★1（4,500）と、激レアの★3＋5（3×3,000＋4,500＋5×1,500 = 21,000）
-    expect(b / a).toBeCloseTo(21000 / 4500)
+    // ノーマルの★1（3,000＋1,500）と、激レアの★3（9,000＋4,500）
+    expect(b / a).toBeCloseTo(13500 / 4500)
+  })
+
+  it('超絶は、ボスの属性に有利な属性を持たないモンスターの攻撃が半減', () => {
+    const boss: Quest = { ...quest, weakSlots: [], grade: 'chozetsu', element: 'dark' }
+    const light = { mon: mon('l', 'l'), def: def('l', { element: 'light' }) }
+    const fire = { mon: mon('f', 'f'), def: def('f', { element: 'fire' }) }
+    const hit = (m: typeof light, q: Quest = boss) => setHit(set('mon2', 'mon'), q, [m], '', 100).damage
+    expect(hit(fire)).toBe(hit(light) / 2)
+    expect(setHit(set('mon2', 'mon'), boss, [fire], '').notes).toContain('fは属性が合わず半減')
+    expect(hit(fire, { ...boss, grade: 'kyukyoku' })).toBe(hit(light, { ...boss, grade: 'kyukyoku' })) // 究極では半減しない
   })
 
   it('報酬の対象外のセットは数えない', () => {
@@ -82,14 +92,13 @@ describe('クエスト', () => {
     expect(questHp({ kind: 'material', hp: { easy: 1, normal: 2, hard: 3 } }, 'hard')).toBe(3)
   })
 
-  it('ジョグレス：途中の段階どうしでもOK（★2どうしで★3誕生）。＋の条件もレシピで決める', () => {
-    const hidden = def('h', { recipe: ['a', 'b'], jogressBirthStars: 3, jogressPlus: 0 })
-    expect(jogressNeed(hidden)).toEqual({ stars: 2, plus: 0 })
+  it('ジョグレス：素材は2体とも最終形態で、生まれる星の1つ下以上', () => {
+    const hidden = def('h', { recipe: ['a', 'b'], jogressBirthStars: 4 })
+    expect(jogressNeed(hidden)).toEqual({ stars: 3 })
     const normal = def('a') // ★1 → ★2 → ★3
-    expect(isJogressReady(mon('x', 'a', { nodeId: 'n1' }), normal, hidden)).toBe(false)
-    expect(isJogressReady(mon('x', 'a', { nodeId: 'n2' }), normal, hidden)).toBe(true)
-    const strict = def('h2', { recipe: ['a', 'b'], jogressBirthStars: 4, jogressPlus: 5 })
-    expect(isJogressReady(mon('x', 'a', { nodeId: 'n3', plus: 4 }), normal, strict)).toBe(false)
-    expect(isJogressReady(mon('x', 'a', { nodeId: 'n3', plus: 5 }), normal, strict)).toBe(true)
+    expect(isJogressReady(mon('x', 'a', { nodeId: 'n2' }), normal, hidden)).toBe(false)
+    expect(isJogressReady(mon('x', 'a', { nodeId: 'n3' }), normal, hidden)).toBe(true)
+    const early = def('e', { templateId: 'early2' }) // ★1 → ★2で最終形態
+    expect(isJogressReady(mon('x', 'e', { nodeId: 'n2' }), early, hidden)).toBe(false) // 最終形態でも星が足りない
   })
 })

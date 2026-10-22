@@ -10,6 +10,7 @@ import type { MonsterDef, Quest } from '../types'
 
 /** バナーの色：求められる編成の最初の属性の色（属性の条件がなければ金） */
 function questTone(quest: Quest): string {
+  if (quest.element) return `tone-${quest.element}`
   const el = requirementsOf(quest).find((r) => r.tag.startsWith('el:'))
   return el ? `tone-${el.tag.slice(3)}` : 'tone-gold'
 }

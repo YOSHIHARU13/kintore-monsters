@@ -73,10 +73,9 @@ export const CONFIG = {
     starterEggs: 1, // 開始時にもらえるタマゴ
   },
 
-  // 攻撃力 = 星の数 × perStar ＋ レア度の上乗せ ＋ ＋の数 × perPlus
+  // 攻撃力 = 星の数 × perStar ＋ レア度の上乗せ
   attack: {
     perStar: 3000,
-    perPlus: 1500,
   },
 
   // 種目の相棒：枠ごとに1体セットすると、その種目のEXPが増える
@@ -104,7 +103,7 @@ export const CONFIG = {
       オーラ: 'オーライーター',
     } as Record<string, string>,
     // 持てるアビリティの数（レア度の格）。ジョグレスは jogress
-    slots: { hazure: 0, normal: 0, rare: 1, superRare: 2, jogress: 3 },
+    slots: { hazure: 0, normal: 0, superRare: 2, jogress: 3 },
   },
 
   // クエスト：出撃したら、その日のうちに倒す勝負。出撃してからのセットがそのままダメージになる（何回でも挑戦できる）
@@ -116,6 +115,7 @@ export const CONFIG = {
     partMatch: 2,
     rollerDamage: 4, // 腹筋ローラー1セット（全員で攻撃）
     weakSlot: 2, // ボスの弱点種目のセット
+    offElementChozetsu: 0.5, // 超絶では、ボスの属性に有利な属性を持たないモンスターの攻撃はこの倍率
     favorite: 1.5, // 攻撃したモンスターの得意種目のセット
     maxWeakSlots: 2,
     // ボスの格：初級・中級・上級のHPとGが、まとめてこの倍率になる
@@ -172,6 +172,7 @@ export const CONFIG = {
   // 運極のモンスターを出撃させると、1体につきクエスト報酬のGと、素材クエストの核の落ちやすさが上がる
   luck: {
     max: 99,
+    gachaStart: 10, // ガチャから出た子は運10（10体当てれば運極）。クエストのドロップは運1
     goldBonus: 0.2, // 運極1体につき報酬G +20%
     coreBonus: 0.1, // 運極1体につき核が落ちる確率 +10%
   },
@@ -229,17 +230,16 @@ export const CONFIG = {
     defaultId: 'default', // どのガチャにも入れていないモンスターが入るガチャ（消せない）
     defaultName: 'いつものガチャ',
     // レア度ごとの確率（合計1）。同じレア度のモンスターで山分けする
-    // ハズレとノーマルはどのガチャからも出る。レアと激レアは選んだガチャだけ（ガチャの「顔」）
+    // ハズレとノーマルはどのガチャからも出る。激レアはそのガチャ限定（ガチャの「顔」）
     rarities: {
-      hazure: { label: 'ハズレ', rate: 0.5, attackBonus: 0, everyGacha: true, hint: 'どのガチャからも出る。2段階で終わるような軽いやつ' },
-      normal: { label: 'ノーマル', rate: 0.35, attackBonus: 1500, everyGacha: true, hint: 'どのガチャからも出る。3段階まで進化する普通のやつ' },
-      rare: { label: 'レア', rate: 0.12, attackBonus: 3000, everyGacha: false, hint: '選んだガチャだけ。分岐ありのかっこいいやつ' },
+      hazure: { label: 'ハズレ', rate: 0.45, attackBonus: 0, everyGacha: true, hint: 'どのガチャからも出る。2段階で終わるような軽いやつ' },
+      normal: { label: 'ノーマル', rate: 0.4, attackBonus: 1500, everyGacha: true, hint: 'どのガチャからも出る。3段階まで進化する普通のやつ' },
       superRare: {
         label: '激レア',
-        rate: 0.03,
+        rate: 0.15,
         attackBonus: 4500,
         everyGacha: false,
-        hint: '選んだガチャだけ（フェス限）。ジョグレスの素材になる、いちばんかっこいいやつ',
+        hint: 'そのガチャ限定。ジョグレスの素材になる、いちばんかっこいいやつ',
       },
     },
     // 星は進化形態だけで決まる（レア度は関係ない）：1段目が★1、進化するたびに1つ増える（最大 maxStars）

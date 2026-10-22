@@ -7,6 +7,7 @@ import { ElementBadge } from '../components/ElementBadge'
 import { Abilities } from '../components/Abilities'
 import { rarityOf } from '../lib/gacha'
 import { elementInfo } from '../lib/element'
+import { abilitySlots } from '../lib/gimmick'
 import type { Go } from '../nav'
 import { isHidden, monsterName, type MonsterDef } from '../types'
 
@@ -37,9 +38,14 @@ export function MonsterRegistry({ go }: { go: Go }) {
   const [tuned, setTuned] = useState<number | null>(null)
   const hasMet = (defId: string) => owned.some((o) => o.defId === defId) || (state.dexFound[defId]?.length ?? 0) > 0
   const ownedCount = defs.filter((d) => hasMet(d.id)).length
-  // 属性・得意種目・アビリティが全部空のもの（おまかせで埋められる）
+  // おまかせで埋められるところ（属性・レア度・得意種目・アビリティ）が残っているもの
   const untuned = defs.filter(
-    (d) => !isHidden(d) && elementInfo(d).elements.length === 0 && !d.favoriteSlot && (d.abilities ?? []).length === 0,
+    (d) =>
+      !isHidden(d) &&
+      (elementInfo(d).elements.length === 0 ||
+        (!d.rarity && !d.common) ||
+        !d.favoriteSlot ||
+        ((d.abilities ?? []).length === 0 && abilitySlots(d) > 0)),
   )
 
   const matches = (d: MonsterDef) => {
@@ -81,7 +87,7 @@ export function MonsterRegistry({ go }: { go: Go }) {
             setTuned(untuned.length)
           }}
         >
-          ✨ 属性などが空の{untuned.length}体を、まとめておまかせで埋める
+          ✨ 未設定のところを、{untuned.length}体まとめておまかせで埋める（属性・レア度・得意種目・アビリティ）
         </button>
       )}
       {tuned !== null && <div className="result keep">{tuned}体をおまかせで埋めました</div>}

@@ -9,7 +9,7 @@ import { BOSS_DIFFICULTY, DIFFICULTIES, attrOf, dropPlus, gradeOf, powerOf, ques
 import { formationOf, requirementsOf, shortfallHelp, tagLabel, tagsOf } from '../lib/formation'
 import { FormationPanel } from '../components/FormationPanel'
 import { luckBonus } from '../lib/fusion'
-import { elementInfo, elementName } from '../lib/element'
+import { ELEMENT_COLOR, ELEMENT_LABEL, advantageElements, elementInfo, elementName, hasAdvantage } from '../lib/element'
 import { ATTR_COLOR, type Go } from '../nav'
 import { attackOf } from '../lib/stats'
 import { allGimmicks } from '../lib/gimmick'
@@ -66,12 +66,16 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
         .filter((r) => own[r.tag])
         .map((r) => `${tagLabel(r.tag, names)}${own[r.tag] > 1 ? `×${own[r.tag]}` : ''}`)
       if (def.favoriteSlot && quest.weakSlots.includes(def.favoriteSlot)) tags.push('得意種目が弱点')
+      if (quest.element && hasAdvantage(def, quest.element)) tags.unshift('属性◎')
+      else if (quest.kind !== 'material' && gradeOf(quest) === 'chozetsu' && quest.element) tags.push('半減')
       return [{ mon, def, help: shortfallHelp(def, formation.rows), tags }]
     })
     .sort((a, b) => {
       const onA = party.includes(a.mon.id) ? 1 : 0
       const onB = party.includes(b.mon.id) ? 1 : 0
-      return onB - onA || b.help - a.help || b.tags.length - a.tags.length || powerOf(b) - powerOf(a)
+      const advA = quest.element && hasAdvantage(a.def, quest.element) ? 1 : 0
+      const advB = quest.element && hasAdvantage(b.def, quest.element) ? 1 : 0
+      return onB - onA || advB - advA || b.help - a.help || b.tags.length - a.tags.length || powerOf(b) - powerOf(a)
     })
   const max = CONFIG.quest.partySize
   const switching = !!current && current.questId !== id
@@ -101,10 +105,33 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
         <h2>ボスの情報</h2>
         <ul className="mini-list">
           <li>
+            <span>属性</span>
+            <span style={quest.element ? { color: ELEMENT_COLOR[quest.element] } : undefined}>
+              {quest.element ? ELEMENT_LABEL[quest.element] : '無属性'}
+            </span>
+          </li>
+          {quest.element && (
+            <li>
+              <span>適正（有利な属性）</span>
+              <span>
+                {advantageElements(quest.element).map((e) => (
+                  <span key={e} style={{ color: ELEMENT_COLOR[e] }}>
+                    {ELEMENT_LABEL[e]}{' '}
+                  </span>
+                ))}
+              </span>
+            </li>
+          )}
+          <li>
             <span>弱点種目（ダメージ×{CONFIG.quest.weakSlot}）</span>
             <span>{quest.weakSlots.map(exerciseName).join('・') || 'なし'}</span>
           </li>
         </ul>
+        {quest.kind !== 'material' && gradeOf(quest) === 'chozetsu' && quest.element && (
+          <p className="warn small">
+            超絶：適正の属性を持たないモンスターの攻撃は半減します。
+          </p>
+        )}
         <p className="muted small">
           出撃した全員が毎セット攻撃します。セットの部位（胸腕・脚・背肩）と一致するモンスターはダメージ×{CONFIG.quest.partMatch}。最後に、下の編成倍率がかかります。
         </p>
@@ -177,7 +204,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
                       <span className="small"> {elementName(elementInfo(m.def))}</span>
                       <span className="small"> 攻撃力 {attackOf(m.mon, m.def).toLocaleString()}</span>
                       {m.tags.map((t) => (
-                        <span key={t} className="tag keep">
+                        <span key={t} className={`tag ${t === '半減' ? 'warn' : 'keep'}`}>
                           {' '}
                           {t}
                         </span>

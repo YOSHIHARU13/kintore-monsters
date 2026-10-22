@@ -18,6 +18,8 @@ const QUEST_GROUPS = [
 ] as const
 import { formationOf, requirementsOf } from '../lib/formation'
 import { luckBonus } from '../lib/fusion'
+import { ELEMENT_COLOR } from '../lib/element'
+import { CONFIG } from '../config/gameConfig'
 import { CORE_LABEL } from '../lib/cores'
 import type { QuestReward } from '../store'
 import type { Go } from '../nav'
@@ -208,6 +210,11 @@ export function Quests({ go }: { go: Go }) {
                       >
                         {boss && <MonsterImage imageId={boss.images[bannerNodeOf(boss)]} size={56} />}
                         {cleared && <span className="quest-cleared">✓</span>}
+                        {q.element && (
+                          <span className="quest-element" style={{ background: ELEMENT_COLOR[q.element] }}>
+                            {CONFIG.formation.elementIcon[q.element]}
+                          </span>
+                        )}
                         <span className="quest-icon-name">{q.name}</span>
                       </button>
                     )

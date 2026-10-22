@@ -10,7 +10,9 @@ interface Props {
 }
 
 /** モンスター画像。画像が未登録ならプレースホルダーのシルエットを出す */
-export function MonsterImage({ plus = 0, shiny = false, ...props }: Props) {
+export function MonsterImage({ plus: _plus = 0, shiny = false, ...props }: Props) {
+  // ＋はなくなったので、枠は出さない（色違いだけ）
+  const plus = 0
   const picture = shiny ? (
     <div className="shiny">
       <Picture {...props} />

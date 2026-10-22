@@ -240,9 +240,9 @@ describe('画面の表示', () => {
     fake.store.defs = [{ ...defs[0], favoriteSlot: 'mon2' }, defs[1]]
     fake.store.owned = [{ ...owned[0], plus: 2 }, { id: 'o2', defId: 'm2', nodeId: 'n1', obtainedAt: 2 }]
     const pick = await render(<PartnerPick slotId="mon2" go={go} />)
-    // ムキドラゴ：ノーマルの★5＋2 → 攻撃力 2×3,000＋1,500＋2×1,500 = 10,500 → (1 + 0.175) × 1.2（得意種目）= 1.41
-    expect(pick.textContent).toContain('攻撃力 10,500')
-    expect(pick.textContent).toContain('EXP×1.41')
+    // ムキドラゴ：ノーマルの★2 → 攻撃力 2×3,000＋1,500 = 7,500 → (1 + 0.125) × 1.2（得意種目）= 1.35
+    expect(pick.textContent).toContain('攻撃力 7,500')
+    expect(pick.textContent).toContain('EXP×1.35')
     expect(pick.textContent).toContain('得意種目！')
     await click('ムキドラゴ')
     expect(fake.store.setPartner).toHaveBeenCalledWith('mon2', 'o1')
@@ -250,7 +250,7 @@ describe('画面の表示', () => {
     const el = await render(<SetInput slotId="mon2" go={go} />)
     expect(el.textContent).toContain('相棒：ムキドラ')
     await click('11回で確定')
-    expect(fake.store.recordSet).toHaveBeenCalledWith(expect.objectContaining({ exp: 21 }), true) // 15 × 1.41
+    expect(fake.store.recordSet).toHaveBeenCalledWith(expect.objectContaining({ exp: 20 }), true) // 15 × 1.35
   })
 
   it('習慣：やった直後にその場で分数を記録してGをもらう（1日30分まで）', async () => {
@@ -424,74 +424,35 @@ describe('画面の表示', () => {
     expect(fake.store.evolve).toHaveBeenCalledWith('o1', 'n3a')
   })
 
-  it('モンスター詳細：最終形態になるまでは合体できない', async () => {
-    fake.store.owned = [...owned, { id: 'o3', defId: 'm1', nodeId: 'n1', obtainedAt: 3 }]
-    const el = await render(<MonsterDetail id="o1" go={go} />)
-    expect(el.textContent).toContain('最終形態まで進化すると')
-    expect(el.textContent).toContain('いま食べさせられるモンスター：0体') // 同じモンスターは運のほうへ
-    expect(el.textContent).toContain('同じモンスター1体をまとめて食べさせる（運＋1）')
-    expect(el.textContent).not.toContain('本当に食べさせる（') // ＋の合体はまだできない
-  })
 
-  it('モンスター詳細：最終形態はEXPを注いでから、同じモンスターを食べさせて＋1', async () => {
+
+  it('モンスター詳細：同じモンスターをまとめて食べさせて運を上げる（＋の合体はない）', async () => {
     fake.store.owned = [
-      { id: 'o1', defId: 'm1', nodeId: 'n3a', plus: 2, plusExp: { trained: 100, bought: 0 }, shiny: true, obtainedAt: 1 },
-      { id: 'o3', defId: 'm1', nodeId: 'n1', obtainedAt: 3 },
+      { id: 'o1', defId: 'm1', nodeId: 'n3a', luck: 10, obtainedAt: 1 },
+      { id: 'o3', defId: 'm1', nodeId: 'n1', luck: 10, obtainedAt: 3 },
       { id: 'o4', defId: 'm2', nodeId: 'n1', obtainedAt: 4 },
     ]
     const el = await render(<MonsterDetail id="o1" go={go} />)
-    expect(el.textContent).toContain('✨ムキドラ＋2')
-    expect(el.textContent).toContain('合体（＋2／5）')
-    expect(el.textContent).toContain('100/300')
-    expect(el.querySelector('.frame.plus-2 .shiny')).not.toBeNull()
-    // ゲージが満タンになるまでは食べさせられない
-    expect([...el.querySelectorAll('button')].some((b) => b.textContent === '食べさせる')).toBe(false)
-    await click('胸腕EXPを注ぐ（+200）')
-    expect(fake.store.pourPlusExp).toHaveBeenCalledWith('o1', 'chestArms')
-    await click('万能EXPを注ぐ（+30）')
-    expect(fake.store.pourPlusExp).toHaveBeenCalledWith('o1', 'any')
-  })
-
-  it('モンスター詳細：ゲージが満タンなら同じ属性のモンスターで＋1、同じモンスターは運に食べさせる', async () => {
-    fake.store.defs = [
-      { ...defs[0], element: 'fire' },
-      { ...defs[1], element: 'water' },
-      { id: 'm3', name: 'ヒノコ', attr: 'legs', templateId: 'early2', images: {}, element: 'fire', rarity: 'hazure', createdAt: 3 },
-    ]
-    fake.store.owned = [
-      { id: 'o1', defId: 'm1', nodeId: 'n3a', plus: 2, plusExp: { trained: 300, bought: 0 }, obtainedAt: 1 },
-      { id: 'o3', defId: 'm1', nodeId: 'n1', obtainedAt: 3 },
-      { id: 'o4', defId: 'm2', nodeId: 'n1', obtainedAt: 4 },
-      { id: 'o5', defId: 'm3', nodeId: 'n1', obtainedAt: 5 },
-    ]
-    const el = await render(<MonsterDetail id="o1" go={go} />)
-    expect(el.textContent).not.toContain('アシガメ') // 水は炎の素材にならない
-    const rows = [...el.querySelectorAll('.mini-list li')].map((li) => li.textContent)
-    expect(rows[0]).toContain('ヒノコ')
-    expect(rows[0]).toContain('＋1（同じ属性）')
-    expect(rows.some((r) => r?.includes('ムキドラ'))).toBe(false) // 同じモンスターは＋の素材にしない
-    await click('食べさせる')
-    await click('本当に食べさせる（300G）')
-    expect(fake.store.fuse).toHaveBeenCalledWith('o1', 'o5')
-    // 同じモンスターは運に食べさせる
-    await click('同じモンスター1体をまとめて食べさせる')
+    expect(el.textContent).toContain('運 10')
+    expect(el.textContent).not.toContain('合体（')
+    await click('同じモンスター1体をまとめて食べさせる（運＋10）')
     await click('本当に1体まとめて食べさせる')
     expect(fake.store.feedLuck).toHaveBeenCalledWith('o1', ['o3'])
   })
 
-  it('モンスター詳細：＋5どうしでジョグレスすると隠しモンスターが生まれる', async () => {
+  it('モンスター詳細：最終形態どうしでジョグレスすると隠しモンスターが生まれる', async () => {
     const hidden: MonsterDef = {
       id: 'h1', name: 'カイザードラ', attr: 'none', templateId: 'linear3', images: {}, recipe: ['m1', 'm2'], createdAt: 3,
     }
     fake.store.defs = [...defs, hidden]
     fake.store.state = { ...state, gold: 1500 }
     fake.store.owned = [
-      { id: 'o1', defId: 'm1', nodeId: 'n3a', plus: 5, obtainedAt: 1 },
-      { id: 'o2', defId: 'm2', nodeId: 'n3', plus: 5, obtainedAt: 2 },
+      { id: 'o1', defId: 'm1', nodeId: 'n3a', obtainedAt: 1 },
+      { id: 'o2', defId: 'm2', nodeId: 'n3', obtainedAt: 2 },
     ]
     const el = await render(<MonsterDetail id="o1" go={go} />)
-    expect(el.textContent).toContain('？？？（★4で誕生）← ムキドラ ＆ アシガメ：どちらも★3以上')
-    await click('アシガメ＋5とジョグレス')
+    expect(el.textContent).toContain('？？？（★4で誕生）← ムキドラ ＆ アシガメ：どちらも最終形態（★3以上）')
+    await click('アシガメとジョグレス')
     await click('本当にジョグレスする（600G・無垢の核×2）')
     expect(fake.store.jogress).toHaveBeenCalledWith('o1', 'o2', 'h1')
     expect(el.textContent).toContain('ジョグレス進化！！')
@@ -571,16 +532,16 @@ describe('画面の表示', () => {
     // 引けるガチャのうち、いちばん新しいものが選ばれている
     expect(el.querySelector('.gacha-tab.on')!.textContent).toBe('脚まつり')
     expect(el.textContent).toContain('全5種')
-    expect(el.textContent).toContain('激レア 合計3%（1種）')
-    expect(el.textContent).toContain('レア 合計12%（2種）')
-    expect(el.textContent).toContain('ノーマル 合計35%（1種）')
-    expect(el.textContent).toContain('ハズレ 合計50%（1種）')
+    // 以前の「レア」は激レア（そのガチャ限定）として数える
+    expect(el.textContent).toContain('激レア 合計15%（3種）')
+    expect(el.textContent).toContain('ノーマル 合計40%（1種）')
+    expect(el.textContent).toContain('ハズレ 合計45%（1種）')
     expect(el.textContent).toContain('激レア確定まで あと3回')
     expect(el.textContent).toContain('？？？') // まだ会っていないモンスターは名前を伏せる
     // いつものガチャにはレア・激レアがいないので、その分がハズレとノーマルに回る
     await tapTab('いつものガチャ')
     expect(el.textContent).toContain('全2種')
-    expect(el.textContent).toContain('ハズレ 合計58.8%')
+    expect(el.textContent).toContain('ハズレ 合計52.9%')
     expect(el.textContent).not.toContain('確定まで')
     await click('1回引く')
     expect(fake.store.hatchEgg).toHaveBeenCalledWith('default')
@@ -614,7 +575,7 @@ describe('画面の表示', () => {
     expect([...el.querySelectorAll('button.choice')].find((x) => x.textContent?.includes('イソガシ'))!.hasAttribute('disabled')).toBe(true)
     await pick('ツノウサ')
     await pick('カミドラ')
-    expect(el.textContent).toContain('激レア 合計6%') // ハズレがいないので、その分が回る
+    expect(el.textContent).toContain('激レア 合計27.3%') // ハズレがいないので、その分が回る（15 ÷ 55）
     expect(el.textContent).toContain('あと1体で')
     const type = async (input: HTMLInputElement, value: string) =>
       act(async () => {
@@ -625,13 +586,13 @@ describe('画面の表示', () => {
     // スライド式のバナー：①主役のズーム ②ほかのピックアップ ③主役の集合。色は主役の属性
     await type(el.querySelector<HTMLInputElement>('input[placeholder^="例：伝説"]')!, '伝説の脚竜、降臨！')
     const banner = el.querySelector('.banner-carousel')!
-    expect(banner.classList.contains('tone-fire')).toBe(true) // 主役のカミドラ（激レア・炎）
+    expect(banner.classList.contains('tone-gold')).toBe(true) // 主役のツノウサ（無属性）は金
     const hero = banner.querySelector('.slide-hero')!
     expect(hero.textContent).toContain('脚まつり')
     expect(hero.textContent).toContain('伝説の脚竜、降臨！')
     expect(hero.textContent).toContain('激レア登場')
-    expect(hero.textContent).toContain('カミドラ')
-    expect(banner.querySelector('.slide-pickups')!.textContent).toContain('ツノウサ')
+    expect(hero.textContent).toContain('ツノウサ')
+    expect(banner.querySelector('.slide-pickups')!.textContent).toContain('カミドラ')
     expect(banner.querySelectorAll('.slide-trio .trio-member')).toHaveLength(2)
     expect(banner.querySelectorAll('.banner-dots i')).toHaveLength(3)
     const featuredChip = [...el.querySelectorAll('button.chip')].find((b) => b.textContent === 'カミドラ')!
@@ -888,8 +849,7 @@ describe('画面の表示', () => {
     fake.store.defs = [{ ...defs[0], rarity: 'rare', gachas: ['g1'] }, { ...defs[1], rarity: 'superRare', gachas: ['g1'] }]
     const el = await render(<GachaForm id="g1" go={go} />)
     expect(el.textContent).toContain('全2種')
-    expect(el.textContent).toContain('レア 合計80%') // 12 ÷ (12 + 3)
-    expect(el.textContent).toContain('激レア 合計20%')
+    expect(el.textContent).toContain('激レア 合計100%') // 以前の「レア」も激レア
     await click('1/10')
     await click('保存する')
     expect(fake.store.saveGacha).toHaveBeenCalledWith(expect.objectContaining({ id: 'g1', name: '脚まつり', shinyRate: 1 / 10 }))
@@ -985,7 +945,7 @@ describe('画面の表示', () => {
     expect(tiles[0]).toContain('レア度未設定')
     expect(tiles[0]).toContain('未入手')
     await click('まとめておまかせで埋める')
-    expect(fake.store.autoTuneDefs).toHaveBeenCalledWith(['m2'])
+    expect(fake.store.autoTuneDefs).toHaveBeenCalledWith(expect.arrayContaining(['m2']))
     const filter = el.querySelector('[aria-label="絞り込み"]')!
     await act(async () => [...filter.querySelectorAll('button')].find((b) => b.textContent === '降臨')!.click())
     expect(el.querySelectorAll('.tile')).toHaveLength(0) // 降臨のモンスターはまだいない
@@ -1007,7 +967,7 @@ describe('画面の表示', () => {
     const el = await render(<MonsterForm go={go} />)
     expect(el.textContent).not.toContain('ガチャ1') // ノーマルはどのガチャからも出るので選ばない
     await act(async () => el.querySelector('[aria-label="レア度"]')!.querySelectorAll('button')[2].click())
-    expect(el.textContent).toContain('分岐ありのかっこいいやつ')
+    expect(el.textContent).toContain('そのガチャ限定')
     for (const n of [1, 2, 3]) await click(`ガチャ${n}`)
     const g4 = [...el.querySelectorAll('button')].find((b) => b.textContent === 'ガチャ4')!
     expect(g4.disabled).toBe(true)

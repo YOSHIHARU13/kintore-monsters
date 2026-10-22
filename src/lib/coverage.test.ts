@@ -52,11 +52,14 @@ describe('登録画面の被り・不足', () => {
     expect(similarDefs(draft, defs).map((d) => d.id)).toEqual(['a'])
   })
 
-  it('おすすめ：いちばん不足しているもので埋める', () => {
+  it('おすすめ：属性はいちばん足りないもの。アビリティと得意種目は、同じ属性の中で足りないもの', () => {
     const rec = recommend(defs, quests, ['バリア', 'シールド', 'ミラー'], 2)
-    expect(rec.element).toBe('water')
-    expect(rec.favoriteSlot).toBe('wed1')
-    // シールドは需要2・所持0でいちばん不足。次は、どちらも不足していないが、使うボスがいるバリア
-    expect(rec.abilities).toEqual(['シールド', 'バリア'])
+    expect(rec.element).toBe('water') // 水を求めるクエストがあるのに、水のモンスターがいない
+    // 水を求めるクエスト（q2）はシールドを求めている。水のモンスターにはまだシールド持ちがいない
+    expect(rec.abilities[0]).toBe('シールド')
+    // 炎のモンスターとして考えると、炎の中ではバリアは足りている（a が持っている）ので、シールドが先
+    const fire = recommend(defs, quests, ['バリア', 'シールド'], 1, undefined, undefined, 'fire')
+    expect(fire.element).toBe('fire')
+    expect(fire.abilities).toEqual(['シールド'])
   })
 })

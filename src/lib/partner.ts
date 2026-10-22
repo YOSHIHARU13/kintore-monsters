@@ -27,3 +27,25 @@ export function partnerOf(
 export function rateText(rate: number): string {
   return `×${rate.toFixed(2).replace(/0$/, '').replace(/\.$/, '')}`
 }
+
+/**
+ * 相棒のおまかせ：全部の種目の枠に、倍率がいちばん高くなるように1体ずつ割り当てる。
+ * （枠×モンスターの組を倍率の高い順に見て、空いている枠と、まだ使っていないモンスターを組ませていく）
+ */
+export function autoPartners(slotIds: string[], owned: OwnedMonster[], defs: MonsterDef[]): Record<string, string> {
+  const pairs = slotIds.flatMap((slotId) =>
+    owned.flatMap((mon) => {
+      const def = defs.find((d) => d.id === mon.defId)
+      return def ? [{ slotId, mon, rate: partnerRate(mon, def, slotId) }] : []
+    }),
+  )
+  pairs.sort((a, b) => b.rate - a.rate)
+  const result: Record<string, string> = {}
+  const used = new Set<string>()
+  for (const p of pairs) {
+    if (result[p.slotId] || used.has(p.mon.id)) continue
+    result[p.slotId] = p.mon.id
+    used.add(p.mon.id)
+  }
+  return result
+}

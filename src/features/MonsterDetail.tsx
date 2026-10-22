@@ -3,11 +3,11 @@ import { useStore } from '../store'
 import { ATTRS, ATTR_LABEL, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type Attr } from '../data/exercises'
 import { FIRST_NODE_ID, getNode, getTemplate } from '../data/evolutionTemplates'
 import { CONFIG } from '../config/gameConfig'
-import { boughtCap, fusionCost, isExpFull, nextCost, planPour } from '../lib/evolution'
+import { boughtCap, isExpFull, nextCost, planPour } from '../lib/evolution'
 import { Gauge } from '../components/Gauge'
 import { Stars } from '../components/Stars'
 import { Abilities } from '../components/Abilities'
-import { canFeed, fusionGain, isLuckMax, luckOf } from '../lib/fusion'
+import { isLuckMax, luckOf } from '../lib/fusion'
 import { ElementBadge } from '../components/ElementBadge'
 import { CORE_LABEL } from '../lib/cores'
 import { attackOf, isJogressReady, jogressNeed } from '../lib/stats'
@@ -16,9 +16,8 @@ import { ATTR_COLOR, type Go } from '../nav'
 import { investedFor, isHidden, monsterName, nodeAttr, plusName, type MonsterDef } from '../types'
 
 export function MonsterDetail({ id, go }: { id: string; go: Go }) {
-  const { owned, defs, state, menu, pourExp, pourPlusExp, evolve, fuse, feedLuck, jogress } = useStore()
+  const { owned, defs, state, menu, pourExp, evolve, feedLuck, jogress } = useStore()
   const [evolved, setEvolved] = useState(0)
-  const [foodId, setFoodId] = useState<string | null>(null)
   const [confirmAllLuck, setConfirmAllLuck] = useState(false)
   const [partnerKey, setPartnerKey] = useState<string | null>(null)
   const [born, setBorn] = useState<{ def: MonsterDef; id: string } | null>(null)
@@ -64,23 +63,10 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
   const cost = nextCost(template, node)
   const attr = nodeAttr(def, mon.nodeId)
   const branching = node.next.length > 1
-  const isFinal = node.next.length === 0
-  const plus = mon.plus ?? 0
-  const fuseCost = fusionCost(plus)
-  const plusExp = mon.plusExp ?? { trained: 0, bought: 0 }
-  const plusFull = fuseCost !== null && isExpFull(fuseCost, plusExp)
-  // 食べさせられるのは同じモンスターの別の個体（段階は問わない）
-  // 同じモンスター（＋2）か、同じ属性のモンスター（＋1）。同じモンスターを先に、＋が大きい順
-  const foods = owned
-    .flatMap((o) => {
-      const d = defs.find((x) => x.id === o.defId)
-      return d && o.id !== mon.id && canFeed(def, d) ? [{ food: o, foodDef: d, gain: fusionGain(def, d, o) }] : []
-    })
-    .sort((a, b) => b.gain - a.gain)
   // 運の素材：同じモンスターの別の個体（運が低い順。運が高い個体を残せるように）
   const luckFoods = owned
     .filter((o) => o.defId === mon.defId && o.id !== mon.id)
-    .sort((a, b) => luckOf(a) - luckOf(b) || (a.plus ?? 0) - (b.plus ?? 0))
+    .sort((a, b) => luckOf(a) - luckOf(b))
   // 運99に届くまでの分だけ食べさせる
   let luckTotal = luckOf(mon)
   const luckPicked = luckFoods.filter((f) => {
@@ -108,7 +94,6 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
         }),
       }
     })
-  const attrSources: Attr[] = attr === 'none' ? ATTRS : [attr]
   const slotName = (slotId: string) => {
     const slot = SLOTS.find((s) => s.id === slotId)
     return slot ? exerciseOfSlot(slot, menu).name : '？'
@@ -242,94 +227,6 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
         </section>
       ) : null}
 
-      <details className="card fold" open={isFinal}>
-        <summary>
-          <h2>
-            合体（＋{plus}／{CONFIG.fusion.maxPlus}）
-          </h2>
-        </summary>
-        {!isFinal ? (
-          <p className="muted small">
-            最終形態まで進化すると、同じ属性の別のモンスターを食べさせて＋
-            {CONFIG.fusion.gain.sameElement}できます（同じモンスターは「運」のほうへ）（最大＋{CONFIG.fusion.maxPlus}、＋が上がるほど枠が豪華に）。食べさせる側は進化していなくてもOK。いま食べさせられるモンスター：
-            {foods.length}体
-          </p>
-        ) : fuseCost === null ? (
-          <p>＋{CONFIG.fusion.maxPlus}に到達！ 枠が虹色になりました。</p>
-        ) : (
-          <>
-            <p className="muted small">
-              ①EXPを注いでゲージを満タンに → ②同じ属性の別のモンスターを食べさせて＋
-              {CONFIG.fusion.gain.sameElement}（{fuseCost.gold}G）。食べさせた側はいなくなりますが、注いでいたEXPは財布に戻り、図鑑の発見も消えません。
-            </p>
-            <div className="gauge-row">
-              <span>＋{plus + 1}まで</span>
-              <Gauge value={plusExp.trained + plusExp.bought} max={fuseCost.exp} color={ATTR_COLOR[attr]} />
-              <span className="num">
-                {plusExp.trained + plusExp.bought}/{fuseCost.exp}
-              </span>
-            </div>
-            {!plusFull ? (
-              <>
-                {attrSources.map((src) => {
-                  const pour = planPour(fuseCost, plusExp, state.exp[src])
-                  const total = pour.trained + pour.bought
-                  return (
-                    <button key={src} className="btn small" disabled={total <= 0} onClick={() => pourPlusExp(id, src)}>
-                      {total > 0 ? `${ATTR_LABEL[src]}EXPを注ぐ（+${total}）` : `${ATTR_LABEL[src]}EXPが足りません`}
-                    </button>
-                  )
-                })}
-                {(() => {
-                  const pour = planPour(fuseCost, plusExp, { trained: state.anyExp, bought: 0 })
-                  return (
-                    <button className="btn small" disabled={pour.trained <= 0} onClick={() => pourPlusExp(id, 'any')}>
-                      {pour.trained > 0 ? `万能EXPを注ぐ（+${pour.trained}）` : '万能EXPがありません'}
-                    </button>
-                  )
-                })()}
-              </>
-            ) : foods.length === 0 ? (
-              <p className="muted small">ゲージは満タン！ あとは同じモンスターか同じ属性のモンスターがいれば＋が上がります。</p>
-            ) : (
-              <ul className="mini-list">
-                {foods.map(({ food, foodDef, gain }) => (
-                  <li key={food.id}>
-                    <span className="monster-row">
-                      <MonsterImage imageId={foodDef.images[food.nodeId]} size={48} plus={food.plus} shiny={food.shiny} />
-                      <span>
-                        {plusName(foodDef, food)} <Stars def={foodDef} nodeId={food.nodeId} />
-                        <br />
-                        <strong className="bonus-reward">＋{Math.min(gain, CONFIG.fusion.maxPlus - plus)}</strong>
-                        <span className="muted small">（同じ属性）</span>
-                      </span>
-                    </span>
-                    {foodId === food.id ? (
-                      <button
-                        className="btn primary small"
-                        disabled={state.gold < fuseCost.gold}
-                        onClick={() => {
-                          fuse(id, food.id)
-                          setFoodId(null)
-                          setEvolved(Date.now())
-                          navigator.vibrate?.([60, 40, 200])
-                        }}
-                      >
-                        本当に食べさせる（{fuseCost.gold}G）
-                      </button>
-                    ) : (
-                      <button className="btn small" onClick={() => setFoodId(food.id)}>
-                        食べさせる
-                      </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </>
-        )}
-      </details>
-
       <details className="card fold" open={luckFoods.length > 0 && !isLuckMax(mon)}>
         <summary>
           <h2>
@@ -385,15 +282,15 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
               <li key={hidden.id} className="jogress">
                 <span>
                   {met ? hidden.name : '？？？'}（★{need.stars + 1}で誕生）← {def.name} ＆ {partnerDef?.name ?? '？？？'}
-                  ：どちらも★{need.stars}以上{need.plus > 0 ? `・＋${need.plus}以上` : ''}
+                  ：どちらも最終形態（★{need.stars}以上）
                 </span>
                 {!ready ? (
                   <span className="muted small">
-                    このモンスターを★{need.stars}以上{need.plus > 0 ? `・＋${need.plus}以上` : ''}にしよう
+                    このモンスターを最終形態（★{need.stars}以上）まで育てよう
                   </span>
                 ) : partners.length === 0 ? (
                   <span className="muted small">
-                    相手の{partnerDef?.name ?? '？？？'}（★{need.stars}以上{need.plus > 0 ? `・＋${need.plus}以上` : ''}）がいません
+                    相手の{partnerDef?.name ?? '？？？'}（最終形態・★{need.stars}以上）がいません
                   </span>
                 ) : (
                   partners.map((partner) => {

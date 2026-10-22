@@ -99,18 +99,17 @@ export interface MonsterDef {
   jogressGrade?: number // 素材のうち激レアの数（0〜2）。保存するときに計算する。強さとアビリティの数に効く
   questOnly?: boolean // クエスト限定（ガチャには出ない。クエストのボスとして倒すと手に入る）
   abilities?: string[] // アビリティ：対応するギミック名で持つ（例：'バリア' ならバリアブレイカー）
-  rarity?: RarityKey // レア度（なければノーマル）
+  rarity?: RarityKey | 'rare' // レア度（なければノーマル。以前の「レア」は激レアとして扱う）
   common?: boolean // 旧形式：ハズレ枠（レア度ができる前のデータ）
   createdAt: number
 }
 
-/** 合体の＋と色違いを付けた名前（例：✨ショルベアー＋3） */
+/** 色違いを付けた名前（例：✨ショルベアー） */
 export function plusName(def: MonsterDef, mon: OwnedMonster): string {
-  const name = `${mon.shiny ? '✨' : ''}${monsterName(def, mon.nodeId)}`
-  return mon.plus ? `${name}＋${mon.plus}` : name
+  return `${mon.shiny ? '✨' : ''}${monsterName(def, mon.nodeId)}`
 }
 
-export type RarityKey = 'hazure' | 'normal' | 'rare' | 'superRare'
+export type RarityKey = 'hazure' | 'normal' | 'superRare'
 
 export interface Gacha {
   id: string

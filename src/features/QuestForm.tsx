@@ -6,11 +6,11 @@ import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { QuestBanner } from '../components/QuestBanner'
 import { DIFFICULTIES, GRADES, defaultBossHp, defaultHp, gradeOf, questGold, standardSessionDamage } from '../lib/quest'
 import { allGimmicks, selectableGimmicks } from '../lib/gimmick'
-import { ELEMENTS } from '../lib/element'
+import { ELEMENTS, ELEMENT_COLOR, ELEMENT_LABEL, advantageElements } from '../lib/element'
 import { abilityTag, elementTag, ownedSupply, requirementsFromMonsters, requirementsOf, tagLabel } from '../lib/formation'
 import { CORE_LABEL } from '../lib/cores'
 import { ATTR_COLOR, type Go } from '../nav'
-import { nodeAttr, type Quest, type QuestDifficulty, type QuestGrade, type Requirement } from '../types'
+import { nodeAttr, type Element, type Quest, type QuestDifficulty, type QuestGrade, type Requirement } from '../types'
 
 /** クエストを作る・編集する。ボス・弱点・HPを決める */
 export function QuestForm({ id, go }: { id?: string; go: Go }) {
@@ -26,6 +26,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
   const [attr, setAttr] = useState<FormAttr>(
     existing?.attr ?? (bossChoices[0] ? nodeAttr(bossChoices[0], FIRST_NODE_ID) : 'none'),
   )
+  const [element, setElement] = useState<Element | undefined>(existing?.element ?? bossChoices[0]?.element)
   const [weakSlots, setWeakSlots] = useState<string[]>(existing?.weakSlots ?? [])
   const [requirements, setRequirements] = useState<Requirement[]>(existing ? requirementsOf(existing) : [])
   const [newGimmick, setNewGimmick] = useState('')
@@ -48,6 +49,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
     name: name.trim() || '名前のないクエスト',
     bossDefId,
     attr,
+    element,
     weakSlots,
     kind,
     requirements,
@@ -64,7 +66,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
     if (!name.trim()) return setError('クエストの名前を入力してください')
     if (!boss) return setError('ボスにするモンスターを選んでください')
     if (DIFFICULTIES.some((d) => !(draft.hp[d] > 0))) return setError('HPは1以上にしてください')
-    saveQuest({ id: existing?.id, name, kind, bossDefId, attr, weakSlots, requirements, customGimmicks, hp: draft.hp, rank, grade, catchphrase, theme })
+    saveQuest({ id: existing?.id, name, kind, bossDefId, attr, element, weakSlots, requirements, customGimmicks, hp: draft.hp, rank, grade, catchphrase, theme })
     go({ name: 'quests' })
   }
 
@@ -124,7 +126,10 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
               onChange={(e) => {
                 setBossDefId(e.target.value)
                 const d = defs.find((x) => x.id === e.target.value)
-                if (d) setAttr(nodeAttr(d, FIRST_NODE_ID))
+                if (d) {
+                  setAttr(nodeAttr(d, FIRST_NODE_ID))
+                  setElement(d.element)
+                }
               }}
             >
               {bossChoices.map((d) => (
@@ -138,6 +143,30 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
         {!defs.some((d) => d.questOnly) && (
           <p className="muted small">図鑑の登録画面で「クエスト限定」にしたモンスターは、ガチャに出なくなり、ここでだけ選べます。</p>
         )}
+        <div className="field">
+          ボスの属性（相性：炎→木→水→炎、光⇔闇。超絶では有利な属性以外のダメージが半減）
+          <div className="chips" role="group" aria-label="ボスの属性">
+            <button type="button" className={`chip${!element ? ' on' : ''}`} onClick={() => setElement(undefined)}>
+              無属性
+            </button>
+            {ELEMENTS.map((e) => (
+              <button
+                key={e}
+                type="button"
+                className={`chip${element === e ? ' on' : ''}`}
+                style={element === e ? { borderColor: ELEMENT_COLOR[e], color: ELEMENT_COLOR[e] } : undefined}
+                onClick={() => setElement(e)}
+              >
+                {ELEMENT_LABEL[e]}
+              </button>
+            ))}
+          </div>
+          {element && (
+            <span className="muted small">
+              適正（有利な属性）：{advantageElements(element).map((e) => ELEMENT_LABEL[e]).join('・')}
+            </span>
+          )}
+        </div>
         <div className="field">
           ボスの部位（素材クエストで落ちる核の種類）
           <div className="chips" role="group" aria-label="ボスの部位">

@@ -2,6 +2,7 @@ import { CONFIG } from '../config/gameConfig'
 import { DAYS, type FormAttr } from '../data/exercises'
 import { attackOf } from './stats'
 import { formationOf, requirementsOf } from './formation'
+import { hasAdvantage } from './element'
 import { nodeAttr, type Challenge, type MonsterDef, type OwnedMonster, type Quest, type QuestDifficulty, type QuestGrade, type SetRecord } from '../types'
 
 export const DIFFICULTIES: QuestDifficulty[] = ['easy', 'normal', 'hard']
@@ -41,9 +42,15 @@ export function setHit(set: SetInfo, quest: Quest, party: Member[], label: strin
     // 出撃メンバーがいなければ、自分で殴る
     return { label, damage: Math.round(base * (weak ? q.weakSlot : 1)), notes: [...notes, '素手'] }
   }
+  // 超絶では、ボスの属性に有利な属性を持たないモンスターの攻撃が半減
+  const strict = quest.kind !== 'material' && gradeOf(quest) === 'chozetsu' && !!quest.element
   let damage = 0
   for (const m of party) {
     let d = base * powerOf(m)
+    if (strict && !hasAdvantage(m.def, quest.element)) {
+      d *= q.offElementChozetsu
+      notes.add(`${m.def.name}は属性が合わず半減`)
+    }
     if (partAttr && attrOf(m) === partAttr) d *= q.partMatch
     if (weak) d *= q.weakSlot
     if (m.def.favoriteSlot === set.slotId) {
