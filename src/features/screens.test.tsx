@@ -112,14 +112,6 @@ async function render(el: ReactElement) {
   return container
 }
 
-const tapTab = async (name: string) => {
-  const tab = [...container.querySelectorAll<HTMLElement>('.gacha-tab')].find((t) => t.textContent === name)
-  if (!tab) throw new Error(`ガチャのタブが見つかりません: ${name}`)
-  await act(async () => {
-    tab.click()
-  })
-}
-
 const click = async (text: string) => {
   const button = [...container.querySelectorAll('button')].find((b) => b.textContent?.includes(text))
   if (!button) throw new Error(`ボタンが見つかりません: ${text}`)
