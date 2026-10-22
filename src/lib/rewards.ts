@@ -42,21 +42,18 @@ export function habitLabelOf(state: GameState): string {
   return state.habitLabel?.trim() || CONFIG.morning.habitDefaultLabel
 }
 
-/** 習慣のゴールド。○×ならできた日に一定、分数なら1分ごと（上限あり） */
-export function habitGoldOf(mode: GameState['habitMode'], checked: boolean, minutes: number): number {
-  if (mode === 'minutes') {
-    return Math.min(Math.max(0, Math.floor(minutes)), CONFIG.morning.habitMaxMinutes) * CONFIG.morning.habitGoldPerMinute
+/** 習慣を今 minutes 分記録したらもらえるゴールド。分数なら1日の合計が上限まで、○×なら1日1回 */
+export function habitGoldNow(state: GameState, today: string, minutes: number): number {
+  const sameDay = state.habitDate === today
+  if (state.habitMode === 'minutes') {
+    const before = sameDay ? state.habitMinutesToday : 0
+    const room = Math.max(0, CONFIG.morning.habitMaxMinutes - before)
+    return Math.min(Math.max(0, Math.floor(minutes)), room) * CONFIG.morning.habitGoldPerMinute
   }
-  return checked ? CONFIG.morning.habitGold : 0
+  return sameDay ? 0 : CONFIG.morning.habitGold
 }
 
+/** 歩数のゴールド：150歩ごとに1G（段階なし） */
 export function stepsGold(steps: number): number {
-  const base = Math.floor(Math.max(0, steps) / CONFIG.morning.stepsPerGold)
-  return base + CONFIG.morning.stepBonuses.reduce((sum, b) => sum + (steps >= b.steps ? b.gold : 0), 0)
+  return Math.floor(Math.max(0, steps) / CONFIG.morning.stepsPerGold)
 }
-
-/** 次の歩数ボーナスの段。全部届いていれば null */
-export function nextStepBonus(steps: number): { steps: number; gold: number } | null {
-  return CONFIG.morning.stepBonuses.find((b) => steps < b.steps) ?? null
-}
-

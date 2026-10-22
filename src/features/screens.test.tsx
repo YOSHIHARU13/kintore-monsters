@@ -43,6 +43,8 @@ const state: GameState = {
   weeklyClears: 2,
   lastClearWeek: '2026-09-21',
   habitStreak: 3,
+  habitDate: '2026-10-04',
+  habitMinutesToday: 10,
   bestHabitStreak: 5,
   habitLabel: null,
   habitMode: 'check',
@@ -148,6 +150,7 @@ beforeEach(() => {
     })),
     setHabitLabel: vi.fn(),
     setHabitMode: vi.fn(),
+    recordHabit: vi.fn(() => 20),
     setPartner: vi.fn(),
     quests: [],
     week: TODAY,
@@ -184,22 +187,23 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('もうすぐ進化')
     expect(el.textContent).toContain('ムキドラゴ') // 第2段階の名前
     expect(el.textContent).toContain('進化まで あと0EXP')
-    expect(el.textContent).toContain('ベッドでスマホを見なかった：3日連続')
+    expect(el.textContent).toContain('🧘 ベッドでスマホを見なかった')
+    expect(el.textContent).toContain('3日連続')
     // 途中の種目を先に片付ける
     await click('次にやる：ブルガリアンスクワット（2/3）')
     expect(go).toHaveBeenCalledWith({ name: 'set', slotId: 'wed1' })
-    await click('前日の歩数と習慣を記録する')
+    await click('前日の歩数を記録する')
     expect(go).toHaveBeenCalledWith({ name: 'morning' })
   })
 
   it('ホーム：朝の記録が済んだら1行にまとまる', async () => {
     fake.store.state = { ...state, lastCheckinDate: '2026-10-04' }
     fake.store.yesterdayCheckin = {
-      date: '2026-10-04', steps: 8200, habit: true, habitLabel: '瞑想', streak: 4, stepsGold: 46, habitGold: 20, habitMinutes: 10, ts: 1,
+      date: '2026-10-04', steps: 8200, habit: false, habitLabel: '', streak: 0, stepsGold: 54, habitGold: 0, ts: 1,
     }
     const el = await render(<Home go={go} />)
-    expect(el.textContent).toContain('昨日 8,200歩・ベッドでスマホを見なかった 10分・+66G')
-    expect(el.textContent).not.toContain('前日の歩数と習慣を記録する')
+    expect(el.textContent).toContain('昨日 8,200歩・+54G')
+    expect(el.textContent).not.toContain('前日の歩数を記録する')
   })
 
   it('上の所持：G・タマゴ・EXPがいつも見えて、増えると +N が浮かぶ', async () => {
@@ -238,20 +242,24 @@ describe('画面の表示', () => {
     expect(fake.store.recordSet).toHaveBeenCalledWith(expect.objectContaining({ exp: 21 }), true) // 15 × 1.41
   })
 
-  it('朝の記録：習慣を分数で記録する', async () => {
-    fake.store.state = { ...state, habitMode: 'minutes', habitLabel: '瞑想' }
-    const el = await render(<Morning go={go} />)
-    expect(el.textContent).toContain('前日：瞑想、何分？')
-    const set = async (input: HTMLInputElement, value: string) =>
-      act(async () => {
-        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value)
-        input.dispatchEvent(new Event('input', { bubbles: true }))
-      })
-    await set(el.querySelector('input')!, '5000')
-    await set(el.querySelector<HTMLInputElement>('input[aria-label="習慣の分数"]')!, '45')
-    expect(el.textContent).toContain('+60G') // 30分まで
-    await click('記録する（+80G）')
-    expect(fake.store.recordMorning).toHaveBeenCalledWith(5000, false, 45)
+  it('習慣：やった直後にその場で分数を記録してGをもらう（1日30分まで）', async () => {
+    const { HabitCard } = await import('../components/HabitCard')
+    fake.store.state = { ...state, habitMode: 'minutes', habitLabel: '瞑想', habitDate: TODAY, habitMinutesToday: 25 }
+    const el = await render(<HabitCard />)
+    expect(el.textContent).toContain('今日 25分（Gは30分まで）')
+    expect(el.textContent).toContain('10分（+10G）') // 残り5分ぶんだけ
+    await click('10分')
+    expect(fake.store.recordHabit).toHaveBeenCalledWith(10)
+    expect(el.textContent).toContain('瞑想 10分 → +20G')
+  })
+
+  it('習慣：○×なら1日1回「できた」', async () => {
+    const { HabitCard } = await import('../components/HabitCard')
+    await render(<HabitCard />)
+    await click('今日できた（+10G）')
+    expect(fake.store.recordHabit).toHaveBeenCalledWith(0)
+    fake.store.state = { ...state, habitDate: TODAY }
+    expect((await render(<HabitCard />)).textContent).toContain('今日はできた！')
   })
 
   it('トレーニング：全部位の枠とボーナス枠が1画面に並ぶ', async () => {
@@ -325,32 +333,29 @@ describe('画面の表示', () => {
     expect(fake.store.setSlot).toHaveBeenCalledWith('mon1', 'pushupBar')
   })
 
-  it('朝の記録：歩数と習慣を入れて記録', async () => {
+  it('朝の記録：前日の歩数を入れて記録（150歩ごとに1G）', async () => {
+    fake.store.recordMorning = vi.fn((steps: number) => ({
+      date: '2026-10-04', steps, habit: false, habitLabel: '', streak: 0, stepsGold: Math.floor(steps / 150), habitGold: 0, ts: 1,
+    }))
     const el = await render(<Morning go={go} />)
     expect(el.textContent).toContain('10/4の分')
     const input = el.querySelector('input')!
     await act(async () => {
-      const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!
-      setValue.call(input, '6500')
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, '6500')
       input.dispatchEvent(new Event('input', { bubbles: true }))
     })
-    expect(el.textContent).toContain('+23G')
-    expect(el.textContent).toContain('あと1,500歩で +46G')
-    expect(el.textContent).toContain('前日：ベッドでスマホを見なかった？')
-    await click('できた（+10G）')
-    await click('記録する（+33G）')
-    expect(fake.store.recordMorning).toHaveBeenCalledWith(6500, true, 0)
-    expect(el.textContent).toContain('記録しました：+33G')
-    expect(el.textContent).toContain('○（4日連続）')
+    await click('記録する（+43G）')
+    expect(fake.store.recordMorning).toHaveBeenCalledWith(6500)
+    expect(el.textContent).toContain('記録しました：+43G')
   })
 
   it('朝の記録：記録済みなら結果だけ出る', async () => {
     fake.store.yesterdayCheckin = {
-      date: '2026-10-04', steps: 5000, habit: false, habitLabel: '朝の光を浴びた', streak: 0, stepsGold: 20, habitGold: 0, ts: 1,
+      date: '2026-10-04', steps: 5000, habit: false, habitLabel: '', streak: 0, stepsGold: 33, habitGold: 0, ts: 1,
     }
     const el = await render(<Morning go={go} />)
-    expect(el.textContent).toContain('記録しました：+20G')
-    expect(el.textContent).toContain('朝の光を浴びた：×')
+    expect(el.textContent).toContain('記録しました：+33G')
+    expect(el.textContent).toContain('歩数 5,000歩')
   })
 
   it('ショップ：色違いが生まれると特別な演出', async () => {

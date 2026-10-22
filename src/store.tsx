@@ -22,7 +22,7 @@ import { ATTRS, DAYS, type Attr, type FormAttr } from './data/exercises'
 import { FIRST_NODE_ID, canChangeTemplate, getNode, getTemplate, pathTo } from './data/evolutionTemplates'
 import { dateKey, prevDateKey, weekStartKey } from './lib/date'
 import { evolutionCost, fusionCost, isExpFull, planPour } from './lib/evolution'
-import { habitGoldOf, habitLabelOf, stepsGold } from './lib/rewards'
+import { habitGoldNow, stepsGold } from './lib/rewards'
 import { isWeekCleared } from './lib/week'
 import { compressImage } from './lib/imageCompress'
 import { draw, isPickupRarity, isPity, isReady, rarityOf, rateTable } from './lib/gacha'
@@ -48,6 +48,8 @@ function initialState(): GameState {
     weeklyClears: 0,
     lastClearWeek: null,
     habitStreak: 0,
+    habitDate: null,
+    habitMinutesToday: 0,
     bestHabitStreak: 0,
     habitLabel: null,
     habitMode: 'check',
@@ -164,7 +166,9 @@ interface Store {
   recordSet: (rec: Omit<SetRecord, 'id' | 'ts' | 'date'>, countsBeat: boolean) => { record: SetRecord; weekCleared: boolean }
   /** 前日の歩数と習慣を記録する。1日1回だけ */
   /** habit は○×のときの結果、minutes は分数で記録するときの分数 */
-  recordMorning: (steps: number, habit: boolean, minutes?: number) => Checkin | null
+  recordMorning: (steps: number) => Checkin | null
+  /** 習慣をその場で記録する（分数。○×なら0）。もらえたゴールド（記録できなければ null） */
+  recordHabit: (minutes: number) => number | null
   setHabitLabel: (label: string) => void
   setHabitMode: (mode: GameState['habitMode']) => void
   /** 種目の枠に相棒をセットする（null で外す）。同じモンスターは1つの枠にしか入れない */
@@ -379,34 +383,43 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       return { record: { ...full, id: ref.id }, weekCleared }
     }
 
-    const recordMorning: Store['recordMorning'] = (steps, checked, minutes) => {
+    const recordMorning: Store['recordMorning'] = (steps) => {
       if (state.lastCheckinDate === yesterday || yesterdayCheckin) return null
-      const byMinutes = state.habitMode === 'minutes'
-      const mins = Math.max(0, Math.floor(minutes ?? 0))
-      const habit = byMinutes ? mins >= 1 : checked
-      // 朝の記録をつけ忘れた日があっても、連続日数は途切れない（つけ忘れた日の分のゴールドは出ない）
-      const streak = habit ? state.habitStreak + 1 : 0
       const record: Checkin = {
         date: yesterday,
         steps: Math.floor(Math.max(0, steps)),
-        habit,
-        habitLabel: habitLabelOf(state),
-        streak,
+        habit: false,
+        habitLabel: '',
+        streak: 0,
         stepsGold: stepsGold(steps),
-        habitGold: habitGoldOf(state.habitMode, checked, mins),
-        ...(byMinutes ? { habitMinutes: mins } : {}),
+        habitGold: 0,
         ts: Date.now(),
       }
       const batch = writeBatch(db)
       batch.set(doc(db, base, 'checkins', yesterday), record)
-      batch.update(stateRef, {
-        gold: increment(record.stepsGold + record.habitGold),
-        habitStreak: streak,
-        bestHabitStreak: Math.max(state.bestHabitStreak, streak),
-        lastCheckinDate: yesterday,
-      })
+      batch.update(stateRef, { gold: increment(record.stepsGold), lastCheckinDate: yesterday })
       batch.commit().catch(fail)
       return record
+    }
+
+    const recordHabit: Store['recordHabit'] = (minutes) => {
+      const now = dateKey()
+      const byMinutes = state.habitMode === 'minutes'
+      const mins = Math.max(0, Math.floor(minutes))
+      if (byMinutes ? mins < 1 : state.habitDate === now) return null
+      const gold = habitGoldNow(state, now, mins)
+      // その日の最初の記録で連続日数を数える（前日にもやっていれば続く）
+      const first = state.habitDate !== now
+      const streak = first ? (state.habitDate === prevDateKey(now) ? state.habitStreak + 1 : 1) : state.habitStreak
+      const update: DocumentData = {
+        habitDate: now,
+        habitMinutesToday: first ? mins : increment(mins),
+        habitStreak: streak,
+        bestHabitStreak: Math.max(state.bestHabitStreak, streak),
+      }
+      if (gold > 0) update.gold = increment(gold)
+      updateState(update)
+      return gold
     }
 
     const setHabitLabel: Store['setHabitLabel'] = (label) => updateState({ habitLabel: label.trim() || null })
@@ -881,6 +894,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       getHistory,
       recordSet,
       recordMorning,
+      recordHabit,
       setHabitLabel,
       setHabitMode,
       setPartner,

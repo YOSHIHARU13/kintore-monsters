@@ -51,7 +51,7 @@ export function Settings({ go }: { go: Go }) {
       >
         <h2>朝の記録の習慣</h2>
         <label className="field">
-          毎朝「前日、これができたか」を聞きます
+          ホームから、やった直後にその場で記録できます
           <input
             type="text"
             maxLength={30}

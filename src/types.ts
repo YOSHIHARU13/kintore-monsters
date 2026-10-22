@@ -22,7 +22,9 @@ export interface GameState {
   beatCount: number
   weeklyClears: number // 今週のタスクを全部消した週の累計
   lastClearWeek: string | null // 最後に全消しした週（その週の月曜の日付）
-  habitStreak: number // 朝の記録で習慣を守れた日の連続日数
+  habitStreak: number // 習慣をやった日の連続日数
+  habitDate: string | null // 最後に習慣を記録した日
+  habitMinutesToday: number // habitDate の日に記録した分数の合計
   bestHabitStreak: number
   habitLabel: string | null // 習慣の名前（null なら初期の名前）
   habitMode: 'check' | 'minutes' // 習慣の記録のしかた：○× か 分数

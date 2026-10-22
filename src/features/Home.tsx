@@ -1,5 +1,4 @@
 import { useStore } from '../store'
-import { habitLabelOf } from '../lib/rewards'
 import { ATTRS, ATTR_LABEL, DAYS, DAY_KEYS, TASK_SLOTS, exerciseOfSlot } from '../data/exercises'
 import { CONFIG } from '../config/gameConfig'
 import { Gauge } from '../components/Gauge'
@@ -9,7 +8,7 @@ import { ATTR_COLOR, type Go } from '../nav'
 import { plusName } from '../types'
 import { isWeekCleared, partProgress, slotDone } from '../lib/week'
 import { nearGoals } from '../lib/progress'
-import { StepTable } from './Morning'
+import { HabitCard } from '../components/HabitCard'
 
 export function Home({ go }: { go: Go }) {
   const { state, menu, weekSets, defs, owned, yesterday, yesterdayCheckin } = useStore()
@@ -23,12 +22,6 @@ export function Home({ go }: { go: Go }) {
   const goals = nearGoals(owned, defs, 3)
 
   const morningDone = state.lastCheckinDate === yesterday || yesterdayCheckin !== null
-  const habitText =
-    yesterdayCheckin?.habitMinutes !== undefined
-      ? `${yesterdayCheckin.habitMinutes}分`
-      : yesterdayCheckin?.habit
-        ? '○'
-        : '×'
 
   return (
     <div className="page">
@@ -37,25 +30,18 @@ export function Home({ go }: { go: Go }) {
         {morningDone ? (
           <p>
             {yesterdayCheckin
-              ? `昨日 ${yesterdayCheckin.steps.toLocaleString()}歩・${habitLabelOf(state)} ${habitText}・+${yesterdayCheckin.stepsGold + yesterdayCheckin.habitGold}G`
+              ? `昨日 ${yesterdayCheckin.steps.toLocaleString()}歩・+${yesterdayCheckin.stepsGold + yesterdayCheckin.habitGold}G`
               : '前日の分は記録済み'}
-            <span className="muted small">（{habitLabelOf(state)} {state.habitStreak}日連続）</span>
           </p>
         ) : (
-          <>
-            <button className="btn primary wide" onClick={() => go({ name: 'morning' })}>
-              前日の歩数と習慣を記録する
-            </button>
-            <p className="muted small">
-              {habitLabelOf(state)}：{state.habitStreak}日連続（自己ベスト {state.bestHabitStreak}日）
-            </p>
-          </>
+          <button className="btn primary wide" onClick={() => go({ name: 'morning' })}>
+            前日の歩数を記録する
+          </button>
         )}
-        <details>
-          <summary className="muted small">歩数のボーナス表</summary>
-          <StepTable />
-        </details>
+        <p className="muted small">{CONFIG.morning.stepsPerGold}歩ごとに1G。歩いた分だけ増えます。</p>
       </section>
+
+      <HabitCard />
 
       <section className="card">
         <h2>今週の残りタスク：{isWeekCleared(weekSets) ? '全消し達成！' : `あと${remaining}セット`}</h2>

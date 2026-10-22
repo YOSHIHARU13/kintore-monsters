@@ -53,20 +53,13 @@ export const CONFIG = {
     anyExpPerSet: 10, // 万能EXP：どの属性の進化にも注げる
   },
 
-  // 朝の記録（前日の歩数と習慣）
+  // 朝の記録（前日の歩数）と、習慣（その場で記録）
   morning: {
-    stepsPerGold: 500, // この歩数ごとに1G（5000歩で10G＝禁欲1日目と同じ）
-    // 歩数ボーナス：その歩数に届いたら上乗せ（届いた段は全部もらえる）
-    stepBonuses: [
-      { steps: 5000, gold: 10 },
-      { steps: 8000, gold: 20 },
-      { steps: 10000, gold: 30 },
-      { steps: 15000, gold: 40 },
-    ],
+    stepsPerGold: 150, // この歩数ごとに1G（段階なし。8000歩で53G、10000歩で66G）
     maxSteps: 100_000, // 入力できる歩数の上限
-    habitGold: 10, // 習慣を守れた日のゴールド（○×で記録するとき）
+    habitGold: 10, // 習慣ができた日のゴールド（○×で記録するとき）
     habitGoldPerMinute: 2, // 習慣を分数で記録するときの、1分あたりのゴールド
-    habitMaxMinutes: 30, // 分数で記録するとき、ゴールドが出るのはこの分数まで
+    habitMaxMinutes: 30, // 分数で記録するとき、ゴールドが出るのは1日の合計でこの分数まで
     habitDefaultLabel: 'ベッドでスマホを見なかった', // 習慣の名前（設定で変えられる）
   },
 
