@@ -7,7 +7,7 @@ import { QuestBanner } from '../components/QuestBanner'
 import { COLLAB_GRADES, DIFFICULTIES, GRADES, defaultBossHp, defaultHp, gradeOf, questGold, standardSessionDamage } from '../lib/quest'
 import { allGimmicks, selectableGimmicks } from '../lib/gimmick'
 import { ELEMENTS, ELEMENT_COLOR, ELEMENT_LABEL, advantageElements, elementInfo } from '../lib/element'
-import { abilityTag, elementTag, ownedSupply, requirementsFromMonsters, requirementsOf, tagLabel } from '../lib/formation'
+import { abilityTag, elementTag, ownedSupply, requirementsFromMonsters, requirementsOf, tagLabel, comboTag } from '../lib/formation'
 import { CORE_LABEL } from '../lib/cores'
 import { autoQuestSetup } from '../lib/questAuto'
 import { seriesOf } from '../lib/series'
@@ -36,6 +36,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
   const [newAbility, setNewAbility] = useState('')
   const [customGimmicks, setCustomGimmicks] = useState<Record<string, string>>(existing?.customGimmicks ?? {})
   const gimmickNames = { ...allGimmicks(quests), ...customGimmicks }
+  const allAbilities = [...new Set([...selectableGimmicks(quests), ...Object.keys(customGimmicks)])]
   const [kind, setKind] = useState<'boss' | 'material'>(existing?.kind ?? 'boss')
   const [rank, setRank] = useState(existing?.rank ?? 1)
   const [grade, setGrade] = useState<QuestGrade>(existing ? gradeOf(existing) : 'kyukyoku')
@@ -45,12 +46,14 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
   const [theme] = useState(existing?.theme ?? 'flame')
   // おまかせ：ボスと格から、編成の条件と弱点種目を自動で決める（手で変えたら止まる）
   const [auto, setAuto] = useState(!existing)
+  const [heroId, setHeroId] = useState<string | undefined>()
   const fillAuto = () => {
     const b = defs.find((d) => d.id === bossDefId)
     if (!b) return
-    const r = autoQuestSetup(b, grade, kind, quests, selectableGimmicks(quests), existing?.id)
+    const r = autoQuestSetup(b, grade, kind, quests, selectableGimmicks(quests), existing?.id, defs)
     setRequirements(r.requirements)
     setWeakSlots(r.weakSlots)
+    setHeroId(r.heroId)
   }
   useEffect(() => {
     if (auto) fillAuto()
@@ -228,8 +231,11 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
           ✨ おまかせで決める{auto ? '（おまかせ中）' : ''}
         </button>
         <p className="muted small">
-          おまかせ：ボスの属性に有利な属性と、ほかのクエストであまり使っていないアビリティを、格に合わせた数で求めます。弱点種目もボスの部位から決めます。手で変えるとおまかせは止まります。
+          おまかせ：格に合わせて条件を決めます。超絶・超究極は「刺さるキャラ」を1体選んで、その子の属性と、アビリティを両方もつ条件にします（超究極は同じコラボの子から）。弱点種目はボスの部位から。手で変えるとおまかせは止まります。
         </p>
+        {auto && heroId && (
+          <p className="small">🎯 刺さるキャラ：{defs.find((d) => d.id === heroId)?.name}</p>
+        )}
         <p className="muted small">
           出撃する6体の合計で満たす条件です。ちょうどそろうと編成倍率×1.0（普通にその日のメニューで倒せる）、何もないと×
           {CONFIG.formation.base}、超えた分は1つにつき+{CONFIG.formation.perExtra}。超属性は2、複合属性は両方に1ずつ数えます。
@@ -308,7 +314,12 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
           ))}
         </ul>
         <div className="chips" role="group" aria-label="条件を足す">
-          {[...ELEMENTS.map(elementTag), ...[...new Set([...selectableGimmicks(quests), ...Object.keys(customGimmicks)])].map(abilityTag)]
+          {[
+            ...ELEMENTS.map(elementTag),
+            ...allAbilities.map(abilityTag),
+            // 2つのアビリティを両方もつ
+            ...allAbilities.flatMap((g, i) => allAbilities.slice(i + 1).map((h) => comboTag(g, h))),
+          ]
             .filter((tag) => !requirements.some((r) => r.tag === tag))
             .map((tag) => (
               <button

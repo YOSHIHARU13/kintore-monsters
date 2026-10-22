@@ -6,11 +6,11 @@ import { DAYS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot } from '../data/exercises'
 import { MonsterImage } from '../components/MonsterImage'
 import { Stars } from '../components/Stars'
 import { QuestBanner } from '../components/QuestBanner'
-import { BOSS_DIFFICULTY, DIFFICULTIES, isStrict, sessionEstimate, attrOf, dropPlus, gradeOf, powerOf, questGold, questHp, rankOf, type Member } from '../lib/quest'
+import { BOSS_DIFFICULTY, DIFFICULTIES, fitsQuest, isStrict, sessionEstimate, attrOf, dropPlus, gradeOf, powerOf, questGold, questHp, rankOf, type Member } from '../lib/quest'
 import { formationOf, requirementsOf, shortfallHelp, tagLabel, tagsOf } from '../lib/formation'
 import { FormationPanel } from '../components/FormationPanel'
 import { luckBonus } from '../lib/fusion'
-import { ELEMENT_COLOR, ELEMENT_LABEL, advantageElements, elementInfo, elementName, hasAdvantage } from '../lib/element'
+import { ELEMENT_COLOR, ELEMENT_LABEL, advantageElements, elementInfo, elementName } from '../lib/element'
 import { ATTR_COLOR, type Go } from '../nav'
 import { attackOf } from '../lib/stats'
 import { allGimmicks } from '../lib/gimmick'
@@ -72,15 +72,15 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
         .filter((r) => own[r.tag])
         .map((r) => `${tagLabel(r.tag, names)}${own[r.tag] > 1 ? `×${own[r.tag]}` : ''}`)
       if (def.favoriteSlot && quest.weakSlots.includes(def.favoriteSlot)) tags.push('得意種目が弱点')
-      if (quest.element && hasAdvantage(def, quest.element)) tags.unshift('属性◎')
+      if (fitsQuest(def, quest)) tags.unshift('属性◎')
       else if (isStrict(quest)) tags.push('半減')
       return [{ mon, def, help: shortfallHelp(def, formation.rows), tags }]
     })
     .sort((a, b) => {
       const onA = party.includes(a.mon.id) ? 1 : 0
       const onB = party.includes(b.mon.id) ? 1 : 0
-      const advA = quest.element && hasAdvantage(a.def, quest.element) ? 1 : 0
-      const advB = quest.element && hasAdvantage(b.def, quest.element) ? 1 : 0
+      const advA = fitsQuest(a.def, quest) ? 1 : 0
+      const advB = fitsQuest(b.def, quest) ? 1 : 0
       return onB - onA || advB - advA || b.help - a.help || b.tags.length - a.tags.length || powerOf(b) - powerOf(a)
     })
   const max = CONFIG.quest.partySize
@@ -142,7 +142,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
         </ul>
         {isStrict(quest) && (
           <p className="warn small">
-            {CONFIG.quest.grades[gradeOf(quest)].label}：適正の属性を持たないモンスターの攻撃は半減します。
+            {CONFIG.quest.grades[gradeOf(quest)].label}：ボスに有利な属性も、編成で求められている属性も持たないモンスターの攻撃は半減します。
           </p>
         )}
         <p className="muted small">

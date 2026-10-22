@@ -661,7 +661,7 @@ describe('画面の表示', () => {
       expect.objectContaining({
         name: '脚竜の巣', bossDefId: 'b1', attr: 'legs',
         weakSlots: [expect.stringMatching(/^wed/), 'mon4'],
-        requirements: [expect.objectContaining({ tag: expect.stringMatching(/^ab:/), count: 2 }), { tag: 'ab:ゾーン', count: 2 }],
+        requirements: expect.arrayContaining([expect.objectContaining({ tag: expect.stringMatching(/^ab:/), count: 2 }), { tag: 'ab:ゾーン', count: 2 }]),
         customGimmicks: { ゾーン: 'ゾーンブレイク' },
         hp: { easy: expect.any(Number), normal: expect.any(Number), hard: expect.any(Number) },
       }),

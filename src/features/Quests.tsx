@@ -52,7 +52,7 @@ export function Quests({ go }: { go: Go }) {
     const sofar: Pick<Quest, 'id' | 'requirements' | 'gimmicks'>[] = [...quests]
     for (const d of pending) {
       const grade = autoGradeOf(d)
-      const r = autoQuestSetup(d, grade, 'boss', sofar, gimmicks)
+      const r = autoQuestSetup(d, grade, 'boss', sofar, gimmicks, undefined, defs)
       const hp = defaultBossHp(grade)
       saveQuest({
         name: '',
@@ -72,6 +72,23 @@ export function Quests({ go }: { go: Go }) {
       sofar.push({ id: `new-${d.id}`, requirements: r.requirements })
     }
     setMade(pending.length)
+  }
+  // 超絶・超究極の条件を、新しいおまかせ（刺さるキャラ）で作り直す
+  const [confirmRedo, setConfirmRedo] = useState(false)
+  const topQuests = quests.filter((q) => !q.builtin && q.kind !== 'material' && ['chozetsu', 'chokyukyoku'].includes(gradeOf(q)))
+  const redoTop = () => {
+    const gimmicks = selectableGimmicks(quests)
+    const sofar: Pick<Quest, 'id' | 'requirements' | 'gimmicks'>[] = quests.filter((q) => !topQuests.includes(q))
+    for (const q of topQuests) {
+      const boss = defs.find((d) => d.id === q.bossDefId)
+      if (!boss) continue
+      const r = autoQuestSetup(boss, gradeOf(q), 'boss', sofar, gimmicks, q.id, defs)
+      const { id, createdAt: _c, autoName, builtin: _b, ...rest } = q
+      saveQuest({ ...rest, id, name: autoName ? '' : q.name, requirements: r.requirements, weakSlots: r.weakSlots })
+      sofar.push({ id, requirements: r.requirements })
+    }
+    setConfirmRedo(false)
+    setMade(topQuests.length)
   }
   const towerDone = towerCleared(state, towerMonth(today))
   const battle = useBattle()
@@ -346,7 +363,14 @@ export function Quests({ go }: { go: Go }) {
             クエストがまだない降臨モンスターごとに、ボスの名前・属性で作ります。格はレア度から（コラボの激レア→超究極・激レア→超絶・ノーマル→究極・ハズレ→上級）、編成の条件と弱点はおまかせ。あとから1つずつ編集できます。
           </p>
         )}
-        {made !== null && <div className="result keep">{made}個のクエストを作りました</div>}
+        {topQuests.length > 0 && (
+          <button className={`btn small${confirmRedo ? ' primary' : ' ghost'}`} onClick={() => (confirmRedo ? redoTop() : setConfirmRedo(true))}>
+            {confirmRedo
+              ? `本当に超絶・超究極${topQuests.length}個の条件を作り直す（手で変えた条件は消えます）`
+              : '🎯 超絶・超究極の条件を「刺さるキャラ」方式で作り直す'}
+          </button>
+        )}
+        {made !== null && <div className="result keep">{made}個のクエストを作りました・作り直しました</div>}
       </section>
     </div>
   )

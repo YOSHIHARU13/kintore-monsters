@@ -2,7 +2,7 @@ import { ATTRS, SLOTS, type Attr, type FormAttr } from '../data/exercises'
 import { getTemplate } from '../data/evolutionTemplates'
 import { abilitySlots } from './gimmick'
 import { ELEMENTS, advantageElements, elementInfo } from './element'
-import { abilityTag, elementTag, requirementsOf, tagLabel, tagsOf } from './formation'
+import { elementTag, requirementsOf, tagAbilities, tagLabel, tagsOf } from './formation'
 import { isHidden, nodeAttr, type Element, type MonsterDef, type Quest } from '../types'
 
 /**
@@ -60,7 +60,7 @@ export function elementSupply(defs: MonsterDef[], quests: Quest[], selfId?: stri
 export function abilitySupply(gimmick: string, defs: MonsterDef[], quests: Quest[], selfId?: string): Supply {
   return {
     have: others(defs, selfId).filter((d) => (d.abilities ?? []).slice(0, abilitySlots(d)).includes(gimmick)).length,
-    need: quests.filter((q) => requirementsOf(q).some((r) => r.tag === abilityTag(gimmick))).length,
+    need: quests.filter((q) => requirementsOf(q).some((r) => tagAbilities(r.tag).includes(gimmick))).length,
   }
 }
 

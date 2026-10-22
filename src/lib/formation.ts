@@ -12,13 +12,23 @@ export type Tag = string
 
 export const elementTag = (e: Element): Tag => `el:${e}`
 export const abilityTag = (gimmick: string): Tag => `ab:${gimmick}`
+/** 2つのアビリティを「両方」持つ（同じ1体で） */
+export const comboTag = (a: string, b: string): Tag => `ab2:${[a, b].sort().join('|')}`
+export const comboParts = (tag: Tag): string[] => (tag.startsWith('ab2:') ? tag.slice(4).split('|') : [])
+/** その条件で求められるアビリティ（両方もつ条件なら2つ） */
+export const tagAbilities = (tag: Tag): string[] =>
+  tag.startsWith('ab:') ? [tag.slice(3)] : comboParts(tag)
 
 /** そのモンスターが条件にいくつ貢献できるか（超属性は2、複合属性は両方に1、アビリティは持てる数まで） */
 export function tagsOf(def: MonsterDef): Record<Tag, number> {
   const tags: Record<Tag, number> = {}
   const el = elementInfo(def)
   for (const e of el.elements) tags[elementTag(e)] = (tags[elementTag(e)] ?? 0) + (el.super ? 2 : 1)
-  for (const g of (def.abilities ?? []).slice(0, abilitySlots(def))) tags[abilityTag(g)] = (tags[abilityTag(g)] ?? 0) + 1
+  const abilities = (def.abilities ?? []).slice(0, abilitySlots(def))
+  for (const g of abilities) tags[abilityTag(g)] = (tags[abilityTag(g)] ?? 0) + 1
+  // 2つのアビリティを両方持っていれば「両方」の条件にも数える
+  for (let i = 0; i < abilities.length; i++)
+    for (let j = i + 1; j < abilities.length; j++) tags[comboTag(abilities[i], abilities[j])] = 1
   return tags
 }
 
@@ -34,6 +44,8 @@ export function tagLabel(tag: Tag, names: Record<string, string>): string {
     const e = tag.slice(3) as Element
     return `${CONFIG.formation.elementIcon[e]}${ELEMENT_LABEL[e]}`
   }
+  const pair = comboParts(tag)
+  if (pair.length === 2) return `${abilityName(pair[0], names)}と${abilityName(pair[1], names)}を両方`
   return abilityName(tag.slice(3), names)
 }
 

@@ -23,7 +23,7 @@ import {
   type Supply,
 } from '../lib/coverage'
 import { ELEMENTS, ELEMENT_COLOR, ELEMENT_LABEL, elementInfo, elementName, jogressElementOf } from '../lib/element'
-import { requirementsOf } from '../lib/formation'
+import { requirementsOf, tagAbilities } from '../lib/formation'
 
 export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' | 'quest'; go: Go }) {
   // 降臨用：クエスト限定・1形態だけ・★3・激レアで始める（名前と画像だけで登録できる）
@@ -139,7 +139,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
       const best = [...elementReqs].sort((a, b) => gap(b.tag) - gap(a.tag))[0]
       setElement(best.tag.slice(3) as Element)
     }
-    const abilityReqs = reqs.filter((r) => r.tag.startsWith('ab:')).map((r) => r.tag.slice(3))
+    const abilityReqs = [...new Set(reqs.flatMap((r) => tagAbilities(r.tag)))]
     if (abilityReqs.length > 0) setAbilities(abilityReqs.slice(0, maxAbilities))
     // 弱点種目のうち、このモンスターの部位で選べるもの
     const weak = quest.weakSlots.find((w) => favoriteChoices.some((slot) => slot.id === w))

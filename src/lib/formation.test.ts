@@ -20,12 +20,15 @@ describe('編成', () => {
     expect(tagsOf(def('h', { rarity: 'hazure', abilities: ['バリア'] }))).toEqual({}) // ハズレはアビリティ0個
     expect(tagsOf(def('n', { abilities: ['バリア', 'シールド'] }))).toEqual({ 'ab:バリア': 1 }) // ノーマルは1個
     // 激レアは2個、ジョグレスは3個まで
-    expect(tagsOf(def('s', { rarity: 'superRare', abilities: ['バリア', 'シールド', 'ミラー'] }))).toEqual({ 'ab:バリア': 1, 'ab:シールド': 1 })
-    expect(tagsOf(def('j', { recipe: ['x', 'y'], abilities: ['バリア', 'シールド', 'ミラー', 'リジェネ'] }))).toEqual({
+    // 2つ持っていれば「両方もつ」の条件にも数える
+    expect(tagsOf(def('s', { rarity: 'superRare', abilities: ['バリア', 'シールド', 'ミラー'] }))).toEqual({
       'ab:バリア': 1,
       'ab:シールド': 1,
-      'ab:ミラー': 1,
+      'ab2:シールド|バリア': 1,
     })
+    const j = tagsOf(def('j', { recipe: ['x', 'y'], abilities: ['バリア', 'シールド', 'ミラー', 'リジェネ'] }))
+    expect(Object.keys(j).filter((t) => t.startsWith('ab:'))).toHaveLength(3)
+    expect(Object.keys(j).filter((t) => t.startsWith('ab2:'))).toHaveLength(3)
   })
 
   it('何もそろっていないと×0.4、ちょうどそろうと×1.0、超えた分は1つ+0.15', () => {

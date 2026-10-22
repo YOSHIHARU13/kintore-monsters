@@ -2,7 +2,7 @@ import { CONFIG } from '../config/gameConfig'
 import { DAYS, SLOTS, type FormAttr } from '../data/exercises'
 import { attackOf } from './stats'
 import { formationOf, requirementsOf } from './formation'
-import { hasAdvantage } from './element'
+import { elementInfo, hasAdvantage } from './element'
 import { nodeAttr, type Challenge, type MonsterDef, type OwnedMonster, type Quest, type QuestDifficulty, type QuestGrade, type SetRecord } from '../types'
 
 export const DIFFICULTIES: QuestDifficulty[] = ['easy', 'normal', 'hard']
@@ -47,7 +47,7 @@ export function setHit(set: SetInfo, quest: Quest, party: Member[], label: strin
   let damage = 0
   for (const m of party) {
     let d = base * powerOf(m)
-    if (strict && !hasAdvantage(m.def, quest.element)) {
+    if (strict && !fitsQuest(m.def, quest)) {
       d *= q.offElementChozetsu
       notes.add(`${m.def.name}は属性が合わず半減`)
     }
@@ -152,6 +152,13 @@ export const GRADES: QuestGrade[] = ['jokyu', 'kiwami', 'kyukyoku', 'chozetsu', 
 
 /** 超究極はコラボ（シリーズのあるボス）だけ */
 export const COLLAB_GRADES: QuestGrade[] = ['chokyukyoku']
+
+/** 適正：ボスに有利な属性か、編成の条件で求められている属性を持っている */
+export function fitsQuest(def: MonsterDef, quest: Pick<Quest, 'element' | 'requirements' | 'gimmicks'>): boolean {
+  if (hasAdvantage(def, quest.element)) return true
+  const wanted = requirementsOf(quest).filter((r) => r.tag.startsWith('el:')).map((r) => r.tag.slice(3))
+  return elementInfo(def).elements.some((e) => wanted.includes(e))
+}
 
 /** 適正の属性以外が半減する格（超絶・超究極） */
 export function isStrict(quest: Pick<Quest, 'kind' | 'grade' | 'rank' | 'element'>): boolean {
