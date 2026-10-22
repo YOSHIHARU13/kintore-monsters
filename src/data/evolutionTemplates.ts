@@ -77,6 +77,15 @@ export const TEMPLATES: EvoTemplate[] = [
     ],
   },
   {
+    id: 'warp',
+    name: 'ワープ進化（★1→★3）',
+    description: '2段階目を飛ばして、1 → 3 に一気に進化（画像は2枚）',
+    nodes: [
+      { id: 'n1', stage: 1, label: '第1段階', next: ['n3'] },
+      { id: 'n3', stage: 3, label: '第3段階（最終）', next: [] },
+    ],
+  },
+  {
     id: 'early2',
     name: '早熟（2段）',
     description: '1 → 2 で完成',

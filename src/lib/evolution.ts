@@ -1,4 +1,5 @@
 import { CONFIG } from '../config/gameConfig'
+import { getNode, type EvoNode, type EvoTemplate } from '../data/evolutionTemplates'
 import type { AttrExp } from '../types'
 
 export interface EvoCost {
@@ -10,6 +11,24 @@ export interface EvoCost {
 /** stage（1始まり）から次の段階へ進化するコスト。最終段階なら null */
 export function evolutionCost(stage: number): EvoCost | null {
   return CONFIG.evolutionCosts[stage - 1] ?? null
+}
+
+/**
+ * その形態から次の形態へ進化するコスト。ワープ進化（★1→★3）のように段階を飛ばすときは、
+ * 飛ばした段階の分も足す（1→2 と 2→3 の合計）。最終形態なら null
+ */
+export function nextCost(template: EvoTemplate, node: EvoNode): EvoCost | null {
+  if (node.next.length === 0) return null
+  const toStage = getNode(template, node.next[0]).stage
+  const total: EvoCost = { exp: 0, gold: 0, cores: 0 }
+  for (let stage = node.stage; stage < toStage; stage++) {
+    const c = evolutionCost(stage)
+    if (!c) return null
+    total.exp += c.exp
+    total.gold += c.gold
+    total.cores = (total.cores ?? 0) + (c.cores ?? 0)
+  }
+  return total
 }
 
 /** ＋plus から＋1するのに必要なEXPとゴールド。最大なら null */

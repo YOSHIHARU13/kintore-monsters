@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '../store'
 import { ATTRS, DAYS, FORM_ATTRS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type FormAttr } from '../data/exercises'
 import { TEMPLATES, canChangeTemplate, getTemplate } from '../data/evolutionTemplates'
-import { evolutionCost } from '../lib/evolution'
+import { nextCost } from '../lib/evolution'
 import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
 import { CONFIG } from '../config/gameConfig'
@@ -234,10 +234,13 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
         <p className="muted small">
           進化コスト（自動）：
           {stages.length === 0 && '進化しません'}
-          {stages
-            .map((stage) => {
-              const cost = evolutionCost(stage)
-              return cost ? `${stage}→${stage + 1} ${cost.exp}EXP＋${cost.gold}G` : ''
+          {[...new Map(template.nodes.filter((n) => n.next.length > 0).map((n) => [n.stage, n])).values()]
+            .map((n) => {
+              const cost = nextCost(template, n)
+              const to = template.nodes.find((x) => x.id === n.next[0])!.stage
+              return cost
+                ? `★${n.stage}→★${to} ${cost.exp}EXP＋${cost.gold}G${cost.cores ? `＋核${cost.cores}` : ''}`
+                : ''
             })
             .join('／')}
         </p>

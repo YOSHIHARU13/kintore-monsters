@@ -56,6 +56,7 @@ const state: GameState = {
   partners: {},
   challenge: null,
   questClears: 0,
+  clearedQuests: {},
   cores: { chestArms: 2, none: 2 },
   coreMisses: {},
 }
@@ -753,9 +754,14 @@ describe('画面の表示', () => {
       { ...base, id: 'b', name: '地獄の巣', grade: 'chozetsu' as const },
       { ...base, id: 'c', name: '修練場', kind: 'material' as const },
     ]
+    fake.store.state = { ...state, clearedQuests: { b: 2 } }
     const el = await render(<Quests go={go} />)
     const heads = [...el.querySelectorAll('.quest-group-head')].map((h) => h.textContent)
-    expect(heads).toEqual(['超絶', '極', '素材'])
+    expect(heads).toEqual(['超絶 1/1', '極 0/1', '素材 0/1'])
+    // アイコン表示（最初はこれ）：格の色の枠と、クリア済みの✓
+    expect(el.querySelector('.quest-icon.frame-chozetsu .quest-cleared')).not.toBeNull()
+    expect(el.querySelector('.quest-icon.frame-kiwami .quest-cleared')).toBeNull()
+    await click('バナー')
     expect(el.querySelector('.quest-banner.frame-chozetsu .grade-ribbon')!.textContent).toBe('超絶')
   })
 
@@ -1003,7 +1009,7 @@ describe('画面の表示', () => {
 
   it('モンスター登録：名前を入れて保存', async () => {
     const el = await render(<MonsterForm go={go} />)
-    expect(el.textContent).toContain('1→2 150EXP＋100G')
+    expect(el.textContent).toContain('★1→★2 150EXP＋100G')
     await click('保存する')
     expect(el.textContent).toContain('名前を入力してください')
     const type = async (input: HTMLInputElement, value: string) =>

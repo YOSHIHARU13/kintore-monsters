@@ -41,6 +41,7 @@ export interface GameState {
   partners: Record<string, string> // 種目の枠ID → 相棒のモンスター（OwnedMonster.id）
   challenge: Challenge | null // 今日挑戦しているクエスト
   questClears: number // クエストをクリアした回数
+  clearedQuests: Record<string, number> // クエストごとのクリア回数（一覧の✓に使う）
 }
 
 export interface SetRecord {

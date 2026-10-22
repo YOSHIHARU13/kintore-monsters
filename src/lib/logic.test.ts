@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { calcTarget, judgeSet, recentSessions, suggestProgression } from './target'
 import { calcSetReward, habitGoldNow, stepsGold } from './rewards'
 import type { GameState } from '../types'
-import { boughtCap, evolutionCost, fusionCost, isExpFull, planPour } from './evolution'
+import { boughtCap, evolutionCost, fusionCost, isExpFull, nextCost, planPour } from './evolution'
 import { CONFIG } from '../config/gameConfig'
 import { EXERCISES, SLOTS, TASK_SLOTS } from '../data/exercises'
 import { weekStartKey } from './date'
@@ -157,6 +157,10 @@ describe('進化', () => {
     expect(fusionCost(4)).toEqual({ exp: 500, gold: 500 })
     expect(fusionCost(5)).toBeNull()
     expect(evolutionCost(2)).toEqual({ exp: 500, gold: 200, cores: 2 }) // ★2→★3 は核が要る
+    // ワープ進化（★1→★3）は、1→2 と 2→3 の合計
+    const warp = getTemplate('warp')
+    expect(nextCost(warp, warp.nodes[0])).toEqual({ exp: 650, gold: 300, cores: 2 })
+    expect(nextCost(warp, warp.nodes[1])).toBeNull()
     expect(evolutionCost(4)).toEqual({ exp: 2500, gold: 1500 })
     expect(evolutionCost(5)).toBeNull()
   })

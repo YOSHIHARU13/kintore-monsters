@@ -21,7 +21,7 @@ import { CONFIG } from './config/gameConfig'
 import { ATTRS, DAYS, SLOTS, type Attr, type FormAttr } from './data/exercises'
 import { FIRST_NODE_ID, canChangeTemplate, getNode, getTemplate, pathTo } from './data/evolutionTemplates'
 import { dateKey, prevDateKey, weekStartKey } from './lib/date'
-import { evolutionCost, fusionCost, isExpFull, planPour } from './lib/evolution'
+import { fusionCost, isExpFull, nextCost, planPour } from './lib/evolution'
 import { habitGoldNow, stepsGold } from './lib/rewards'
 import { isWeekCleared } from './lib/week'
 import { compressImage } from './lib/imageCompress'
@@ -64,6 +64,7 @@ function initialState(): GameState {
     partners: {},
     challenge: null,
     questClears: 0,
+    clearedQuests: {},
     cores: {},
     coreMisses: {},
   }
@@ -516,7 +517,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const def = mon && defs.find((d) => d.id === mon.defId)
       if (!mon || !def) return null
       const node = getNode(getTemplate(def.templateId), mon.nodeId)
-      return { mon, def, node, cost: node.next.length > 0 ? evolutionCost(node.stage) : null }
+      return { mon, def, node, cost: nextCost(getTemplate(def.templateId), node) }
     }
 
     // 進化先の形態の属性のEXPを注ぐ（無属性の進化先には、どの属性のEXPでも注げる。万能EXPはどこにでも注げる）
@@ -886,6 +887,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const update: DocumentData = {
         gold: increment(gold),
         questClears: increment(1),
+        [`clearedQuests.${battle.quest.id}`]: increment(1),
         challenge: null,
       }
       let monsterId: string | null = null

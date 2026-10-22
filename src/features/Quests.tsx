@@ -7,6 +7,8 @@ import { bannerNodeOf } from '../components/GachaBanner'
 import { useBattle } from '../components/BattleBar'
 import { dropPlus, gradeOf, questGold, questLevelLabel } from '../lib/quest'
 
+const VIEW_KEY = 'questListView'
+
 /** クエスト一覧の見出し：格の高い順、最後に素材 */
 const QUEST_GROUPS = [
   { key: 'chozetsu', label: '超絶' },
@@ -25,6 +27,21 @@ export function Quests({ go }: { go: Go }) {
   const { state, quests, defs, today, quitChallenge, claimQuest } = useStore()
   const battle = useBattle()
   const [confirmQuit, setConfirmQuit] = useState(false)
+  const [view, setView] = useState<'icon' | 'banner'>(() => {
+    try {
+      return localStorage.getItem(VIEW_KEY) === 'banner' ? 'banner' : 'icon'
+    } catch {
+      return 'icon'
+    }
+  })
+  const changeView = (v: 'icon' | 'banner') => {
+    setView(v)
+    try {
+      localStorage.setItem(VIEW_KEY, v)
+    } catch {
+      // 保存できなくても切り替えはできる
+    }
+  }
   const [got, setGot] = useState<(QuestReward & { boss: MonsterDef | undefined; plus: number }) | null>(null)
   // 出撃した日のうちに倒せなかった戦い
   const expired = state.challenge && state.challenge.date !== today ? quests.find((q) => q.id === state.challenge!.questId) : null
@@ -150,25 +167,62 @@ export function Quests({ go }: { go: Go }) {
       )}
 
       <section className="card">
-        <h2>クエスト一覧</h2>
+        <div className="part-head">
+          <h2>クエスト一覧</h2>
+          <div className="segmented small-seg" role="tablist" aria-label="表示">
+            <button className={view === 'icon' ? 'on' : ''} onClick={() => changeView('icon')}>
+              アイコン
+            </button>
+            <button className={view === 'banner' ? 'on' : ''} onClick={() => changeView('banner')}>
+              バナー
+            </button>
+          </div>
+        </div>
         {quests.length === 0 && <p className="muted small">まだクエストがありません。</p>}
         {QUEST_GROUPS.map(({ key, label }) => {
           const group = quests.filter((q) => (q.kind === 'material' ? 'material' : gradeOf(q)) === key)
           if (group.length === 0) return null
           return (
             <div key={key} className="quest-group">
-              <h3 className={`quest-group-head head-${key}`}>{label}</h3>
-              <div className="gacha-list">
-                {group.map((q) => (
-                  <QuestBanner
-                    key={q.id}
-                    quest={q}
-                    boss={defs.find((d) => d.id === q.bossDefId)}
-                    selected={q.id === battle?.quest.id}
-                    onClick={() => go({ name: 'quest', id: q.id })}
-                  />
-                ))}
-              </div>
+              <h3 className={`quest-group-head head-${key}`}>
+                {label}
+                <span className="small">
+                  {' '}
+                  {group.filter((q) => (state.clearedQuests[q.id] ?? 0) > 0).length}/{group.length}
+                </span>
+              </h3>
+              {view === 'icon' ? (
+                <div className="quest-icons">
+                  {group.map((q) => {
+                    const boss = defs.find((d) => d.id === q.bossDefId)
+                    const cleared = (state.clearedQuests[q.id] ?? 0) > 0
+                    return (
+                      <button
+                        key={q.id}
+                        className={`quest-icon frame-${key}${q.id === battle?.quest.id ? ' on' : ''}`}
+                        onClick={() => go({ name: 'quest', id: q.id })}
+                        aria-label={q.name}
+                      >
+                        {boss && <MonsterImage imageId={boss.images[bannerNodeOf(boss)]} size={56} />}
+                        {cleared && <span className="quest-cleared">✓</span>}
+                        <span className="quest-icon-name">{q.name}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="gacha-list">
+                  {group.map((q) => (
+                    <QuestBanner
+                      key={q.id}
+                      quest={q}
+                      boss={defs.find((d) => d.id === q.bossDefId)}
+                      selected={q.id === battle?.quest.id}
+                      onClick={() => go({ name: 'quest', id: q.id })}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )
         })}

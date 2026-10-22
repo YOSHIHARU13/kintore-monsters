@@ -1,5 +1,5 @@
 import { getNode, getTemplate } from '../data/evolutionTemplates'
-import { evolutionCost, fusionCost } from './evolution'
+import { fusionCost, nextCost } from './evolution'
 import { investedFor, type MonsterDef, type OwnedMonster } from '../types'
 
 export interface NearGoal {
@@ -17,7 +17,7 @@ export function nearGoals(owned: OwnedMonster[], defs: MonsterDef[], limit: numb
     if (!def) return []
     const node = getNode(getTemplate(def.templateId), mon.nodeId)
     if (node.next.length > 0) {
-      const cost = evolutionCost(node.stage)
+      const cost = nextCost(getTemplate(def.templateId), node)
       if (!cost) return []
       // 分岐があるときは、いちばん注いでいる進化先で数える
       const have = Math.max(

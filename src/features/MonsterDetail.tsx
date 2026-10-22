@@ -3,7 +3,7 @@ import { useStore } from '../store'
 import { ATTRS, ATTR_LABEL, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type Attr } from '../data/exercises'
 import { FIRST_NODE_ID, getNode, getTemplate } from '../data/evolutionTemplates'
 import { CONFIG } from '../config/gameConfig'
-import { boughtCap, evolutionCost, fusionCost, isExpFull, planPour } from '../lib/evolution'
+import { boughtCap, fusionCost, isExpFull, nextCost, planPour } from '../lib/evolution'
 import { Gauge } from '../components/Gauge'
 import { Stars } from '../components/Stars'
 import { Abilities } from '../components/Abilities'
@@ -60,7 +60,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
 
   const template = getTemplate(def.templateId)
   const node = getNode(template, mon.nodeId)
-  const cost = node.next.length > 0 ? evolutionCost(node.stage) : null
+  const cost = nextCost(template, node)
   const attr = nodeAttr(def, mon.nodeId)
   const branching = node.next.length > 1
   const isFinal = node.next.length === 0
