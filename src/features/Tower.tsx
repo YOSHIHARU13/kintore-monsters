@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useStore } from '../store'
 import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { CONFIG } from '../config/gameConfig'
@@ -6,7 +7,7 @@ import { bannerNodeOf } from '../components/GachaBanner'
 import { ELEMENT_COLOR, ELEMENT_LABEL } from '../lib/element'
 import { CORE_LABEL } from '../lib/cores'
 import { gradeOf } from '../lib/quest'
-import { towerCleared, towerMonth, type TowerFloor } from '../lib/tower'
+import { snapshotTower, towerCleared, towerMonth, type TowerFloor } from '../lib/tower'
 import type { Go } from '../nav'
 import type { GameState, MonsterDef } from '../types'
 import { boosterName } from '../lib/boosters'
@@ -31,7 +32,13 @@ function daysLeft(today: string): number {
 
 /** 試練の塔：毎月11階。1〜10階は超絶ボスが属性順に2周、11階は塔限定モンスターがボス */
 export function Tower({ go }: { go: Go }) {
-  const { state, tower, defs, today } = useStore()
+  const { state, tower, defs, today, towerFixed, fixTower } = useStore()
+  const [confirmRemake, setConfirmRemake] = useState(false)
+  // まだ保存していなければ、今の塔を保存して、来月以降も同じにする
+  useEffect(() => {
+    if (!towerFixed && tower.some((f) => f.quest.bossDefId)) fixTower(snapshotTower(tower))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [towerFixed])
   const cleared = towerCleared(state, towerMonth(today))
   const [, m] = towerMonth(today).split('-').map(Number)
 
@@ -45,6 +52,19 @@ export function Tower({ go }: { go: Go }) {
         {cleared}／{CONFIG.tower.floors}階クリア・のこり{daysLeft(today)}
         日。毎月1日に新しい塔になります。各階の報酬は月に1回です。
       </p>
+      <p className="muted small">
+        塔は毎月同じです（ボス・条件・弱点を保存してあります）。ギミックはボスの超絶クエストとはなるべく別のスキルにしてあります。11階のボスは塔限定モンスター（複数いれば月替わり）。
+      </p>
+      <button
+        className={`btn small${confirmRemake ? ' primary' : ' ghost'}`}
+        onClick={() => {
+          if (!confirmRemake) return setConfirmRemake(true)
+          fixTower(null) // 保存を消すと、今の超絶ボスで作り直して、また保存される
+          setConfirmRemake(false)
+        }}
+      >
+        {confirmRemake ? '本当に作り直す（今の超絶ボスで並べ直して、ギミックも新しくする）' : '🔄 塔を作り直す'}
+      </button>
       <ol className="tower">
         {[...tower].reverse().map((f) => {
           const done = f.floor <= cleared

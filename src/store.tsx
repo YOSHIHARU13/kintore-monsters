@@ -40,7 +40,7 @@ import { activeToday, currentStats, loginReady, loginReward, type Reward } from 
 import { builtinMaterialQuests } from './lib/materials'
 import { tagsOfDef } from './lib/tags'
 import type { Period, Periods } from './lib/series'
-import { towerCleared, towerFloors, towerMonth, type TowerFloor } from './lib/tower'
+import { towerCleared, towerFloors, towerMonth, type FixedFloor, type TowerFloor } from './lib/tower'
 import { elementInfo, jogressElementOf } from './lib/element'
 import { investedFor, isHidden, nodeAttr, type AttrExp, type BannerSlide, type BoosterKey, type Checkin, type Element, type Gacha, type Quest, type QuestDifficulty, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
 
@@ -263,6 +263,8 @@ interface Store {
   loadImage: (imageId: string) => Promise<string | null>
   saveSongs: (songs: Song[]) => void
   saveSeriesPeriod: (series: string, period: Period | null) => void
+  towerFixed: FixedFloor[] | null // 保存した塔（毎月これを使う）
+  fixTower: (floors: FixedFloor[] | null) => void
 }
 
 const StoreContext = createContext<Store | null>(null)
@@ -283,6 +285,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
   const [owned, setOwned] = useState<OwnedMonster[]>([])
   const [songs, setSongs] = useState<Song[]>([])
   const [seriesPeriods, setSeriesPeriods] = useState<Periods>({})
+  const [towerFixed, setTowerFixed] = useState<FixedFloor[] | null>(null)
   const [gachaDocs, setGachaDocs] = useState<Gacha[]>([])
   const [questDocs, setQuests] = useState<Quest[]>([])
   const [today, setToday] = useState(dateKey())
@@ -294,6 +297,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
   const menuRef = useMemo(() => doc(db, base, 'meta', 'menu'), [base])
   const musicRef = useMemo(() => doc(db, base, 'meta', 'music'), [base])
   const seriesRef = useMemo(() => doc(db, base, 'meta', 'series'), [base])
+  const towerRef = useMemo(() => doc(db, base, 'meta', 'tower'), [base])
 
   const fail = useCallback((e: unknown) => {
     console.error(e)
@@ -329,6 +333,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       onSnapshot(menuRef, (snap) => setMenu((snap.data() as Record<string, string>) ?? {}), fail),
       onSnapshot(musicRef, (snap) => setSongs((snap.data()?.songs as Song[] | undefined) ?? []), fail),
       onSnapshot(seriesRef, (snap) => setSeriesPeriods((snap.data()?.periods as Periods | undefined) ?? {}), fail),
+      onSnapshot(towerRef, (snap) => setTowerFixed((snap.data()?.floors as FixedFloor[] | undefined) ?? null), fail),
       onSnapshot(
         collection(db, base, 'quests'),
         (snap) =>
@@ -367,7 +372,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       ),
     ]
     return () => unsubs.forEach((u) => u())
-  }, [base, stateRef, menuRef, musicRef, seriesRef, fail])
+  }, [base, stateRef, menuRef, musicRef, seriesRef, towerRef, fail])
 
   // 「いつものガチャ」は、保存していなくても必ずある
   const gachas = useMemo(() => {
@@ -406,7 +411,10 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     [questDocs, defs, today],
   )
   const yesterday = useMemo(() => prevDateKey(today), [today])
-  const tower = useMemo(() => towerFloors(towerMonth(today), defs, selectableGimmicks(quests), quests), [today, defs, quests])
+  const tower = useMemo(
+    () => towerFloors(towerMonth(today), defs, selectableGimmicks(quests), quests, towerFixed),
+    [today, defs, quests, towerFixed],
+  )
 
 
   useEffect(() => {
@@ -1233,6 +1241,10 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       setDoc(musicRef, { songs: next }).catch(fail)
     }
 
+    const fixTower: Store['fixTower'] = (floors) => {
+      setDoc(towerRef, { floors: floors ?? null }).catch(fail)
+    }
+
     const saveSeriesPeriod: Store['saveSeriesPeriod'] = (series, period) => {
       setDoc(seriesRef, { periods: { [series]: period ?? deleteField() } }, { merge: true }).catch(fail)
     }
@@ -1281,6 +1293,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       loadImage,
       saveSongs,
       saveSeriesPeriod,
+      towerFixed,
+      fixTower,
       gachas,
       saveGacha,
       quests,
@@ -1294,7 +1308,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       exchangeCores,
       deleteGacha,
     }
-  }, [user, base, state, menu, defs, owned, songs, seriesPeriods, gachas, quests, tower, today, yesterday, yesterdayCheckin, week, weekSets, todaySets, stateRef, menuRef, musicRef, seriesRef, fail])
+  }, [user, base, state, menu, defs, owned, songs, seriesPeriods, towerFixed, gachas, quests, tower, today, yesterday, yesterdayCheckin, week, weekSets, todaySets, stateRef, menuRef, musicRef, seriesRef, towerRef, fail])
 
   if (!store) {
     return (

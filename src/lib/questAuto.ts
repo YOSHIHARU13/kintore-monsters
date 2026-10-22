@@ -30,6 +30,7 @@ export function autoQuestSetup(
   gimmicks: string[],
   selfId?: string,
   defs: MonsterDef[] = [],
+  useTags = true, // false なら、タグの仲間は見ない（試練の塔：超絶クエストとは別のギミックにするため）
 ): { requirements: Requirement[]; weakSlots: string[]; heroId?: string } {
   const a = CONFIG.questAuto[kind === 'material' ? 'material' : grade]
   const seed = hash(boss.id + grade + (kind ?? 'boss'))
@@ -55,7 +56,7 @@ export function autoQuestSetup(
   let requirements: Requirement[] = []
   let heroId: string | undefined
   // ボスとタグが一致する子（因縁のある仲間・同じコラボ）がいれば、その子たちが刺さる条件にする
-  const mates = kind === 'material' ? [] : tagMates(boss, defs).slice(0, 3)
+  const mates = kind === 'material' || !useTags ? [] : tagMates(boss, defs).slice(0, 3)
   if (mates.length > 0) {
     heroId = mates[0].id
     requirements = basisRequirements({ kind: 'hero', heroes: mates }, grade, boss)

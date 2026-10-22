@@ -99,11 +99,12 @@ export function towerFloors(
   month: string,
   defs: MonsterDef[],
   gimmicks: string[],
-  quests: Pick<Quest, 'kind' | 'grade' | 'rank' | 'bossDefId' | 'builtin'>[] = [],
+  quests: Quest[] = [],
+  fixed: FixedFloor[] | null = null, // 保存した塔（1〜10階）。あれば毎月これを使う
 ): TowerFloor[] {
   const t = CONFIG.tower
   const r = seeded(`tower:${month}`)
-  const lineup = towerLineup(defs, quests)
+  const lineup = fixed && fixed.length > 0 ? fixed.map((f) => defs.find((d) => d.id === f.bossDefId)) : towerLineup(defs, quests)
   const prizes = towerMonsters(defs)
   // 月が変わるごとに、塔限定モンスターを順番に出す
   const [y, m] = month.split('-').map(Number)
@@ -119,10 +120,16 @@ export function towerFloors(
     const attr = boss ? nodeAttr(boss, FIRST_NODE_ID) : pick(['chestArms', 'legs', 'backShoulders'] as const, r)
     const attrKey = attr === 'none' ? pick(['chestArms', 'legs', 'backShoulders'] as const, r) : attr
     const grade: QuestGrade = floor >= t.chozetsuFrom ? 'chozetsu' : floor >= t.kyukyokuFrom ? 'kyukyoku' : 'kiwami'
-    // 条件と弱点は、クエストのおまかせと同じ作り方（ボスに有利な属性＋実際に誰かが持っているギミック。タグの仲間がいればその子たち）
-    const setup = boss ? autoQuestSetup(boss, grade, 'boss', [], gimmicks, undefined, defs) : { requirements: [], weakSlots: [] }
-    const requirements: Requirement[] = floor >= t.elementReqFrom ? setup.requirements : []
-    const weak = setup.weakSlots.slice(0, floor >= t.twoWeakFrom ? 2 : 1)
+    // 条件と弱点：保存した塔があればそれ（毎月同じ）。なければおまかせで作る。
+    // ほかのクエストで使っているスキルをなるべく避けるので、そのボスの超絶クエストとは別のギミックになる
+    const saved = mi < 0 ? fixed?.[i] : undefined
+    const setup = saved
+      ? { requirements: saved.requirements, weakSlots: saved.weakSlots }
+      : boss
+        ? autoQuestSetup(boss, grade, 'boss', quests, gimmicks, `tower-${floor}`, defs, false)
+        : { requirements: [], weakSlots: [] }
+    const requirements: Requirement[] = saved || floor >= t.elementReqFrom ? setup.requirements : []
+    const weak = saved ? setup.weakSlots : setup.weakSlots.slice(0, floor >= t.twoWeakFrom ? 2 : 1)
     const hp = Math.max(100, Math.round((standardSessionDamage() * t.hpRatio[i]) / 100) * 100)
     const quest: Quest = {
       id: `${TOWER_PREFIX}${month}-${floor}`,
@@ -148,4 +155,18 @@ export function towerFloors(
     }
     return { floor, quest, reward }
   })
+}
+
+/** 保存する塔の1階ぶん（毎月同じにするため） */
+export interface FixedFloor {
+  bossDefId: string
+  requirements: Requirement[]
+  weakSlots: string[]
+}
+
+/** 今の塔を保存用に（1〜10階。11階の塔限定モンスターは月替わり） */
+export function snapshotTower(floors: TowerFloor[]): FixedFloor[] {
+  return floors
+    .filter((f) => !CONFIG.tower.monsterFloors.includes(f.floor))
+    .map((f) => ({ bossDefId: f.quest.bossDefId, requirements: f.quest.requirements ?? [], weakSlots: f.quest.weakSlots }))
 }

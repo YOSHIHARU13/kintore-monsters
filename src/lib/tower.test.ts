@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { towerCleared, towerFloors, towerLineup } from './tower'
+import { snapshotTower, towerCleared, towerFloors, towerLineup } from './tower'
 import type { MonsterDef, Quest } from '../types'
 
 const def = (id: string, extra: Partial<MonsterDef> = {}): MonsterDef =>
@@ -58,5 +58,22 @@ describe('試練の塔', () => {
   it('クリアした階は月が変わると0に戻る', () => {
     expect(towerCleared({ tower: { month: '2026-10', cleared: 4 } }, '2026-10')).toBe(4)
     expect(towerCleared({ tower: { month: '2026-09', cleared: 10 } }, '2026-10')).toBe(0)
+  })
+  it('保存した塔があれば、毎月それを使う（超絶ボスが増えても変わらない）', () => {
+    const oct = towerFloors('2026-10', defs, ['バリア'], quests)
+    const saved = snapshotTower(oct)
+    expect(saved).toHaveLength(10)
+    const more = [...defs, def('f0', { questOnly: true, element: 'fire' })]
+    const later = towerFloors('2027-01', [def('f0', { questOnly: true, element: 'fire' }), ...more], ['バリア'], [...quests, chozetsu('f0')], saved)
+    expect(later.slice(0, 10).map((f) => f.quest.bossDefId)).toEqual(oct.slice(0, 10).map((f) => f.quest.bossDefId))
+    expect(later[5].quest.requirements).toEqual(oct[5].quest.requirements)
+  })
+  it('塔のギミックは、そのボスの超絶クエストで使っているスキルを避ける', () => {
+    const holders = [def('x', { rarity: 'superRare', element: 'fire', abilities: ['バリア', 'シールド'] }), def('y', { rarity: 'superRare', element: 'fire', abilities: ['リジェネ', 'ミラー'] })]
+    const withQuest = [{ ...chozetsu('l2'), requirements: [{ tag: 'ab2:シールド|バリア', count: 2 }] }, ...quests.filter((q) => q.bossDefId !== 'l2')]
+    const floors = towerFloors('2026-10', [...defs, ...holders], ['バリア', 'シールド', 'リジェネ', 'ミラー'], withQuest)
+    const l2 = floors.find((f) => f.quest.bossDefId === 'l2')!
+    expect(l2.quest.requirements!.some((r) => r.tag.startsWith('ab2:'))).toBe(true)
+    expect(l2.quest.requirements!.some((r) => r.tag === 'ab2:シールド|バリア')).toBe(false)
   })
 })
