@@ -264,7 +264,7 @@ export function Quests({ go }: { go: Go }) {
           <span className="small muted">
             {towerDone >= CONFIG.tower.floors
               ? '今月は踏破！来月また新しい塔が出ます'
-              : `${towerDone}／${CONFIG.tower.floors}階・次は${towerDone + 1}階（5階・10階で塔限定モンスター）`}
+              : `${towerDone}／${CONFIG.tower.floors}階・次は${towerDone + 1}階（11階のボスは塔限定モンスター）`}
           </span>
         </span>
         <span>›</span>

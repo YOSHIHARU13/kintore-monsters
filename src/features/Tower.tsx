@@ -29,7 +29,7 @@ function daysLeft(today: string): number {
   return Math.round((end.getTime() - d.getTime()) / 86400000) + 1
 }
 
-/** 試練の塔：毎月10階。下から1階ずつ。上に行くほど強く、5階と10階で塔限定モンスター */
+/** 試練の塔：毎月11階。1〜10階は超絶ボスが属性順に2周、11階は塔限定モンスターがボス */
 export function Tower({ go }: { go: Go }) {
   const { state, tower, defs, today } = useStore()
   const cleared = towerCleared(state, towerMonth(today))
@@ -84,8 +84,8 @@ export function Tower({ go }: { go: Go }) {
       </ol>
       {!tower.some((f) => f.reward.monsterDefId) && (
         <p className="muted small">
-          塔限定モンスターがまだいないので、5階と10階は卵になります。降臨モンスターの登録で「🗼
-          試練の塔の報酬にする」を選ぶと、5階と10階でもらえます。
+          塔限定モンスターがまだいないので、11階は卵になります。降臨モンスターの登録で「🗼
+          試練の塔の報酬にする」を選ぶと、11階のボスになり、倒すともらえます。
         </p>
       )}
     </div>

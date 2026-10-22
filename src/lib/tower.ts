@@ -1,7 +1,7 @@
 import { CONFIG } from '../config/gameConfig'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { ELEMENTS, elementInfo } from './element'
-import { standardSessionDamage } from './quest'
+import { gradeOf, standardSessionDamage } from './quest'
 import { autoQuestSetup } from './questAuto'
 import { rarityOf } from './gacha'
 import {
@@ -15,7 +15,7 @@ import {
   type BoosterKey,
 } from '../types'
 
-/** 試練の塔：月ごとに10階ぶんを自動で作る。下から1階ずつ、各階の報酬は1回だけ */
+/** 試練の塔：毎月11階。下から1階ずつ、各階の報酬は月に1回だけ */
 export interface TowerFloor {
   floor: number // 1〜
   quest: Quest
@@ -62,14 +62,48 @@ export function towerMonsters(defs: MonsterDef[]): MonsterDef[] {
 }
 
 /** その月の塔。ボスの見た目は登録済みのモンスターから、属性に合うものを選ぶ */
-export function towerFloors(month: string, defs: MonsterDef[], gimmicks: string[]): TowerFloor[] {
+/**
+ * 1〜10階のボス：超絶・超究極のクエストのボス（降臨）を、炎・水・木・光・闇の順に2周。同じ属性の中は図鑑の番号順。
+ * 足りない属性は、残りの超絶ボス → ほかの降臨 → ハズレ・ノーマルの順で埋める。毎月同じ並び（登録が変われば変わる）
+ */
+export function towerLineup(defs: MonsterDef[], quests: Pick<Quest, 'kind' | 'grade' | 'rank' | 'bossDefId' | 'builtin'>[]): (MonsterDef | undefined)[] {
+  const t = CONFIG.tower
+  const dex = (d: MonsterDef) => defs.indexOf(d)
+  const ids = new Set(
+    quests
+      .filter((q) => q.kind !== 'material' && !q.builtin && ['chozetsu', 'chokyukyoku'].includes(gradeOf(q)))
+      .map((q) => q.bossDefId),
+  )
+  const top = defs.filter((d) => ids.has(d.id) && !d.tower).sort((a, b) => dex(a) - dex(b))
+  const slots = t.elementOrder.length * 2
+  const lineup: (MonsterDef | undefined)[] = Array.from({ length: slots }, (_, i) => {
+    const e = t.elementOrder[i % t.elementOrder.length]
+    const round = Math.floor(i / t.elementOrder.length)
+    return top.filter((d) => elementInfo(d).elements[0] === e)[round]
+  })
+  const used = new Set(lineup.filter((d) => d).map((d) => d!.id))
+  const spare = [
+    ...top,
+    ...defs.filter((d) => d.questOnly && !d.tower && !isHidden(d)),
+    ...defs.filter((d) => !d.questOnly && !isHidden(d) && rarityOf(d) !== 'superRare'),
+  ].filter((d) => !used.has(d.id))
+  return lineup.map((d) => {
+    if (d) return d
+    const next = spare.find((x) => !used.has(x.id))
+    if (next) used.add(next.id)
+    return next
+  })
+}
+
+export function towerFloors(
+  month: string,
+  defs: MonsterDef[],
+  gimmicks: string[],
+  quests: Pick<Quest, 'kind' | 'grade' | 'rank' | 'bossDefId' | 'builtin'>[] = [],
+): TowerFloor[] {
   const t = CONFIG.tower
   const r = seeded(`tower:${month}`)
-  const looks = defs.filter((d) => !isHidden(d) && d.images[FIRST_NODE_ID])
-  // ボスは降臨モンスターから（塔の報酬は除く）。いなければハズレ・ノーマル、それもいなければ誰か
-  const questOnly = looks.filter((d) => d.questOnly && !d.tower)
-  const weakOnes = looks.filter((d) => !d.questOnly && rarityOf(d) !== 'superRare')
-  const pool = [...(questOnly.length > 0 ? questOnly : weakOnes.length > 0 ? weakOnes : looks)].sort(() => r() - 0.5)
+  const lineup = towerLineup(defs, quests)
   const prizes = towerMonsters(defs)
   // 月が変わるごとに、塔限定モンスターを順番に出す
   const [y, m] = month.split('-').map(Number)
@@ -77,8 +111,10 @@ export function towerFloors(month: string, defs: MonsterDef[], gimmicks: string[
 
   return Array.from({ length: t.floors }, (_, i) => {
     const floor = i + 1
-    // 同じ月の塔では、なるべく同じボスが続かないように順番に。属性はボスの属性
-    const boss = pool.length > 0 ? pool[i % pool.length] : undefined
+    const mi = t.monsterFloors.indexOf(floor)
+    const prize = mi >= 0 && prizes.length > 0 ? prizes[(turn + mi) % prizes.length] : undefined
+    // 塔限定モンスターの階は、その子がボス。ほかは並び順のボス
+    const boss = prize ?? lineup[i % lineup.length]
     const element = (boss && elementInfo(boss).elements[0]) || pick([...ELEMENTS], r)
     const attr = boss ? nodeAttr(boss, FIRST_NODE_ID) : pick(['chestArms', 'legs', 'backShoulders'] as const, r)
     const attrKey = attr === 'none' ? pick(['chestArms', 'legs', 'backShoulders'] as const, r) : attr
@@ -88,8 +124,6 @@ export function towerFloors(month: string, defs: MonsterDef[], gimmicks: string[
     const requirements: Requirement[] = floor >= t.elementReqFrom ? setup.requirements : []
     const weak = setup.weakSlots.slice(0, floor >= t.twoWeakFrom ? 2 : 1)
     const hp = Math.max(100, Math.round((standardSessionDamage() * t.hpRatio[i]) / 100) * 100)
-    const mi = t.monsterFloors.indexOf(floor)
-    const prize = mi >= 0 && prizes.length > 0 ? prizes[(turn + mi) % prizes.length] : undefined
     const quest: Quest = {
       id: `${TOWER_PREFIX}${month}-${floor}`,
       name: `試練の塔 ${floor}階`,

@@ -216,14 +216,16 @@ export const CONFIG = {
   },
   // 試練の塔：毎月10階を自動で作る。下から1階ずつ挑戦し、各階の報酬は月に1回だけ
   tower: {
-    floors: 10,
+    // 1〜10階：超絶・超究極のボスを、炎・水・木・光・闇の順に2周（図鑑の番号順）。11階：塔限定モンスターがボス
+    floors: 11,
+    elementOrder: ['fire', 'water', 'wood', 'light', 'dark'] as const,
     // HP：1回のトレーニングで与えるダメージの目安に対する倍率
-    hpRatio: [0.6, 0.8, 1.0, 1.2, 1.4, 1.7, 2.0, 2.3, 2.7, 3.2],
-    gold: [100, 120, 150, 180, 220, 260, 300, 350, 400, 500],
+    hpRatio: [0.6, 0.8, 1.0, 1.2, 1.4, 1.7, 2.0, 2.3, 2.7, 3.2, 3.6],
+    gold: [100, 120, 150, 180, 220, 260, 300, 350, 400, 500, 600],
     eggs: { 2: 1, 4: 1, 7: 1, 8: 1 } as Record<number, number>, // その階で卵
     cores: {} as Record<number, number>, // その階でボスの部位の核
     boosters: { 3: 'habit', 6: 'exp', 9: 'quest' } as Record<number, 'habit' | 'exp' | 'quest'>, // その階でブースター
-    monsterFloors: [5, 10], // 塔限定モンスターがもらえる階
+    monsterFloors: [11], // 塔限定モンスターがボスになり、倒すともらえる階
     eggsInsteadOfMonster: 2, // 塔限定モンスターが登録されていないときは卵
     elementReqFrom: 3, // この階から「適正の属性」の編成条件
     abilityReqFrom: 6, // この階からアビリティの編成条件

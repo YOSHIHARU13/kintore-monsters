@@ -1,45 +1,62 @@
 import { describe, expect, it } from 'vitest'
-import { towerCleared, towerFloors } from './tower'
-import type { MonsterDef } from '../types'
+import { towerCleared, towerFloors, towerLineup } from './tower'
+import type { MonsterDef, Quest } from '../types'
 
 const def = (id: string, extra: Partial<MonsterDef> = {}): MonsterDef =>
-  ({ id, name: id, templateId: 'linear3', images: { n1: 'img' }, element: 'fire', createdAt: 0, ...extra }) as MonsterDef
+  ({ id, name: id, templateId: 'single', images: { n1: 'img' }, createdAt: 0, ...extra }) as MonsterDef
+const chozetsu = (bossDefId: string) => ({ kind: 'boss', grade: 'chozetsu', bossDefId }) as Quest
 
-const defs = [def('a'), def('b', { element: 'water' }), def('t1', { questOnly: true, tower: true }), def('t2', { questOnly: true, tower: true })]
+// 超絶ボス：炎2・水2・木1・光2・闇2（図鑑の順）。塔限定2体。ほかの子
+const bosses = [
+  def('f1', { questOnly: true, element: 'fire' }),
+  def('w1', { questOnly: true, element: 'water' }),
+  def('f2', { questOnly: true, element: 'fire' }),
+  def('g1', { questOnly: true, element: 'wood' }),
+  def('l1', { questOnly: true, element: 'light' }),
+  def('d1', { questOnly: true, element: 'dark' }),
+  def('w2', { questOnly: true, element: 'water' }),
+  def('l2', { questOnly: true, element: 'light' }),
+  def('d2', { questOnly: true, element: 'dark' }),
+]
+const defs = [
+  ...bosses,
+  def('t1', { questOnly: true, tower: true, element: 'dark' }),
+  def('t2', { questOnly: true, tower: true, element: 'light' }),
+  def('q', { questOnly: true, element: 'wood' }), // 超絶ではない降臨
+  def('a', { rarity: 'normal', element: 'fire', abilities: ['バリア'] }),
+]
+const quests = bosses.map((b) => chozetsu(b.id))
 
 describe('試練の塔', () => {
-  it('同じ月なら同じ塔になり、月が変わると変わる', () => {
-    const a = towerFloors('2026-10', defs, ['バリア'])
-    expect(a).toHaveLength(10)
-    expect(towerFloors('2026-10', defs, ['バリア'])).toEqual(a)
-    expect(towerFloors('2026-11', defs, ['バリア']).map((f) => f.quest.element)).not.toEqual(a.map((f) => f.quest.element))
+  it('1〜10階は、超絶のボスを炎・水・木・光・闇の順に2周（同じ属性は図鑑順）。足りない枠はほかの降臨で埋める', () => {
+    expect(towerLineup(defs, quests).map((d) => d?.id)).toEqual(['f1', 'w1', 'g1', 'l1', 'd1', 'f2', 'w2', 'q', 'l2', 'd2'])
   })
-  it('上の階ほどHPが高く、条件が増え、8階から超絶', () => {
-    // 誰かが持っているギミックだけが条件になるので、バリアを持つ子を入れておく
-    const withAbility = defs.map((d) => (d.id === 'a' ? { ...d, abilities: ['バリア'] } : d))
-    const floors = towerFloors('2026-10', withAbility, ['バリア'])
+  it('11階は塔限定モンスターがボスで、倒すともらえる（月替わりに順番）', () => {
+    const oct = towerFloors('2026-10', defs, ['バリア'], quests)
+    const nov = towerFloors('2026-11', defs, ['バリア'], quests)
+    expect(oct).toHaveLength(11)
+    expect(oct[10].quest.bossDefId).toBe(oct[10].reward.monsterDefId)
+    expect(['t1', 't2']).toContain(oct[10].reward.monsterDefId)
+    expect(nov[10].reward.monsterDefId).not.toBe(oct[10].reward.monsterDefId)
+    expect(oct.slice(0, 10).map((f) => f.quest.bossDefId)).toEqual(nov.slice(0, 10).map((f) => f.quest.bossDefId)) // 毎月同じ並び
+  })
+  it('属性はボスの属性。上の階ほどHPが高く、3階から条件、8階から超絶。条件はボスに有利な属性と、誰かが持っているスキル', () => {
+    const floors = towerFloors('2026-10', defs, ['バリア', 'シールド'], quests)
     for (let i = 1; i < floors.length; i++) expect(floors[i].quest.hp.normal).toBeGreaterThan(floors[i - 1].quest.hp.normal)
+    expect(floors[0].quest.element).toBe('fire')
     expect(floors[0].quest.requirements).toEqual([])
-    expect(floors[9].quest.requirements).toHaveLength(2)
+    expect(floors[3].quest.element).toBe('light')
+    expect(floors[3].quest.requirements!.filter((r) => r.tag.startsWith('el:')).map((r) => r.tag)).toEqual(['el:dark'])
+    expect(floors[3].quest.requirements!.some((r) => r.tag.includes('シールド'))).toBe(false) // 誰も持っていないスキルは求めない
     expect(floors[7].quest.grade).toBe('chozetsu')
   })
-  it('5階と10階で塔限定モンスター（月ごとに順番）。いなければ卵', () => {
-    const floors = towerFloors('2026-10', defs, [])
-    expect([floors[4].reward.monsterDefId, floors[9].reward.monsterDefId].sort()).toEqual(['t1', 't2'])
-    const none = towerFloors('2026-10', defs.slice(0, 2), [])
-    expect(none[4].reward.monsterDefId).toBeNull()
-    expect(none[4].reward.eggs).toBeGreaterThan(0)
+  it('塔限定モンスターがいなければ、11階は卵', () => {
+    const floors = towerFloors('2026-10', defs.filter((d) => !d.tower), [], quests)
+    expect(floors[10].reward.monsterDefId).toBeNull()
+    expect(floors[10].reward.eggs).toBeGreaterThan(0)
   })
   it('クリアした階は月が変わると0に戻る', () => {
     expect(towerCleared({ tower: { month: '2026-10', cleared: 4 } }, '2026-10')).toBe(4)
     expect(towerCleared({ tower: { month: '2026-09', cleared: 10 } }, '2026-10')).toBe(0)
-  })
-  it('ボスは降臨モンスターから。属性はボスの属性で、条件はボスに有利な属性（無関係な属性は求めない）', () => {
-    const boss = def('q', { questOnly: true, element: 'light' })
-    const floors = towerFloors('2026-10', [...defs, boss], ['バリア'])
-    expect(floors.every((f) => f.quest.bossDefId === 'q')).toBe(true)
-    expect(floors[9].quest.element).toBe('light')
-    const els = floors[9].quest.requirements!.filter((r) => r.tag.startsWith('el:')).map((r) => r.tag)
-    expect(els).toEqual(['el:dark']) // 光には闇が有利
   })
 })

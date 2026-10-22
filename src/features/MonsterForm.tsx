@@ -397,7 +397,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
           {questOnly && (
             <label className="row">
               <input type="checkbox" checked={tower} onChange={(e) => setTower(e.target.checked)} />
-              🗼 試練の塔の報酬にする（5階・10階で、月替わりに順番にもらえる）
+              🗼 試練の塔の報酬にする（11階のボスになり、倒すともらえる。複数いれば月替わり）
             </label>
           )}
           {questOnly && templateId === 'single' && (
