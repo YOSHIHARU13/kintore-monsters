@@ -1,4 +1,5 @@
 import { useStore } from '../store'
+import { awakenOf, imageOf } from '../lib/art'
 import { ATTRS, ATTR_LABEL, DAYS, DAY_KEYS, TASK_SLOTS, exerciseOfSlot } from '../data/exercises'
 import { CONFIG } from '../config/gameConfig'
 import { Gauge } from '../components/Gauge'
@@ -88,7 +89,7 @@ export function Home({ go }: { go: Go }) {
         ) : (
           goals.map(({ mon, def, kind, have, need }) => (
             <button key={mon.id} className="monster-row goal-row" onClick={() => go({ name: 'monster', id: mon.id })}>
-              <MonsterImage imageId={def.images[mon.nodeId]} size={56} plus={mon.plus} shiny={mon.shiny} />
+              <MonsterImage imageId={imageOf(def, mon.nodeId)} awaken={awakenOf(def, mon.nodeId)} size={56} plus={mon.plus} shiny={mon.shiny} />
               <span className="goal-body">
                 <strong>{plusName(def, mon)}</strong> <Stars def={def} nodeId={mon.nodeId} />
                 <Gauge value={have} max={need} />

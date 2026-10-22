@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { imageOf } from '../lib/art'
 import { useStore } from '../store'
 import { CONFIG } from '../config/gameConfig'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
@@ -25,7 +26,7 @@ const FILTER_LABEL: Record<Filter, string> = {
 /** まだ設定が終わっていないところ（バッジで出す） */
 export function todosOf(def: MonsterDef): string[] {
   const todos: string[] = []
-  if (!def.images[FIRST_NODE_ID]) todos.push('画像なし')
+  if (!imageOf(def, FIRST_NODE_ID)) todos.push('画像なし')
   if (!isHidden(def) && elementInfo(def).elements.length === 0) todos.push('属性なし')
   if (!isHidden(def) && !def.rarity && !def.common) todos.push('レア度未設定')
   return todos
@@ -118,7 +119,7 @@ export function MonsterRegistry({ go }: { go: Go }) {
               onClick={() => go({ name: 'monsterForm', id: def.id })}
             >
               <span className="muted small">No.{String(index + 1).padStart(3, '0')}</span>
-              <MonsterImage imageId={def.images[bannerNodeOf(def)] ?? def.images[FIRST_NODE_ID]} size={96} />
+              <MonsterImage imageId={imageOf(def, bannerNodeOf(def)) ?? imageOf(def, FIRST_NODE_ID)} size={96} />
               <strong>{monsterName(def, FIRST_NODE_ID)}</strong>
               <span className="small">
                 {isHidden(def) ? 'ジョグレス' : CONFIG.gacha.rarities[rarityOf(def)].label}

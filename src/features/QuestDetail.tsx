@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { awakenOf, imageOf } from '../lib/art'
 import { useStore } from '../store'
 import { CONFIG } from '../config/gameConfig'
 import { FORM_ATTR_LABEL, SLOTS, exerciseOfSlot } from '../data/exercises'
@@ -201,7 +202,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
                   onClick={() => toggle(m.mon.id)}
                 >
                   <span className="monster-row">
-                    <MonsterImage imageId={m.def.images[m.mon.nodeId]} size={44} plus={m.mon.plus} shiny={m.mon.shiny} />
+                    <MonsterImage imageId={imageOf(m.def, m.mon.nodeId)} awaken={awakenOf(m.def, m.mon.nodeId)} size={44} plus={m.mon.plus} shiny={m.mon.shiny} />
                     <span>
                       {on ? '✓ ' : ''}
                       {plusName(m.def, m.mon)} <Stars def={m.def} nodeId={m.mon.nodeId} />

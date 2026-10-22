@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '../store'
 import { ATTRS, DAYS, FORM_ATTRS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type FormAttr } from '../data/exercises'
-import { TEMPLATES, canChangeTemplate, getTemplate } from '../data/evolutionTemplates'
+import { FIRST_NODE_ID, TEMPLATES, canChangeTemplate, getTemplate } from '../data/evolutionTemplates'
 import { nextCost } from '../lib/evolution'
 import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
@@ -268,7 +268,15 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
         </details>
         {template.nodes.map((node) => (
           <div key={node.id} className="image-row">
-            {previews[node.id] ? (
+            {template.awaken && node.id !== FIRST_NODE_ID ? (
+              previews[FIRST_NODE_ID] ? (
+                <div className={`awaken awaken-${Math.min(2, node.stage - 1)}`}>
+                  <img className="monster-img" style={{ width: 80, height: 80 }} src={previews[FIRST_NODE_ID]} alt="" />
+                </div>
+              ) : (
+                <MonsterImage imageId={existing?.images[FIRST_NODE_ID]} awaken={node.stage - 1} size={80} />
+              )
+            ) : previews[node.id] ? (
               <img className="monster-img" style={{ width: 80, height: 80 }} src={previews[node.id]} alt="" />
             ) : (
               <MonsterImage imageId={existing?.images[node.id]} size={80} />
@@ -302,6 +310,9 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
                   aria-label={`${node.label}の名前`}
                 />
               </details>
+              {template.awaken && node.id !== FIRST_NODE_ID ? (
+                <span className="muted small">絵は第1段階と同じ（覚醒して光る）</span>
+              ) : (
               <label className="btn small file-btn">
                 画像を選ぶ
                 <input
@@ -313,6 +324,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
                   }}
                 />
               </label>
+              )}
             </div>
           </div>
         ))}

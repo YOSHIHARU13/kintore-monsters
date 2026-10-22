@@ -1,4 +1,5 @@
 import { CONFIG } from '../config/gameConfig'
+import { awakenOf, imageOf } from '../lib/art'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { RARITY_KEYS, rarityOf } from '../lib/gacha'
 import { MonsterImage } from './MonsterImage'
@@ -32,7 +33,7 @@ export function MultiReveal({ results, onClose, onMeet }: {
                   onMeet(r.monsterId)
                 }}
               >
-                <MonsterImage imageId={r.def.images[FIRST_NODE_ID]} size={56} shiny={r.shiny} />
+                <MonsterImage imageId={imageOf(r.def, FIRST_NODE_ID)} awaken={awakenOf(r.def, FIRST_NODE_ID)} size={56} shiny={r.shiny} />
                 <span className="pickup-name">{monsterName(r.def, FIRST_NODE_ID)}</span>
                 <span className={`small rarity-${rarity}`}>
                   {CONFIG.gacha.rarities[rarity].label}

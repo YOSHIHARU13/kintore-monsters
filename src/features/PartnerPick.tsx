@@ -1,4 +1,5 @@
 import { useStore } from '../store'
+import { awakenOf, imageOf } from '../lib/art'
 import { SLOTS, exerciseOfSlot } from '../data/exercises'
 import { CONFIG } from '../config/gameConfig'
 import { MonsterImage } from '../components/MonsterImage'
@@ -56,7 +57,7 @@ export function PartnerPick({ slotId, go }: { slotId: string; go: Go }) {
             <li key={mon.id}>
               <button className={`choice${current === mon.id ? ' on' : ''}`} onClick={() => pick(mon.id)}>
                 <span className="monster-row">
-                  <MonsterImage imageId={def.images[mon.nodeId]} size={48} plus={mon.plus} shiny={mon.shiny} />
+                  <MonsterImage imageId={imageOf(def, mon.nodeId)} awaken={awakenOf(def, mon.nodeId)} size={48} plus={mon.plus} shiny={mon.shiny} />
                   <span>
                     {plusName(def, mon)} <Stars def={def} nodeId={mon.nodeId} />
                     <br />

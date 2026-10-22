@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { awakenOf, imageOf } from '../lib/art'
 import { useStore } from '../store'
 import { FORM_ATTRS, FORM_ATTR_LABEL, type FormAttr } from '../data/exercises'
 import { MonsterImage } from '../components/MonsterImage'
@@ -121,7 +122,7 @@ export function Box({ go }: { go: Go }) {
             >
               {partnerIds.has(mon.id) && <span className="box-partner">相</span>}
               {isLuckMax(mon) && <span className="box-luck">運極</span>}
-              <MonsterImage imageId={def.images[mon.nodeId]} size={56} plus={mon.plus} shiny={mon.shiny} />
+              <MonsterImage imageId={imageOf(def, mon.nodeId)} awaken={awakenOf(def, mon.nodeId)} size={56} plus={mon.plus} shiny={mon.shiny} />
               <Stars def={def} nodeId={mon.nodeId} />
               <span className="box-name">{plusName(def, mon)}</span>
             </button>

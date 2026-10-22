@@ -10,7 +10,8 @@ export interface EvoTemplate {
   name: string
   description: string
   retired?: boolean // 新規登録では選べない（登録済みのモンスターのためだけに残してある）
-  extends?: string // このツリーに含まれる元ツリー。元ツリーのモンスターは、あとからこのツリーに変更できる
+  extends?: string[] // このツリーに含まれる元ツリー。元ツリーのモンスターは、あとからこのツリーに変更できる
+  awaken?: boolean // 覚醒：絵は第1段階の1枚だけ。進化すると絵が光って「覚醒」を表す
   nodes: EvoNode[]
 }
 
@@ -52,7 +53,7 @@ export const TEMPLATES: EvoTemplate[] = [
     id: 'lateBranch3',
     name: '後半分岐（3種）',
     description: '1 → 2 → 最終が3種類',
-    extends: 'lateBranch',
+    extends: ['lateBranch'],
     nodes: [
       { id: 'n1', stage: 1, label: '第1段階', next: ['n2'] },
       { id: 'n2', stage: 2, label: '第2段階', next: ['n3a', 'n3b', 'n3c'] },
@@ -65,7 +66,7 @@ export const TEMPLATES: EvoTemplate[] = [
     id: 'earlyBranch3',
     name: '早めに分岐（3種）',
     description: '1 → 3種類に分岐 → それぞれの最終',
-    extends: 'earlyBranch',
+    extends: ['earlyBranch'],
     nodes: [
       { id: 'n1', stage: 1, label: '第1段階', next: ['n2a', 'n2b', 'n2c'] },
       { id: 'n2a', stage: 2, label: '第2段階A', next: ['n3a'] },
@@ -92,6 +93,18 @@ export const TEMPLATES: EvoTemplate[] = [
     nodes: [
       { id: 'n1', stage: 1, label: '第1段階', next: ['n2'] },
       { id: 'n2', stage: 2, label: '第2段階（最終）', next: [] },
+    ],
+  },
+  {
+    id: 'awaken3',
+    name: '覚醒（イラスト1枚・3段）',
+    description: '絵は1枚のまま。EXPを注いで進化するたびに覚醒して、絵のまわりの光が強くなる（★1→★3）。コラボ向け',
+    extends: ['linear3', 'single'],
+    awaken: true,
+    nodes: [
+      { id: 'n1', stage: 1, label: '通常', next: ['n2'] },
+      { id: 'n2', stage: 2, label: '覚醒', next: ['n3'] },
+      { id: 'n3', stage: 3, label: '真・覚醒（最終）', next: [] },
     ],
   },
   {
@@ -137,5 +150,5 @@ export function pathTo(template: EvoTemplate, nodeId: string): string[] {
 
 /** 登録済みのモンスターを currentId から nextId のツリーへ変更してよいか（同じ、または分岐を増やす方向だけ） */
 export function canChangeTemplate(currentId: string, nextId: string): boolean {
-  return currentId === nextId || TEMPLATES.some((t) => t.id === nextId && t.extends === currentId)
+  return currentId === nextId || TEMPLATES.some((t) => t.id === nextId && (t.extends ?? []).includes(currentId))
 }

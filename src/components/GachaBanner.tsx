@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { awakenOf, imageOf } from '../lib/art'
 import { useStore } from '../store'
 import { CONFIG } from '../config/gameConfig'
 import { getTemplate } from '../data/evolutionTemplates'
@@ -12,7 +13,7 @@ import { isHidden, type BannerSlide, type Gacha, type MonsterDef } from '../type
 /** バナーに出す姿：最終形態のうち画像があるもの（なければ画像がある中でいちばん進化した姿） */
 export function bannerNodeOf(def: MonsterDef): string {
   const nodes = getTemplate(def.templateId).nodes
-  const withImage = nodes.filter((n) => def.images[n.id])
+  const withImage = nodes.filter((n) => imageOf(def, n.id))
   const final = withImage.find((n) => n.next.length === 0)
   return (final ?? withImage[withImage.length - 1] ?? nodes[0]).id
 }
@@ -137,7 +138,7 @@ export function GachaBanner({ gacha, count, featured = [], pickups = [], selecte
           <span className="auto-rays" aria-hidden="true" />
           {hero && (
             <span className="hero-monster">
-              <MonsterImage imageId={hero.images[bannerNodeOf(hero)]} size={150} />
+              <MonsterImage imageId={imageOf(hero, bannerNodeOf(hero))} awaken={awakenOf(hero, bannerNodeOf(hero))} size={150} />
             </span>
           )}
           <span className="auto-text">
@@ -170,7 +171,7 @@ export function GachaBanner({ gacha, count, featured = [], pickups = [], selecte
                   className={`trio-member${i === 0 ? ' first' : ''}`}
                   style={el ? { ['--glow' as string]: ELEMENT_COLOR[el] } : undefined}
                 >
-                  <MonsterImage imageId={d.images[bannerNodeOf(d)]} size={sizes[i]} />
+                  <MonsterImage imageId={imageOf(d, bannerNodeOf(d))} awaken={awakenOf(d, bannerNodeOf(d))} size={sizes[i]} />
                   <span className="pickup-name">{d.name}</span>
                 </span>
               )
@@ -189,7 +190,7 @@ export function GachaBanner({ gacha, count, featured = [], pickups = [], selecte
         <span className="pickup-row">
           {others.slice(0, 6).map((d) => (
             <span key={d.id} className="pickup">
-              <MonsterImage imageId={d.images[bannerNodeOf(d)]} size={64} />
+              <MonsterImage imageId={imageOf(d, bannerNodeOf(d))} awaken={awakenOf(d, bannerNodeOf(d))} size={64} />
               <span className="pickup-name">{d.name}</span>
               <Stars def={d} nodeId={bannerNodeOf(d)} />
               <ElementBadge def={d} />

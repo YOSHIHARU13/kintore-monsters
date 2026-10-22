@@ -1,0 +1,14 @@
+import { FIRST_NODE_ID, getNode, getTemplate } from '../data/evolutionTemplates'
+import type { MonsterDef } from '../types'
+
+/** その形態の絵。覚醒ツリーは第1段階の1枚を使い回す */
+export function imageOf(def: Pick<MonsterDef, 'images' | 'templateId'>, nodeId: string): string | undefined {
+  if (def.images[nodeId]) return def.images[nodeId]
+  return getTemplate(def.templateId).awaken ? def.images[FIRST_NODE_ID] : undefined
+}
+
+/** 覚醒の段階（0：通常、1：覚醒、2：真・覚醒）。覚醒ツリー以外は0 */
+export function awakenOf(def: Pick<MonsterDef, 'templateId'>, nodeId: string): number {
+  const template = getTemplate(def.templateId)
+  return template.awaken ? getNode(template, nodeId).stage - 1 : 0
+}

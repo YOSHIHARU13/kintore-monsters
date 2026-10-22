@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { awakenOf, imageOf } from '../lib/art'
 import { useStore } from '../store'
 import { CONFIG } from '../config/gameConfig'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
@@ -232,7 +233,7 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
                     onClick={() => setPickups(on ? pickups.filter((x) => x !== d.id) : [...pickups, d.id])}
                   >
                     <span className="monster-row">
-                      <MonsterImage imageId={d.images[FIRST_NODE_ID]} size={40} />
+                      <MonsterImage imageId={imageOf(d, FIRST_NODE_ID)} awaken={awakenOf(d, FIRST_NODE_ID)} size={40} />
                       <span>
                         {on ? '✓ ' : ''}
                         {monsterName(d, FIRST_NODE_ID)}
@@ -270,7 +271,7 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
                 .map(({ def, rate: r }) => (
                   <li key={def.id}>
                     <span className="monster-row">
-                      <MonsterImage imageId={def.images[FIRST_NODE_ID]} size={40} />
+                      <MonsterImage imageId={imageOf(def, FIRST_NODE_ID)} awaken={awakenOf(def, FIRST_NODE_ID)} size={40} />
                       {monsterName(def, FIRST_NODE_ID)}
                     </span>
                     <span className="tag">{percent(r)}</span>

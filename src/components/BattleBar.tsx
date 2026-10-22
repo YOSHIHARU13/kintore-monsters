@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { awakenOf, imageOf } from '../lib/art'
 import { useStore } from '../store'
 import { SLOTS, exerciseOfSlot } from '../data/exercises'
 import { battleOf } from '../lib/quest'
@@ -36,7 +37,7 @@ export function BattleBar({ go }: { go: Go }) {
   return (
     <button className={`battle-bar${battle.defeated ? ' defeated' : ''}`} onClick={() => go({ name: 'quests' })}>
       {battle.boss && (
-        <MonsterImage imageId={battle.boss.images[bannerNodeOf(battle.boss)]} size={44} silhouette={!battle.defeated} />
+        <MonsterImage imageId={imageOf(battle.boss, bannerNodeOf(battle.boss))} awaken={awakenOf(battle.boss, bannerNodeOf(battle.boss))} size={44} silhouette={!battle.defeated} />
       )}
       <span className="goal-body">
         <strong className="small">

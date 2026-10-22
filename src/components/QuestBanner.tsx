@@ -1,4 +1,5 @@
 import { CONFIG } from '../config/gameConfig'
+import { awakenOf, imageOf } from '../lib/art'
 import { MonsterImage } from './MonsterImage'
 import { bannerNodeOf } from './GachaBanner'
 import { CORE_LABEL } from '../lib/cores'
@@ -35,7 +36,7 @@ export function QuestBanner({ quest, boss, onClick, selected = false }: {
       <span className="auto-monsters">
         {boss && (
           <span className="auto-monster m0">
-            <MonsterImage imageId={boss.images[bannerNodeOf(boss)]} size={110} />
+            <MonsterImage imageId={imageOf(boss, bannerNodeOf(boss))} awaken={awakenOf(boss, bannerNodeOf(boss))} size={110} />
           </span>
         )}
       </span>

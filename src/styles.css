@@ -2232,3 +2232,60 @@ details.tuning[open] > summary {
   text-align: left;
   color: inherit;
 }
+
+/* 覚醒（イラスト1枚のモンスターの進化）：絵のうしろに光の輪 */
+.awaken {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+  isolation: isolate;
+}
+.awaken::before {
+  content: '';
+  position: absolute;
+  inset: -6%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.55), rgba(120, 220, 255, 0.25) 45%, transparent 70%);
+  animation: awaken-pulse 2.4s ease-in-out infinite;
+}
+.awaken-2::before {
+  inset: -12%;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.7), transparent 55%),
+    conic-gradient(from 0deg, #ff6b6b55, #ffd16655, #06d6a055, #4cc9f055, #b388ff55, #ff6b6b55);
+  animation: awaken-spin 6s linear infinite;
+}
+.awaken-mark {
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  transform: translateX(-50%);
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #bdf3ff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.awaken-2 .awaken-mark {
+  color: #ffe9a8;
+}
+@keyframes awaken-pulse {
+  50% {
+    opacity: 0.55;
+    transform: scale(0.96);
+  }
+}
+@keyframes awaken-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .awaken::before {
+    animation: none;
+  }
+}

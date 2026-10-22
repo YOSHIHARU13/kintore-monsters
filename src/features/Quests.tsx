@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { awakenOf, imageOf } from '../lib/art'
 import { useStore } from '../store'
 import { Gauge } from '../components/Gauge'
 import { MonsterImage } from '../components/MonsterImage'
@@ -108,7 +109,7 @@ export function Quests({ go }: { go: Go }) {
           )}
           {got.monsterId && got.boss && (
             <>
-              <MonsterImage imageId={got.boss.images[bannerNodeOf(got.boss)]} size={140} plus={got.plus} />
+              <MonsterImage imageId={imageOf(got.boss, bannerNodeOf(got.boss))} awaken={awakenOf(got.boss, bannerNodeOf(got.boss))} size={140} plus={got.plus} />
               <p>
                 {got.boss.name}
                 {got.plus > 0 ? `＋${got.plus}` : ''} を手に入れた！
@@ -140,7 +141,7 @@ export function Quests({ go }: { go: Go }) {
           </h2>
           <div className="monster-row">
             {battle.boss && (
-              <MonsterImage imageId={battle.boss.images[bannerNodeOf(battle.boss)]} size={72} silhouette={!battle.defeated} />
+              <MonsterImage imageId={imageOf(battle.boss, bannerNodeOf(battle.boss))} awaken={awakenOf(battle.boss, bannerNodeOf(battle.boss))} size={72} silhouette={!battle.defeated} />
             )}
             <div className="goal-body">
               <strong>
@@ -190,7 +191,7 @@ export function Quests({ go }: { go: Go }) {
           <div className="party-row">
             {battle.party.map((m) => (
               <span key={m.mon.id} title={plusName(m.def, m.mon)}>
-                <MonsterImage imageId={m.def.images[m.mon.nodeId]} size={40} plus={m.mon.plus} shiny={m.mon.shiny} />
+                <MonsterImage imageId={imageOf(m.def, m.mon.nodeId)} awaken={awakenOf(m.def, m.mon.nodeId)} size={40} plus={m.mon.plus} shiny={m.mon.shiny} />
               </span>
             ))}
           </div>
@@ -281,7 +282,7 @@ export function Quests({ go }: { go: Go }) {
                         onClick={() => go({ name: 'quest', id: q.id })}
                         aria-label={q.name}
                       >
-                        {boss && <MonsterImage imageId={boss.images[bannerNodeOf(boss)]} size={56} />}
+                        {boss && <MonsterImage imageId={imageOf(boss, bannerNodeOf(boss))} awaken={awakenOf(boss, bannerNodeOf(boss))} size={56} />}
                         {cleared && <span className="quest-cleared">✓</span>}
                         {q.element && (
                           <span className="quest-element" style={{ background: ELEMENT_COLOR[q.element] }}>

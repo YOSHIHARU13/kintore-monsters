@@ -191,8 +191,9 @@ describe('進化ツリー', () => {
     expect(canChangeTemplate('lateBranch', 'lateBranch3')).toBe(true)
     expect(canChangeTemplate('lateBranch3', 'lateBranch')).toBe(false)
     expect(canChangeTemplate('linear3', 'lateBranch3')).toBe(false)
+    expect(canChangeTemplate('single', 'awaken3')).toBe(true) // 1枚絵のモンスターは、あとから覚醒ツリーにできる
     for (const t of TEMPLATES.filter((x) => x.extends)) {
-      for (const node of getTemplate(t.extends!).nodes) {
+      for (const node of t.extends!.flatMap((id) => getTemplate(id).nodes)) {
         const same = t.nodes.find((n) => n.id === node.id)
         expect(same?.stage).toBe(node.stage)
         for (const next of node.next) expect(same?.next).toContain(next)

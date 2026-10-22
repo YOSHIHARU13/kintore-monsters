@@ -7,13 +7,14 @@ interface Props {
   size?: number
   plus?: number // 合体の＋。1以上なら＋に応じた枠で囲む
   shiny?: boolean // 色違い。色を変えてキラキラさせる
+  awaken?: number // 覚醒の段階（1：覚醒、2：真・覚醒）。絵のまわりが光る（星とは別）
 }
 
 /** モンスター画像。画像が未登録ならプレースホルダーのシルエットを出す */
-export function MonsterImage({ plus: _plus = 0, shiny = false, ...props }: Props) {
+export function MonsterImage({ plus: _plus = 0, shiny = false, awaken = 0, ...props }: Props) {
   // ＋はなくなったので、枠は出さない（色違いだけ）
   const plus = 0
-  const picture = shiny ? (
+  const base = shiny ? (
     <div className="shiny">
       <Picture {...props} />
       <span className="shiny-mark" aria-label="色違い">
@@ -23,6 +24,16 @@ export function MonsterImage({ plus: _plus = 0, shiny = false, ...props }: Props
   ) : (
     <Picture {...props} />
   )
+  // 覚醒：絵のうしろに光の輪。大きい絵には「覚醒」の文字も（星の数と見間違えないように）
+  const picture =
+    awaken > 0 && !props.silhouette ? (
+      <div className={`awaken awaken-${Math.min(awaken, 2)}`}>
+        {base}
+        {(props.size ?? 96) >= 72 && <span className="awaken-mark">{awaken >= 2 ? '真・覚醒' : '覚醒'}</span>}
+      </div>
+    ) : (
+      base
+    )
   if (plus <= 0) return picture
   return (
     <div className={`frame plus-${Math.min(plus, 5)}`}>

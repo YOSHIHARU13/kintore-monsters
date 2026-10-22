@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { awakenOf, imageOf } from '../lib/art'
 import { useStore } from '../store'
 import { CONFIG } from '../config/gameConfig'
 import { FORM_ATTR_LABEL } from '../data/exercises'
@@ -91,7 +92,8 @@ export function Dex({ go }: { go: Go }) {
             >
               <span className="dex-no">{String(e.no).padStart(3, '0')}</span>
               <MonsterImage
-                imageId={e.def.images[e.node.id]}
+                imageId={imageOf(e.def, e.node.id)}
+                awaken={awakenOf(e.def, e.node.id)}
                 silhouette={!e.found}
                 shiny={e.found && e.shiny}
                 size={56}
@@ -111,7 +113,8 @@ export function Dex({ go }: { go: Go }) {
           <div className="sheet" onClick={(ev) => ev.stopPropagation()}>
             <span className="muted small">No.{String(open.no).padStart(3, '0')}</span>
             <MonsterImage
-              imageId={open.def.images[open.node.id]}
+              imageId={imageOf(open.def, open.node.id)}
+              awaken={awakenOf(open.def, open.node.id)}
               silhouette={!open.found}
               shiny={open.found && open.shiny}
               size={160}
