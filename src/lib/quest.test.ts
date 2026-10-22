@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { defaultBossHp, dropPlus, gradeOf, questHp, defaultHp, questGold, questHits, setHit, standardSessionDamage } from './quest'
+import { defaultBossHp, dropPlus, gradeOf, questHp, defaultHp, questGold, questHits, sessionEstimate, setHit, standardSessionDamage } from './quest'
 import { isJogressReady, jogressNeed } from './stats'
 import type { MonsterDef, OwnedMonster, Quest, SetRecord } from '../types'
 
@@ -28,6 +28,15 @@ describe('クエスト', () => {
     expect(setHit(set('wed1', 'wed'), quest, [chest], '').damage).toBe(4) // 部位が違うと 3.75
     // 出撃メンバーがいなければ素手
     expect(setHit(set('fri1', 'fri'), quest, [], '')).toMatchObject({ notes: ['素手'] })
+  })
+
+  it('倒せる見込み：部位の日ごとに、基本セット＋ローラーを全部やったときのダメージ', () => {
+    const chest = { mon: mon('c', 'c'), def: def('c') }
+    const est = sessionEstimate({ ...quest, weakSlots: [], requirements: [] }, [chest])
+    expect(est.map((e) => e.day)).toEqual(['mon', 'wed', 'fri'])
+    // 胸腕の日は部位一致で×2になるぶん、ほかの日より多い
+    expect(est[0].damage).toBeGreaterThan(est[1].damage)
+    expect(est[0].damage).toBeGreaterThan(est[2].damage)
   })
 
   it('弱点種目×2、得意種目×1.5、最後に編成倍率', () => {

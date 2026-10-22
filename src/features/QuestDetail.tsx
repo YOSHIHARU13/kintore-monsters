@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { awakenOf, imageOf } from '../lib/art'
 import { useStore } from '../store'
 import { CONFIG } from '../config/gameConfig'
-import { FORM_ATTR_LABEL, SLOTS, exerciseOfSlot } from '../data/exercises'
+import { DAYS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot } from '../data/exercises'
 import { MonsterImage } from '../components/MonsterImage'
 import { Stars } from '../components/Stars'
 import { QuestBanner } from '../components/QuestBanner'
-import { BOSS_DIFFICULTY, DIFFICULTIES, attrOf, dropPlus, gradeOf, powerOf, questGold, questHp, rankOf, type Member } from '../lib/quest'
+import { BOSS_DIFFICULTY, DIFFICULTIES, sessionEstimate, attrOf, dropPlus, gradeOf, powerOf, questGold, questHp, rankOf, type Member } from '../lib/quest'
 import { formationOf, requirementsOf, shortfallHelp, tagLabel, tagsOf } from '../lib/formation'
 import { FormationPanel } from '../components/FormationPanel'
 import { luckBonus } from '../lib/fusion'
@@ -84,6 +84,13 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
       return onB - onA || advB - advA || b.help - a.help || b.tags.length - a.tags.length || powerOf(b) - powerOf(a)
     })
   const max = CONFIG.quest.partySize
+  // 選んだメンバーで、各部位の日に1回トレーニングしたときのダメージの見込み
+  const partyMembers = party.flatMap((pid) => members.filter((m) => m.mon.id === pid))
+  const estimate = sessionEstimate(quest, partyMembers)
+  const hp = questHp(quest, difficulty)
+  const bestEntry = estimate.reduce((a, b) => (b.damage > a.damage ? b : a), estimate[0])
+  const best = bestEntry.damage
+  const bestDay = bestEntry.day
   const switching = !!current && current.questId !== id
 
   const toggle = (monId: string) =>
@@ -185,6 +192,28 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
           </p>
         )}
       </section>
+
+      {party.length > 0 && (
+        <section className="card">
+          <h2>倒せる見込み</h2>
+          <ul className="mini-list">
+            {estimate.map((e) => (
+              <li key={e.day}>
+                <span>{DAYS[e.day].title}の日のメニュー1回</span>
+                <span className={`tag ${e.damage >= hp ? 'keep' : 'warn'}`}>
+                  約{Math.round(e.damage).toLocaleString()}（{Math.round((e.damage / hp) * 100)}%）
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="small">
+            {best >= hp
+              ? `${DAYS[bestDay].title}の日なら、1日で倒せそう（HP ${hp.toLocaleString()}）。`
+              : `今のメンバーだと、1日でHPの約${Math.round((best / hp) * 100)}%しか削れません。出撃した日のうちに倒す必要があるので、編成をそろえるか、格の低いクエストがおすすめ。`}
+          </p>
+          <p className="muted small">基本セット（1種目3セット）とローラーを全部やったときの目安。弱点種目・得意種目・部位の一致・編成倍率込み。</p>
+        </section>
+      )}
 
       <section className="card">
         <h2>

@@ -1,5 +1,5 @@
 import { CONFIG } from '../config/gameConfig'
-import { DAYS, type FormAttr } from '../data/exercises'
+import { DAYS, SLOTS, type FormAttr } from '../data/exercises'
 import { attackOf } from './stats'
 import { formationOf, requirementsOf } from './formation'
 import { hasAdvantage } from './element'
@@ -88,6 +88,22 @@ export function standardSessionDamage(): number {
   const sets = 5 * CONFIG.sets.perExercise * q.setDamage * power * (2 * q.partMatch + 4)
   const roller = CONFIG.sets.perExercise * q.rollerDamage * power * 6
   return Math.round(sets + roller)
+}
+
+/** そのメンバーで、各部位の日のメニューを1回こなしたときのダメージの見込み（基本セット＋ローラー） */
+export function sessionEstimate(quest: Quest, party: Member[]): { day: keyof typeof DAYS; damage: number }[] {
+  const { rate } = formationOf(
+    party.map((m) => m.def),
+    requirementsOf(quest),
+  )
+  return (Object.keys(DAYS) as (keyof typeof DAYS)[]).map((day) => {
+    const slots = SLOTS.filter((s) => s.day === day || s.day === 'bonus')
+    const damage = slots.reduce(
+      (sum, s) => sum + CONFIG.sets.perExercise * setHit({ slotId: s.id, day: s.day, eligible: true }, quest, party, '', rate).damage,
+      0,
+    )
+    return { day, damage }
+  })
 }
 
 export interface Battle {
