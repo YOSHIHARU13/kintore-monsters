@@ -18,7 +18,7 @@ import {
 } from 'firebase/firestore'
 import { db } from './lib/firebase'
 import { CONFIG } from './config/gameConfig'
-import { ATTRS, DAYS, type Attr, type FormAttr } from './data/exercises'
+import { ATTRS, DAYS, SLOTS, type Attr, type FormAttr } from './data/exercises'
 import { FIRST_NODE_ID, canChangeTemplate, getNode, getTemplate, pathTo } from './data/evolutionTemplates'
 import { dateKey, prevDateKey, weekStartKey } from './lib/date'
 import { evolutionCost, fusionCost, isExpFull, planPour } from './lib/evolution'
@@ -30,8 +30,9 @@ import { isJogressReady } from './lib/stats'
 import { battleOf, dropPlus, questGold } from './lib/quest'
 import { rollBonusCore, rollCoreDrop } from './lib/cores'
 import { canFeed, fusionGain } from './lib/fusion'
+import { finalAttrs, recommend } from './lib/coverage'
+import { abilitySlots, jogressGradeOf, selectableGimmicks } from './lib/gimmick'
 import { jogressElementOf } from './lib/element'
-import { jogressGradeOf } from './lib/gimmick'
 import { investedFor, isHidden, nodeAttr, type AttrExp, type Checkin, type Element, type Gacha, type Quest, type QuestDifficulty, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
 
 const zeroExp = () => ({ trained: 0, bought: 0 })
@@ -203,6 +204,8 @@ interface Store {
   /** ＋5の2体を合わせて隠しモンスターを生む。生まれた個体のID */
   jogress: (monsterId: string, partnerId: string, hiddenDefId: string) => string | null
   saveMonsterDef: (input: MonsterDefInput) => Promise<void>
+  /** 属性・得意種目・アビリティを、足りないものでまとめて埋める（1体ずつ、前に埋めた分も数えて） */
+  autoTuneDefs: (ids: string[]) => void
   loadImage: (imageId: string) => Promise<string | null>
   saveSongs: (songs: Song[]) => void
 }
@@ -738,6 +741,24 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       batch.commit().catch(fail)
     }
 
+    const autoTuneDefs: Store['autoTuneDefs'] = (ids) => {
+      let working = [...defs]
+      const batch = writeBatch(db)
+      for (const id of ids) {
+        const def = working.find((d) => d.id === id)
+        if (!def || isHidden(def)) continue
+        const parts = finalAttrs(def)
+        const slotIds = SLOTS.filter((s) => s.day === 'bonus' || parts.includes('none') || parts.includes(DAYS[s.day].attr)).map(
+          (s) => s.id,
+        )
+        const rec = recommend(working, quests, selectableGimmicks(quests), abilitySlots(def), def.id, slotIds)
+        const tuned = { element: rec.element, favoriteSlot: rec.favoriteSlot, abilities: rec.abilities }
+        batch.update(doc(db, base, 'monsterDefs', id), tuned)
+        working = working.map((d) => (d.id === id ? { ...d, ...tuned } : d))
+      }
+      batch.commit().catch(fail)
+    }
+
     const loadImage: Store['loadImage'] = (imageId) => {
       let cached = imageCache.get(imageId)
       if (!cached) {
@@ -920,6 +941,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       fuse,
       jogress,
       saveMonsterDef,
+      autoTuneDefs,
       loadImage,
       saveSongs,
       gachas,

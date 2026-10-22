@@ -881,6 +881,27 @@ details.fold[open] > summary {
   font-weight: 700;
 }
 
+/* 登録・編集の一覧 */
+.tile.todo {
+  border-color: var(--warn);
+}
+.todo-badge {
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--warn);
+  color: #1b1400;
+}
+.search {
+  background: var(--card2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--text);
+  width: 100%;
+}
+
 /* 登録画面のこだわり設定（たたんでおく） */
 details.tuning {
   border-top: 1px solid var(--line);

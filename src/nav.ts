@@ -16,7 +16,7 @@ export type View =
   | { name: 'questForm'; id?: string }
   | { name: 'dex' }
   | { name: 'registry' }
-  | { name: 'monsterForm'; id?: string }
+  | { name: 'monsterForm'; id?: string; preset?: 'gacha' | 'quest' }
   | { name: 'settings' }
 
 export type Go = (view: View) => void

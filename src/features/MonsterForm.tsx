@@ -24,7 +24,9 @@ import {
 import { ELEMENTS, ELEMENT_COLOR, ELEMENT_LABEL, elementInfo, elementName, jogressElementOf } from '../lib/element'
 import { requirementsOf } from '../lib/formation'
 
-export function MonsterForm({ id, go }: { id?: string; go: Go }) {
+export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' | 'quest'; go: Go }) {
+  // 降臨用：クエスト限定・1形態だけ・★3・激レアで始める（名前と画像だけで登録できる）
+  const questPreset = !id && preset === 'quest'
   const { defs, gachas, menu, quests, saveMonsterDef } = useStore()
   const existing = id ? defs.find((d) => d.id === id) : undefined
   // 登録済みのモンスターは、ツリーを変えられないか、分岐を増やす方向にだけ変えられる
@@ -32,19 +34,19 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
     existing ? canChangeTemplate(existing.templateId, t.id) : !t.retired,
   )
   const [name, setName] = useState(existing?.name ?? '')
-  const [templateId, setTemplateId] = useState(existing?.templateId ?? selectable[0].id)
+  const [templateId, setTemplateId] = useState(existing?.templateId ?? (questPreset ? 'single' : selectable[0].id))
   const [attrs, setAttrs] = useState<Record<string, FormAttr>>(existing?.attrs ?? {})
   const [names, setNames] = useState<Record<string, string>>(existing?.names ?? {})
   const [files, setFiles] = useState<Record<string, File>>({})
   const [birthStars, setBirthStars] = useState(existing?.jogressBirthStars ?? CONFIG.gacha.jogressDefaultBirth)
   const [fixedStars, setFixedStars] = useState(existing?.fixedStars ?? CONFIG.gacha.fixedStarsDefault)
   const [jogressPlus, setJogressPlus] = useState(existing?.jogressPlus ?? 0)
-  const [questOnly, setQuestOnly] = useState(existing?.questOnly === true)
+  const [questOnly, setQuestOnly] = useState(existing?.questOnly === true || questPreset)
   const [element, setElement] = useState<Element | ''>(existing?.element ?? '')
   const [favoriteSlot, setFavoriteSlot] = useState(existing?.favoriteSlot ?? '')
   const [abilities, setAbilities] = useState<string[]>(existing?.abilities ?? [])
   const [inGachas, setInGachas] = useState<string[]>(existing?.gachas ?? [])
-  const [rarity, setRarity] = useState<RarityKey>(existing ? rarityOf(existing) : 'normal')
+  const [rarity, setRarity] = useState<RarityKey>(existing ? rarityOf(existing) : questPreset ? 'superRare' : 'normal')
   const [recipe, setRecipe] = useState<string[]>(existing?.recipe?.length === 2 ? existing.recipe : [])
   // レシピに使えるのは、タマゴから生まれる普通のモンスター（自分以外）
   const parents = defs.filter((d) => d.id !== existing?.id && !isHidden(d))
@@ -198,7 +200,12 @@ export function MonsterForm({ id, go }: { id?: string; go: Go }) {
       <button className="back" onClick={() => go({ name: 'registry' })}>
         ← 登録一覧に戻る
       </button>
-      <h1 className="title">{existing ? 'モンスターの編集' : 'モンスターの登録'}</h1>
+      <h1 className="title">{existing ? 'モンスターの編集' : questPreset ? '降臨モンスターの登録' : 'モンスターの登録'}</h1>
+      {questPreset && (
+        <p className="muted small">
+          クエスト限定・1形態だけ・★{CONFIG.gacha.fixedStarsDefault}・激レアで始めます。属性やアビリティはおまかせで埋まるので、名前と画像だけで登録できます。
+        </p>
+      )}
 
       <section className="card">
         <label className="field">

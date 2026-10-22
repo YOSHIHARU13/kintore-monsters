@@ -65,7 +65,7 @@ function Screen({ view, go }: { view: View; go: (v: View) => void }) {
     case 'registry':
       return <MonsterRegistry go={go} />
     case 'monsterForm':
-      return <MonsterForm key={view.id ?? 'new'} id={view.id} go={go} />
+      return <MonsterForm key={view.id ?? `new-${view.preset ?? ''}`} id={view.id} preset={view.preset} go={go} />
     case 'settings':
       return <Settings go={go} />
   }

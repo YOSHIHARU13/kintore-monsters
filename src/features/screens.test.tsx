@@ -179,6 +179,7 @@ beforeEach(() => {
     jogress: vi.fn(() => 'o9'),
     setActive: vi.fn(),
     saveMonsterDef: vi.fn(async () => {}),
+    autoTuneDefs: vi.fn(),
     loadImage: vi.fn(async () => null),
   }
 })
@@ -894,6 +895,36 @@ describe('画面の表示', () => {
     expect(on.some((t) => t?.startsWith('水'))).toBe(true)
     expect(on.some((t) => t?.startsWith('シールドクラッシャー'))).toBe(true)
     expect(el.textContent).toContain('◎ 脚竜の巣')
+  })
+
+  it('登録・編集の一覧：未入手でも絵と名前が見え、未設定がバッジで出て、まとめておまかせできる', async () => {
+    fake.store.defs = [
+      { ...defs[0], element: 'fire', rarity: 'rare', images: { n1: 'img1' } }, // 設定済み
+      defs[1], // アシガメ：未入手・画像なし・属性なし・レア度未設定
+    ]
+    const el = await render(<MonsterRegistry go={go} />)
+    expect(el.querySelector('.monster-img.silhouette')).toBeNull()
+    const tiles = [...el.querySelectorAll('.tile')].map((t) => t.textContent)
+    expect(tiles[0]).toContain('アシガメ') // 未設定のものが上
+    expect(tiles[0]).toContain('属性なし')
+    expect(tiles[0]).toContain('レア度未設定')
+    expect(tiles[0]).toContain('未入手')
+    await click('まとめておまかせで埋める')
+    expect(fake.store.autoTuneDefs).toHaveBeenCalledWith(['m2'])
+    const filter = el.querySelector('[aria-label="絞り込み"]')!
+    await act(async () => [...filter.querySelectorAll('button')].find((b) => b.textContent === '降臨')!.click())
+    expect(el.querySelectorAll('.tile')).toHaveLength(0) // 降臨のモンスターはまだいない
+    await click('＋ 降臨用')
+    expect(go).toHaveBeenCalledWith({ name: 'monsterForm', preset: 'quest' })
+  })
+
+  it('モンスター登録：降臨用は、クエスト限定・1形態だけ・激レアで始まる', async () => {
+    const el = await render(<MonsterForm preset="quest" go={go} />)
+    expect(el.textContent).toContain('降臨モンスターの登録')
+    expect((el.querySelector('select') as HTMLSelectElement).value).toBe('single')
+    const questOnly = [...el.querySelectorAll('label.row')].find((l) => l.textContent?.includes('クエスト限定にする'))!
+    expect(questOnly.querySelector('input')!.checked).toBe(true)
+    expect(el.querySelector('[aria-label="レア度"] .on')!.textContent).toBe('激レア')
   })
 
   it('モンスター登録：入るガチャは3つまで', async () => {
