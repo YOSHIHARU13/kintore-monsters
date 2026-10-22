@@ -17,8 +17,8 @@ describe('編成', () => {
     expect(tagsOf(def('a', { rarity: 'rare', element: 'fire', abilities: ['バリア'] }))).toEqual({ 'el:fire': 1, 'ab:バリア': 1 })
     expect(tagsOf(def('s', { recipe: ['x', 'y'], jogressElements: ['fire'], jogressSuper: true }))).toEqual({ 'el:fire': 2 })
     expect(tagsOf(def('d', { recipe: ['x', 'y'], jogressElements: ['fire', 'water'] }))).toEqual({ 'el:fire': 1, 'el:water': 1 })
-    expect(tagsOf(def('h', { rarity: 'hazure', abilities: ['バリア'] }))).toEqual({}) // ハズレ・ノーマルはアビリティ0個
-    expect(tagsOf(def('n', { abilities: ['バリア'] }))).toEqual({})
+    expect(tagsOf(def('h', { rarity: 'hazure', abilities: ['バリア'] }))).toEqual({}) // ハズレはアビリティ0個
+    expect(tagsOf(def('n', { abilities: ['バリア', 'シールド'] }))).toEqual({ 'ab:バリア': 1 }) // ノーマルは1個
     // 激レアは2個、ジョグレスは3個まで
     expect(tagsOf(def('s', { rarity: 'superRare', abilities: ['バリア', 'シールド', 'ミラー'] }))).toEqual({ 'ab:バリア': 1, 'ab:シールド': 1 })
     expect(tagsOf(def('j', { recipe: ['x', 'y'], abilities: ['バリア', 'シールド', 'ミラー', 'リジェネ'] }))).toEqual({

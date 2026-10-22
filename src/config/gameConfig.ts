@@ -107,7 +107,7 @@ export const CONFIG = {
       オーラ: 'オーライーター',
     } as Record<string, string>,
     // 持てるアビリティの数（レア度の格）。ジョグレスは jogress
-    slots: { hazure: 0, normal: 0, superRare: 2, jogress: 3 },
+    slots: { hazure: 0, normal: 1, superRare: 2, jogress: 3 },
     questOnlyMax: 1, // 降臨（クエスト限定）は激レアでもアビリティはここまで（ガチャより弱く）
   },
 

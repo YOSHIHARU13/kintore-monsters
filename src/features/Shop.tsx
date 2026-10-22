@@ -26,13 +26,15 @@ export function Shop({ go }: { go: Go }) {
   const [attr, setAttr] = useState<Attr>('chestArms')
   const [amount, setAmount] = useState(CONFIG.shop.expBuyStep)
   const [hatched, setHatched] = useState<Hatched | null>(null)
+  // 「いつものガチャ」は出さない（作ったガチャが1つもないときだけ出す）
+  const shown = gachas.some((g) => !g.builtin) ? gachas.filter((g) => !g.builtin) : gachas
   const [gachaId, setGachaId] = useState(() => {
     // 最初は、中身がいるガチャのうち、いちばん新しいものを選んでおく
-    const withMembers = gachas.filter((g) => isReady(g, rateTable(g.id, defs)))
-    return (withMembers[withMembers.length - 1] ?? gachas[0]).id
+    const withMembers = shown.filter((g) => isReady(g, rateTable(g.id, defs)))
+    return (withMembers[withMembers.length - 1] ?? shown[0]).id
   })
 
-  const gacha = gachas.find((g) => g.id === gachaId) ?? gachas[0]
+  const gacha = shown.find((g) => g.id === gachaId) ?? shown[0]
   const table = rateTable(gacha.id, defs)
   const hasPityTier = table.some((t) => t.rarity === CONFIG.gacha.pity.rarity)
   const pityLeft = CONFIG.gacha.pity.pulls - (state.pity[gacha.id] ?? 0)
@@ -63,7 +65,7 @@ export function Shop({ go }: { go: Go }) {
 
       <section className="card gacha-stage">
         <div className="gacha-tabs" role="tablist" aria-label="ガチャ">
-          {gachas.map((g) => (
+          {shown.map((g) => (
             <button
               key={g.id}
               role="tab"

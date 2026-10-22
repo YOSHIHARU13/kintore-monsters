@@ -542,21 +542,17 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('ハズレ 合計45%（1種）')
     expect(el.textContent).toContain('激レア確定まで あと3回')
     expect(el.textContent).toContain('？？？') // まだ会っていないモンスターは名前を伏せる
-    // いつものガチャにはレア・激レアがいないので、その分がハズレとノーマルに回る
-    await tapTab('いつものガチャ')
-    expect(el.textContent).toContain('全2種')
-    expect(el.textContent).toContain('ハズレ 合計52.9%')
-    expect(el.textContent).not.toContain('確定まで')
+    // 作ったガチャがあれば「いつものガチャ」は出さない
+    expect([...el.querySelectorAll('.gacha-tab')].map((t) => t.textContent)).not.toContain('いつものガチャ')
     await click('1回引く')
-    expect(fake.store.hatchEgg).toHaveBeenCalledWith('default')
+    expect(fake.store.hatchEgg).toHaveBeenCalledWith('g1')
   })
 
   it('ショップ：ピックアップが3体そろっていないガチャは準備中', async () => {
     fake.store.gachas = [gachas[0], gacha('g1', '脚まつり', { createdAt: 1 })]
     fake.store.defs = [...defs, { id: 'r1', name: 'ツノウサ', attr: 'legs', templateId: 'linear3', images: {}, rarity: 'rare', gachas: ['g1'], createdAt: 5 }]
     const el = await render(<Shop go={go} />)
-    expect(el.querySelector('.gacha-tab.on')!.textContent).toBe('いつものガチャ') // 引けるガチャが選ばれている
-    await tapTab('脚まつり')
+    expect(el.querySelector('.gacha-tab.on')!.textContent).toBe('脚まつり') // 作ったガチャだけが出る
     expect(el.textContent).toContain('準備中：ピックアップ（レア以上）があと2体')
     expect(el.textContent).not.toContain('1回引く')
   })

@@ -405,7 +405,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
                   })}
               </div>
               <p className="muted small">
-                どれも選ばなければ「{gachas[0].name}」に入ります。ガチャはショップで作れます。
+                激レアは、選んだガチャのピックアップとして出ます。どれも選ばなければガチャには出ません。ガチャはショップで作れます。
               </p>
             </>
           )}
@@ -516,7 +516,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
             })}
           </div>
           <span className="muted small">
-            クエストの「求められる編成」の条件になります。持てる数はレア度で決まります（ハズレ・ノーマル{CONFIG.gimmicks.slots.normal}、激レア
+            クエストの「求められる編成」の条件になります。持てる数はレア度で決まります（ハズレ{CONFIG.gimmicks.slots.hazure}・ノーマル{CONFIG.gimmicks.slots.normal}、激レア
             {CONFIG.gimmicks.slots.superRare}、ジョグレス{CONFIG.gimmicks.slots.jogress}。降臨は激レアでも{CONFIG.gimmicks.questOnlyMax}）。
           </span>
         </div>
