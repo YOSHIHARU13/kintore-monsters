@@ -48,8 +48,8 @@ export function autoQuestSetup(
   return { requirements, weakSlots: [...new Set(weakSlots)] }
 }
 
-/** まとめて作るときの格：レア度から（激レア→超絶、ノーマル→究極、ハズレ→極） */
-const GRADE_BY_RARITY: Record<RarityKey, QuestGrade> = { hazure: 'kiwami', normal: 'kyukyoku', superRare: 'chozetsu' }
+/** まとめて作るときの格：レア度から（激レア→超絶、ノーマル→究極、ハズレ→上級） */
+const GRADE_BY_RARITY: Record<RarityKey, QuestGrade> = { hazure: 'jokyu', normal: 'kyukyoku', superRare: 'chozetsu' }
 
 export function autoGradeOf(def: MonsterDef): QuestGrade {
   return GRADE_BY_RARITY[rarityOf(def)]

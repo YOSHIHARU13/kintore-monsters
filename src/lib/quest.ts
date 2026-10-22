@@ -132,7 +132,7 @@ export function rankOf(quest: Pick<Quest, 'rank'>) {
   return ranks[Math.min(ranks.length - 1, Math.max(0, quest.rank ?? 1))]
 }
 
-export const GRADES: QuestGrade[] = ['kiwami', 'kyukyoku', 'chozetsu']
+export const GRADES: QuestGrade[] = ['jokyu', 'kiwami', 'kyukyoku', 'chozetsu']
 
 /** ボスクエストは難易度が1つだけ（内部では normal を使う） */
 export const BOSS_DIFFICULTY: QuestDifficulty = 'normal'

@@ -134,6 +134,7 @@ export const CONFIG = {
     // ボスクエストの格：難易度は1つだけで、クエストそのものに格がある（素材クエストは初級〜上級のまま）
     // hpRatio：1回のトレーニングで与えるダメージの目安に対するHPの倍率
     grades: {
+      jokyu: { label: '上級', hpRatio: 0.45, gold: 50, plus: 0 }, // 育ちきっていなくても倒せる入門
       kiwami: { label: '極', hpRatio: 0.9, gold: 80, plus: 0 },
       kyukyoku: { label: '究極', hpRatio: 1.5, gold: 150, plus: 0 },
       chozetsu: { label: '超絶', hpRatio: 2.5, gold: 300, plus: 1 },
@@ -148,6 +149,7 @@ export const CONFIG = {
   },
   // おまかせのクエスト：格ごとの条件（適正の属性の数・アビリティの種類と数・弱点種目の数）
   questAuto: {
+    jokyu: { element: 1, abilities: 0, abilityCount: 0, weak: 1 },
     kiwami: { element: 2, abilities: 1, abilityCount: 1, weak: 1 },
     kyukyoku: { element: 3, abilities: 1, abilityCount: 2, weak: 1 },
     chozetsu: { element: 3, abilities: 2, abilityCount: 2, weak: 2 },

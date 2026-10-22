@@ -15,6 +15,7 @@ const QUEST_GROUPS = [
   { key: 'chozetsu', label: '超絶' },
   { key: 'kyukyoku', label: '究極' },
   { key: 'kiwami', label: '極' },
+  { key: 'jokyu', label: '上級' },
   { key: 'material', label: '素材' },
 ] as const
 import { formationOf, requirementsOf } from '../lib/formation'
@@ -322,7 +323,7 @@ export function Quests({ go }: { go: Go }) {
         </div>
         {pending.length > 0 && (
           <p className="muted small">
-            クエストがまだない降臨モンスターごとに、ボスの名前・属性で作ります。格はレア度から（激レア→超絶・ノーマル→究極・ハズレ→極）、編成の条件と弱点はおまかせ。あとから1つずつ編集できます。
+            クエストがまだない降臨モンスターごとに、ボスの名前・属性で作ります。格はレア度から（激レア→超絶・ノーマル→究極・ハズレ→上級）、編成の条件と弱点はおまかせ。あとから1つずつ編集できます。
           </p>
         )}
         {made !== null && <div className="result keep">{made}個のクエストを作りました</div>}

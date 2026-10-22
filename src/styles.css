@@ -999,6 +999,9 @@ details.tuning[open] > summary {
 .head-kyukyoku {
   background: linear-gradient(90deg, #12305a, #4cc9f0);
 }
+.head-jokyu {
+  background: linear-gradient(90deg, #5a3a1e, #c08a4f);
+}
 .head-kiwami {
   background: linear-gradient(90deg, #3c4350, #a7b0bd);
 }
@@ -1014,6 +1017,9 @@ details.tuning[open] > summary {
 }
 .quest-banner.frame-kyukyoku {
   border-color: #4cc9f0;
+}
+.quest-banner.frame-jokyu {
+  border-color: #c08a4f;
 }
 .quest-banner.frame-kiwami {
   border-color: #a7b0bd;
@@ -1039,6 +1045,9 @@ details.tuning[open] > summary {
 }
 .frame-kyukyoku .grade-ribbon {
   background: linear-gradient(90deg, #1f3d6b, #4cc9f0);
+}
+.frame-jokyu .grade-ribbon {
+  background: linear-gradient(90deg, #6b4423, #c08a4f);
 }
 .frame-kiwami .grade-ribbon {
   background: linear-gradient(90deg, #4b5563, #9ca3af);
@@ -1076,6 +1085,9 @@ details.tuning[open] > summary {
 }
 .quest-icon.frame-kyukyoku {
   border-color: #4cc9f0;
+}
+.quest-icon.frame-jokyu {
+  border-color: #c08a4f;
 }
 .quest-icon.frame-kiwami {
   border-color: #a7b0bd;
@@ -1260,6 +1272,10 @@ details.tuning[open] > summary {
   font-weight: 900;
   letter-spacing: 2px;
 }
+.grade-jokyu {
+  background: linear-gradient(120deg, #6b4423, #c08a4f);
+  color: #fff;
+}
 .grade-kiwami {
   background: linear-gradient(120deg, #4b5563, #9ca3af);
   color: #fff;
@@ -1274,6 +1290,7 @@ details.tuning[open] > summary {
 }
 .grade-chip.on.grade-chozetsu,
 .grade-chip.on.grade-kyukyoku,
+.grade-chip.on.grade-jokyu,
 .grade-chip.on.grade-kiwami {
   color: #fff;
 }
