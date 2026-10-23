@@ -775,9 +775,14 @@ describe('画面の表示', () => {
     await click('報酬を受け取る')
     expect(fake.store.claimQuest).toHaveBeenCalled()
     expect(el.textContent).toContain('討伐成功！')
-    expect(el.textContent).toContain('木の結晶 ×1 がドロップ！') // ボスクエストでも、ときどきボスの属性の結晶が落ちる
+    // ボスクエストでも、ときどきボスの属性の結晶が落ちる（カードでめくれて出る）
+    expect(el.querySelector('.drop-card')!.textContent).toBe('💠木の結晶×1')
     await click('会いに行く')
     expect(go).toHaveBeenCalledWith({ name: 'monster', id: 'o8' })
+    // 出撃中は、トレーニング画面でボスに効く種目に印が付く（脚のボス：脚の種目は×1.3、弱点のフロアプレスは×2）
+    const training = await render(<Training go={go} />)
+    expect(training.textContent).toContain('🎯弱点 ×2')
+    expect(training.textContent).toContain('⚔️ボスの部位 ×1.3')
   })
 
   it('クエスト：落ちたボスは、持っている同じ子の運にその場で食べさせられる', async () => {

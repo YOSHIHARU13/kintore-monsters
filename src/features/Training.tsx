@@ -7,13 +7,23 @@ import { partProgress, slotDone, weekCount } from '../lib/week'
 import { ATTR_COLOR, type Go } from '../nav'
 import { MusicButtons } from '../music'
 import { MonsterImage } from '../components/MonsterImage'
-import { BattleBar } from '../components/BattleBar'
+import { BattleBar, useBattle } from '../components/BattleBar'
 import { partnerOf, rateText } from '../lib/partner'
 
 export function Training({ go }: { go: Go }) {
   const { menu, weekSets, todaySets, songs, state, owned, defs, autoSetPartners } = useStore()
   const [partnerFlash, setPartnerFlash] = useState(false)
   const progress = partProgress(weekSets)
+  // 出撃中なら、ボスに効く種目に印をつける（ボスの部位は×1.3、中でも弱点種目は×2.6）
+  const battle = useBattle()
+  const q = CONFIG.quest
+  const hitMark = (slot: Slot): string | null => {
+    if (!battle || slot.day === 'bonus') return null
+    const bossPart = battle.quest.attr !== 'none' && DAYS[slot.day].attr === battle.quest.attr
+    const weak = battle.quest.weakSlots.includes(slot.id)
+    if (weak) return `🎯弱点 ×${Math.round((bossPart ? q.bossPart : 1) * q.weakSlot * 10) / 10}`
+    return bossPart ? `⚔️ボスの部位 ×${q.bossPart}` : null
+  }
 
   // タスクの枠は今週こなしたセット数、ボーナス枠は今日こなしたセット数
   const slotButton = (slot: Slot) => {
@@ -45,6 +55,7 @@ export function Training({ go }: { go: Go }) {
         <button className={`slot${complete ? ' complete' : ''}`} onClick={() => go({ name: 'set', slotId: slot.id })}>
           <div>
             <strong>{ex.name}</strong>
+            {hitMark(slot) && <span className={`hit-mark${battle?.quest.weakSlots.includes(slot.id) ? ' weak' : ''}`}>{hitMark(slot)}</span>}
             <div className="muted small">
               {rangeText(ex.id)}
               {ex.weighted ? `・${dumbbellText(ex)}` : ''}

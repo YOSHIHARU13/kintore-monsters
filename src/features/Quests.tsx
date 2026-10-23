@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useQuestTools } from './QuestAdmin'
+import { ATTRS, ATTR_LABEL, type Attr } from '../data/exercises'
+import { ATTR_COLOR } from '../nav'
 import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { useStore } from '../store'
 import { SeriesChips } from '../components/SeriesChips'
@@ -72,6 +74,7 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
   const { state, quests, tower, castle, defs, owned, today, seriesPeriods, quitChallenge, claimQuest, feedLuck, markQuestRules } = useStore()
   const [fedLuck, setFedLuck] = useState<{ msg: string; keeperId: string } | null>(null) // 落ちた子を運に食べさせた
   const [series, setSeries] = useState<SeriesFilter>('all')
+  const [part, setPart] = useState<Attr | 'all'>('all') // ボスの部位で絞り込む（「今日は胸」と決めてから選べる）
   const { topQuests, redoTop } = useQuestTools()
   // おまかせの作り方が変わったら、今あるボスクエストの条件を1回だけ作り直す
   const redone = useRef(false)
@@ -160,12 +163,27 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
               </p>
             </>
           )}
+          {got.drops.some((d) => d.count > 0) && (
+            <div className="drop-cards">
+              {got.drops
+                .filter((d) => d.count > 0)
+                .map((d, i) => (
+                  // 1枚ずつめくれて出てくる。金のアイテム・筋肉玉・ステッキは光る
+                  <span
+                    key={i}
+                    className={`drop-card${/🥇|筋肉玉|ステッキ/.test(d.label) ? ' shine' : ''}`}
+                    style={{ animationDelay: `${i * 0.35}s` }}
+                  >
+                    <span className="drop-icon">{d.icon || d.label.slice(0, 2)}</span>
+                    <span className="small">{d.icon ? d.label : d.label.slice(2).trim()}</span>
+                    <strong>×{d.count}</strong>
+                    {d.pity && <span className="small">確定</span>}
+                  </span>
+                ))}
+            </div>
+          )}
           {got.drops.map((d, i) =>
-            d.count > 0 ? (
-              <p key={i} className="core-drop">
-                {d.icon} {d.label} ×{d.count} がドロップ！{d.pity ? '（確定ドロップ）' : ''}
-              </p>
-            ) : (
+            d.count > 0 ? null : (
               <p key={i} className="muted">
                 今回は{d.label}が落ちなかった…{d.label === '筋肉玉' ? `（${CONFIG.materials.ballPityMisses}回続けて落ちないと確定）` : ''}
               </p>
@@ -342,6 +360,21 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
           </div>
         </div>
         <SeriesChips value={series} onChange={setSeries} />
+        {category === 'boss' && (
+          <div className="chips" role="group" aria-label="ボスの部位で絞り込み">
+            {(['all', ...ATTRS] as const).map((a) => (
+              <button
+                key={a}
+                type="button"
+                className={`chip small${part === a ? ' on' : ''}`}
+                style={a !== 'all' ? { color: part === a ? undefined : ATTR_COLOR[a] } : undefined}
+                onClick={() => setPart(a)}
+              >
+                {a === 'all' ? '全部の部位' : `${ATTR_LABEL[a]}のボス`}
+              </button>
+            ))}
+          </div>
+        )}
         {allSeries(defs)
           .map((name) => ({ name, st: seriesStatus(name, seriesPeriods, today) }))
           .filter(({ st }) => st.kind === 'active' || st.kind === 'upcoming')
@@ -355,7 +388,12 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
           if (!category || !CATEGORY_GROUPS[category].includes(key)) return null
           const group = quests.filter((q) => {
             const st = seriesStatus(questSeries(q, defs), seriesPeriods, today).kind
-            return st !== 'upcoming' && questPlace(q, defs, seriesPeriods, today) === key && inSeries(series, questSeries(q, defs))
+            return (
+              st !== 'upcoming' &&
+              questPlace(q, defs, seriesPeriods, today) === key &&
+              inSeries(series, questSeries(q, defs)) &&
+              (part === 'all' || q.attr === part)
+            )
           })
           if (group.length === 0) return null
           return (

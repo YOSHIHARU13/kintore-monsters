@@ -21,6 +21,7 @@ import { castleCleared } from '../lib/castle'
 import { towerRewardText } from './Tower'
 import { plusName, type QuestDifficulty } from '../types'
 import { customized, isFavorite } from '../lib/custom'
+import { autoParty } from '../lib/autoParty'
 import type { LotDrop } from '../lib/cores'
 
 /** クエストの詳細：ボスの弱点を見て、難易度と出撃メンバーを選んで挑戦する */
@@ -248,6 +249,17 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
         <h2>
           出撃メンバー（{party.length}/{max}）
         </h2>
+        <div className="row wrap">
+          <button className="btn small primary" onClick={() => setParty(autoParty(members, quest, 'strongest'))}>
+            ⚡ おまかせ：最強
+          </button>
+          <button className="btn small" onClick={() => setParty(autoParty(members, quest, 'luck'))}>
+            🍀 おまかせ：運極重視
+          </button>
+        </div>
+        <p className="muted small">
+          最強：編成倍率と強さがいちばん高くなる6体。運極重視：運極を積めるだけ積んで、編成倍率×1.0はキープ（届かないクエストでは、最強より倍率を下げない）。
+        </p>
         <p className="muted small">まだ足りていない条件に貢献できる順に並んでいます。選ぶと上の編成メーターが埋まります。</p>
         <ul className="choice-list">
           {members.map((m) => {
