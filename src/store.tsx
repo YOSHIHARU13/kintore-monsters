@@ -930,8 +930,10 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
 
     /** 運が99に届いたら、運極の報酬（1体につき1回）を update に書く。もらえるトク玉の数 */
     const luckMaxBonus = (update: DocumentData, mon: OwnedMonster, def: MonsterDef, luck: number): number => {
-      if (isLuckMax(mon) || luck < CONFIG.luck.max || state.claims?.[luckMaxClaimKey(mon.id)]) return 0
-      update[`claims.${luckMaxClaimKey(mon.id)}`] = true
+      // 同じモンスターの運極は1種類として数える（以前の1体ごとの記録も見る）
+      if (isLuckMax(mon) || luck < CONFIG.luck.max || state.claims?.[luckMaxClaimKey(def.id)] || state.claims?.[`luckMax:${mon.id}`]) return 0
+      if (owned.some((o) => o.defId === def.id && o.id !== mon.id && isLuckMax(o))) return 0
+      update[`claims.${luckMaxClaimKey(def.id)}`] = true
       return luckMaxReward(def)
     }
 

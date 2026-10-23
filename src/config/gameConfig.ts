@@ -225,6 +225,17 @@ export const CONFIG = {
       { gold: 5 },
       { eggs: 2 },
     ] as Reward[],
+    // 運極の種類の数（同じモンスターの運極は1種類として数える）の区切りの報酬
+    luckMax: [
+      { count: 5, reward: { eggs: 5 } },
+      { count: 10, reward: { eggs: 10 } },
+      { count: 20, reward: { eggs: 15 } },
+      { count: 30, reward: { eggs: 20 } },
+      { count: 40, reward: { eggs: 25 } },
+      { count: 50, reward: { eggs: 30 } },
+      { count: 75, reward: { eggs: 40 } },
+      { count: 100, reward: { eggs: 50 } },
+    ] as { count: number; reward: Reward }[],
     dex: [
       { percent: 10, reward: { eggs: 3 } },
       { percent: 25, reward: { eggs: 5 } },

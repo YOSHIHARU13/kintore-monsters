@@ -1,7 +1,7 @@
 import { useStore } from '../store'
 import { CollabNews } from '../components/CollabNews'
 import { LoginBonus, Gifts } from './Missions'
-import { activeToday, canClaim, dailyMissions, dexMissions, weeklyMissions } from '../lib/missions'
+import { activeToday, canClaim, dailyMissions, dexMissions, luckMaxMissions, weeklyMissions } from '../lib/missions'
 import { isLuckMax } from '../lib/fusion'
 import { availableEvents } from '../lib/events'
 import { monArt } from '../lib/art'
@@ -21,7 +21,7 @@ import { RankCard } from '../components/RankCard'
 export function Home({ go }: { go: Go }) {
   const { state, menu, weekSets, todaySets, week, defs, owned, yesterday, yesterdayCheckin, today } = useStore()
   const missionCtx = { state, today, week, todaySets, weekSets }
-  const claimable = [...dailyMissions(missionCtx), ...weeklyMissions(missionCtx), ...dexMissions(defs, owned, state)].filter(
+  const claimable = [...dailyMissions(missionCtx), ...weeklyMissions(missionCtx), ...dexMissions(defs, owned, state), ...luckMaxMissions(owned)].filter(
     (m) => canClaim(state, m),
   ).length
   const luckMaxCount = owned.filter(isLuckMax).length
