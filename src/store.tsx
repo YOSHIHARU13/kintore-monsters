@@ -29,7 +29,7 @@ import { compressImage } from './lib/imageCompress'
 import { bossGradeOf, drawSure, isPickupRarity, isReady, pickFrom, pullsAffordable, rarityOf, rateTable, starsOf, type Pay } from './lib/gacha'
 import { isJogressReady } from './lib/stats'
 import { battleOf, type Battle, defaultBossHp, dropPlus, isStrict, questGold } from './lib/quest'
-import { bossQuestSync } from './lib/questAuto'
+import { bossQuestSync, isHighEndOnly, type BossRole } from './lib/questAuto'
 import {
   BALL_KEY,
   CORE_KEYS,
@@ -301,6 +301,8 @@ interface Store {
   bulkUpdateDefs: (ids: string[], patch: { element?: Element | null; tier?: RarityKey; bossGrade?: QuestGrade; series?: string }) => void
   /** ロックする・外す（ロックした子は、まとめて合成・素材に使わない） */
   toggleLock: (monsterId: string) => void
+  /** 高難度の役割をまとめて付け外しする（塔の11階・禁筋の最上階・孤城の城主・孤城限定） */
+  setBossRole: (defIds: string[], role: BossRole, on: boolean) => void
   /** まとめてロック・解除する */
   setLocks: (monsterIds: string[], locked: boolean) => void
   /** ボスクエストの条件を、今の版のおまかせで作り直したことを記録する */
@@ -554,7 +556,13 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         return boss
           ? { ...q, name, autoName, element: elementInfo(boss).elements[0], bossSeries: seriesOf(boss) }
           : { ...q, name, autoName }
-      }).concat([
+      })
+        // 高難度専用にしたボスのクエストは出さない（専用をやめれば、また出る）
+        .filter((q) => {
+          const boss = q.kind !== 'material' ? defs.find((d) => d.id === q.bossDefId) : undefined
+          return !boss || !isHighEndOnly(boss)
+        })
+        .concat([
         ...builtinMaterialQuests(defs, today, selectableGimmicks(questDocs)),
         ...builtinTempleQuests(defs, today, selectableGimmicks(questDocs)),
       ]),
@@ -1662,6 +1670,27 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       batch.commit().catch(fail)
     }
 
+    const setBossRole: Store['setBossRole'] = (defIds, role, on) => {
+      const batch = writeBatch(db)
+      let working = [...defs]
+      for (const id of defIds) {
+        const def = working.find((d) => d.id === id)
+        if (!def || !def.questOnly || isHidden(def)) continue
+        // 役割は1つだけ（付けると、ほかの役割は外れる）
+        const change: Partial<MonsterDef> = on
+          ? { tower: false, kinkinLord: false, castleLord: false, castleOnly: false, [role]: true }
+          : { [role]: false }
+        batch.update(doc(db, base, 'monsterDefs', id), change)
+        const updated = { ...def, ...change }
+        working = working.map((d) => (d.id === id ? updated : d))
+        // 専用をやめた子は、ふつうのクエストがなければ作る
+        const sync = on ? null : bossQuestSync(updated, questDocs, selectableGimmicks(questDocs), working, defaultBossHp)
+        if (sync?.id) batch.update(doc(db, base, 'quests', sync.id), sync.data)
+        else if (sync) batch.set(doc(collection(db, base, 'quests')), { ...sync.data, createdAt: Date.now() })
+      }
+      batch.commit().catch(fail)
+    }
+
     const setLocks: Store['setLocks'] = (monsterIds, locked) => {
       const targets = owned.filter((o) => monsterIds.includes(o.id) && !!o.locked !== locked)
       if (targets.length === 0) return
@@ -1784,6 +1813,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       markQuestRules,
       toggleLock,
       setLocks,
+      setBossRole,
       bulkUpdateDefs,
       claimRanks,
       deleteGacha,

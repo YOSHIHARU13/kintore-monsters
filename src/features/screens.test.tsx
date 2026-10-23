@@ -1045,6 +1045,22 @@ describe('画面の表示', () => {
     expect(go).toHaveBeenCalledWith({ name: 'monsterForm', id: 'L' })
   })
 
+  it('高難度のボス：降臨の一覧から、孤城限定などの役割をまとめて付け外しできる', async () => {
+    const { BossAdmin } = await import('./BossAdmin')
+    const baku: MonsterDef = { id: 'B', name: 'バクゼツ', attr: 'legs', templateId: 'single', images: {}, questOnly: true, bossGrade: 'bakuzetsu', element: 'fire', createdAt: 9 }
+    const lord: MonsterDef = { ...baku, id: 'L', name: 'ジョウシュ', castleLord: true }
+    fake.store.setBossRole = vi.fn()
+    fake.store.defs = [...defs, baku, lord]
+    const el = await render(<BossAdmin go={go} />)
+    await click('零の孤城')
+    const castleOnly = [...el.querySelectorAll('section')].find((x) => x.textContent?.includes('孤城限定'))!
+    await act(async () => [...castleOnly.querySelectorAll('button')].find((b) => b.textContent?.includes('降臨から選ぶ'))!.click())
+    expect(el.textContent).toContain('いまは城主（選ぶと移る）')
+    const row = [...el.querySelectorAll('.role-pick label')].find((l) => l.textContent?.includes('バクゼツ'))!
+    await act(async () => row.querySelector('input')!.click())
+    expect(fake.store.setBossRole).toHaveBeenCalledWith(['B'], 'castleOnly', true)
+  })
+
   it('カスタマイズアイテムの一覧：持っているアイテムと、付けている子が見られる', async () => {
     const { CustomItems } = await import('./CustomItems')
     fake.store.state = { ...state, customItems: { atk1: 2, 'ab:シールド': 1, fav: 0 }, sticks: 3 }
@@ -1236,9 +1252,9 @@ describe('画面の表示', () => {
     const questOnly = [...el.querySelectorAll('label.row')].find((l) => l.textContent?.includes('クエスト限定にする'))!
     await act(async () => questOnly.querySelector('input')!.click())
     const grades = el.querySelector('[aria-label="降臨の格"]')!
-    expect(el.textContent).not.toContain('城主にする') // 城主は爆絶だけ
-    await act(async () => [...grades.querySelectorAll('button')].find((b) => b.textContent === '爆絶')!.click())
-    expect(el.textContent).toContain('城主にする')
+    // 高難度専用にするかは、登録画面ではなく「高難度のボス」でまとめて選ぶ
+    expect(el.textContent).not.toContain('城主にする')
+    expect(el.textContent).toContain('高難度のボス」でまとめて選べます')
     await act(async () => [...grades.querySelectorAll('button')].find((b) => b.textContent === '極')!.click())
     await click('保存する')
     expect(fake.store.saveMonsterDef).toHaveBeenCalledWith(

@@ -49,10 +49,10 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
   const [fixedStars] = useState(existing?.fixedStars ?? CONFIG.gacha.fixedStarsDefault)
   const [jogressPlus] = useState(existing?.jogressPlus ?? 0)
   const [questOnly, setQuestOnly] = useState(existing?.questOnly === true || questPreset)
-  const [tower, setTower] = useState(existing?.tower === true)
-  const [castleLord, setCastleLord] = useState(existing?.castleLord === true)
-  const [castleOnly, setCastleOnly] = useState(existing?.castleOnly === true)
-  const [kinkinLord, setKinkinLord] = useState(existing?.kinkinLord === true)
+  const [tower] = useState(existing?.tower === true)
+  const [castleLord] = useState(existing?.castleLord === true)
+  const [castleOnly] = useState(existing?.castleOnly === true)
+  const [kinkinLord] = useState(existing?.kinkinLord === true)
   const [element, setElement] = useState<Element | ''>(existing?.element ?? '')
   const [favoriteSlot, setFavoriteSlot] = useState(existing?.favoriteSlot ?? '')
   const [abilities, setAbilities] = useState<string[]>(existing?.abilities ?? [])
@@ -395,29 +395,11 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
               。爆絶は獣神化で★4）。
             </p>
           )}
-          {questOnly && bossGrade === 'bakuzetsu' && (
-            <label className="row">
-              <input type="checkbox" checked={castleLord} onChange={(e) => setCastleLord(e.target.checked)} />
-              👑 零の孤城の城主にする（最上階の零属性のボス。何体かいれば毎月入れ替わる。倒すともらえる）
-            </label>
-          )}
           {questOnly && (
-            <label className="row">
-              <input type="checkbox" checked={castleOnly} onChange={(e) => setCastleOnly(e.target.checked)} />
-              🏯 零の孤城の限定にする（1〜10階のボスになり、毎月の初回クリアで手に入る。ふつうのクエストは作らない）
-            </label>
-          )}
-          {questOnly && (
-            <label className="row">
-              <input type="checkbox" checked={kinkinLord} onChange={(e) => setKinkinLord(e.target.checked)} />
-              ⛓ 禁筋の獄の最上階のボスにする（何体かいれば毎月入れ替わる。初回クリアで手に入る。ふつうのクエストは作らない）
-            </label>
-          )}
-          {questOnly && (
-            <label className="row">
-              <input type="checkbox" checked={tower} onChange={(e) => setTower(e.target.checked)} />
-              🗼 試練の塔の11階のボスにする（何体かいれば毎月入れ替わる。倒すともらえる）
-            </label>
+            <p className="muted small">
+              🏯 高難度専用（塔の11階・禁筋の最上階・孤城の城主・孤城限定）にするかは、「その他 → つくる → 高難度のボス」でまとめて選べます
+              {(tower || kinkinLord || castleLord || castleOnly) && '（この子はいま高難度専用です）'}
+            </p>
           )}
           {!questOnly && !CONFIG.gacha.rarities[rarity].everyGacha && (
             <>

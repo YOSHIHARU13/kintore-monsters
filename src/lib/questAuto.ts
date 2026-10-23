@@ -187,6 +187,13 @@ export function commonPairs(defs: MonsterDef[]): { a: string; b: string; n: numb
 }
 
 
+/** 高難度の役割：塔の11階・禁筋の獄の最上階・零の孤城の城主・孤城限定（1〜10階） */
+export type BossRole = 'tower' | 'kinkinLord' | 'castleLord' | 'castleOnly'
+
+/** 高難度専用のボス（塔の11階・禁筋の最上階・孤城の城主・孤城限定）。ふつうのクエストは作らない・出さない */
+export const isHighEndOnly = (d: Pick<MonsterDef, 'tower' | 'castleLord' | 'castleOnly' | 'kinkinLord'>) =>
+  !!(d.tower || d.castleLord || d.castleOnly || d.kinkinLord)
+
 /**
  * 降臨のボスクエストを、降臨の格と部位に合わせるための書き込み（なければ新しく作る）。
  * 合っていれば null。塔限定・城主は塔と孤城で出るので作らない
@@ -199,7 +206,7 @@ export function bossQuestSync(
   hpOf: (grade: QuestGrade) => number,
 ): { id: string | null; data: Partial<Quest> } | null {
   const grade = bossGradeOf(boss)
-  if (!grade || boss.tower || boss.castleLord || boss.castleOnly || boss.kinkinLord) return null
+  if (!grade || isHighEndOnly(boss)) return null
   const current = quests.find((q) => q.kind !== 'material' && q.bossDefId === boss.id)
   const attr = nodeAttr(boss, FIRST_NODE_ID)
   if (current && current.grade === grade && current.attr === attr) return null
