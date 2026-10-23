@@ -35,21 +35,19 @@ import {
   CORE_KEYS,
   CORE_LABEL,
   DROP_ICON,
-  STONE_LABEL,
   ballsOf,
   coresOf,
   dropLabel,
   dropOf,
-  rollBonusStones,
   rollMaterialDrop,
   stonesOf,
   type CoreKey,
 } from './lib/cores'
 import { pendingRanks, rankClaimKey, rankReward } from './lib/rank'
+import { isShinkaMaterial, rollBoxes, sumBoxes, type BoxItem } from './lib/boxes'
 import {
   bulkFeedTarget,
   canFeed,
-  dropLuck,
   fusionGain,
   isLuckMax,
   luckAfter,
@@ -200,6 +198,7 @@ export interface QuestReward {
   battles?: { from: number; to: number } // 孤城：今回突破したバトル（何番目から何番目まで）
   booster?: BoosterKey | null // 試練の塔でもらえたブースター
   boosted?: boolean // 討伐ブースターで2倍になったか
+  boxes?: BoxItem[] // 降臨の宝箱の中身（開ける順）
   drops: ItemDrop[] // 落ちた素材（素材クエストで何も落ちなければ、0個の行が1つ）
   gold: number // オーブ
   coins?: number // もらえた進化コイン
@@ -311,7 +310,8 @@ interface Store {
   setSlot: (slotId: string, exerciseId: string) => void
   buyExp: (attr: Attr, amount: number) => void
 
-  buyBooster: (key: BoosterKey) => void
+  /** ブースターを買う。オーブか進化コイン（coinPrice があるものだけ） */
+  buyBooster: (key: BoosterKey, pay?: 'gold' | 'coins') => void
   useBooster: (key: BoosterKey) => void
   /** ガチャを1回引く。トク玉1個か、オーブ5個（pay）。選んだガチャから、確率どおりに1体（ダブりあり） */
   hatchEgg: (gachaId: string, pay?: Pay) => HatchResult | null
@@ -764,10 +764,15 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       updateState({ coins: increment(-cost), [`exp.${attr}.bought`]: increment(amount) })
     }
 
-    const buyBooster: Store['buyBooster'] = (key) => {
-      const price = CONFIG.boosters[key].price
-      if (state.gold < price) return
-      updateState({ gold: increment(-price), [`boosters.${key}`]: increment(1) })
+    const buyBooster: Store['buyBooster'] = (key, pay = 'gold') => {
+      const b = CONFIG.boosters[key]
+      if (pay === 'coins') {
+        if (!b.coinPrice || state.coins < b.coinPrice) return
+        updateState({ coins: increment(-b.coinPrice), [`boosters.${key}`]: increment(1) })
+        return
+      }
+      if (state.gold < b.price) return
+      updateState({ gold: increment(-b.price), [`boosters.${key}`]: increment(1) })
     }
 
     /** ブースターを使う。同じ種類が使用中なら重ねない */
@@ -1384,8 +1389,9 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const c = battle.challenge
       const material = battle.quest.kind === 'material'
       const bonus = luckBonus(battle.party.map((m) => m.mon))
+      // 討伐ブースターは、宝箱の中身（素材クエストは落ちる素材）だけ2倍。オーブは増えない
       const boost = state.boosts?.quest ? 2 : 1
-      const gold = Math.round(questGold(battle.quest, c.difficulty) * bonus.goldRate * boost)
+      const gold = Math.round(questGold(battle.quest, c.difficulty) * bonus.goldRate)
       const kind = dropOf(battle.quest)
       const batch = writeBatch(db)
       writeRecords(batch, battle)
@@ -1399,6 +1405,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       bumpStats(update, { quest: 1, strict: isStrict(battle.quest) ? 1 : 0 })
       let monsterId: string | null = null
       let coins = 0
+      let boxes: BoxItem[] | undefined
+      let bossLuck: number | undefined
       const drops: ItemDrop[] = []
       if (kind === 'custom') {
         // 神殿：カスタマイズアイテム（運極がいると、くじが増える）
@@ -1431,26 +1439,32 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         if (!boss) return null
         // ボスクエストは、オーブと同じだけ進化コインも
         coins = gold * CONFIG.coins.perOrb
-        const shiny = false // 色違いはなくなった
-        const ref = doc(collection(db, base, 'ownedMonsters'))
-        batch.set(ref, {
-          defId: boss.id,
-          nodeId: FIRST_NODE_ID,
-          investedBy: {},
-          investedFrom: {},
-          plus: dropPlus(battle.quest),
-          luck: dropLuck(battle.party.map((m) => m.mon)),
-          shiny,
-          obtainedAt: Date.now(),
-        })
-        if (shiny) update[`dexShiny.${boss.id}`] = true
-        monsterId = ref.id
-        // おまけ：ボスの属性の結晶
-        const stones = rollBonusStones(Math.random) * boost
-        if (stones > 0 && battle.quest.element) {
-          update[`stones.${battle.quest.element}`] = increment(stones)
-          drops.push({ icon: DROP_ICON.stone, label: STONE_LABEL(battle.quest.element), count: stones })
+        // 宝箱：ボス（運1。神化素材のボスは1〜3体）と、結晶・EXP・進化コイン・筋肉玉
+        boxes = rollBoxes(battle.quest, { luckMaxCount: bonus.count, shinkaMaterial: isShinkaMaterial(boss, defs), boosted: boost > 1 }, Math.random)
+        const sum = sumBoxes(boxes)
+        if (sum.boss > 0) {
+          // 落ちたボスは、まとめて1体に（運は合計。BOXが埋まらないように）
+          bossLuck = Math.min(CONFIG.luck.max, sum.luck)
+          const ref = doc(collection(db, base, 'ownedMonsters'))
+          batch.set(ref, {
+            defId: boss.id,
+            nodeId: FIRST_NODE_ID,
+            investedBy: {},
+            investedFrom: {},
+            plus: dropPlus(battle.quest),
+            luck: bossLuck,
+            shiny: false,
+            obtainedAt: Date.now(),
+          })
+          monsterId = ref.id
         }
+        if (sum.stone > 0 && battle.quest.element) update[`stones.${battle.quest.element}`] = increment(sum.stone)
+        if (sum.exp > 0) {
+          if (battle.quest.attr === 'none') update.anyExp = increment(sum.exp)
+          else update[`exp.${battle.quest.attr}.trained`] = increment(sum.exp)
+        }
+        if (sum.ball > 0) update[`cores.${BALL_KEY}`] = increment(sum.ball)
+        coins += sum.coins
       }
       if (coins > 0) update.coins = increment(coins)
       batch.update(stateRef, update)
@@ -1464,7 +1478,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         gold,
         eggs: 0,
         towerFloor: null,
-        luck: monsterId ? dropLuck(battle.party.map((m) => m.mon)) : undefined,
+        luck: bossLuck,
+        boxes,
         byMember: battle.byMember,
         mvpId: battle.mvpId,
         total: battle.damage,
@@ -1490,14 +1505,14 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         ? { ...floor.reward, gold: Math.round(floor.reward.gold * share), eggs: Math.round(floor.reward.eggs * share) }
         : { gold: Math.round(floor.reward.gold * share), eggs: Math.round(floor.reward.eggs * share), cores: 0, booster: null, monsterDefId: null }
       const bonus = luckBonus(party)
-      const boost = state.boosts?.quest ? 2 : 1
+      // 高難度には宝箱がないので、討伐ブースターは使わない
+      const boost = 1
       const gold = Math.round(r.gold * bonus.goldRate * boost)
       const coins = gold * CONFIG.coins.perOrb
       const cores = r.cores * boost
       const batch = writeBatch(db)
       writeRecords(batch, battle)
       const update: DocumentData = {
-        ...(boost > 1 ? { 'boosts.quest': false } : {}),
         gold: increment(gold),
         questClears: increment(1),
         ...(kind === 'castle'

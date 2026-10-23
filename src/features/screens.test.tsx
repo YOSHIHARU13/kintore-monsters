@@ -775,7 +775,7 @@ describe('画面の表示', () => {
     expect(names[1]).not.toContain('アーク')
     // ボスクエストは難易度を選ばない。格（決めていなければ極）でHPと報酬が決まる
     expect(el.querySelector('[aria-label="難易度"]')).toBeNull()
-    expect(el.textContent).toContain('HP 3,000・🔮12ドロップ アシガメ（運4）・ときどき木の結晶')
+    expect(el.textContent).toContain('HP 3,000・🔮12🎁 宝箱 5個：1箱ごとに80%でアシガメ（運1）、ほかは木の結晶・脚のEXP・進化コイン')
     await click('ムキドラゴ')
     expect(el.textContent).toContain('アーク1/2') // 選ぶとメーターが埋まる
     await click('出撃する')

@@ -280,10 +280,11 @@ export const CONFIG = {
     ] as FreePullEvent[],
   },
   // ブースター：回数制の道具。使うと次の1回（EXPは次の数セット）だけ効く。期限なし
+  // coinPrice：進化コインでも買える値段（習慣のブースターはオーブが増えるので、オーブでだけ買える）
   boosters: {
-    habit: { icon: '🧘', label: 'ブースター', price: 15, text: '次の記録のオーブが2倍、その日の上限もなし' },
-    exp: { icon: '💪', label: '筋トレブースター', price: 30, text: '次の10セットのEXPが2倍', sets: 10 },
-    quest: { icon: '⚔️', label: '討伐ブースター', price: 25, text: '次のクエスト報酬（オーブ・コイン・素材）が2倍' },
+    habit: { icon: '🧘', label: 'ブースター', price: 15, coinPrice: 0, text: '次の記録のオーブが2倍、その日の上限もなし' },
+    exp: { icon: '💪', label: '筋トレブースター', price: 30, coinPrice: 150, text: '次の10セットのEXPが2倍', sets: 10 },
+    quest: { icon: '⚔️', label: '討伐ブースター', price: 25, coinPrice: 150, text: '次の降臨の宝箱の中身（素材クエストは落ちる素材）が2倍' },
   },
   // 試練の塔：毎月 openDays の日だけ開催。下から1階ずつ挑戦し、各階の報酬は月に1回だけ
   tower: {
@@ -367,6 +368,21 @@ export const CONFIG = {
       { exp: 400, coins: 400 },
       { exp: 500, coins: 500 }, // ＋4→＋5
     ],
+  },
+
+  // 降臨の宝箱：1周で base 個＋出撃した運極1体ごとに perLuckMax 個。1箱ごとに bossRate でボス（運1）、残りは均等に
+  // amounts：ボス以外の1箱の中身（low＝究極以下、high＝超絶以上。high だけ筋肉玉も出る）
+  // 神化素材のボスは、1箱で shinkaBodies 体・1体あたり運 shinkaLuck
+  boxes: {
+    base: 5,
+    perLuckMax: 3,
+    bossRate: 0.8,
+    amounts: {
+      low: { stone: 2, exp: 30, coins: 100, ball: 0 },
+      high: { stone: 3, exp: 60, coins: 200, ball: 1 },
+    },
+    shinkaBodies: [1, 3] as [number, number],
+    shinkaLuck: [1, 3] as [number, number],
   },
 
   // 運：同じモンスターを食べさせると、食べさせた子の運がそのまま足される（タダ）。最大99で「運極」

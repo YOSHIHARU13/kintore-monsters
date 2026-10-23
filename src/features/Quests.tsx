@@ -65,6 +65,7 @@ import { QUEST_RULES } from '../lib/questAuto'
 import { towerRewardText } from './Tower'
 import { boosterName } from '../lib/boosters'
 import type { QuestReward } from '../store'
+import { TreasureBoxes } from '../components/TreasureBoxes'
 import type { Go, QuestCategory } from '../nav'
 import type { Periods } from '../lib/series'
 import { BattleBar } from '../components/BattleBar'
@@ -119,7 +120,7 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
       // 保存できなくても切り替えはできる
     }
   }
-  const [got, setGot] = useState<(QuestReward & { boss: MonsterDef | undefined; plus: number }) | null>(null)
+  const [got, setGot] = useState<(QuestReward & { boss: MonsterDef | undefined; plus: number; quest?: Quest }) | null>(null)
   // 出撃した日のうちに倒せなかった戦い
   const expired =
     state.challenge && state.challenge.date !== today
@@ -186,7 +187,8 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
             {got.coins ?? 0}
           </h2>
           {got.byMember && <DamageShare byMember={got.byMember} mvpId={got.mvpId} />}
-          {got.boosted && <p className="tag keep">⚔️ 討伐ブースターで報酬2倍！</p>}
+          {got.boosted && <p className="tag keep">⚔️ 討伐ブースターで中身2倍！</p>}
+          {got.boxes && <TreasureBoxes boxes={got.boxes} quest={got.quest ?? { attr: 'none' }} boss={got.boss} />}
           {got.eggs > 0 && <p>🟡 トク玉 ×{got.eggs} を手に入れた！</p>}
           {got.booster && (
             <p>{boosterName(state, got.booster)} を手に入れた！</p>
@@ -306,6 +308,7 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
                   setGot({
                     ...reward,
                     boss: def,
+                    quest: battle.quest,
                     plus: reward.towerFloor ? 0 : dropPlus(battle.quest),
                   })
                 }
