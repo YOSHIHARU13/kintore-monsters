@@ -211,12 +211,13 @@ export const CONFIG = {
   },
   // 獣神化（★4）：格は金（激レア2体の合体）・銀（専用の絵）・銅（後光だけ）。素材はモンスターごとのレシピ（lib/shinka）
   // bonus：★が1つ増えるぶんとは別の攻撃力の上乗せ。爆絶の降臨の獣神化（銅）は questBonus（降臨なので少し弱い）
-  // luckScale：レシピの運（1〜5）に掛ける数（ボスは運4で落ちるので、モンストの「運3」は運12）
+  // レシピの運：1種類あたり maxLuckPerItem まで、合計 maxLuckTotal まで（宝箱から1周で運4くらい集まる）
   shinka: {
     coins: 300,
     bonus: { gold: 6000, silver: 3000, bronze: 1500 },
     questBonus: 0,
-    luckScale: 4,
+    maxLuckPerItem: 15,
+    maxLuckTotal: 30,
   },
   // 進化コイン：進化・ジョグレス・EXPの購入に使う（オーブはガチャとブースター用）。ボスクエストではオーブと同じだけもらえる
   coins: {

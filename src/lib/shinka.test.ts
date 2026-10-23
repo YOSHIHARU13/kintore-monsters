@@ -33,7 +33,7 @@ describe('獣神化', () => {
     expect(attackOf(mon({ nodeId: 'n1', shinka: true }), baku) - attackOf(mon({ nodeId: 'n1' }), baku)).toBe(3000) // 降臨は★のぶんだけ
   })
 
-  it('レシピ：子ごとに決まっていて変わらない。体数は1〜5、運は4〜20（モンストの運1〜5の4倍）', () => {
+  it('レシピ：子ごとに決まっていて変わらない。1種類あたり運15まで、合計30まで。超究極は使わない', () => {
     const chozetsu = ['f1', 'f2', 'f3', 'w1'].map((id, i) => def(id, { questOnly: true, bossGrade: 'chozetsu', element: i < 3 ? 'fire' : 'water', templateId: 'single' }))
     const defs = [sr, ...chozetsu]
     const a = shinkaRecipe(sr, defs)
@@ -42,9 +42,14 @@ describe('獣神化', () => {
     expect(a.length).toBeLessThanOrEqual(3)
     for (const item of a) {
       expect(item.count).toBeGreaterThanOrEqual(1)
-      expect(item.count).toBeLessThanOrEqual(5)
-      expect(item.luck % 4).toBe(0)
-      expect(item.luck).toBeLessThanOrEqual(20)
+      expect(item.count).toBeLessThanOrEqual(3)
+      expect(item.count * item.luck).toBeLessThanOrEqual(15)
+    }
+    // どの子のレシピも、合計30まで
+    for (let i = 0; i < 40; i++) {
+      const total = shinkaRecipe(def(`s${i}`, { tier: 'superRare' }), defs).reduce((sum, x) => sum + x.count * x.luck, 0)
+      expect(total).toBeLessThanOrEqual(30)
+      expect(total).toBeGreaterThan(0)
     }
     // 爆絶の降臨は、同じ属性の超絶の降臨から
     const baku = def('b', { questOnly: true, bossGrade: 'bakuzetsu', element: 'fire', templateId: 'single' })
@@ -53,6 +58,9 @@ describe('獣神化', () => {
     const collab = def('c', { tier: 'superRare', series: '鬼' })
     const oni = def('oni', { questOnly: true, bossGrade: 'kyukyoku', series: '鬼', templateId: 'single' })
     expect(shinkaRecipe(collab, [...defs, collab, oni]).map((i) => i.defId)).toEqual(['oni'])
+    // 同じコラボでも超究極は使わない（ほかに降臨がなければ、図鑑の近い超絶から）
+    const choKyu = def('ck', { questOnly: true, bossGrade: 'chokyukyoku', series: '鬼', templateId: 'single' })
+    for (const item of shinkaRecipe(collab, [...defs, collab, choKyu])) expect(['f1', 'f2', 'f3', 'w1']).toContain(item.defId)
   })
 
   it('運の使い方：低い子から使い切り、余った運の子はBOXに残る（運15が要るとき、運17の子は運2で残る）', () => {
