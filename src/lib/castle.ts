@@ -93,6 +93,8 @@ export function castleFloors(month: string, defs: MonsterDef[], gimmicks: string
   const part = PATTERN_PARTS[pattern]
   const lineup = castleLineup(defs, quests)
   const lastBoss = lastBossOf(defs, pattern)
+  // 前の階の条件も数えて、階ごとにちがう子が主役になるように
+  const sofar: Pick<Quest, 'id' | 'requirements' | 'gimmicks'>[] = [...quests]
   return Array.from({ length: c.floors }, (_, i) => {
     const floor = i + 1
     const top = floor === c.floors
@@ -101,7 +103,7 @@ export function castleFloors(month: string, defs: MonsterDef[], gimmicks: string
     const asBoss = boss && top ? ({ ...boss, element: undefined, jogressElements: [] } as MonsterDef) : boss
     const element = top ? undefined : boss ? elementInfo(boss).elements[0] : undefined
     const setup = asBoss
-      ? autoQuestSetup(patternBoss(asBoss, pattern), 'bakuzetsu', 'boss', quests, gimmicks, `${CASTLE_PREFIX}${floor}`, defs, false)
+      ? autoQuestSetup(patternBoss(asBoss, pattern), 'bakuzetsu', 'boss', sofar, gimmicks, `${CASTLE_PREFIX}${floor}`, defs, false)
       : { requirements: [], weakSlots: [] }
     const hp = Math.max(100, Math.round((standardSessionDamage() * c.hpRatio[i]) / 100) * 100)
     const quest: Quest = {
@@ -119,6 +121,7 @@ export function castleFloors(month: string, defs: MonsterDef[], gimmicks: string
       theme: 'night',
       createdAt: 0,
     }
+    sofar.push(quest)
     return {
       floor,
       quest,

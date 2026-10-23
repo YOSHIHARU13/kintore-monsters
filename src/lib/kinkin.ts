@@ -3,7 +3,7 @@ import { elementInfo } from './element'
 import { partTag } from './formation'
 import { bossGradeOf } from './gacha'
 import { standardSessionDamage } from './quest'
-import { autoQuestSetup } from './questAuto'
+import { autoQuestSetup, ownAbilities } from './questAuto'
 import { PATTERN_PARTS, patternBoss, patternOf, patternPick, weakSlotsFor } from './pattern'
 import { isOpenOn, type TowerFloor } from './tower'
 import { isHidden, type GameState, type MonsterDef, type Quest, type QuestGrade } from '../types'
@@ -52,13 +52,15 @@ export function kinkinFloors(month: string, defs: MonsterDef[], gimmicks: string
   const part = PATTERN_PARTS[pattern]
   const lineup = kinkinLineup(defs)
   const lord = patternPick(kinkinLords(defs), pattern)
+  // 前の階の条件も数えて、階ごとにちがう子が主役になるように
+  const sofar: Pick<Quest, 'id' | 'requirements' | 'gimmicks'>[] = [...quests]
   return Array.from({ length: k.floors }, (_, i) => {
     const floor = i + 1
     const top = floor === k.floors
     const boss = top && lord ? lord : lineup[i]
     const grade: QuestGrade = floor >= k.bakuzetsuFrom ? 'bakuzetsu' : 'chozetsu'
     const setup = boss
-      ? autoQuestSetup(patternBoss(boss, pattern), grade, 'boss', quests, gimmicks, `${KINKIN_PREFIX}${floor}`, defs, false)
+      ? autoQuestSetup(patternBoss(boss, pattern), grade, 'boss', sofar, gimmicks, `${KINKIN_PREFIX}${floor}`, defs, false, 'normal', ownAbilities(quests, boss.id))
       : { requirements: [], weakSlots: [] }
     const hp = Math.max(100, Math.round((standardSessionDamage() * k.hpRatio[i]) / 100) * 100)
     const quest: Quest = {
@@ -76,6 +78,7 @@ export function kinkinFloors(month: string, defs: MonsterDef[], gimmicks: string
       theme: 'night',
       createdAt: 0,
     }
+    sofar.push(quest)
     return {
       floor,
       quest,

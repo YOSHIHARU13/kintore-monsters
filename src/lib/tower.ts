@@ -1,7 +1,7 @@
 import { CONFIG } from '../config/gameConfig'
 import { elementInfo } from './element'
 import { gradeOf, standardSessionDamage } from './quest'
-import { autoQuestSetup } from './questAuto'
+import { autoQuestSetup, ownAbilities } from './questAuto'
 import { PATTERN_PARTS, patternBoss, patternOf, patternPick, weakSlotsFor } from './pattern'
 import { partTag } from './formation'
 import { bossGradeOf, rarityOf } from './gacha'
@@ -145,6 +145,8 @@ export function towerFloors(
   const lineup = towerLineup(defs, quests, index)
   const prizes = towerMonsters(defs)
 
+  // 前の階の条件も数えて、階ごとにちがう子が主役になるように
+  const sofar: Pick<Quest, 'id' | 'requirements' | 'gimmicks'>[] = [...quests]
   return Array.from({ length: t.floors }, (_, i) => {
     const floor = i + 1
     const mi = t.monsterFloors.indexOf(floor)
@@ -155,7 +157,7 @@ export function towerFloors(
     const grade: QuestGrade = floor >= t.chozetsuFrom ? 'chozetsu' : floor >= t.kyukyokuFrom ? 'kyukyoku' : 'kiwami'
     // 条件：ほかのクエストで使っているスキルをなるべく避ける（そのボスの超絶クエストとは別のギミックに）。パターンごとに変わる
     const setup = boss
-      ? autoQuestSetup(patternBoss(boss, pattern), grade, 'boss', quests, gimmicks, `tower-${index}-${floor}`, defs, false)
+      ? autoQuestSetup(patternBoss(boss, pattern), grade, 'boss', sofar, gimmicks, `tower-${index}-${floor}`, defs, false, 'normal', ownAbilities(quests, boss.id))
       : { requirements: [], weakSlots: [] }
     // 持ち物検査：属性・アビリティに加えて、上の階では「その月の部位の子」（部位限定ガチャの子が活躍する）
     const partReq: Requirement[] = floor >= t.partReqFrom ? [{ tag: partTag(part), count: floor >= t.chozetsuFrom ? 3 : 2 }] : []
@@ -176,6 +178,7 @@ export function towerFloors(
       theme: 'royal',
       createdAt: 0,
     }
+    sofar.push(quest)
     const reward: TowerReward = {
       gold: t.gold[i],
       eggs: (t.eggs[floor] ?? 0) + (mi >= 0 && !prize ? t.eggsInsteadOfMonster : 0),

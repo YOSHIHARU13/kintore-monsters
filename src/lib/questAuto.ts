@@ -15,12 +15,53 @@ function hash(s: string): number {
   return Math.abs(h)
 }
 
+/** そのボスのふつうのクエストで求めているアビリティ */
+export function ownAbilities(quests: Pick<Quest, 'kind' | 'bossDefId' | 'requirements' | 'gimmicks'>[], bossId: string): string[] {
+  return quests.filter((q) => q.kind !== 'material' && q.bossDefId === bossId).flatMap((q) => requirementsOf(q).flatMap((r) => tagAbilities(r.tag)))
+}
+
+/** そのクエストの条件で、その子が刺さるか（有利な属性を持ち、求められるアビリティを1つ以上持つ） */
+function covers(d: MonsterDef, reqs: Requirement[]): boolean {
+  const els = elementInfo(d).elements
+  const elReqs = reqs.filter((r) => r.tag.startsWith('el:')).map((r) => r.tag.slice(3))
+  const elOk = reqs.some((r) => r.tag === KINDS_TAG) ? els.length > 0 : elReqs.length === 0 || els.some((e) => elReqs.includes(e))
+  const wanted = new Set(reqs.flatMap((r) => tagAbilities(r.tag)))
+  return elOk && wanted.size > 0 && slotted(d).some((g) => wanted.has(g))
+}
+
+/** ほかのクエストで、その子がいくつ刺さっているか */
+export function coverageOf(d: MonsterDef, quests: Pick<Quest, 'requirements' | 'gimmicks' | 'id'>[], selfId?: string): number {
+  return quests.filter((q) => q.id !== selfId && covers(d, requirementsOf(q))).length
+}
+
+/**
+ * 主役（スポットライト）：まだ刺さるクエストが少ないガチャの子から、このボスに有利な属性を持つ子を1体選ぶ。
+ * その子のアビリティを条件に入れるので、どの子にも「ここなら活躍する」クエストができる（激レアが先）
+ */
+export function spotlightOf(
+  boss: MonsterDef,
+  quests: Pick<Quest, 'requirements' | 'gimmicks' | 'id'>[],
+  defs: MonsterDef[],
+  selfId?: string,
+): MonsterDef | undefined {
+  const bossEl = elementInfo(boss).elements[0]
+  const adv = advantageElements(bossEl)[0]
+  const rank: Record<RarityKey, number> = { superRare: 0, rare: 1, normal: 2 }
+  const seed = hash(boss.id)
+  return defs
+    .filter((d) => !d.questOnly && !d.recipe?.length && d.id !== boss.id && slotted(d).length > 0)
+    .filter((d) => (bossEl ? !!adv && elementInfo(d).elements.includes(adv) : elementInfo(d).elements.length > 0))
+    .map((d) => ({ d, n: coverageOf(d, quests, selfId), r: rank[rarityOf(d)], tie: hash(d.id + seed) }))
+    .sort((x, y) => x.n - y.n || x.r - y.r || x.tie - y.tie)[0]?.d
+}
+
 /**
  * おまかせのクエスト：基本は「弱点属性＋アビリティの持ち物検査」（モンストと同じ）。格が上がるほど、どちらも増える。
  * - 有利な属性 element 体（零属性のボスは、属性の種類 kinds 種類。2属性のジョグレスは1体で2種類）
  * - アビリティ abilities 種類 × abilityCount 体（1体1つずつでよい）。爆絶は「1体で2つ同時に持つ子」combo 体も
- * - アビリティは、登録しているモンスターが実際に持っているものから、ほかのクエストであまり求められていない順に選ぶ
- * 誰が刺さるかは決めない（プレイヤーが見つける）。ただしコラボのボスだけは、同じコラボの子が活躍する条件にする。
+ * - アビリティは、まず主役（まだ刺さるクエストが少ないガチャの子）が持っているものから。残りは、ほかのクエストであまり求められていない順
+ * コラボのボスは、同じコラボの子が活躍する条件にする（刺さるクエストが少ない子から）。
+ * こうして、どの子にも1つは「ここなら活躍する」クエストができ、特定の子が独占しないようにする
  */
 export function autoQuestSetup(
   boss: MonsterDef,
@@ -32,6 +73,7 @@ export function autoQuestSetup(
   defs: MonsterDef[] = [],
   useCollab = true, // false なら、コラボの子も見ない（試練の塔）
   difficulty: QuestDifficulty = 'normal', // 素材クエストの難易度
+  avoid: string[] = [], // 使わないアビリティ（塔などで、そのボスのふつうのクエストと同じにしないため）
 ): { requirements: Requirement[]; weakSlots: string[]; heroId?: string } {
   const a = kind === 'material' ? CONFIG.questAuto.material[difficulty] : CONFIG.questAuto[grade]
   const seed = hash(boss.id + grade + (kind ?? 'boss'))
@@ -47,15 +89,24 @@ export function autoQuestSetup(
   const holders = defs.filter((d) => d.id !== boss.id)
   const have = (g: string) => holders.filter((d) => slotted(d).includes(g)).length
   const real = gimmicks.filter((g) => have(g) > 0)
-  const ranked = (holders.length > 0 ? real : gimmicks)
+  const base = holders.length > 0 ? real : gimmicks
+  const fresh = base.filter((g) => !avoid.includes(g))
+  const ranked = (fresh.length > 0 ? fresh : base)
     .map((g, i) => ({ g, n: used[g] ?? 0, tie: (i + seed) % Math.max(1, gimmicks.length) }))
     .sort((x, y) => x.n - y.n || have(y.g) - have(x.g) || x.tie - y.tie)
     .map((x) => x.g)
 
   let requirements: Requirement[] = []
   let heroId: string | undefined
-  // コラボのボスは、同じコラボの子が活躍する条件にする
-  const mates = kind === 'material' || !useCollab ? [] : collabMates(boss, defs).slice(0, 3)
+  // コラボのボスは、同じコラボの子が活躍する条件にする（刺さるクエストが少ない子から。同じ子が独占しないように）
+  const mates =
+    kind === 'material' || !useCollab
+      ? []
+      : collabMates(boss, defs)
+          .map((d) => ({ d, n: coverageOf(d, quests, selfId), r: rarityOf(d) === 'superRare' ? 0 : 1, tie: hash(d.id + seed) }))
+          .sort((x, y) => x.n - y.n || x.r - y.r || x.tie - y.tie)
+          .map((x) => x.d)
+          .slice(0, 3)
   if (mates.length > 0) {
     heroId = mates[0].id
     requirements = basisRequirements({ kind: 'hero', heroes: mates }, grade, boss)
@@ -63,18 +114,27 @@ export function autoQuestSetup(
     // 弱点属性（零属性のボスは、属性の種類）
     if (bossEl ? adv && a.element > 0 : a.kinds > 0)
       requirements.push(bossEl ? { tag: elementTag(adv), count: a.element } : { tag: KINDS_TAG, count: a.kinds })
-    // 2つ同時に持つ子：実際にその2つを持っている子がいる組み合わせから（あまり使われていないもの）
+    // 主役のアビリティを先に（ほかのクエストであまり使われていない順）
+    const star = kind === 'material' || a.abilities === 0 ? undefined : spotlightOf(boss, quests, defs, selfId)
+    const starAbilities = star ? ranked.filter((g) => slotted(star).includes(g)) : []
+    // 2つ同時に持つ子：主役が2つ持っていればその2つ。なければ、実際にその2つを持っている子がいる組み合わせから
     let picked: string[] = []
     if (a.combo > 0) {
-      const pair = commonPairs(holders)
-        .filter((p) => ranked.includes(p.a) && ranked.includes(p.b))
-        .sort((x, y) => (used[x.a] ?? 0) + (used[x.b] ?? 0) - ((used[y.a] ?? 0) + (used[y.b] ?? 0)) || y.n - x.n)[0]
+      const pair =
+        starAbilities.length >= 2
+          ? { a: starAbilities[0], b: starAbilities[1] }
+          : commonPairs(holders)
+              .filter((p) => ranked.includes(p.a) && ranked.includes(p.b))
+              .sort((x, y) => (used[x.a] ?? 0) + (used[x.b] ?? 0) - ((used[y.a] ?? 0) + (used[y.b] ?? 0)) || y.n - x.n)[0]
       if (pair) {
         picked = [pair.a, pair.b]
         requirements.push({ tag: comboTag(pair.a, pair.b), count: a.combo })
       }
     }
-    picked = [...picked, ...ranked.filter((g) => !picked.includes(g))].slice(0, a.abilities)
+    picked = [...picked, ...starAbilities.filter((g) => !picked.includes(g)), ...ranked.filter((g) => !picked.includes(g) && !starAbilities.includes(g))].slice(
+      0,
+      a.abilities,
+    )
     for (const g of picked) requirements.push({ tag: abilityTag(g), count: a.abilityCount })
   }
   requirements = requirements.slice(0, CONFIG.formation.maxRequirements)
@@ -87,7 +147,7 @@ export function autoQuestSetup(
 }
 
 /** おまかせの作り方の版。作り方を変えたら上げる（今あるボスクエストの条件を1回だけ作り直す） */
-export const QUEST_RULES = 2
+export const QUEST_RULES = 3
 
 /** ガチャの子がボスのときの格：レア度から（激レア→超絶、レア→究極、ノーマル→上級） */
 const GRADE_BY_RARITY: Record<RarityKey, QuestGrade> = { normal: 'jokyu', rare: 'kyukyoku', superRare: 'chozetsu' }

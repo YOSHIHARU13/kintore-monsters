@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { autoGradeOf, autoQuestSetup, basisRequirements, bossQuestSync } from './questAuto'
+import { autoGradeOf, autoQuestSetup, basisRequirements, bossQuestSync, coverageOf, spotlightOf } from './questAuto'
 import { fitsQuest, isStrict } from './quest'
-import type { MonsterDef } from '../types'
+import type { MonsterDef, Quest } from '../types'
 
 const boss = { id: 'b1', name: 'アシリュウ', templateId: 'single', attrs: { n1: 'legs' }, images: {}, element: 'water', questOnly: true, rarity: 'superRare', createdAt: 0 } as unknown as MonsterDef
 
@@ -102,5 +102,33 @@ describe('降臨のボスクエストは自動', () => {
     expect(bossQuestSync({ ...boss, bossGrade: 'bakuzetsu' }, existing, [], [], hp)).toMatchObject({ id: 'q', data: { grade: 'bakuzetsu' } })
     expect(bossQuestSync({ ...boss, tower: true }, [], [], [], hp)).toBeNull()
     expect(bossQuestSync({ ...boss, castleLord: true }, [], [], [], hp)).toBeNull()
+  })
+})
+
+describe('適正の偏りをなくす（主役）', () => {
+  const mk = (id: string, extra: Partial<MonsterDef>): MonsterDef =>
+    ({ id, name: id, attr: 'legs', templateId: 'single', images: {}, createdAt: 0, ...extra }) as MonsterDef
+  const ELS = ['fire', 'water', 'wood', 'light', 'dark'] as const
+  const ABS = ['バリア', 'シールド', 'リジェネ', 'ミラー', 'パルス', 'ルーン']
+  // ガチャの激レア10体（属性2体ずつ。アビリティはいろいろ）と、降臨20体
+  const heroes = Array.from({ length: 10 }, (_, i) =>
+    mk(`h${i}`, { tier: 'superRare', element: ELS[i % 5], abilities: [ABS[i % 6], ABS[(i + 2) % 6]] }),
+  )
+  const bosses = Array.from({ length: 20 }, (_, i) => mk(`b${i}`, { questOnly: true, bossGrade: 'chozetsu', element: ELS[i % 5] }))
+  const defs = [...heroes, ...bosses]
+  it('クエストを順に作ると、どの激レアにも刺さるクエストができて、独占する子がいない', () => {
+    const made: Quest[] = []
+    for (const b of bosses) {
+      const r = autoQuestSetup(b, 'chozetsu', 'boss', made, ABS, undefined, defs)
+      made.push({ id: `q-${b.id}`, kind: 'boss', bossDefId: b.id, requirements: r.requirements } as Quest)
+    }
+    const counts = heroes.map((h) => coverageOf(h, made))
+    expect(Math.min(...counts)).toBeGreaterThanOrEqual(1)
+    expect(Math.max(...counts) - Math.min(...counts)).toBeLessThanOrEqual(3)
+  })
+  it('主役は、有利な属性を持つ子のうち、まだ刺さるクエストが少ない子', () => {
+    const boss = mk('B', { questOnly: true, element: 'fire' }) // 水が有利
+    const star = spotlightOf(boss, [], defs)
+    expect(star?.element).toBe('water')
   })
 })
