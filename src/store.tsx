@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { User } from 'firebase/auth'
 import {
   arrayRemove,
@@ -71,7 +71,7 @@ import type { Period, Periods } from './lib/series'
 import { castleCleared, castleFloors } from './lib/castle'
 import { TOWER_VERSION, towerCleared, towerFloors, towerMonth, type FixedFloor, type TowerFloor } from './lib/tower'
 import { ELEMENTS, elementInfo, jogressElementOf } from './lib/element'
-import { investedFor, isHidden, nodeAttr, type AttrExp, type BannerSlide, type BoosterKey, type Checkin, type Element, type Gacha, type Quest, type QuestDifficulty, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type QuestTier, type SetRecord, type Song } from './types'
+import { investedFor, isHidden, nodeAttr, type AttrExp, type BannerSlide, type BoosterKey, type Checkin, type Element, type Gacha, type Quest, type QuestDifficulty, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
 
 const zeroExp = () => ({ trained: 0, bought: 0 })
 
@@ -115,6 +115,7 @@ function initialState(): GameState {
     stones: {},
     coreMisses: {},
     orbScale: 1,
+    questRarity: 1,
   }
 }
 
@@ -155,7 +156,7 @@ export interface MonsterDefInput {
   rarity: RarityKey
   questOnly: boolean
   tower?: boolean // 試練の塔の報酬にする（降臨のときだけ）
-  questTier?: QuestTier | null // 降臨の格（なければ通常）
+  castleLord?: boolean // 零の孤城の城主にする（激レアの降臨のときだけ）
   jogressBirthStars: number // 隠しモンスターが生まれるときの星
   jogressPlus: number // 隠しモンスターの素材に必要な＋
   fixedStars: number // 進化しない降臨モンスターの星
@@ -438,6 +439,22 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     ]
     return () => unsubs.forEach((u) => u())
   }, [base, stateRef, menuRef, musicRef, seriesRef, towerRef, fail])
+
+  // 降臨のレア度を「どの格のボスか」の意味に直す（1回だけ）：
+  // 前の激レアの降臨（超絶のボス）→ レア、前に選んだ爆絶級・城主級 → 激レア（城主級は城主に）
+  const migratedRarity = useRef(false)
+  useEffect(() => {
+    if (!state || state.questRarity === 1 || defs.length === 0 || migratedRarity.current) return
+    migratedRarity.current = true
+    const batch = writeBatch(db)
+    for (const d of defs.filter((x) => x.questOnly && !isHidden(x))) {
+      const ref = doc(db, base, 'monsterDefs', d.id)
+      if (d.questTier) batch.update(ref, { rarity: 'superRare', questTier: null, castleLord: d.questTier === 'lastBoss' })
+      else if (rarityOf(d) === 'superRare') batch.update(ref, { rarity: 'uncommon' })
+    }
+    batch.update(stateRef, { questRarity: 1 })
+    batch.commit().catch(fail)
+  }, [state, defs, base, stateRef, fail])
 
   // 「いつものガチャ」は、保存していなくても必ずある
   const gachas = useMemo(() => {
@@ -1034,7 +1051,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         tags: [], // タグはなくなった（前に付けていたものは消す）
         questOnly: input.questOnly,
         tower: input.questOnly && input.tower === true,
-        questTier: (input.questOnly && input.questTier) || null,
+        questTier: null, // 旧：降臨の格（今はレア度で決める）
+        castleLord: input.questOnly && input.rarity === 'superRare' && input.castleLord === true,
         fixedStars: input.fixedStars,
         abilities: input.abilities,
         ...(input.recipe.length === 2

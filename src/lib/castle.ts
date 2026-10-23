@@ -15,10 +15,13 @@ export function castleCleared(state: Pick<GameState, 'castle'>): number {
   return state.castle?.cleared ?? 0
 }
 
-/** 城主：城主級の降臨（図鑑の番号順で最初の子） */
+/** 城主：激レアの降臨のうち「零の孤城の城主」にした子（図鑑の番号順で最初の子） */
 export function lastBossOf(defs: MonsterDef[]): MonsterDef | undefined {
-  return defs.find((d) => d.questOnly && d.questTier === 'lastBoss')
+  return defs.find((d) => d.questOnly && d.castleLord)
 }
+
+/** 爆絶のボスになる降臨：激レアの降臨（城主は除く） */
+export const isBakuzetsuBoss = (d: MonsterDef) => !!d.questOnly && !d.castleLord && rarityOf(d) === 'superRare'
 
 /**
  * 1〜10階のボス：爆絶のボス（爆絶級の降臨と、爆絶クエストのボス）を、炎・水・木・光・闇の順に2周。
@@ -30,7 +33,7 @@ export function castleLineup(defs: MonsterDef[], quests: Pick<Quest, 'kind' | 'g
     new Set(quests.filter((q) => q.kind !== 'material' && !q.builtin && gradeOf(q) === grade).map((q) => q.bossDefId))
   const bakuzetsuIds = bossIds('bakuzetsu')
   const chozetsuIds = bossIds('chozetsu')
-  const top = defs.filter((d) => (d.questOnly && d.questTier === 'bakuzetsu') || bakuzetsuIds.has(d.id)).filter((d) => d.questTier !== 'lastBoss')
+  const top = defs.filter((d) => isBakuzetsuBoss(d) || (bakuzetsuIds.has(d.id) && !d.castleLord))
   const slots = c.elementOrder.length * 2
   const lineup: (MonsterDef | undefined)[] = Array.from({ length: slots }, (_, i) => {
     const e = c.elementOrder[i % c.elementOrder.length]
@@ -40,7 +43,7 @@ export function castleLineup(defs: MonsterDef[], quests: Pick<Quest, 'kind' | 'g
   const spare = [
     ...top,
     ...defs.filter((d) => chozetsuIds.has(d.id)),
-    ...defs.filter((d) => d.questOnly && !isHidden(d) && d.questTier !== 'lastBoss'),
+    ...defs.filter((d) => d.questOnly && !isHidden(d) && !d.castleLord),
     ...defs.filter((d) => !d.questOnly && !isHidden(d) && rarityOf(d) !== 'hazure'),
   ].filter((d) => !used.has(d.id))
   return lineup.map((d) => {

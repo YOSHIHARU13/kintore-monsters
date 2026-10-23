@@ -1,5 +1,5 @@
 import type { Reward } from '../lib/missions'
-import type { BoosterKey } from '../types'
+import type { BoosterKey, RarityKey } from '../types'
 import type { FreePullEvent } from '../lib/events'
 // ============================================================
 // ゲームの数値はすべてこのファイルにまとめてあります。
@@ -123,8 +123,8 @@ export const CONFIG = {
     } as Record<string, string>,
     // 持てるアビリティの数（レア度の格）。ジョグレスは jogress
     slots: { hazure: 0, normal: 1, uncommon: 1, superRare: 2, jogress: 3 },
-    questOnlyMax: 1, // 降臨（クエスト限定）は激レアでもアビリティはここまで（ガチャより弱く）
-    questTierSlots: { bakuzetsu: 2, lastBoss: 3 }, // 降臨の格ごとのアビリティの数（爆絶級・城主級）
+    // 降臨（クエスト限定）のレア度は「どの格のボスか」：ハズレ＝上級、ノーマル＝極・究極、レア＝超絶・超究極、激レア＝爆絶・零の孤城の城主
+    questSlots: { hazure: 0, normal: 1, uncommon: 2, superRare: 3 } as Record<RarityKey, number>,
   },
 
   // クエスト：出撃したら、その日のうちに倒す勝負。出撃してからのセットがそのままダメージになる（何回でも挑戦できる）
@@ -441,8 +441,7 @@ export const CONFIG = {
         hint: 'そのガチャ限定。ジョグレスの素材になる、いちばんかっこいいやつ',
       },
     },
-    questOnlyAttackBonusMax: 3000, // 降臨（クエスト限定）の攻撃力の上乗せはここまで（ガチャの激レア4500より弱く）
-    questTierAttack: { bakuzetsu: 4500, lastBoss: 6000 }, // 爆絶級はガチャの激レアと同じ、城主級はその上
+    questAttackBonus: { hazure: 0, normal: 1500, uncommon: 4500, superRare: 6000 } as Record<RarityKey, number>, // 降臨のレア度ごとの攻撃力の上乗せ
     // 星は進化形態だけで決まる（レア度は関係ない）：1段目が★1、進化するたびに1つ増える（最大 maxStars）
     // ジョグレスの隠しモンスターは、レシピで決めた「生まれるときの星」から（決めていなければ jogressDefaultBirth）
     // レア度は星には出さず、攻撃力の上乗せ（attackBonus）にだけ効く。ジョグレスは jogressAttackBonus

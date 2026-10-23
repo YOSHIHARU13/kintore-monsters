@@ -92,8 +92,14 @@ export const QUEST_RULES = 2
 /** まとめて作るときの格：レア度から（激レア→超絶、ノーマル→究極、ハズレ→上級） */
 const GRADE_BY_RARITY: Record<RarityKey, QuestGrade> = { hazure: 'jokyu', normal: 'kyukyoku', uncommon: 'kyukyoku', superRare: 'chozetsu' }
 
+/** 降臨のレア度＝ボスの格（ハズレ＝上級、ノーマル＝究極、レア＝超絶（コラボは超究極）、激レア＝爆絶） */
+const GRADE_BY_QUEST_RARITY: Record<RarityKey, QuestGrade> = { hazure: 'jokyu', normal: 'kyukyoku', uncommon: 'chozetsu', superRare: 'bakuzetsu' }
+
 export function autoGradeOf(def: MonsterDef): QuestGrade {
-  if (def.questOnly && def.questTier) return 'bakuzetsu' // 爆絶級（城主級は孤城の11階だけ）
+  if (def.questOnly) {
+    const g = GRADE_BY_QUEST_RARITY[rarityOf(def)]
+    return g === 'chozetsu' && seriesOf(def) !== '' ? 'chokyukyoku' : g
+  }
   // コラボの激レアは超究極
   if (rarityOf(def) === 'superRare' && seriesOf(def) !== '') return 'chokyukyoku'
   return GRADE_BY_RARITY[rarityOf(def)]

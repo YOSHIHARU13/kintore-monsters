@@ -62,8 +62,12 @@ describe('おまかせのクエスト', () => {
     expect(r.requirements.find((x) => x.tag.startsWith('ab:'))?.tag).toBe('ab:ミラー')
   })
   it('まとめて作るときの格はレア度から（コラボの激レアは超究極）', () => {
-    expect(autoGradeOf(boss)).toBe('chozetsu')
-    expect(autoGradeOf({ ...boss, series: '鬼退治コラボ' })).toBe('chokyukyoku')
+    // ガチャの子：激レア→超絶（コラボは超究極）
+    const gacha = { ...boss, questOnly: false }
+    expect(autoGradeOf(gacha)).toBe('chozetsu')
+    expect(autoGradeOf({ ...gacha, series: '鬼退治コラボ' })).toBe('chokyukyoku')
+    // 降臨の激レアは爆絶
+    expect(autoGradeOf(boss)).toBe('bakuzetsu')
   })
   it('超究極も超絶と同じく、適正の属性以外は半減', () => {
     const q = { kind: 'boss' as const, element: 'fire' as const }

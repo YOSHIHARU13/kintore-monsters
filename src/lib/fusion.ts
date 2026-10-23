@@ -65,7 +65,8 @@ export interface FeedPlan {
  * 相棒・出撃中など keep に入っている個体は食べさせない（あれば、その子に集める）。運が最大になったら止める。
  */
 export function bulkFeedTarget(def: MonsterDef): boolean {
-  return !isHidden(def) && rarityOf(def) !== 'superRare'
+  // 激レアと、超絶以上の降臨（レア・激レアの降臨）は残す（ジョグレス・神化の素材にするため）
+  return !isHidden(def) && rarityOf(def) !== 'superRare' && !(def.questOnly && rarityOf(def) === 'uncommon')
 }
 
 /** 守る個体：相棒と、今日出撃しているメンバー */

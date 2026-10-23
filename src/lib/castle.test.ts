@@ -9,30 +9,31 @@ const def = (id: string, extra: Partial<MonsterDef>): MonsterDef =>
   ({ id, name: id, templateId: 'single', images: {}, createdAt: 0, attr: 'legs', questOnly: true, ...extra }) as MonsterDef
 const ELS = ['fire', 'water', 'wood', 'light', 'dark'] as const
 
-describe('降臨の格', () => {
-  it('爆絶級はアビリティ2・攻撃力+4500、城主級はアビリティ3・+6000。通常の降臨は1・最大+3000', () => {
-    const normal = def('n', { rarity: 'superRare' })
-    const baku = def('b', { rarity: 'normal', questTier: 'bakuzetsu' })
-    const last = def('l', { rarity: 'hazure', questTier: 'lastBoss' })
-    expect([abilitySlots(normal), abilitySlots(baku), abilitySlots(last)]).toEqual([1, 2, 3])
+describe('降臨のレア度＝ボスの格', () => {
+  it('アビリティはハズレ0・ノーマル1・レア2・激レア3、攻撃力の上乗せは0・1500・4500・6000', () => {
+    const at = (rarity: MonsterDef['rarity']) => def('x', { rarity })
+    expect((['hazure', 'normal', 'uncommon', 'superRare'] as const).map((r) => abilitySlots(at(r)))).toEqual([0, 1, 2, 3])
     const mon = { id: 'o', defId: 'x', nodeId: 'n1', obtainedAt: 0 }
-    expect(attackOf(mon, baku) - attackOf(mon, normal)).toBe(1500)
-    expect(attackOf(mon, last) - attackOf(mon, normal)).toBe(3000)
-    // まとめて作るとき、爆絶級は爆絶のクエストになる
-    expect(autoGradeOf(baku)).toBe('bakuzetsu')
+    expect(attackOf(mon, at('superRare')) - attackOf(mon, at('normal'))).toBe(4500)
+    expect(attackOf(mon, at('uncommon')) - attackOf(mon, at('normal'))).toBe(3000)
+    // まとめて作るときの格：激レア→爆絶、レア→超絶（コラボは超究極）
+    expect(autoGradeOf(at('superRare'))).toBe('bakuzetsu')
+    expect(autoGradeOf(at('uncommon'))).toBe('chozetsu')
+    expect(autoGradeOf(def('c', { rarity: 'uncommon', series: '鬼' }))).toBe('chokyukyoku')
+    expect(autoGradeOf(at('hazure'))).toBe('jokyu')
   })
 })
 
 describe('零の孤城', () => {
-  const bakus = ELS.flatMap((e) => [def(`${e}1`, { element: e, questTier: 'bakuzetsu' }), def(`${e}2`, { element: e, questTier: 'bakuzetsu' })])
-  const last = def('king', { element: 'dark', questTier: 'lastBoss', abilities: ['バリア'] })
+  const bakus = ELS.flatMap((e) => [def(`${e}1`, { element: e, rarity: 'superRare' }), def(`${e}2`, { element: e, rarity: 'superRare' })])
+  const last = def('king', { element: 'dark', rarity: 'superRare', castleLord: true, abilities: ['バリア'] })
   const holders = [
     def('h1', { questOnly: false, rarity: 'superRare', element: 'fire', abilities: ['バリア', 'シールド'] }),
     def('h2', { questOnly: false, rarity: 'superRare', element: 'water', abilities: ['リジェネ', 'ミラー'] }),
   ]
   const defs = [...bakus, last, ...holders]
 
-  it('1〜10階は爆絶級を炎・水・木・光・闇の順に2周', () => {
+  it('1〜10階は激レアの降臨（爆絶のボス）を炎・水・木・光・闇の順に2周。城主は入れない', () => {
     expect(castleLineup(defs, []).map((d) => d?.id)).toEqual(['fire1', 'water1', 'wood1', 'light1', 'dark1', 'fire2', 'water2', 'wood2', 'light2', 'dark2'])
     expect(lastBossOf(defs)?.id).toBe('king')
   })
@@ -53,7 +54,7 @@ describe('零の孤城', () => {
     expect(floors.some((f) => f.reward.custom)).toBe(true)
   })
 
-  it('城主級がいなければ、最上階はトク玉', () => {
+  it('城主がいなければ、最上階はトク玉', () => {
     const top = castleFloors([...bakus], [])[10]
     expect(top.reward.monsterDefId).toBeNull()
     expect(top.reward.eggs).toBeGreaterThan(30)

@@ -7,7 +7,7 @@ import { nextCost } from '../lib/evolution'
 import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
 import { CONFIG } from '../config/gameConfig'
-import { isHidden, type Element, type MonsterDef, type RarityKey, type QuestTier } from '../types'
+import { isHidden, type Element, type MonsterDef, type RarityKey } from '../types'
 import { RARITY_KEYS, formLabel, rarityOf } from '../lib/gacha'
 import { abilityName, abilitySlots, allGimmicks, selectableGimmicks } from '../lib/gimmick'
 import {
@@ -45,7 +45,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
   const [jogressPlus] = useState(existing?.jogressPlus ?? 0)
   const [questOnly, setQuestOnly] = useState(existing?.questOnly === true || questPreset)
   const [tower, setTower] = useState(existing?.tower === true)
-  const [questTier, setQuestTier] = useState<QuestTier | null>(existing?.questTier ?? null)
+  const [castleLord, setCastleLord] = useState(existing?.castleLord === true)
   const [element, setElement] = useState<Element | ''>(existing?.element ?? '')
   const [favoriteSlot, setFavoriteSlot] = useState(existing?.favoriteSlot ?? '')
   const [abilities, setAbilities] = useState<string[]>(existing?.abilities ?? [])
@@ -79,13 +79,13 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
   }
   // 被りや不足を見るための集計（自分以外のモンスターと、作ってあるクエストから）
   const gimmickNames = allGimmicks(quests)
-  const maxAbilities = abilitySlots({ recipe, rarity, questOnly, questTier })
+  const maxAbilities = abilitySlots({ recipe, rarity, questOnly })
   const draftFull: MonsterDef = {
     ...draftDef,
     attrs: Object.fromEntries(template.nodes.map((n) => [n.id, attrOf(n.id)])),
     element: element || undefined,
     favoriteSlot: favoriteSlot || undefined,
-    abilities: abilities.slice(0, abilitySlots({ recipe, rarity, questOnly, questTier })),
+    abilities: abilities.slice(0, abilitySlots({ recipe, rarity, questOnly })),
     ...(recipe.length === 2
       ? { jogressElements: jogressElementOf(recipe, defs).elements, jogressSuper: jogressElementOf(recipe, defs).super }
       : {}),
@@ -188,10 +188,10 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
         element,
         favoriteSlot: validFavorite,
         series,
-        abilities: abilities.slice(0, abilitySlots({ recipe, rarity, questOnly, questTier })),
+        abilities: abilities.slice(0, abilitySlots({ recipe, rarity, questOnly })),
         questOnly: recipe.length !== 2 && questOnly,
         tower: recipe.length !== 2 && questOnly && tower,
-        questTier: recipe.length !== 2 && questOnly ? questTier : null,
+        castleLord: recipe.length !== 2 && questOnly && rarity === 'superRare' && castleLord,
         jogressBirthStars: birthStars,
         jogressPlus,
         fixedStars,
@@ -366,25 +366,17 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
             クエスト限定にする（ガチャには出ず、クエストのボスとして倒すと手に入る）
           </label>
           {questOnly && (
-            <div className="field">
-              降臨の格
-              <div className="chips" role="group" aria-label="降臨の格">
-                {(
-                  [
-                    [null, `通常（アビリティ${CONFIG.gimmicks.questOnlyMax}）`],
-                    ['bakuzetsu', `爆絶級（アビリティ${CONFIG.gimmicks.questTierSlots.bakuzetsu}・攻撃力+${CONFIG.gacha.questTierAttack.bakuzetsu}）`],
-                    ['lastBoss', `城主級（アビリティ${CONFIG.gimmicks.questTierSlots.lastBoss}・攻撃力+${CONFIG.gacha.questTierAttack.lastBoss}）`],
-                  ] as const
-                ).map(([k, label]) => (
-                  <button key={label} type="button" className={`chip${questTier === k ? ' on' : ''}`} onClick={() => setQuestTier(k)}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <span className="muted small">
-                爆絶級は爆絶のクエストと孤城の1〜10階のボスに、城主級は孤城の11階（零属性の城主）になります。
-              </span>
-            </div>
+            <p className="muted small">
+              降臨のレア度は「どの格のボスか」：ハズレ＝上級・ノーマル＝極/究極・レア＝超絶/超究極・激レア＝爆絶。アビリティは
+              {RARITY_KEYS.map((r) => `${CONFIG.gacha.rarities[r].label}${CONFIG.gimmicks.questSlots[r]}`).join('・')}、攻撃力の上乗せは
+              {RARITY_KEYS.map((r) => `${CONFIG.gacha.rarities[r].label}+${CONFIG.gacha.questAttackBonus[r]}`).join('・')}。
+            </p>
+          )}
+          {questOnly && rarity === 'superRare' && (
+            <label className="row">
+              <input type="checkbox" checked={castleLord} onChange={(e) => setCastleLord(e.target.checked)} />
+              👑 零の孤城の城主にする（最上階の零属性のボスになり、倒すともらえる）
+            </label>
           )}
           {questOnly && (
             <label className="row">
@@ -541,7 +533,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
           </div>
           <span className="muted small">
             クエストの「求められる編成」の条件になります。持てる数はレア度で決まります（ハズレ{CONFIG.gimmicks.slots.hazure}・ノーマル{CONFIG.gimmicks.slots.normal}、激レア
-            {CONFIG.gimmicks.slots.superRare}、ジョグレス{CONFIG.gimmicks.slots.jogress}。降臨は激レアでも{CONFIG.gimmicks.questOnlyMax}）。
+            {CONFIG.gimmicks.slots.superRare}、ジョグレス{CONFIG.gimmicks.slots.jogress}。降臨はレア度ごとに{RARITY_KEYS.map((r) => CONFIG.gimmicks.questSlots[r]).join('・')}）。
           </span>
         </div>
         </details>

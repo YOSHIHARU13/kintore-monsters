@@ -4,7 +4,7 @@ import { CONFIG } from '../config/gameConfig'
 import { MonsterImage } from '../components/MonsterImage'
 import { bannerNodeOf } from '../components/GachaBanner'
 import { ELEMENT_COLOR, ELEMENT_LABEL, ZERO_LABEL } from '../lib/element'
-import { castleCleared, lastBossOf } from '../lib/castle'
+import { castleCleared, isBakuzetsuBoss, lastBossOf } from '../lib/castle'
 import { towerRewardText } from './Tower'
 import type { Go } from '../nav'
 
@@ -62,12 +62,12 @@ export function Castle({ go }: { go: Go }) {
       </ol>
       {!lastBossOf(defs) && (
         <p className="muted small">
-          城主級の降臨がまだいないので、最上階はトク玉になります。降臨モンスターの登録で「降臨の格：城主級」を選ぶと、最上階のボスになり、倒すともらえます。
+          城主がまだいないので、最上階はトク玉になります。激レアの降臨の登録で「👑 零の孤城の城主にする」を選ぶと、最上階のボスになり、倒すともらえます。
         </p>
       )}
-      {!defs.some((d) => d.questOnly && d.questTier === 'bakuzetsu') && (
+      {!defs.some(isBakuzetsuBoss) && (
         <p className="muted small">
-          爆絶級の降臨がまだいないので、1〜10階はほかのボスで埋めています。降臨の登録で「爆絶級」を選ぶと、ここに並びます。
+          激レアの降臨（爆絶のボス）がまだいないので、1〜10階はほかのボスで埋めています。降臨を激レアで登録すると、ここに並びます。
         </p>
       )}
     </div>

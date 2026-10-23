@@ -76,7 +76,7 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
   const [series, setSeries] = useState<SeriesFilter>('all')
   // まだボスクエストがない降臨モンスター（塔限定は塔でもらえるので除く）
   const pending = defs.filter(
-    (d) => d.questOnly && !d.tower && d.questTier !== 'lastBoss' && !quests.some((q) => q.kind !== 'material' && q.bossDefId === d.id),
+    (d) => d.questOnly && !d.tower && !d.castleLord && !quests.some((q) => q.kind !== 'material' && q.bossDefId === d.id),
   )
   /** 降臨モンスター1体につき1つ、おまかせでボスクエストを作る（名前はボスの名前・格はレア度から） */
   const makeAll = () => {
@@ -470,7 +470,7 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
         </div>
         {pending.length > 0 && (
           <p className="muted small">
-            クエストがまだない降臨モンスターごとに、ボスの名前・属性で作ります。格はレア度から（コラボの激レア→超究極・激レア→超絶・ノーマル→究極・ハズレ→上級）、編成の条件と弱点はおまかせ。あとから1つずつ編集できます。
+            クエストがまだない降臨モンスターごとに、ボスの名前・属性で作ります。格はレア度から（降臨の激レア→爆絶・レア→超絶（コラボは超究極）・ノーマル→究極・ハズレ→上級）、編成の条件と弱点はおまかせ。あとから1つずつ編集できます。
           </p>
         )}
         {topQuests.length > 0 && (

@@ -18,10 +18,8 @@ export function attackOf(mon: OwnedMonster, def: MonsterDef): number {
   const level = monStars(mon, def) - CONFIG.gacha.formStarBase
   const bonus = isHidden(def)
     ? CONFIG.gacha.jogressAttackBonus + (def.jogressGrade ?? 0) * CONFIG.jogress.superRareBonus
-    : def.questOnly && def.questTier
-      ? CONFIG.gacha.questTierAttack[def.questTier]
-      : def.questOnly
-      ? Math.min(CONFIG.gacha.rarities[rarityOf(def)].attackBonus, CONFIG.gacha.questOnlyAttackBonusMax)
+    : def.questOnly
+      ? CONFIG.gacha.questAttackBonus[rarityOf(def)]
       : CONFIG.gacha.rarities[rarityOf(def)].attackBonus
   return level * perStar + bonus + customAttack(mon)
 }

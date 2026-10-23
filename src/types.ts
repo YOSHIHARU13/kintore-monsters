@@ -17,6 +17,7 @@ export type BoosterKey = 'habit' | 'exp' | 'quest'
 
 export interface GameState {
   gold: number // オーブ（ガチャ・ブースター）。中の名前は gold のまま
+  questRarity?: number // 1 なら、降臨のレア度を「格」の意味に直してある
   questRules?: number // ボスクエストの条件を、この版のおまかせで作り直してある
   orbScale?: number // 1 ならオーブの単位（以前のゴールドの10分の1）に直してある
   coins: number // 進化コイン（進化・ジョグレス・EXPの購入）
@@ -123,7 +124,8 @@ export interface MonsterDef {
   fixedStars?: number // 進化しない（1形態だけの）クエスト限定モンスターの星（なければ fixedStarsDefault）
   jogressGrade?: number // 素材のうち激レアの数（0〜2）。保存するときに計算する。強さとアビリティの数に効く
   questOnly?: boolean // クエスト限定（ガチャには出ない。クエストのボスとして倒すと手に入る）
-  questTier?: QuestTier // 降臨の格（なければ通常）。爆絶級は爆絶のボス、城主級は孤城の11階
+  questTier?: 'bakuzetsu' | 'lastBoss' | null // 旧：降臨の格（今はレア度で決める。読み込んだときに直す）
+  castleLord?: boolean // 零の孤城の城主（激レアの降臨のうち。最上階のボスになり、倒すともらえる）
   tower?: boolean // 試練の塔の報酬（降臨のうち。5階・10階で月替わりにもらえる）
   abilities?: string[] // アビリティ：対応するギミック名で持つ（例：'バリア' ならアーク）
   extraAbilities?: string[] // カスタマイズで足したアビリティ（読み込んだ個体に付くだけ。保存はしない）
@@ -140,8 +142,6 @@ export function plusName(def: MonsterDef, mon: OwnedMonster): string {
 
 export type RarityKey = 'hazure' | 'normal' | 'uncommon' | 'superRare' // uncommon は画面では「レア」（以前の 'rare' は激レアのこと）
 
-/** 降臨の格：爆絶級（アビリティ2・攻撃力+4500）、城主級（アビリティ3・攻撃力+6000）。なければ通常 */
-export type QuestTier = 'bakuzetsu' | 'lastBoss'
 
 /** バナーの型：上位1体のズーム・上位3体・上位5体・ほかのピックアップ一覧 */
 export type BannerSlide = 'top1' | 'top3' | 'top5' | 'pickups'
