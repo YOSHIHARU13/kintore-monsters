@@ -40,6 +40,8 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
   const [name, setName] = useState(existing?.name ?? '')
   const [series, setSeries] = useState(existing?.series ?? '')
   const [templateId, setTemplateId] = useState(existing?.templateId ?? (questPreset ? 'single' : selectable[0].id))
+  // 新しく登録するときは、ツリーをレア度で自動に（ノーマル1→2、レア・激レア1→2→3、降臨は1形態）。自分で選んだら止める
+  const [templateManual, setTemplateManual] = useState(!!existing)
   const [attrs, setAttrs] = useState<Record<string, FormAttr>>(existing?.attrs ?? {})
   const [names, setNames] = useState<Record<string, string>>(existing?.names ?? {})
   const [files, setFiles] = useState<Record<string, File>>({})
@@ -55,6 +57,10 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
   const [inGachas, setInGachas] = useState<string[]>(existing?.gachas ?? [])
   const [rarity, setRarity] = useState<RarityKey>(existing ? rarityOf(existing) : 'rare')
   const [bossGrade, setBossGrade] = useState<QuestGrade>((existing && bossGradeOf({ ...existing, questOnly: true })) || 'chozetsu')
+  useEffect(() => {
+    if (templateManual) return
+    setTemplateId(questOnly ? 'single' : rarity === 'normal' ? 'early2' : 'linear3')
+  }, [templateManual, questOnly, rarity])
   const [recipe, setRecipe] = useState<string[]>(existing?.recipe?.length === 2 ? existing.recipe : [])
   const [jogressPartner, setJogressPartner] = useState(existing?.jogressPartner ?? '')
   // レシピに使えるのは、タマゴから生まれる普通のモンスター（自分以外）
@@ -118,7 +124,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
       favoriteChoices.map((s) => s.id),
       element || undefined, // 属性が決まっていれば、その属性のまま考える（属性は変えない）
     )
-    if (recipe.length !== 2 && !element) setElement(rec.element)
+    // 属性は自分で決める（おまかせでは決めない）
     setFavoriteSlot(rec.favoriteSlot)
     setAbilities(rec.abilities)
   }
@@ -137,16 +143,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
     if (!quest) return
     setAuto(false)
     const reqs = requirementsOf(quest)
-    const elementReqs = reqs.filter((r) => r.tag.startsWith('el:'))
-    // 属性が決まっていれば変えない（空のときだけ、足りない属性に合わせる）
-    if (recipe.length !== 2 && elementReqs.length > 0 && !element) {
-      const gap = (tag: string) => {
-        const sup = elSup[tag.slice(3) as Element]
-        return (elementReqs.find((r) => r.tag === tag)?.count ?? 0) - sup.have
-      }
-      const best = [...elementReqs].sort((a, b) => gap(b.tag) - gap(a.tag))[0]
-      setElement(best.tag.slice(3) as Element)
-    }
+    // 属性は自分で決める（クエストに合わせても変えない）
     const abilityReqs = [...new Set(reqs.flatMap((r) => tagAbilities(r.tag)))]
     if (abilityReqs.length > 0) setAbilities(abilityReqs.slice(0, maxAbilities))
     // 弱点種目のうち、このモンスターの部位で選べるもの
@@ -250,7 +247,10 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
           <select
             value={templateId}
             disabled={selectable.length <= 1}
-            onChange={(e) => setTemplateId(e.target.value)}
+            onChange={(e) => {
+              setTemplateId(e.target.value)
+              setTemplateManual(true)
+            }}
           >
             {selectable.map((t) => (
               <option key={t.id} value={t.id}>

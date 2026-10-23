@@ -237,6 +237,7 @@ export interface OwnedMonster {
   shinkaGold?: boolean // 金の獣神化（相手の激レアと合体した）
   custom?: string // カスタマイズ枠に付けたアイテム（lib/custom の itemKey）
   customSlot?: string // 「得意種目の追加」で選んだ種目の枠ID
+  locked?: boolean // ロック：まとめて合成・素材に使わない
   record?: { damage: number; quests: number; mvp: number; best: number } // 記録：通算ダメージ・出撃回数（倒した回数）・MVP回数・1回の最大ダメージ
   obtainedAt: number
 }

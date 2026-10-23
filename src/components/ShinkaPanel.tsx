@@ -13,7 +13,7 @@ export function ShinkaPanel({ mon, def, onDone }: { mon: OwnedMonster; def: Mons
   const { state, owned, defs, today, shinka } = useStore()
   if (!canShinkaDef(def)) return null
   const tier = shinkaTierOf(mon, def)
-  const keep = new Set([...protectedIds(state, today), mon.id])
+  const keep = new Set([...protectedIds(state, today, owned), mon.id])
   const recipe = shinkaRecipe(def, defs)
   const rows = recipe.map((item) => {
     const d = defs.find((x) => x.id === item.defId)

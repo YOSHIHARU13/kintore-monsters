@@ -3,6 +3,7 @@ import { getNode, getTemplate } from '../data/evolutionTemplates'
 import { elementInfo } from './element'
 import { bossGradeOf, rarityOf } from './gacha'
 import { seriesOf } from './series'
+import { dexOrder } from './dex'
 import { isHidden, type MonsterDef, type OwnedMonster } from '../types'
 
 /**
@@ -86,10 +87,12 @@ export function shinkaRecipe(def: MonsterDef, defs: MonsterDef[]): RecipeItem[] 
   } else if (series) {
     pool = farmable.filter((d) => seriesOf(d) === series)
   } else {
-    const at = defs.indexOf(def)
+    // 図鑑の並び（グループごと）で近い子
+    const order = dexOrder(defs)
+    const at = order.indexOf(def)
     pool = farmable
       .filter((d) => strong(d) && seriesOf(d) === '')
-      .sort((a, b) => Math.abs(defs.indexOf(a) - at) - Math.abs(defs.indexOf(b) - at))
+      .sort((a, b) => Math.abs(order.indexOf(a) - at) - Math.abs(order.indexOf(b) - at))
       .slice(0, 6)
   }
   if (pool.length === 0) pool = farmable.filter(strong)

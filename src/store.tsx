@@ -283,6 +283,10 @@ interface Store {
   attachCustom: (monsterId: string, itemKey: string, favoriteSlot?: string, useStick?: boolean) => void
   /** ワクワクステッキを使って、付けているアイテムを外して持ち物に戻す */
   removeCustom: (monsterId: string) => void
+  /** 登録一覧でまとめて変える：属性・レア度・降臨の格・シリーズ（決めた項目だけ） */
+  bulkUpdateDefs: (ids: string[], patch: { element?: Element | null; tier?: RarityKey; bossGrade?: QuestGrade; series?: string }) => void
+  /** ロックする・外す（ロックした子は、まとめて合成・素材に使わない） */
+  toggleLock: (monsterId: string) => void
   /** ボスクエストの条件を、今の版のおまかせで作り直したことを記録する */
   markQuestRules: (version: number) => void
   /** たまっているランクアップ報酬をまとめて受け取る。受け取ったトク玉の数 */
@@ -882,7 +886,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     // 同じモンスターを食べさせて運を上げる（段階は問わない・タダ）。食べさせた側のEXPは財布に戻し、図鑑の発見も残す
     /** ノーマル以下のダブりを、モンスターごとにいちばん育っている1体へまとめて食べさせる */
     const bulkFeed: Store['bulkFeed'] = () => {
-      const plans = planBulkFeed(owned, defs, protectedIds(state, dateKey()), starsOf, bulkFeedTarget)
+      const plans = planBulkFeed(owned, defs, protectedIds(state, dateKey(), owned), starsOf, bulkFeedTarget)
       if (plans.length === 0) return { kept: 0, fed: 0, luckMax: 0, eggs: 0 }
       const update: DocumentData = {}
       const batch = writeBatch(db)
@@ -940,7 +944,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       if (!found || !canShinka(found.mon, found.def)) return false
       if ((state.coins ?? 0) < CONFIG.shinka.coins) return false
       // 守る子（相棒・出撃中・この子自身）は素材にしない
-      const keep = new Set([...protectedIds(state, dateKey()), monsterId])
+      const keep = new Set([...protectedIds(state, dateKey(), owned), monsterId])
       const removeIds: string[] = []
       const luckUpdates: { id: string; luck: number }[] = []
       for (const item of shinkaRecipe(found.def, defs)) {
@@ -1153,7 +1157,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         const own = elementInfo(def).elements[0]
         const rec = recommend(working, quests, selectableGimmicks(quests), abilitySlots(def), def.id, slotIds, own)
         const tuned: Partial<MonsterDef> = {}
-        if (!def.element) tuned.element = rec.element
+        // 属性は自分で決める（おまかせでは決めない）
         if (!def.tier && !def.rarity && !def.common) tuned.tier = 'rare'
         if (!def.favoriteSlot && rec.favoriteSlot) tuned.favoriteSlot = rec.favoriteSlot
         const slots = abilitySlots({ ...def, ...tuned })
@@ -1501,6 +1505,40 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       batch.commit().catch(fail)
     }
 
+    const bulkUpdateDefs: Store['bulkUpdateDefs'] = (ids, patch) => {
+      const batch = writeBatch(db)
+      let working = [...defs]
+      for (const id of ids) {
+        const def = working.find((d) => d.id === id)
+        if (!def || isHidden(def)) continue
+        const change: Partial<MonsterDef> = {}
+        if (patch.element !== undefined) change.element = patch.element ?? undefined
+        if (patch.tier && !def.questOnly) change.tier = patch.tier
+        if (patch.bossGrade && def.questOnly) change.bossGrade = patch.bossGrade
+        if (patch.series !== undefined) change.series = patch.series.trim()
+        if (Object.keys(change).length === 0) continue
+        batch.update(doc(db, base, 'monsterDefs', id), {
+          ...change,
+          ...(patch.element !== undefined ? { element: patch.element ?? null } : {}),
+        })
+        const updated = { ...def, ...change }
+        working = working.map((d) => (d.id === id ? updated : d))
+        // 降臨の格を変えたら、ボスクエストもついてくる
+        const sync = bossQuestSync(updated, questDocs, selectableGimmicks(questDocs), working, defaultBossHp)
+        if (sync?.id) batch.update(doc(db, base, 'quests', sync.id), sync.data)
+        else if (sync) batch.set(doc(collection(db, base, 'quests')), { ...sync.data, createdAt: Date.now() })
+      }
+      batch.commit().catch(fail)
+    }
+
+    const toggleLock: Store['toggleLock'] = (monsterId) => {
+      const mon = owned.find((o) => o.id === monsterId)
+      if (!mon) return
+      const batch = writeBatch(db)
+      batch.update(doc(db, base, 'ownedMonsters', monsterId), { locked: !mon.locked })
+      batch.commit().catch(fail)
+    }
+
     const markQuestRules: Store['markQuestRules'] = (version) => updateState({ questRules: version })
 
     const claimRanks: Store['claimRanks'] = () => {
@@ -1609,6 +1647,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       attachCustom,
       removeCustom,
       markQuestRules,
+      toggleLock,
+      bulkUpdateDefs,
       claimRanks,
       deleteGacha,
     }

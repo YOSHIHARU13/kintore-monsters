@@ -3,17 +3,19 @@ import { imageOf } from '../lib/art'
 import { useStore } from '../store'
 import { SeriesChips } from '../components/SeriesChips'
 import { inSeries, seriesOf, type SeriesFilter } from '../lib/series'
+import { dexOrder } from '../lib/dex'
+import { ELEMENTS, ELEMENT_LABEL } from '../lib/element'
 import { CONFIG } from '../config/gameConfig'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { MonsterImage } from '../components/MonsterImage'
 import { bannerNodeOf } from '../components/GachaBanner'
 import { ElementBadge } from '../components/ElementBadge'
 import { Abilities } from '../components/Abilities'
-import { rarityOf, isPickupRarity } from '../lib/gacha'
+import { RARITY_KEYS, rarityOf, isPickupRarity } from '../lib/gacha'
 import { elementInfo } from '../lib/element'
 import { abilitySlots } from '../lib/gimmick'
 import type { Go } from '../nav'
-import { isHidden, monsterName, type MonsterDef } from '../types'
+import { isHidden, monsterName, type Element, type MonsterDef, type QuestGrade, type RarityKey } from '../types'
 
 type Filter = 'all' | 'todo' | 'gacha' | 'quest' | 'jogress'
 
@@ -38,7 +40,11 @@ export function todosOf(def: MonsterDef): string[] {
 
 /** 開発者用の画面：未入手でも絵と名前を出し、未設定のものを上にまとめる */
 export function MonsterRegistry({ go }: { go: Go }) {
-  const { defs, owned, state, autoTuneDefs } = useStore()
+  const { defs, owned, state, autoTuneDefs, bulkUpdateDefs } = useStore()
+  const [selecting, setSelecting] = useState(false)
+  const [picked, setPicked] = useState<string[]>([])
+  const [done, setDone] = useState<string | null>(null)
+  const order = dexOrder(defs)
   const [filter, setFilter] = useState<Filter>('all')
   const [query, setQuery] = useState('')
   const [series, setSeries] = useState<SeriesFilter>('all')
@@ -49,8 +55,7 @@ export function MonsterRegistry({ go }: { go: Go }) {
   const untuned = defs.filter(
     (d) =>
       !isHidden(d) &&
-      (elementInfo(d).elements.length === 0 ||
-        (!d.questOnly && !d.tier && !d.rarity && !d.common) ||
+      ((!d.questOnly && !d.tier && !d.rarity && !d.common) ||
         !d.favoriteSlot ||
         ((d.abilities ?? []).length === 0 && abilitySlots(d) > 0)),
   )
@@ -64,7 +69,7 @@ export function MonsterRegistry({ go }: { go: Go }) {
     if (filter === 'jogress') return isHidden(d)
     return true
   }
-  const list = defs
+  const list = order
     .map((def, index) => ({ def, index }))
     .filter(({ def }) => matches(def))
     // 未設定のものを上に
@@ -95,7 +100,7 @@ export function MonsterRegistry({ go }: { go: Go }) {
             setTuned(untuned.length)
           }}
         >
-          ✨ 未設定のところを、{untuned.length}体まとめておまかせで埋める（属性・レア度・得意種目・アビリティ）
+          ✨ 未設定のところを、{untuned.length}体まとめておまかせで埋める（レア度・得意種目・アビリティ。属性は自分で）
         </button>
       )}
       {tuned !== null && <div className="result keep">{tuned}体をおまかせで埋めました</div>}
@@ -117,15 +122,36 @@ export function MonsterRegistry({ go }: { go: Go }) {
         aria-label="名前でさがす"
       />
 
+      <button className={`btn wide${selecting ? ' primary' : ''}`} onClick={() => (setSelecting(!selecting), setPicked([]), setDone(null))}>
+        {selecting ? '☑️ まとめて変更をやめる' : '☑️ 何体か選んで、まとめて変える'}
+      </button>
+      {selecting && (
+        <BulkBar
+          count={picked.length}
+          onSelectAll={() => setPicked(list.map((x) => x.def.id))}
+          onApply={(patch) => {
+            bulkUpdateDefs(picked, patch)
+            setDone(`${picked.length}体を変えました`)
+          }}
+        />
+      )}
+      {done && <div className="result keep">{done}</div>}
+
       <div className="grid">
         {list.map(({ def, index }) => {
           const todos = todosOf(def)
+          const on = picked.includes(def.id)
           return (
             <button
               key={def.id}
-              className={`tile${todos.length > 0 ? ' todo' : ''}`}
-              onClick={() => go({ name: 'monsterForm', id: def.id })}
+              className={`tile${todos.length > 0 ? ' todo' : ''}${on ? ' picked' : ''}`}
+              onClick={() =>
+                selecting
+                  ? setPicked(on ? picked.filter((x) => x !== def.id) : [...picked, def.id])
+                  : go({ name: 'monsterForm', id: def.id })
+              }
             >
+              {selecting && <span className="pick-mark">{on ? '☑️' : '⬜'}</span>}
               <span className="muted small">No.{String(index + 1).padStart(3, '0')}</span>
               <MonsterImage imageId={imageOf(def, bannerNodeOf(def)) ?? imageOf(def, FIRST_NODE_ID)} size={96} />
               <strong>{monsterName(def, FIRST_NODE_ID)}</strong>
@@ -147,5 +173,70 @@ export function MonsterRegistry({ go }: { go: Go }) {
       </div>
       {list.length === 0 && <p className="muted">当てはまるモンスターがいません。</p>}
     </div>
+  )
+}
+
+/** まとめて変えるときの操作：決めた項目だけ変える（属性も、ここでは自分で選ぶ） */
+function BulkBar({ count, onSelectAll, onApply }: {
+  count: number
+  onSelectAll: () => void
+  onApply: (patch: { element?: Element | null; tier?: RarityKey; bossGrade?: QuestGrade; series?: string }) => void
+}) {
+  const [element, setElement] = useState<Element | null | undefined>(undefined)
+  const [tier, setTier] = useState<RarityKey | undefined>(undefined)
+  const [grade, setGrade] = useState<QuestGrade | undefined>(undefined)
+  const [series, setSeries] = useState<string | undefined>(undefined)
+  const chip = (on: boolean, label: string, onClick: () => void) => (
+    <button key={label} type="button" className={`chip small${on ? ' on' : ''}`} onClick={onClick}>
+      {label}
+    </button>
+  )
+  return (
+    <section className="card bulk-bar">
+      <div className="part-head">
+        <strong>{count}体を選択中</strong>
+        <button className="btn small ghost" onClick={onSelectAll}>
+          表示中を全部選ぶ
+        </button>
+      </div>
+      <div className="field">
+        属性
+        <div className="chips" role="group" aria-label="まとめて変える属性">
+          {chip(element === undefined, '変えない', () => setElement(undefined))}
+          {ELEMENTS.map((e) => chip(element === e, ELEMENT_LABEL[e], () => setElement(e)))}
+          {chip(element === null, '零', () => setElement(null))}
+        </div>
+      </div>
+      <div className="field">
+        レア度（ガチャの子）
+        <div className="chips" role="group" aria-label="まとめて変えるレア度">
+          {chip(tier === undefined, '変えない', () => setTier(undefined))}
+          {RARITY_KEYS.map((r) => chip(tier === r, CONFIG.gacha.rarities[r].label, () => setTier(r)))}
+        </div>
+      </div>
+      <div className="field">
+        降臨の格（降臨の子）
+        <div className="chips" role="group" aria-label="まとめて変える降臨の格">
+          {chip(grade === undefined, '変えない', () => setGrade(undefined))}
+          {(['jokyu', 'kiwami', 'kyukyoku', 'chozetsu', 'chokyukyoku', 'bakuzetsu'] as const).map((g) =>
+            chip(grade === g, CONFIG.quest.grades[g].label, () => setGrade(g)),
+          )}
+        </div>
+      </div>
+      <label className="field">
+        シリーズ（コラボ名。空にすると通常に戻す）
+        <span className="row">
+          <input value={series ?? ''} onChange={(e) => setSeries(e.target.value)} placeholder="変えない" maxLength={16} aria-label="まとめて変えるシリーズ" />
+          {series !== undefined && chip(false, '変えない', () => setSeries(undefined))}
+        </span>
+      </label>
+      <button
+        className="btn primary wide"
+        disabled={count === 0 || (element === undefined && !tier && !grade && series === undefined)}
+        onClick={() => onApply({ element, tier, bossGrade: grade, series })}
+      >
+        {count}体をまとめて変える
+      </button>
+    </section>
   )
 }

@@ -20,7 +20,7 @@ import { ATTR_COLOR, type Go } from '../nav'
 import { investedFor, isHidden, monsterName, nodeAttr, plusName, type MonsterDef } from '../types'
 
 export function MonsterDetail({ id, go }: { id: string; go: Go }) {
-  const { owned, defs, state, menu, pourExp, evolve, feedLuck, jogress } = useStore()
+  const { owned, defs, state, menu, pourExp, evolve, feedLuck, jogress, toggleLock } = useStore()
   const [shinkaNow, setShinkaNow] = useState(false)
   const [evolved, setEvolved] = useState(0)
   const [confirmAllLuck, setConfirmAllLuck] = useState(false)
@@ -88,7 +88,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
   const branching = node.next.length > 1
   // 運の素材：同じモンスターの別の個体（運が低い順。運が高い個体を残せるように）
   const luckFoods = owned
-    .filter((o) => o.defId === mon.defId && o.id !== mon.id)
+    .filter((o) => o.defId === mon.defId && o.id !== mon.id && !o.locked) // ロックした子は食べさせない
     .sort((a, b) => luckOf(a) - luckOf(b))
   // 運99に届くまでの分だけ食べさせる
   let luckTotal = luckOf(mon)
@@ -176,6 +176,9 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
           <MonsterImage {...monArt(def, mon)} size={200} plus={mon.plus} shiny={mon.shiny} />
         </div>
         <h1 className="title">{plusName(def, mon)}</h1>
+        <button className={`btn small${mon.locked ? ' primary' : ' ghost'}`} onClick={() => toggleLock(mon.id)}>
+          {mon.locked ? '🔒 ロック中（タップで外す）' : '🔓 ロックする（まとめて合成・素材に使わない）'}
+        </button>
         <Stars def={def} nodeId={mon.nodeId} mon={mon} />
         <p className="small">
           攻撃力 <strong>{attackOf(mon, def).toLocaleString()}</strong>　

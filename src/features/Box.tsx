@@ -36,7 +36,7 @@ export function Box({ go }: { go: Go }) {
   const { owned, defs, state, today, bulkFeed } = useStore()
   const [confirmFeed, setConfirmFeed] = useState(false)
   const [fedMsg, setFedMsg] = useState<string | null>(null)
-  const feedPlans = planBulkFeed(owned, defs, protectedIds(state, today), starsOf, bulkFeedTarget)
+  const feedPlans = planBulkFeed(owned, defs, protectedIds(state, today, owned), starsOf, bulkFeedTarget)
   const feedCount = feedPlans.reduce((n, p) => n + p.foodIds.length, 0)
   const [sort, setSort] = useState<Sort>(() => {
     try {
@@ -159,6 +159,7 @@ export function Box({ go }: { go: Go }) {
               aria-label={plusName(def, mon)}
             >
               {partnerIds.has(mon.id) && <span className="box-partner">相</span>}
+              {mon.locked && <span className="box-lock">🔒</span>}
               {isLuckMax(mon) && <span className="box-luck">運極</span>}
               <MonsterImage {...monArt(def, mon)} size={56} plus={mon.plus} shiny={mon.shiny} />
               <Stars def={def} nodeId={mon.nodeId} mon={mon} />

@@ -174,6 +174,8 @@ beforeEach(() => {
     claimQuest: vi.fn(() => ({ monsterId: 'o8', drops: [{ icon: '💠', label: '木の結晶', count: 1 }], gold: 50 })),
     exchangeMaterial: vi.fn(),
     attachCustom: vi.fn(),
+    bulkUpdateDefs: vi.fn(),
+    toggleLock: vi.fn(),
     shinka: vi.fn(() => true),
     renameSeries: vi.fn(),
     markQuestRules: vi.fn(),
@@ -978,6 +980,39 @@ describe('画面の表示', () => {
     expect(fake.store.shinka).toHaveBeenCalledWith('me', true)
   })
 
+  it('登録一覧：何体か選んで、属性・レア度・シリーズをまとめて変えられる', async () => {
+    fake.store.defs = [{ ...defs[0], element: 'fire' }, { ...defs[1], element: 'water' }]
+    const el = await render(<MonsterRegistry go={go} />)
+    await click('何体か選んで、まとめて変える')
+    await click('表示中を全部選ぶ')
+    expect(el.textContent).toContain('2体を選択中')
+    const els = el.querySelector('[aria-label="まとめて変える属性"]')!
+    await act(async () => [...els.querySelectorAll('button')].find((b) => b.textContent === '光')!.click())
+    await click('2体をまとめて変える')
+    expect(fake.store.bulkUpdateDefs).toHaveBeenCalledWith(['m1', 'm2'], expect.objectContaining({ element: 'light' }))
+  })
+
+  it('図鑑：グループごとに見出しがつき、運極の子に印', async () => {
+    fake.store.defs = [
+      { ...defs[0], tier: 'superRare' },
+      { ...defs[1], tier: 'normal' },
+      { id: 'q', name: 'コウリン', attr: 'legs', templateId: 'single', images: {}, questOnly: true, bossGrade: 'chozetsu', createdAt: 3 },
+    ]
+    fake.store.owned = [{ id: 'o1', defId: 'm1', nodeId: 'n1', luck: 99, obtainedAt: 1 }]
+    const el = await render(<Dex go={go} />)
+    expect([...el.querySelectorAll('.dex-group')].map((h) => h.textContent)).toEqual(['ノーマル', '激レア', '降臨・超絶'])
+    expect(el.querySelector('.dex-luck')).not.toBeNull()
+    expect(el.textContent).toContain('運極 1種')
+  })
+
+  it('ロック：詳細でロックでき、ロックした子は運の素材の候補に出ない', async () => {
+    fake.store.owned = [owned[0], { id: 'o2', defId: 'm1', nodeId: 'n1', luck: 10, locked: true, obtainedAt: 2 }]
+    const el = await render(<MonsterDetail id="o1" go={go} />)
+    expect(el.textContent).toContain('同じモンスターがいません') // ロックした子は食べさせない
+    await click('ロックする')
+    expect(fake.store.toggleLock).toHaveBeenCalledWith('o1')
+  })
+
   it('カスタマイズアイテムの一覧：持っているアイテムと、付けている子が見られる', async () => {
     const { CustomItems } = await import('./CustomItems')
     fake.store.state = { ...state, customItems: { atk1: 2, 'ab:シールド': 1, fav: 0 }, sticks: 3 }
@@ -1166,7 +1201,7 @@ describe('画面の表示', () => {
     )
   })
 
-  it('モンスター登録：🎯このクエスト用にすると、条件に合わせて属性・アビリティ・得意種目が入る', async () => {
+  it('モンスター登録：🎯このクエスト用にすると、条件に合わせてアビリティ・得意種目が入る（属性は変えない）', async () => {
     fake.store.quests = [
       {
         id: 'q1', name: '脚竜の巣', bossDefId: 'm2', attr: 'legs', weakSlots: ['wed1'],
@@ -1182,7 +1217,7 @@ describe('画面の表示', () => {
       picker.dispatchEvent(new Event('change', { bubbles: true }))
     })
     const on = [...el.querySelectorAll('button.chip.on')].map((b) => b.textContent)
-    expect(on.some((t) => t?.startsWith('水'))).toBe(true)
+    expect(on.some((t) => t?.startsWith('水'))).toBe(false) // 属性は自分で決める（おまかせでは変えない）
     expect(on.some((t) => t?.startsWith('ノヴァ'))).toBe(true)
     expect(el.textContent).toContain('◎ 脚竜の巣')
   })

@@ -70,9 +70,13 @@ export function bulkFeedTarget(def: MonsterDef): boolean {
   return !isHidden(def) && rarityOf(def) !== 'superRare' && !(grade === 'chozetsu' || grade === 'chokyukyoku' || grade === 'bakuzetsu')
 }
 
-/** 守る個体：相棒と、今日出撃しているメンバー */
-export function protectedIds(state: Pick<GameState, 'partners' | 'challenge'>, today: string): Set<string> {
-  return new Set([...Object.values(state.partners), ...(state.challenge?.date === today ? state.challenge.party : [])])
+/** 守る個体：相棒と、今日出撃しているメンバーと、ロックした子（まとめて合成・素材に使わない） */
+export function protectedIds(
+  state: Pick<GameState, 'partners' | 'challenge'>,
+  today: string,
+  owned: Pick<OwnedMonster, 'id' | 'locked'>[] = [],
+): Set<string> {
+  return new Set([...Object.values(state.partners), ...(state.challenge?.date === today ? state.challenge.party : []), ...owned.filter((o) => o.locked).map((o) => o.id)])
 }
 
 export function planBulkFeed(

@@ -2794,3 +2794,48 @@ details.tuning[open] > summary {
   text-align: left;
   padding: 0;
 }
+
+/* 図鑑：グループの見出しと運極の印 */
+.dex-group {
+  grid-column: 1 / -1;
+  margin: 8px 0 2px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.dex-luck {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  font-size: 0.55rem;
+  font-weight: 800;
+  padding: 0 3px;
+  border-radius: 4px;
+  background: #ffd166;
+  color: #1b1400;
+}
+
+.box-lock {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  font-size: 0.7rem;
+}
+
+/* 登録一覧：まとめて変更 */
+.tile.picked {
+  outline: 3px solid var(--primary);
+}
+.pick-mark {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+}
+.bulk-bar {
+  position: sticky;
+  top: 48px;
+  z-index: 5;
+}
+
+.grid .tile {
+  position: relative;
+}
