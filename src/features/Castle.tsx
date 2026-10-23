@@ -4,13 +4,13 @@ import { CONFIG } from '../config/gameConfig'
 import { MonsterImage } from '../components/MonsterImage'
 import { bannerNodeOf } from '../components/GachaBanner'
 import { ELEMENT_COLOR, ELEMENT_LABEL, ZERO_LABEL } from '../lib/element'
-import { castleCleared, castleOpen, isBakuzetsuBoss, lastBossOf } from '../lib/castle'
+import { castleCleared, castleOpen, lastBossOf } from '../lib/castle'
 import { towerMonth } from '../lib/tower'
 import { FloorReqs } from '../components/FloorReqs'
 import { towerRewardText } from './Tower'
 import type { Go } from '../nav'
 
-/** 零の孤城：全11階のエンドコンテンツ。毎月16日〜月末。1〜10階は爆絶のボス、11階は零属性の城主。報酬は各階、月に1回 */
+/** 零の孤城：全11階のエンドコンテンツ。毎月21日〜月末。1〜10階は孤城限定の子、11階は零属性の城主（どちらも毎月の初回クリアで手に入る） */
 export function Castle({ go }: { go: Go }) {
   const { state, castle, defs, today } = useStore()
   const cleared = castleCleared(state, towerMonth(today))
@@ -71,9 +71,9 @@ export function Castle({ go }: { go: Go }) {
           城主がまだいないので、最上階はトク玉になります。爆絶の降臨の登録で「👑 零の孤城の城主にする」を選ぶと、最上階のボスになり、倒すともらえます。
         </p>
       )}
-      {!defs.some(isBakuzetsuBoss) && (
+      {!defs.some((d) => d.questOnly && d.castleOnly) && (
         <p className="muted small">
-          爆絶の降臨がまだいないので、1〜10階はほかのボスで埋めています。降臨の格を爆絶で登録すると、ここに並びます。
+          孤城限定の子がまだいないので、1〜10階は爆絶のボスなどで埋めています（埋めた階のボスは落ちません）。降臨の登録で「🏯 零の孤城の限定にする」を選ぶと、ここに並んで、毎月の初回クリアで手に入ります。
         </p>
       )}
     </div>

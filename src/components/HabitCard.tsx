@@ -61,7 +61,9 @@ export function HabitCard() {
       {byMinutes && (
         <p className="small">
           {CONFIG.morning.habitRates.map((t) => `${t.from}分〜 1分${t.perMinute}オーブ`).join('・')}
-          （1回で続けた分数で決まる・端数は切り捨て。{top.from}分でガチャ{Math.floor((top.from * top.perMinute) / CONFIG.shop.pullPrice)}回ぶん）
+          （1回で続けた分数で決まる・端数は切り捨て。{top.from}分でガチャ{Math.floor((top.from * top.perMinute) / CONFIG.shop.pullPrice)}
+          回ぶん。この単価は1日の最初の{CONFIG.morning.habitFullMinutes}分まで、そこから{CONFIG.morning.habitMaxMinutes}分までは1分
+          {CONFIG.morning.habitLateRate}オーブ）
         </p>
       )}
       {flash && <div className="result keep">{flash}</div>}

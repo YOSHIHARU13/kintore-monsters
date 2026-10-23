@@ -132,6 +132,7 @@ export interface MonsterDef {
   questOnly?: boolean // クエスト限定（ガチャには出ない。クエストのボスとして倒すと手に入る）
   questTier?: 'bakuzetsu' | 'lastBoss' | null // 旧：降臨の格（今はレア度で決める。読み込んだときに直す）
   jogressPartner?: string // 金の獣神化（合体）の相手の激レア（defId）。絵は images.gold、名前は names.gold
+  castleOnly?: boolean // 零の孤城の限定（1〜10階のボス。毎月の初回クリアで手に入る）
   castleLord?: boolean // 零の孤城の城主（激レアの降臨のうち。最上階のボスになり、倒すともらえる）
   tower?: boolean // 試練の塔の報酬（降臨のうち。5階・10階で月替わりにもらえる）
   abilities?: string[] // アビリティ：対応するギミック名で持つ（例：'バリア' ならアーク）

@@ -281,13 +281,13 @@ describe('画面の表示', () => {
     expect(fake.store.recordSet).toHaveBeenCalledWith(expect.objectContaining({ exp: 21 }), true) // 15 × 1.37
   })
 
-  it('習慣：やった直後にその場で分数を記録してオーブをもらう（1日10分まで）', async () => {
+  it('習慣：やった直後にその場で分数を記録してオーブをもらう（1日30分まで）', async () => {
     const { HabitCard } = await import('../components/HabitCard')
     fake.store.state = { ...state, habitMode: 'minutes', habitLabel: '瞑想', habitDate: TODAY, habitMinutesToday: 5 }
     const el = await render(<HabitCard />)
-    expect(el.textContent).toContain('今日 5分（オーブは10分まで）')
-    expect(el.textContent).toContain('10分（+15オーブ）') // 残り5分ぶんだけ（10分続けた単価3オーブ）
-    await click('10分（+15オーブ）')
+    expect(el.textContent).toContain('今日 5分（オーブは30分まで）')
+    expect(el.textContent).toContain('10分（+20オーブ）') // 最初の10分の残り5分 × 3 ＋ 5分 × 1
+    await click('10分（+20オーブ）')
     expect(fake.store.recordHabit).toHaveBeenCalledWith(10)
     expect(el.textContent).toContain('瞑想 10分 → +20オーブ')
   })
@@ -856,8 +856,9 @@ describe('画面の表示', () => {
     // まずは入口の一覧（Monstのように、選ぶと中のクエストが出る）
     const top = await render(<Quests go={go} />)
     expect([...top.querySelectorAll('.quest-entry strong')].map((e) => e.textContent)).toEqual([
-      'クエスト', '試練の塔', '禁筋の獄', '零の孤城', '素材クエスト', '神殿',
-    ]) // 書庫は終わったコラボがあるときだけ
+      'クエスト', '試練の塔', '素材クエスト', '神殿',
+    ]) // 高難度は開催中のものだけ（5日は試練の塔）。書庫は終わったコラボがあるときだけ
+    expect(top.textContent).toContain('次の高難度：禁筋の獄は11日から・零の孤城は21日から')
     expect(top.textContent).toContain('（1/2クリア）')
     await click('素材クエスト')
     expect(go).toHaveBeenCalledWith({ name: 'quests', category: 'material' })

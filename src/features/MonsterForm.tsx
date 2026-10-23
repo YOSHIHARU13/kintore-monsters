@@ -51,6 +51,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
   const [questOnly, setQuestOnly] = useState(existing?.questOnly === true || questPreset)
   const [tower, setTower] = useState(existing?.tower === true)
   const [castleLord, setCastleLord] = useState(existing?.castleLord === true)
+  const [castleOnly, setCastleOnly] = useState(existing?.castleOnly === true)
   const [element, setElement] = useState<Element | ''>(existing?.element ?? '')
   const [favoriteSlot, setFavoriteSlot] = useState(existing?.favoriteSlot ?? '')
   const [abilities, setAbilities] = useState<string[]>(existing?.abilities ?? [])
@@ -199,6 +200,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
         questOnly: recipe.length !== 2 && questOnly,
         tower: recipe.length !== 2 && questOnly && tower,
         castleLord: recipe.length !== 2 && questOnly && bossGrade === 'bakuzetsu' && castleLord,
+        castleOnly: recipe.length !== 2 && questOnly && castleOnly,
         jogressPartner: !questOnly && rarity === 'superRare' ? jogressPartner : '',
         jogressBirthStars: birthStars,
         jogressPlus,
@@ -397,6 +399,12 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
             <label className="row">
               <input type="checkbox" checked={castleLord} onChange={(e) => setCastleLord(e.target.checked)} />
               👑 零の孤城の城主にする（最上階の零属性のボスになり、倒すともらえる）
+            </label>
+          )}
+          {questOnly && (
+            <label className="row">
+              <input type="checkbox" checked={castleOnly} onChange={(e) => setCastleOnly(e.target.checked)} />
+              🏯 零の孤城の限定にする（1〜10階のボスになり、毎月の初回クリアで手に入る。ふつうのクエストは作らない）
             </label>
           )}
           {questOnly && (

@@ -161,6 +161,7 @@ export interface MonsterDefInput {
   questOnly: boolean
   tower?: boolean // 試練の塔の報酬にする（降臨のときだけ）
   castleLord?: boolean // 零の孤城の城主にする（爆絶の降臨のときだけ）
+  castleOnly?: boolean // 零の孤城の限定にする（降臨のときだけ）
   jogressPartner?: string // 金の獣神化（合体）の相手（激レアのときだけ）
   jogressBirthStars: number // 隠しモンスターが生まれるときの星
   jogressPlus: number // 隠しモンスターの素材に必要な＋
@@ -1170,6 +1171,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         tower: input.questOnly && input.tower === true,
         questTier: null, // 旧：降臨の格（今はレア度で決める）
         castleLord: input.questOnly && input.bossGrade === 'bakuzetsu' && input.castleLord === true,
+        castleOnly: input.questOnly && input.castleOnly === true && input.castleLord !== true,
         jogressPartner: input.jogressPartner || null,
         fixedStars: input.fixedStars,
         abilities: input.abilities,

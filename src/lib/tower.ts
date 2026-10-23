@@ -62,7 +62,9 @@ export function towerBosses(defs: MonsterDef[], quests: Pick<Quest, 'kind' | 'gr
   )
   // 登録した順（新しく10体そろうと、その10体の塔ができる）
   return defs
-    .filter((d) => (ids.has(d.id) || bossGradeOf(d) === 'chozetsu') && d.questOnly && !d.tower && !d.castleLord && !d.series?.trim())
+    .filter(
+      (d) => (ids.has(d.id) || bossGradeOf(d) === 'chozetsu') && d.questOnly && !d.tower && !d.castleOnly && !d.castleLord && !d.series?.trim(),
+    )
     .sort((a, b) => a.createdAt - b.createdAt)
 }
 
@@ -128,7 +130,7 @@ export function towerLineup(
   const used = new Set(lineup.filter((d) => d).map((d) => d!.id))
   const spare = [
     ...top,
-    ...defs.filter((d) => d.questOnly && !d.tower && !isHidden(d) && !d.series?.trim() && !strongIds.has(d.id)),
+    ...defs.filter((d) => d.questOnly && !d.tower && !d.castleOnly && !d.castleLord && !isHidden(d) && !d.series?.trim() && !strongIds.has(d.id)),
     ...defs.filter((d) => !d.questOnly && !isHidden(d) && rarityOf(d) !== 'superRare'),
   ].filter((d) => !used.has(d.id))
   return lineup.map((d) => {
