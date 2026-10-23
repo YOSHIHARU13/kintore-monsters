@@ -244,7 +244,7 @@ describe('画面の表示', () => {
     await act(async () => rerender())
     expect(el.querySelector('.topbar-pop')?.textContent).toBe('+20')
     // ランク：筋トレEXPの積み上げ 460 → 100＋120＋140 でランク4
-    expect(el.textContent).toContain('R4')
+    expect(el.textContent).toContain('ランク4')
     expect(el.textContent).not.toContain('💎') // 素材の数は上に出さない
     await act(async () => el.querySelector<HTMLButtonElement>('.topbar-main')!.click())
     expect(el.textContent).toContain('ランク 4（次まで 60EXP）')

@@ -61,15 +61,26 @@ export function TopBar({ go }: { go: Go }) {
 
   return (
     <header className="topbar">
-      <button className="topbar-main" onClick={() => setOpen(!open)} aria-expanded={open} aria-label="所持の内訳">
-        {item('rank', 'R', values.rank, '#ffd166')}
-        {ATTRS.map((a) => (
-          <span key={a}>{item(a, ATTR_LABEL[a].slice(0, 1), values[a], ATTR_COLOR[a])}</span>
-        ))}
-        {item('any', '万', values.any, '#c9cbd6')}
-        {item('eggs', '🟡', values.eggs)}
-        {item('gold', '🔮', values.gold, 'var(--gold)')}
-        {item('coins', '🪙', values.coins, '#ffd166')}
+      <button className="topbar-main topbar-2rows" onClick={() => setOpen(!open)} aria-expanded={open} aria-label="所持の内訳">
+        {/* 1段目：ランク（ゲージつき）と、オーブ・トク玉・コイン。いつも大きく見えるように */}
+        <span className="topbar-row1">
+          <span className="topbar-rank">
+            {item('rank', 'ランク', values.rank, '#ffd166')}
+            <span className="topbar-rank-gauge">
+              <i style={{ width: `${Math.round((rank.into / rank.need) * 100)}%` }} />
+            </span>
+          </span>
+          {item('gold', '🔮', values.gold, 'var(--gold)')}
+          {item('eggs', '🟡', values.eggs)}
+          {item('coins', '🪙', values.coins, '#ffd166')}
+        </span>
+        {/* 2段目：部位のEXPと万能EXP */}
+        <span className="topbar-row2">
+          {ATTRS.map((a) => (
+            <span key={a}>{item(a, ATTR_LABEL[a], values[a], ATTR_COLOR[a])}</span>
+          ))}
+          {item('any', '万能', values.any, '#c9cbd6')}
+        </span>
       </button>
       {open && (
         <div className="topbar-detail" onClick={() => setOpen(false)}>
