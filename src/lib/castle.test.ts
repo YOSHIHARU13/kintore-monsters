@@ -128,7 +128,15 @@ describe('高難度の条件は個性優先', () => {
     const tower = towerFloors('2026-10', defs, ABS).map((f) => f.quest)
     const kinkin = kinkinFloors('2026-10', defs, ABS, [], undefined, tower).map((f) => f.quest)
     const castle = castleFloors('2026-10', defs, ABS, [], undefined, [...tower, ...kinkin]).map((f) => f.quest)
-    const sets = abilitySets([...tower, ...kinkin, ...castle]).map((s) => [...s].sort().join('+'))
+    const all = abilitySets([...tower, ...kinkin, ...castle])
+    const sets = all.map((s) => [...s.set].sort().join('+'))
+    // ボスの属性が同じ階どうしは、アビリティの2つの組み合わせを共有しない（2つ持ちのモンスターが何度も上位にならない）
+    const pairsOf = (s: string[]) => s.flatMap((a, i) => s.slice(i + 1).map((b) => [a, b].sort().join('+')))
+    const castleSets = abilitySets(castle).filter((s) => s.element !== 'none')
+    for (const el of new Set(castleSets.map((s) => s.element))) {
+      const same = castleSets.filter((s) => s.element === el).flatMap((s) => pairsOf(s.set))
+      expect(new Set(same).size).toBe(same.length)
+    }
     expect(new Set(sets).size).toBe(sets.length)
     // 誰も持っていないアビリティも求める（あとから来るモンスターが刺さる）
     expect(sets.some((s) => s.includes('ウィンド'))).toBe(true)

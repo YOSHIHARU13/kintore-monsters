@@ -23,8 +23,8 @@ export function abilitySlots(
 ): number {
   const slots = CONFIG.gimmicks.slots
   if (isHidden(def as MonsterDef)) return slots.jogress
-  // 金の獣神化した個体（2体の合体）は、以前のジョグレスと同じ数
-  if ((def as MonsterDef).goldElements) return slots.jogress
+  // 金の獣神化した個体（2体の合体）は、2体ぶんのアビリティを全部持つ
+  if ((def as MonsterDef).goldElements) return Math.max(slots.jogress, (def as MonsterDef).abilities?.length ?? 0)
   // 降臨は格で決まる
   const grade = bossGradeOf(def as MonsterDef)
   if (grade) return CONFIG.quest.bossGrades[grade].abilities

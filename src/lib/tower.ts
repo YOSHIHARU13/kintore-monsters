@@ -1,7 +1,7 @@
 import { CONFIG } from '../config/gameConfig'
 import { elementInfo } from './element'
 import { gradeOf, standardSessionDamage } from './quest'
-import { autoQuestSetup, ownAbilities } from './questAuto'
+import { type HighEndSet, autoQuestSetup, ownAbilities } from './questAuto'
 import { PATTERN_PARTS, applyOrder, patternBoss, patternOf, patternPick, weakSlotsFor, patternTag } from './pattern'
 import { partTag } from './formation'
 import { bossGradeOf, rarityOf } from './gacha'
@@ -150,7 +150,7 @@ export function towerFloors(
   // 前の階の条件も数えて、階ごとにちがう子が主役になるように
   const sofar: Pick<Quest, 'id' | 'requirements' | 'gimmicks'>[] = [...quests]
   // 高難度の条件は、今いるモンスターに合わせず、アビリティの組が重ならないように（個性優先）
-  const highEnd: string[][] = []
+  const highEnd: HighEndSet[] = []
   return Array.from({ length: t.floors }, (_, i) => {
     const floor = i + 1
     const mi = t.monsterFloors.indexOf(floor)

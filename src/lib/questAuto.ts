@@ -74,7 +74,7 @@ export function autoQuestSetup(
   useCollab = true, // false なら、コラボの子も見ない（試練の塔）
   difficulty: QuestDifficulty = 'normal', // 素材クエストの難易度
   avoid: string[] = [], // 使わないアビリティ（塔などで、そのボスのふつうのクエストと同じにしないため）
-  highEnd?: string[][], // 高難度：これまでの階で求めたアビリティの組（選んだ組をここに足す）。あれば、モンスターを見ずに組み合わせだけで決める
+  highEnd?: HighEndSet[], // 高難度：これまでの階で求めたアビリティの組（選んだ組をここに足す）。あれば、モンスターを見ずに組み合わせだけで決める
 ): { requirements: Requirement[]; weakSlots: string[]; heroId?: string } {
   const a = kind === 'material' ? CONFIG.questAuto.material[difficulty] : CONFIG.questAuto[grade]
   const seed = hash(boss.id + grade + (kind ?? 'boss'))
@@ -119,13 +119,14 @@ export function autoQuestSetup(
       // 高難度：今いるモンスターに合わせず、これまでの階となるべく重ならないアビリティの組（個性優先）
       if (a.abilities > 0) {
         const pool = gimmicks.filter((g) => !avoid.includes(g))
-        const set = pickSet(pool.length >= a.abilities ? pool : gimmicks, a.abilities, highEnd, seed)
-        highEnd.push(set)
+        const element = bossEl ?? 'none'
+        const set = pickSet(pool.length >= a.abilities ? pool : gimmicks, a.abilities, highEnd, seed, element)
         if (a.combo > 0 && set.length >= 2) {
-          const pair = leastUsedPair(set, highEnd.slice(0, -1))
+          const pair = leastUsedPair(set, highEnd.map((t) => t.set))
           requirements.push({ tag: comboTag(pair[0], pair[1]), count: a.combo })
         }
         for (const g of set) requirements.push({ tag: abilityTag(g), count: a.abilityCount })
+        highEnd.push({ set, element, same: true })
       }
       return finish(requirements, boss, seed, a.weak)
     }
@@ -164,9 +165,18 @@ function finish(requirements: Requirement[], boss: MonsterDef, seed: number, wea
   return { requirements: requirements.slice(0, CONFIG.formation.maxRequirements), weakSlots: [...new Set(weakSlots)] }
 }
 
+/** 高難度の1階ぶんのアビリティの組と、その階のボスの属性（零属性は none） */
+export interface HighEndSet {
+  set: string[]
+  element: string
+  same?: boolean // 同じ高難度（塔・禁筋・孤城のどれか）の階か。ほかの高難度の階は false
+}
+
 /** 高難度のほかの階で求めたアビリティの組（塔 → 禁筋 → 孤城と、前の高難度と重ならないように） */
-export function abilitySets(quests: Pick<Quest, 'requirements' | 'gimmicks'>[]): string[][] {
-  return quests.map((q) => requirementsOf(q).filter((r) => r.tag.startsWith('ab:')).map((r) => r.tag.slice(3))).filter((s) => s.length > 0)
+export function abilitySets(quests: Pick<Quest, 'requirements' | 'gimmicks' | 'element'>[]): HighEndSet[] {
+  return quests
+    .map((q) => ({ set: requirementsOf(q).filter((r) => r.tag.startsWith('ab:')).map((r) => r.tag.slice(3)), element: q.element ?? 'none' }))
+    .filter((s) => s.set.length > 0)
 }
 
 /**
@@ -190,13 +200,23 @@ function subsets(pool: string[], k: number): string[][] {
 
 /**
  * 高難度のアビリティの組：これまでの階の組と重なりが少ないもの（同じ組はなるべく使わない。重なった数の2乗で数える）。
- * 同じくらいなら seed で決める（月のパターンで変わる）
+ * ボスの属性が同じ階（同じ属性のモンスターが刺さる階）とは、アビリティの「2つの組み合わせ」を共有しないことを最優先にする（同じ高難度の中は特に）
+ * （2つ持ちのモンスターが、同じ属性の階で何度も上位にならないように）。同じくらいなら seed で決める（月のパターンで変わる）
  */
-export function pickSet(pool: string[], k: number, taken: string[][], seed: number): string[] {
+export function pickSet(pool: string[], k: number, taken: HighEndSet[], seed: number, element = 'none'): string[] {
   const options = subsets([...new Set(pool)], Math.min(k, pool.length))
   const key = (s: string[]) => [...s].sort().join('+')
-  const takenKeys = new Set(taken.map(key))
-  const score = (s: string[]) => (takenKeys.has(key(s)) ? 1000 : 0) + taken.reduce((sum, t) => sum + s.filter((g) => t.includes(g)).length ** 2, 0)
+  const takenKeys = new Set(taken.map((t) => key(t.set)))
+  const sharedPairs = (s: string[], t: string[]) => {
+    const n = s.filter((g) => t.includes(g)).length
+    return (n * (n - 1)) / 2
+  }
+  const score = (s: string[]) =>
+    (takenKeys.has(key(s)) ? 1000 : 0) +
+    taken.reduce(
+      (sum, t) => sum + (t.element === element ? (t.same ? 10000 : 100) * sharedPairs(s, t.set) : 0) + s.filter((g) => t.set.includes(g)).length ** 2,
+      0,
+    )
   return options
     .map((s, i) => ({ s, v: score(s), tie: hash(`${seed}:${i}`) }))
     .sort((a, b) => a.v - b.v || a.tie - b.tie)[0]?.s ?? []

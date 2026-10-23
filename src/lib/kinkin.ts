@@ -3,7 +3,7 @@ import { elementInfo } from './element'
 import { partTag } from './formation'
 import { bossGradeOf } from './gacha'
 import { standardSessionDamage } from './quest'
-import { abilitySets, autoQuestSetup, ownAbilities } from './questAuto'
+import { type HighEndSet, abilitySets, autoQuestSetup, ownAbilities } from './questAuto'
 import { PATTERN_PARTS, applyOrder, patternBoss, patternOf, patternPick, weakSlotsFor, patternTag } from './pattern'
 import { isOpenOn, type TowerFloor } from './tower'
 import { isHidden, type GameState, type MonsterDef, type Quest, type QuestGrade } from '../types'
@@ -56,7 +56,7 @@ export function kinkinFloors(month: string, defs: MonsterDef[], gimmicks: string
   // taken：ほかの高難度の階（そこで求めたアビリティも避ける）
   const sofar: Pick<Quest, 'id' | 'requirements' | 'gimmicks'>[] = [...quests, ...taken]
   // 高難度の条件は、今いるモンスターに合わせず、アビリティの組が重ならないように（個性優先）
-  const highEnd: string[][] = abilitySets(taken)
+  const highEnd: HighEndSet[] = abilitySets(taken)
   return Array.from({ length: k.floors }, (_, i) => {
     const floor = i + 1
     const top = floor === k.floors

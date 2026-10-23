@@ -1,7 +1,7 @@
 import { CONFIG } from '../config/gameConfig'
 import { elementInfo } from './element'
 import { gradeOf, standardSessionDamage } from './quest'
-import { abilitySets, autoQuestSetup } from './questAuto'
+import { type HighEndSet, abilitySets, autoQuestSetup } from './questAuto'
 import { PATTERN_PARTS, applyOrder, patternBoss, patternOf, patternPick, weakSlotsFor, patternTag } from './pattern'
 import { KINDS_TAG, partTag } from './formation'
 import { bossGradeOf, rarityOf } from './gacha'
@@ -97,7 +97,7 @@ export function castleFloors(month: string, defs: MonsterDef[], gimmicks: string
   // taken：ほかの高難度の階（そこで求めたアビリティも避ける）
   const sofar: Pick<Quest, 'id' | 'requirements' | 'gimmicks'>[] = [...quests, ...taken]
   // 高難度の条件は、今いるモンスターに合わせず、アビリティの組が重ならないように（個性優先）
-  const highEnd: string[][] = abilitySets(taken)
+  const highEnd: HighEndSet[] = abilitySets(taken)
   return Array.from({ length: c.floors }, (_, i) => {
     const floor = i + 1
     const top = floor === c.floors
