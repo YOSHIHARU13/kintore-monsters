@@ -1,3 +1,4 @@
+import type { GachaSchedule } from './lib/gachaSchedule'
 import type { Attr, FormAttr, Slot } from './data/exercises'
 
 export type Judge = 'beat' | 'keep' | 'normal'
@@ -167,6 +168,7 @@ export interface Gacha {
   slides: BannerSlide[] // バナーでスライドする型。空なら出せるものを全部
   createdAt: number
   builtin: boolean // 「いつものガチャ」（消せない）
+  schedule?: GachaSchedule // 開催（なければ、コラボはコラボの期間、それ以外はいつでも）
 }
 
 export type QuestDifficulty = 'easy' | 'normal' | 'hard'

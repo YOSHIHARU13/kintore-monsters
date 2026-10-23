@@ -63,6 +63,7 @@ import { autoPartners } from './lib/partner'
 import { finalAttrs, recommend } from './lib/coverage'
 import { abilitySlots, allGimmicks, jogressGradeOf, selectableGimmicks } from './lib/gimmick'
 import { boostActive } from './lib/boosters'
+import type { GachaSchedule } from './lib/gachaSchedule'
 import { canShinka, planJogressMove, planLuckUse, shinkaRecipe } from './lib/shinka'
 import { availableEvents, claimKey } from './lib/events'
 import { activeToday, currentStats, loginReady, loginReward, type Reward } from './lib/missions'
@@ -216,6 +217,7 @@ export interface GachaInput {
   banner?: File
   removeBanner?: boolean // 画像をやめて自動バナーにする
   pickups?: string[] // ピックアップにするモンスター（レア以上）の defId。いつものガチャでは使わない // 新しいバナー画像
+  schedule?: GachaSchedule // 開催（いつでも・日付・毎月）
 }
 
 function toGacha(id: string, data: DocumentData | undefined): Gacha {
@@ -231,6 +233,7 @@ function toGacha(id: string, data: DocumentData | undefined): Gacha {
     slides: data?.slides ?? [],
     createdAt: data?.createdAt ?? 0,
     builtin,
+    ...(data?.schedule ? { schedule: data.schedule as GachaSchedule } : {}),
   }
 }
 
@@ -1229,6 +1232,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         theme: input.theme,
         featured: input.featured.slice(0, CONFIG.gacha.bannerMonsters),
         slides: input.slides,
+        schedule: input.schedule ?? null,
         createdAt: current?.createdAt || Date.now(),
       })
       // ピックアップの出し入れは、モンスターの「入るガチャ」に書く（1体につき最大3つまで）
