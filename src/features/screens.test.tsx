@@ -763,6 +763,7 @@ describe('画面の表示', () => {
       ...state,
       challenge: { date: TODAY, questId: 'q1', difficulty: 'easy', party: ['o1'], startTs: 10 },
     }
+    fake.store.defs = [{ ...defs[0], element: 'fire' }, defs[1]] // 零属性だと×1.2になるので
     // 開始前のセットは数えない。ムキドラゴ（胸腕・攻撃力7,500）がフロアプレス（弱点）を攻撃：2.5 × 2.5 × 2（部位一致）× 2（弱点）= 25
     fake.store.weekSets = [past(1, 10, 5, TODAY), past(2, 10, 20, TODAY)]
     const el = await render(<Quests go={go} />)
@@ -869,6 +870,20 @@ describe('画面の表示', () => {
     expect(fake.store.attachCustom).toHaveBeenCalledWith('o1', 'ab:シールド', undefined, true)
     await click('外して持ち物に戻す')
     expect(fake.store.removeCustom).toHaveBeenCalledWith('o1')
+  })
+
+  it('カスタマイズアイテムの一覧：持っているアイテムと、付けている子が見られる', async () => {
+    const { CustomItems } = await import('./CustomItems')
+    fake.store.state = { ...state, customItems: { atk1: 2, 'ab:シールド': 1, fav: 0 }, sticks: 3 }
+    fake.store.owned = [{ ...owned[0], custom: 'atk3' }]
+    const el = await render(<CustomItems go={go} />)
+    expect(el.textContent).toContain('ワクワクステッキ 3本')
+    expect(el.textContent).toContain('🥇 アビリティ追加：ノヴァ×1')
+    expect(el.textContent).toContain('🥉 攻撃力 +500×2')
+    expect(el.textContent).not.toContain('得意種目の追加') // 0個は出さない
+    expect(el.textContent).toContain('付けている子（1体）')
+    await click('ムキドラゴ')
+    expect(go).toHaveBeenCalledWith({ name: 'monster', id: 'o1' })
   })
 
   it('所持アイテム：素材の数を見て、余った結晶・核はトク玉と交換できる', async () => {

@@ -22,6 +22,7 @@ export type View =
   | { name: 'settings' }
   | { name: 'more' }
   | { name: 'items' }
+  | { name: 'customItems' }
 
 export type Go = (view: View) => void
 

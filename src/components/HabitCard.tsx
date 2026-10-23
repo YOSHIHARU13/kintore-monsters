@@ -68,7 +68,7 @@ export function HabitCard() {
       {byMinutes ? (
         <>
           <div className="row wrap">
-            {[1, 3, 5, 10].map((m) => (
+            {[3, 5, 10].map((m) => (
               <button key={m} className="btn" onClick={() => record(m)}>
                 {m}分（+{habitGoldNow(state, today, m)}オーブ）
               </button>

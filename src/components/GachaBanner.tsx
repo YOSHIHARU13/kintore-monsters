@@ -174,7 +174,8 @@ export function GachaBanner({ gacha, count, featured = [], pickups = [], selecte
                 <span
                   key={d.id}
                   className={`trio-member${i === 0 ? ' first' : ''}`}
-                  style={el ? { ['--glow' as string]: ELEMENT_COLOR[el] } : undefined}
+                  // 順位が高い子ほど手前（あとに並ぶ子が前に出ないように）
+                  style={{ zIndex: members.length - i, ...(el ? { ['--glow' as string]: ELEMENT_COLOR[el] } : {}) }}
                 >
                   <MonsterImage imageId={imageOf(d, bannerNodeOf(d))} awaken={awakenOf(d, bannerNodeOf(d))} glow={glowOf(d)} size={sizes[i]} />
                   <span className="pickup-name">{d.name}</span>
@@ -193,9 +194,9 @@ export function GachaBanner({ gacha, count, featured = [], pickups = [], selecte
       <span key="pickups" className="slide slide-pickups">
         <strong className="slide-label">ピックアップ</strong>
         <span className="pickup-row">
-          {others.slice(0, 6).map((d) => (
+          {pickups.slice(0, 6).map((d) => (
             <span key={d.id} className="pickup">
-              <MonsterImage imageId={imageOf(d, bannerNodeOf(d))} awaken={awakenOf(d, bannerNodeOf(d))} glow={glowOf(d)} size={64} />
+              <MonsterImage imageId={imageOf(d, bannerNodeOf(d))} awaken={awakenOf(d, bannerNodeOf(d))} glow={glowOf(d)} size={pickups.length > 4 ? 54 : 64} />
               <span className="pickup-name">{d.name}</span>
               <Stars def={d} nodeId={bannerNodeOf(d)} />
               <ElementBadge def={d} />

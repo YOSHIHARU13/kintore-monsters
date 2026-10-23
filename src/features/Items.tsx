@@ -3,18 +3,11 @@ import { CONFIG } from '../config/gameConfig'
 import { BALL_LABEL, CORE_KEYS, CORE_LABEL, STONE_LABEL, ballsOf, coresOf, stonesOf } from '../lib/cores'
 import { ELEMENTS, ELEMENT_COLOR } from '../lib/element'
 import { ATTR_COLOR, type Go } from '../nav'
-import { allGimmicks } from '../lib/gimmick'
-import { itemLabel, itemOrder } from '../lib/custom'
 
 /** 所持アイテム：進化素材の数。余った結晶・核はトク玉と交換できる */
 export function Items({ go }: { go: Go }) {
-  const { state, quests, exchangeMaterial } = useStore()
+  const { state, exchangeMaterial } = useStore()
   const ex = CONFIG.materials.eggExchange
-  const names = allGimmicks(quests)
-  const customs = Object.entries(state.customItems ?? {})
-    .filter(([, n]) => n > 0)
-    .map(([k]) => k)
-    .sort(itemOrder)
   return (
     <div className="page">
       <button className="back" onClick={() => go({ name: 'more' })}>
@@ -59,26 +52,6 @@ export function Items({ go }: { go: Go }) {
             </li>
           ))}
         </ul>
-      </section>
-
-      <section className="card">
-        <h2>🛠 カスタマイズアイテム</h2>
-        <p className="muted small">
-          神殿で落ちます。モンスターの詳細で1体に1つ付けられます（付け直すと前のは消えます。🪄ワクワクステッキを使うと持ち物に戻せます）。
-        </p>
-        <p className="small">🪄 ワクワクステッキ {state.sticks ?? 0}本（試練の塔の報酬）</p>
-        {customs.length === 0 ? (
-          <p className="muted small">まだありません。</p>
-        ) : (
-          <ul className="mini-list">
-            {customs.map((k) => (
-              <li key={k}>
-                <span>{itemLabel(k, names)}</span>
-                <strong className="num">×{state.customItems![k]}</strong>
-              </li>
-            ))}
-          </ul>
-        )}
       </section>
 
       <section className="card">

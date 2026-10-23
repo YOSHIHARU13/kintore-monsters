@@ -137,6 +137,7 @@ export const CONFIG = {
     weakSlot: 2, // ボスの弱点種目のセット
     offElementChozetsu: 0.5, // 超絶では、ボスの属性に有利な属性を持たないモンスターの攻撃はこの倍率
     offElementBakuzetsu: 1 / 3, // 爆絶ではこの倍率
+    zeroBonus: 1.2, // 零属性の子は、どのクエストでも攻撃がこの倍率（弱点はつけないが、半減もされない）
     favorite: 1.5, // 攻撃したモンスターの得意種目のセット
     maxWeakSlots: 2,
     // ボスの格：初級・中級・上級のHPとGが、まとめてこの倍率になる

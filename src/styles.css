@@ -1426,9 +1426,15 @@ details.tuning[open] > summary {
   align-items: flex-end;
 }
 .slide-hero .hero-monster {
+  /* 右側の光（72%あたり）の真ん中に、上下中央で置く */
   position: absolute;
-  right: 4%;
-  bottom: -6%;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 56%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   line-height: 0;
   filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.65));
   animation: hero-in 0.6s ease-out;
@@ -1458,7 +1464,8 @@ details.tuning[open] > summary {
 }
 .pickup-row {
   display: flex;
-  gap: 8px;
+  justify-content: center;
+  gap: 4px;
   overflow: hidden;
 }
 .pickup {
@@ -1466,7 +1473,9 @@ details.tuning[open] > summary {
   flex-direction: column;
   align-items: center;
   gap: 1px;
-  min-width: 64px;
+  min-width: 0;
+  flex: 1 1 0;
+  max-width: 76px;
 }
 .pickup-name {
   font-size: 0.7rem;
@@ -1587,8 +1596,8 @@ details.tuning[open] > summary {
   min-height: 170px;
 }
 .gacha-stage .slide-hero .hero-monster .monster-img {
-  width: 190px !important;
-  height: 190px !important;
+  width: 160px !important;
+  height: 160px !important;
 }
 .egg-bar {
   display: flex;

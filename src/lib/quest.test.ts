@@ -3,8 +3,9 @@ import { defaultBossHp, dropPlus, gradeOf, questHp, defaultHp, questGold, questH
 import { isJogressReady, jogressNeed } from './stats'
 import type { MonsterDef, OwnedMonster, Quest, SetRecord } from '../types'
 
+// 零属性は×1.2になるので、ふだんは炎にしておく（零属性の確認は専用のテストで）
 const def = (id: string, extra: Partial<MonsterDef> = {}): MonsterDef => ({
-  id, name: id, attr: 'chestArms', templateId: 'linear3', images: {}, createdAt: 0, ...extra,
+  id, name: id, attr: 'chestArms', templateId: 'linear3', images: {}, createdAt: 0, element: 'fire', ...extra,
 })
 const mon = (id: string, defId: string, extra: Partial<OwnedMonster> = {}): OwnedMonster => ({
   id, defId, nodeId: 'n1', obtainedAt: 0, ...extra,
@@ -109,5 +110,20 @@ describe('クエスト', () => {
     expect(isJogressReady(mon('x', 'a', { nodeId: 'n3' }), normal, hidden)).toBe(true)
     const early = def('e', { templateId: 'early2' }) // ★1 → ★2で最終形態
     expect(isJogressReady(mon('x', 'e', { nodeId: 'n2' }), early, hidden)).toBe(false) // 最終形態でも星が足りない
+  })
+})
+
+describe('零属性', () => {
+  it('どのクエストでも攻撃×1.2で、超絶でも半減されない', () => {
+    const fire = { mon: mon('f', 'f'), def: def('f') }
+    const zero = { mon: mon('z', 'z'), def: def('z', { element: undefined }) }
+    const chozetsu = { ...quest, grade: 'chozetsu' as const }
+    const hit = (m: typeof fire) => setHit(set('mon1', 'mon'), chozetsu, [m], '').damage
+    // 胸腕のセット：2.5 × 強さ1.5 × 2（部位一致）= 7.5。木のボスに炎は有利なのでそのまま、零属性は×1.2
+    expect(hit(fire)).toBe(8)
+    expect(hit(zero)).toBe(9)
+    // 水の子は半減、零属性は半減しない
+    const water = { mon: mon('w', 'w'), def: def('w', { element: 'water' }) }
+    expect(hit(water)).toBe(4)
   })
 })

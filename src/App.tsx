@@ -27,6 +27,7 @@ import { QuestDetail } from './features/QuestDetail'
 import { QuestForm } from './features/QuestForm'
 import { More } from './features/More'
 import { Items } from './features/Items'
+import { CustomItems } from './features/CustomItems'
 
 const TABS: { label: string; icon: string; view: View; names: View['name'][] }[] = [
   { label: 'ホーム', icon: '🏠', view: { name: 'home' }, names: ['home', 'morning', 'missions'] },
@@ -34,7 +35,7 @@ const TABS: { label: string; icon: string; view: View; names: View['name'][] }[]
   { label: 'モンスター', icon: '🐣', view: { name: 'box' }, names: ['box', 'monster', 'dex'] },
   { label: 'ショップ', icon: '🛒', view: { name: 'shop' }, names: ['shop', 'gachaForm'] },
   { label: 'クエスト', icon: '⚔️', view: { name: 'quests' }, names: ['quests', 'quest', 'questForm', 'tower'] },
-  { label: 'その他', icon: '☰', view: { name: 'more' }, names: ['more', 'items', 'settings', 'registry', 'monsterForm'] },
+  { label: 'その他', icon: '☰', view: { name: 'more' }, names: ['more', 'items', 'customItems', 'settings', 'registry', 'monsterForm'] },
 ]
 
 function Screen({ view, go }: { view: View; go: (v: View) => void }) {
@@ -81,6 +82,8 @@ function Screen({ view, go }: { view: View; go: (v: View) => void }) {
       return <More go={go} />
     case 'items':
       return <Items go={go} />
+    case 'customItems':
+      return <CustomItems go={go} />
   }
 }
 

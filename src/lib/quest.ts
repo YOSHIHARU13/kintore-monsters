@@ -61,7 +61,12 @@ export function setHit(set: SetInfo, quest: Quest, party: Member[], label: strin
   let damage = 0
   for (const m of party) {
     let d = base * powerOf(m)
-    if (strict && !fitsQuest(m.def, quest)) {
+    // 零属性：どこでも×1.2で、半減もされない
+    const zero = elementInfo(m.def).elements.length === 0
+    if (zero) {
+      d *= q.zeroBonus
+      notes.add(`${m.def.name}は零属性×${q.zeroBonus}`)
+    } else if (strict && !fitsQuest(m.def, quest)) {
       const bakuzetsu = gradeOf(quest) === 'bakuzetsu'
       d *= bakuzetsu ? q.offElementBakuzetsu : q.offElementChozetsu
       notes.add(`${m.def.name}は属性が合わず${bakuzetsu ? '3分の1' : '半減'}`)

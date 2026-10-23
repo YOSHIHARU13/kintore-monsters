@@ -78,7 +78,8 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
         .filter((r) => own[r.tag])
         .map((r) => `${tagLabel(r.tag, names)}${own[r.tag] > 1 ? `×${own[r.tag]}` : ''}`)
       if (quest.weakSlots.some((w) => isFavorite(def, w))) tags.push('得意種目が弱点')
-      if (fitsQuest(def, quest)) tags.unshift('属性◎')
+      if (elementInfo(def).elements.length === 0) tags.unshift(`零×${CONFIG.quest.zeroBonus}`)
+      else if (fitsQuest(def, quest)) tags.unshift('属性◎')
       else if (isStrict(quest)) tags.push('半減')
       return [{ mon, def, help: shortfallHelp(def, formation.rows), tags }]
     })
