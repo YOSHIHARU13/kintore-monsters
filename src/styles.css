@@ -3472,3 +3472,94 @@ details.tuning[open] > summary {
     transform: translateY(110vh) rotate(720deg);
   }
 }
+
+/* 進化の演出 */
+.evolve-overlay {
+  background: radial-gradient(circle, rgba(40, 60, 120, 0.95), rgba(6, 8, 16, 0.97));
+}
+.evolve-rays {
+  position: absolute;
+  width: 160vmax;
+  height: 160vmax;
+  background: repeating-conic-gradient(rgba(140, 200, 255, 0.18) 0 6deg, transparent 6deg 18deg);
+  animation: spin 6s linear infinite;
+  pointer-events: none;
+}
+.evolve-overlay.phase-morph .evolve-rays {
+  animation-duration: 1.5s;
+}
+.evolve-overlay.phase-done .evolve-rays {
+  background: repeating-conic-gradient(rgba(255, 209, 102, 0.28) 0 8deg, transparent 8deg 20deg);
+  animation-duration: 9s;
+}
+.evolve-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+.evolve-stage > * {
+  grid-area: 1 / 1;
+}
+.evolve-overlay.phase-gather .evolve-before {
+  animation: evolve-gather 1.1s ease-in both;
+}
+.evolve-overlay.phase-morph .evolve-before {
+  filter: brightness(0) invert(1) drop-shadow(0 0 20px #8cf);
+  animation: evolve-swap-a 0.33s ease-in-out infinite alternate;
+}
+.evolve-ghost {
+  filter: brightness(0) invert(1) drop-shadow(0 0 20px #8cf);
+  animation: evolve-swap-b 0.33s ease-in-out infinite alternate;
+}
+.evolve-after {
+  animation: monster-in 0.7s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+  filter: drop-shadow(0 0 24px rgba(255, 209, 102, 0.7));
+}
+.evolve-mote {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #bfe3ff;
+  box-shadow: 0 0 10px #8cf;
+  transform: rotate(calc(var(--i) * 20deg)) translateY(-45vmin);
+  animation: evolve-mote 1.1s ease-in infinite;
+  animation-delay: calc(var(--i) * 0.06s);
+  pointer-events: none;
+}
+.evolve-wait {
+  animation: pulse 0.5s ease-in-out infinite alternate;
+}
+@keyframes evolve-gather {
+  to {
+    filter: brightness(2.5) drop-shadow(0 0 30px #8cf);
+  }
+}
+@keyframes evolve-swap-a {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+@keyframes evolve-swap-b {
+  from {
+    opacity: 0;
+    transform: scale(1.2);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes evolve-mote {
+  to {
+    transform: rotate(calc(var(--i) * 20deg)) translateY(0);
+    opacity: 0;
+  }
+}

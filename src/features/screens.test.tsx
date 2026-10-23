@@ -505,6 +505,27 @@ describe('画面の表示', () => {
     expect(go).toHaveBeenCalledWith({ name: 'monster', id: 'o9' })
   })
 
+  it('進化の演出：光が集まり、姿が入れ替わって弾けてから、新しい姿と名前が出る', async () => {
+    vi.useFakeTimers()
+    try {
+      const { EvolveScene } = await import('../components/EvolveScene')
+      const art = { imageId: undefined, awaken: 0, glow: undefined }
+      const onClose = vi.fn()
+      const el = await render(<EvolveScene before={art} after={art} name="ムキドラゴ" label="進化！" onClose={onClose} />)
+      expect(el.textContent).toContain('……！？')
+      await act(async () => vi.advanceTimersByTime(1100))
+      expect(el.querySelector('.evolve-ghost')).not.toBeNull()
+      await act(async () => vi.advanceTimersByTime(1300))
+      expect(el.querySelector('.hatch-flash')).not.toBeNull()
+      await act(async () => vi.advanceTimersByTime(420))
+      expect(el.textContent).toContain('ムキドラゴになった！')
+      await act(async () => (el.querySelector('.evolve-overlay') as HTMLElement).click())
+      expect(onClose).toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('図鑑：隠しモンスターはヒントだけ。合体でいなくなった個体の発見も残る', async () => {
     fake.store.defs = [
       ...defs,
