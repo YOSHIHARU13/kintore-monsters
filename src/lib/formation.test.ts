@@ -14,10 +14,10 @@ describe('編成', () => {
   ]
 
   it('タグ：超属性は2、複合属性は両方に1、アビリティは持てる数まで', () => {
-    expect(tagsOf(def('a', { tier: 'superRare', element: 'fire', abilities: ['バリア'] }))).toEqual({ 'el:fire': 1, 'ab:バリア': 1 })
-    expect(tagsOf(def('s', { recipe: ['x', 'y'], jogressElements: ['fire'], jogressSuper: true }))).toEqual({ 'el:fire': 2 })
-    expect(tagsOf(def('d', { recipe: ['x', 'y'], jogressElements: ['fire', 'water'] }))).toEqual({ 'el:fire': 1, 'el:water': 1 })
-    expect(tagsOf(def('n', { tier: 'normal', abilities: ['バリア', 'シールド'] }))).toEqual({ 'ab:バリア': 1 }) // ノーマルは1個
+    expect(tagsOf(def('a', { tier: 'superRare', element: 'fire', abilities: ['バリア'] }))).toEqual({ 'el:fire': 1, 'ab:バリア': 1, 'pt:chestArms': 1 })
+    expect(tagsOf(def('s', { recipe: ['x', 'y'], jogressElements: ['fire'], jogressSuper: true }))).toEqual({ 'el:fire': 2, 'pt:chestArms': 1 })
+    expect(tagsOf(def('d', { recipe: ['x', 'y'], jogressElements: ['fire', 'water'] }))).toEqual({ 'el:fire': 1, 'el:water': 1, 'pt:chestArms': 1 })
+    expect(tagsOf(def('n', { tier: 'normal', abilities: ['バリア', 'シールド'] }))).toEqual({ 'ab:バリア': 1, 'pt:chestArms': 1 }) // ノーマルは1個
     expect(tagsOf(def('r', { tier: 'rare', abilities: ['バリア', 'シールド', 'ミラー'] }))['ab2:シールド|バリア']).toBe(1) // レアは2個
     // 激レアは2個、ジョグレスは3個まで
     // 2つ持っていれば「両方もつ」の条件にも数える
@@ -25,6 +25,7 @@ describe('編成', () => {
       'ab:バリア': 1,
       'ab:シールド': 1,
       'ab2:シールド|バリア': 1,
+      'pt:chestArms': 1,
     })
     const j = tagsOf(def('j', { recipe: ['x', 'y'], abilities: ['バリア', 'シールド', 'ミラー', 'リジェネ'] }))
     expect(Object.keys(j).filter((t) => t.startsWith('ab:'))).toHaveLength(3)
@@ -90,5 +91,12 @@ describe('属性の種類（無属性のボス）', () => {
     const f = formationOf(party, [{ tag: 'kinds', count: 5 }])
     expect(f.rows[0]).toMatchObject({ need: 5, have: 3 }) // 炎・水・無
     expect(shortfallHelp(j, f.rows)).toBe(2)
+  })
+})
+
+describe('部位の条件', () => {
+  it('その部位の子を数える（持っている個体なら今の形態の部位）', () => {
+    const f = formationOf([def('a', { attr: 'legs' }), def('b'), def('c', { partNow: 'legs' })], [{ tag: 'pt:legs', count: 3 }])
+    expect(f.rows[0]).toMatchObject({ need: 3, have: 2 })
   })
 })

@@ -136,6 +136,24 @@ export function dexMissions(defs: MonsterDef[], owned: OwnedMonster[], state: Ga
   }))
 }
 
+/** 運極の種類の数（同じモンスターの運極は1種類として数える） */
+export function luckMaxKinds(owned: OwnedMonster[]): number {
+  return new Set(owned.filter((o) => (o.luck ?? 1) >= CONFIG.luck.max).map((o) => o.defId)).size
+}
+
+/** 運極の種類の数の区切りの報酬 */
+export function luckMaxMissions(owned: OwnedMonster[]): Mission[] {
+  const have = luckMaxKinds(owned)
+  return CONFIG.missions.luckMax.map((m) => ({
+    id: `luckMax${m.count}`,
+    label: `運極を${m.count}種類`,
+    have,
+    need: m.count,
+    reward: m.reward,
+    key: `luckMaxKinds:${m.count}`,
+  }))
+}
+
 export const isClaimed = (state: Pick<GameState, 'claims'>, key: string) => state.claims?.[key] === true
 export const canClaim = (state: Pick<GameState, 'claims'>, m: Mission) => m.have >= m.need && !isClaimed(state, m.key)
 
@@ -144,12 +162,12 @@ export const canClaim = (state: Pick<GameState, 'claims'>, m: Mission) => m.have
  * ログインボーナスと無料ガチャは、これをやってから受け取れる（開くだけではもらえない）
  */
 export function activeToday(
-  state: Pick<GameState, 'habitDate' | 'lastCheckinDate'>,
+  state: Pick<GameState, 'habitDate' | 'lastCheckinDate' | 'habit2'>,
   todaySets: unknown[],
   today: string,
   yesterday: string,
 ): boolean {
-  return todaySets.length > 0 || state.habitDate === today || state.lastCheckinDate === yesterday
+  return todaySets.length > 0 || state.habitDate === today || state.habit2?.date === today || state.lastCheckinDate === yesterday
 }
 
 export const ACTIVE_HINT = '今日、筋トレ1セット・習慣・朝の歩数の記録のどれか1つをやると受け取れます'

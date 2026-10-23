@@ -23,6 +23,7 @@ import { TopBar } from './components/TopBar'
 import { Quests } from './features/Quests'
 import { Tower } from './features/Tower'
 import { Castle } from './features/Castle'
+import { Kinkin } from './features/Kinkin'
 import { Missions } from './features/Missions'
 import { QuestDetail } from './features/QuestDetail'
 import { QuestForm } from './features/QuestForm'
@@ -38,7 +39,7 @@ const TABS: { label: string; icon: string; view: View; names: View['name'][] }[]
   { label: 'トレーニング', icon: '💪', view: { name: 'training' }, names: ['training', 'set', 'menuEdit', 'partner'] },
   { label: 'モンスター', icon: '🐣', view: { name: 'box' }, names: ['box', 'monster', 'dex'] },
   { label: 'ショップ', icon: '🛒', view: { name: 'shop' }, names: ['shop'] },
-  { label: 'クエスト', icon: '⚔️', view: { name: 'quests' }, names: ['quests', 'quest', 'tower', 'castle'] },
+  { label: 'クエスト', icon: '⚔️', view: { name: 'quests' }, names: ['quests', 'quest', 'tower', 'castle', 'kinkin'] },
   { label: 'その他', icon: '☰', view: { name: 'more' }, names: ['more', 'items', 'customItems', 'settings', 'registry', 'monsterForm', 'gachaAdmin', 'gachaForm', 'questAdmin', 'questForm', 'collabAdmin'] },
 ]
 
@@ -70,6 +71,8 @@ function Screen({ view, go }: { view: View; go: (v: View) => void }) {
       return <Tower go={go} />
     case 'castle':
       return <Castle go={go} />
+    case 'kinkin':
+      return <Kinkin go={go} />
     case 'missions':
       return <Missions go={go} />
     case 'questForm':

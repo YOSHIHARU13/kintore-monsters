@@ -6,6 +6,7 @@ import {
   canClaim,
   dailyMissions,
   dexMissions,
+  luckMaxMissions,
   isClaimed,
   loginReward,
   rewardText,
@@ -26,6 +27,7 @@ export function Missions({ go }: { go: Go }) {
     ['📅 デイリー', dailyMissions(ctx)],
     ['🗓 ウィークリー（月曜にリセット）', weeklyMissions(ctx)],
     ['📖 図鑑の達成報酬', dexMissions(defs, owned, state)],
+    ['🍀 運極の種類', luckMaxMissions(owned)],
   ]
   const claim = (m: Mission) => {
     if (claimReward(m.key, m.reward)) setFlash(`${m.label}：${rewardText(m.reward)} を受け取った！`)

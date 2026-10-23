@@ -69,15 +69,26 @@ export const CONFIG = {
 
   // 朝の記録（前日の歩数）と、習慣（その場で記録）
   morning: {
-    stepsPerGold: 1000, // この歩数ごとに1オーブ（段階なし。5000歩で5オーブ＝ガチャ1回）
+    stepsPerGold: 500, // この歩数ごとに1オーブ（5000歩で10オーブ＝ガチャ2回）
+    stepBonuses: [
+      { steps: 8000, gold: 5 },
+      { steps: 10000, gold: 10 },
+    ], // 届いた中でいちばん上のボーナス（1万歩なら 20 + 10 = 30オーブ）
     maxSteps: 100_000, // 入力できる歩数の上限
-    habitGold: 5, // 習慣ができた日のオーブ（○×で記録するとき）
-    // 習慣を分数で記録するときの、1分あたりのオーブ（端数は切り捨て）。1回に続けた分数が長いほど高い（5分で5オーブ＝ガチャ1回）
+    habitGold: 15, // 習慣ができた日のオーブ（○×で記録するとき）
+    // 習慣を分数で記録するときの、1分あたりのオーブ（端数は切り捨て）。1回に続けた分数が長いほど高い（5分で15オーブ＝ガチャ3回）
     habitRates: [
-      { from: 1, perMinute: 0.5 },
-      { from: 5, perMinute: 1 },
+      { from: 1, perMinute: 1.5 },
+      { from: 5, perMinute: 3 },
     ],
-    habitMaxMinutes: 30, // 分数で記録するとき、オーブが出るのは1日の合計でこの分数まで
+    habitMaxMinutes: 10, // 分数で記録するとき、オーブが出るのは1日の合計でこの分数まで（1日30オーブまで）
+    // 2つ目の習慣（設定で1つ選ぶ）。goodThings は「昨日あった良いこと」を1つ書くごとに、1日 max 個まで
+    habit2: {
+      goodThings: { icon: '📝', label: '昨日あった良いことを書く', gold: 3, max: 3 },
+      sunlight: { icon: '🌅', label: '朝、日の光を5分浴びる', gold: 10, max: 1 },
+      stretch: { icon: '🧘', label: 'ストレッチを5分する', gold: 10, max: 1 },
+      phone: { icon: '📵', label: '寝る1時間前にスマホを置く', gold: 10, max: 1 },
+    } as Record<string, { icon: string; label: string; gold: number; max: number }>,
     habitDefaultLabel: 'ベッドでスマホを見なかった', // 習慣の名前（設定で変えられる）
   },
 
@@ -225,6 +236,17 @@ export const CONFIG = {
       { gold: 5 },
       { eggs: 2 },
     ] as Reward[],
+    // 運極の種類の数（同じモンスターの運極は1種類として数える）の区切りの報酬
+    luckMax: [
+      { count: 5, reward: { eggs: 5 } },
+      { count: 10, reward: { eggs: 10 } },
+      { count: 20, reward: { eggs: 15 } },
+      { count: 30, reward: { eggs: 20 } },
+      { count: 40, reward: { eggs: 25 } },
+      { count: 50, reward: { eggs: 30 } },
+      { count: 75, reward: { eggs: 40 } },
+      { count: 100, reward: { eggs: 50 } },
+    ] as { count: number; reward: Reward }[],
     dex: [
       { percent: 10, reward: { eggs: 3 } },
       { percent: 25, reward: { eggs: 5 } },
@@ -264,13 +286,13 @@ export const CONFIG = {
   },
   // 試練の塔：毎月 openDays の日だけ開催。下から1階ずつ挑戦し、各階の報酬は月に1回だけ
   tower: {
-    openDays: [1, 15] as [number, number],
+    openDays: [1, 10] as [number, number],
     // 1〜10階：超絶・超究極のボスを、炎・水・木・光・闇の順に2周（図鑑の番号順）。11階：塔限定モンスターがボス
     floors: 11,
     elementOrder: ['fire', 'water', 'wood', 'light', 'dark'] as const,
     // HP：1回のトレーニングで与えるダメージの目安に対する倍率
     hpRatio: [0.6, 0.8, 1.0, 1.2, 1.4, 1.7, 2.0, 2.3, 2.7, 3.2, 3.6],
-    gold: [20, 24, 30, 36, 44, 52, 60, 70, 80, 100, 120], // オーブ（進化コインはこの coins.perOrb 倍）。高難易度なので多め
+    gold: [10, 12, 15, 18, 22, 26, 30, 35, 40, 50, 60], // オーブ（進化コインはこの coins.perOrb 倍）。1つの塔で月に約300
     eggs: { 2: 1, 4: 1, 7: 1, 8: 1 } as Record<number, number>, // その階でトク玉
     cores: {} as Record<number, number>, // その階でボスの部位の核
     boosters: { 3: 'habit', 6: 'exp', 9: 'quest' } as Record<number, 'habit' | 'exp' | 'quest'>, // その階でブースター
@@ -279,6 +301,7 @@ export const CONFIG = {
     eggsInsteadOfMonster: 2, // 塔限定モンスターが登録されていないときはトク玉
     elementReqFrom: 3, // この階から「適正の属性」の編成条件
     abilityReqFrom: 6, // この階からアビリティの編成条件
+    partReqFrom: 6, // この階から「ボスと同じ部位の子」の編成条件
     twoWeakFrom: 6, // この階から弱点種目が2つ
     kyukyokuFrom: 4, // この階から究極
     chozetsuFrom: 8, // この階から超絶（適正の属性以外は半減）
@@ -287,12 +310,13 @@ export const CONFIG = {
   // 零の孤城：エンドコンテンツ。全11階を下から1階ずつ、報酬は各階、月に1回
   // 1〜10階：爆絶のボス（爆絶級の降臨）を炎・水・木・光・闇の順に2周。11階：城主級の降臨が零属性の城主になる
   castle: {
-    openDays: [16, 31] as [number, number], // 毎月16日〜月末。各階の報酬は月に1回
+    openDays: [21, 31] as [number, number], // 毎月21日〜月末。各階の報酬は月に1回
     floors: 11,
     elementOrder: ['fire', 'water', 'wood', 'light', 'dark'] as const,
     hpRatio: [3, 3.2, 3.4, 3.6, 3.8, 4, 4.3, 4.6, 5, 5.5, 6.5], // 1回のトレーニングで与えるダメージの目安に対する倍率
-    gold: [30, 30, 35, 35, 40, 40, 45, 50, 55, 60, 100], // オーブ（進化コインは coins.perOrb 倍）
-    eggs: { 1: 3, 2: 3, 4: 5, 6: 5, 8: 5, 10: 10, 11: 30 } as Record<number, number>, // トク玉
+    // 孤城はオーブ少なめ・激レアアイテム祭り（月にオーブ約150・トク玉30）
+    gold: [8, 8, 10, 10, 12, 12, 14, 16, 18, 20, 22], // オーブ（進化コインは coins.perOrb 倍）
+    eggs: { 2: 2, 4: 3, 6: 3, 8: 4, 10: 6, 11: 12 } as Record<number, number>, // トク玉
     boosterPacks: {
       5: ['habit', 'exp', 'quest'],
       9: ['habit', 'exp', 'quest', 'exp', 'quest'],
@@ -300,6 +324,19 @@ export const CONFIG = {
     sticks: { 3: 1, 7: 1, 11: 2 } as Record<number, number>, // ワクワクステッキ
     customs: { 4: 'atk2', 6: 'atk3', 8: 'fav', 10: 'atk3' } as Record<number, string>, // カスタマイズアイテム
     eggsInsteadOfBoss: 10, // 城主級の降臨が登録されていないときは、11階でトク玉
+  },
+
+  // 禁筋の獄：塔と孤城のあいだの高難度。毎月11〜20日、全20階を下から1階ずつ、各階の報酬は月に1回。ボスは落とさない
+  // 報酬はオーブ多め（月に約400）＋ちょいレア（筋肉玉・銀のカスタマイズアイテム・ステッキ）
+  kinkin: {
+    openDays: [11, 20] as [number, number],
+    floors: 20,
+    bakuzetsuFrom: 16, // この階から爆絶（それまでは超絶）
+    hpRatio: [2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.4, 3.6, 3.8, 4, 4.4],
+    gold: [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
+    balls: { 5: 1, 10: 2, 15: 2, 20: 3 } as Record<number, number>, // 筋肉玉
+    customs: { 4: 'atk2', 8: 'fav', 12: 'atk2', 16: 'fav', 20: 'atk2' } as Record<number, string>, // 銀のカスタマイズアイテム
+    sticks: { 10: 1, 20: 1 } as Record<number, number>,
   },
 
   // 編成：クエストの条件（炎が3、バリアブレイカーが3…）を出撃する6体の合計で満たす
@@ -334,7 +371,8 @@ export const CONFIG = {
   luck: {
     max: 99,
     gachaStart: 10, // ガチャから出た子は運10（10体当てれば運極）
-    questDrop: 4, // クエスト・試練の塔で落ちたボスの運
+    questDrop: 4, // クエストで落ちたボスの運
+    prizeDrop: 33, // 試練の塔の塔限定の子・零の孤城の城主の運（月に1回なので、3か月で運極）
     perLuckMax: 1, // 出撃した運極1体ごとに、落ちたボスの運がさらに＋1
     perLuckMaxCap: 4, // ↑はここまで
     maxReward: { quest: 10, gacha: 5 }, // 運極ができたときのトク玉（降臨の子・ガチャの子）

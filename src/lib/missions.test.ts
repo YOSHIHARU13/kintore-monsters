@@ -58,3 +58,17 @@ describe('素材セットの報酬', () => {
     expect(rewardText({ stones: 16, cores: 9, balls: 5, coins: 1000 })).toBe('🪙1000・💠5属性の結晶×16ずつ・💎3部位の核×9ずつ・🟣筋肉玉×5')
   })
 })
+
+describe('運極の種類', () => {
+  it('同じモンスターの運極は1種類として数え、区切りで報酬', async () => {
+    const { luckMaxKinds, luckMaxMissions } = await import('./missions')
+    const owned = [
+      { id: '1', defId: 'a', nodeId: 'n1', luck: 99, obtainedAt: 0 },
+      { id: '2', defId: 'a', nodeId: 'n1', luck: 99, obtainedAt: 0 },
+      { id: '3', defId: 'b', nodeId: 'n1', luck: 99, obtainedAt: 0 },
+      { id: '4', defId: 'c', nodeId: 'n1', luck: 50, obtainedAt: 0 },
+    ]
+    expect(luckMaxKinds(owned)).toBe(2)
+    expect(luckMaxMissions(owned)[0]).toMatchObject({ need: 5, have: 2, reward: { eggs: 5 } })
+  })
+})

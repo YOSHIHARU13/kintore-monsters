@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { useStore } from '../store'
 import { CollabNews } from '../components/CollabNews'
-import { gachaSeries, seriesStatus, statusLabel } from '../lib/series'
+import { gachaSeries, seriesStatus } from '../lib/series'
+import { gachaOpen } from '../lib/gachaSchedule'
 import { availableEvents, upcomingEvents } from '../lib/events'
 import { ACTIVE_HINT, activeToday } from '../lib/missions'
 import { ATTRS, ATTR_LABEL, type Attr } from '../data/exercises'
@@ -34,7 +35,10 @@ export function Shop({ go }: { go: Go }) {
   const [hatched, setHatched] = useState<Hatched | null>(null)
   // 「いつものガチャ」は出さない（作ったガチャが1つもないときだけ出す）
   const statusOf = (gachaId: string) => seriesStatus(gachaSeries(rateTable(gachaId, defs)), seriesPeriods, today)
-  const custom = gachas.filter((g) => !g.builtin && !['ended', 'upcoming'].includes(statusOf(g.id).kind))
+  // 開催中のガチャだけ（日付・毎月の開催・コラボの期間）
+  const openOf = (g: (typeof gachas)[number]) => gachaOpen(g, today, statusOf(g.id))
+  const custom = gachas.filter((g) => !g.builtin && openOf(g).open)
+  const soon = gachas.filter((g) => !g.builtin && !openOf(g).open && openOf(g).label !== '開催終了')
   const shown = custom.length > 0 ? custom : gachas
   const [gachaId, setGachaId] = useState(() => {
     // 最初は、中身がいるガチャのうち、いちばん新しいものを選んでおく
@@ -96,10 +100,13 @@ export function Shop({ go }: { go: Go }) {
               onClick={() => setGachaId(g.id)}
             >
               {g.name}
-              {statusOf(g.id).kind === 'active' && <span className="tab-badge">⏳{statusLabel(statusOf(g.id))}</span>}
+              {openOf(g).label && <span className="tab-badge">⏳{openOf(g).label}</span>}
             </button>
           ))}
         </div>
+        {soon.length > 0 && (
+          <p className="muted small">次の開催：{soon.map((g) => `${g.name}（${openOf(g).label}）`).join('・')}</p>
+        )}
         <GachaBanner
           gacha={gacha}
           count={table.length}

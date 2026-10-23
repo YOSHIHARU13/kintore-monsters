@@ -60,6 +60,7 @@ import { CONFIG } from '../config/gameConfig'
 import { dropLabel } from '../lib/cores'
 import { towerCleared, towerMonth, towerOpen } from '../lib/tower'
 import { castleCleared, castleOpen } from '../lib/castle'
+import { kinkinCleared, kinkinOpen } from '../lib/kinkin'
 import { QUEST_RULES } from '../lib/questAuto'
 import { towerRewardText } from './Tower'
 import { boosterName } from '../lib/boosters'
@@ -73,7 +74,7 @@ import { plusName, type MonsterDef, type Quest } from '../types'
 
 /** クエストのタブ：入口（クエスト・零の孤城・試練の塔・素材・神殿・書庫）と、今日の戦い。入口を選ぶと一覧 */
 export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
-  const { state, quests, tower, castle, defs, owned, today, seriesPeriods, quitChallenge, claimQuest, feedLuck, markQuestRules } = useStore()
+  const { state, quests, tower, castle, kinkin, defs, owned, today, seriesPeriods, quitChallenge, claimQuest, feedLuck, markQuestRules } = useStore()
   const [fedLuck, setFedLuck] = useState<{ msg: string; keeperId: string } | null>(null) // 落ちた子を運に食べさせた
   const [series, setSeries] = useState<SeriesFilter>('all')
   const [part, setPart] = useState<Attr | 'all'>('all') // ボスの部位で絞り込む（「今日は胸」と決めてから選べる）
@@ -88,9 +89,12 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.questRules, defs.length])
   const towerDone = towerCleared(state, towerMonth(today))
+  const towerTotal = Math.max(1, ...tower.map((f) => (f.tower ?? 0) + 1))
   const battle = useBattle()
   const towerFloor = battle
-    ? (tower.find((f) => f.quest.id === battle.quest.id) ?? castle.find((f) => f.quest.id === battle.quest.id))
+    ? (tower.find((f) => f.quest.id === battle.quest.id) ??
+      castle.find((f) => f.quest.id === battle.quest.id) ??
+      kinkin.find((f) => f.quest.id === battle.quest.id))
     : undefined
   const castleDone = castleCleared(state, towerMonth(today))
   const [confirmQuit, setConfirmQuit] = useState(false)
@@ -113,7 +117,9 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
   // 出撃した日のうちに倒せなかった戦い
   const expired =
     state.challenge && state.challenge.date !== today
-      ? [...quests, ...tower.map((f) => f.quest), ...castle.map((f) => f.quest)].find((q) => q.id === state.challenge!.questId)
+      ? [...quests, ...tower.map((f) => f.quest), ...castle.map((f) => f.quest), ...kinkin.map((f) => f.quest)].find(
+          (q) => q.id === state.challenge!.questId,
+        )
       : null
 
   // 入口の一覧（クエスト・零の孤城・試練の塔・素材・神殿・書庫）
@@ -121,6 +127,26 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
   const clearedOf = (list: Quest[]) => list.filter((q) => (state.clearedQuests[q.id] ?? 0) > 0).length
   const CATEGORY_MENU = [
     { key: 'boss', icon: '⚔️', label: 'クエスト', hint: `爆絶〜上級・コラボ（${clearedOf(count('boss'))}/${count('boss').length}クリア）`, open: () => go({ name: 'quests', category: 'boss' }) },
+    {
+      key: 'tower',
+      icon: '🗼',
+      label: '試練の塔',
+      hint: !towerOpen(today)
+        ? `毎月${CONFIG.tower.openDays[0]}〜${CONFIG.tower.openDays[1]}日に開催`
+        : towerDone >= CONFIG.tower.floors
+          ? '今月は踏破！'
+          : `開催中 ${towerDone}／${CONFIG.tower.floors}階${towerTotal > 1 ? `（塔は${towerTotal}つ）` : ''}`,
+      open: () => go({ name: 'tower' }),
+    },
+    {
+      key: 'kinkin',
+      icon: '⛓',
+      label: '禁筋の獄',
+      hint: !kinkinOpen(today)
+        ? `毎月${CONFIG.kinkin.openDays[0]}〜${CONFIG.kinkin.openDays[1]}日に開催・全${CONFIG.kinkin.floors}階・オーブ多め`
+        : `開催中 ${kinkinCleared(state, towerMonth(today))}／${CONFIG.kinkin.floors}階`,
+      open: () => go({ name: 'kinkin' }),
+    },
     {
       key: 'castle',
       icon: '🏯',
@@ -131,17 +157,6 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
           ? '今月は踏破！'
           : `開催中 ${castleDone}／${CONFIG.castle.floors}階・全階爆絶・最上階は零属性の城主`,
       open: () => go({ name: 'castle' }),
-    },
-    {
-      key: 'tower',
-      icon: '🗼',
-      label: '試練の塔',
-      hint: !towerOpen(today)
-        ? `毎月${CONFIG.tower.openDays[0]}〜${CONFIG.tower.openDays[1]}日に開催`
-        : towerDone >= CONFIG.tower.floors
-          ? '今月は踏破！'
-          : `開催中 ${towerDone}／${CONFIG.tower.floors}階・次は${towerDone + 1}階`,
-      open: () => go({ name: 'tower' }),
     },
     { key: 'material', icon: '💎', label: '素材クエスト', hint: '結晶・核・筋肉玉・進化コイン（初級・上級・究極）', open: () => go({ name: 'quests', category: 'material' }) },
     { key: 'temple', icon: '🏛', label: '神殿', hint: 'カスタマイズアイテム（時の間・修羅場）', open: () => go({ name: 'quests', category: 'temple' }) },
@@ -156,7 +171,7 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
       {got && (
         <section className="card center">
           <h2>
-            {got.towerFloor ? `${got.castle ? '零の孤城' : '試練の塔'} ${got.towerFloor}階 突破！` : '討伐成功！'} 🔮+{got.gold}・🪙+
+            {got.towerFloor ? `${got.castle ? '零の孤城' : got.kinkin ? '禁筋の獄' : '試練の塔'} ${got.towerFloor}階 突破！` : '討伐成功！'} 🔮+{got.gold}・🪙+
             {got.coins ?? 0}
           </h2>
           {got.byMember && <DamageShare byMember={got.byMember} mvpId={got.mvpId} />}

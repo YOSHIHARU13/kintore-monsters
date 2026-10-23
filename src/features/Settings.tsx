@@ -8,7 +8,7 @@ import { CONFIG } from '../config/gameConfig'
 import { isSunoShortLink, parseSunoSongId } from '../lib/suno'
 
 export function Settings({ go }: { go: Go }) {
-  const { songs, saveSongs, state, setHabitLabel, setHabitMode } = useStore()
+  const { songs, saveSongs, state, setHabitLabel, setHabitMode, setHabit2Kind } = useStore()
   const [habit, setHabit] = useState(habitLabelOf(state))
   const [url, setUrl] = useState('')
   const [title, setTitle] = useState('')
@@ -83,6 +83,21 @@ export function Settings({ go }: { go: Go }) {
           </div>
         </div>
       </form>
+
+      <section className="card">
+        <h2>2つ目の習慣</h2>
+        <p className="muted small">習慣は2つまで。1つ目（上）と、もう1つをここで選べます。どれも記録したあとにオーブがもらえます。</p>
+        <div className="chips" role="group" aria-label="2つ目の習慣">
+          <button type="button" className={`chip${!state.habit2?.kind ? ' on' : ''}`} onClick={() => setHabit2Kind(null)}>
+            なし
+          </button>
+          {Object.entries(CONFIG.morning.habit2).map(([k, h]) => (
+            <button key={k} type="button" className={`chip${state.habit2?.kind === k ? ' on' : ''}`} onClick={() => setHabit2Kind(k)}>
+              {h.icon} {h.label}（+{h.gold}{h.max > 1 ? `×${h.max}` : ''}）
+            </button>
+          ))}
+        </div>
+      </section>
 
       <section className="card">
         <h2>トレーニング中に流す曲（Suno）</h2>

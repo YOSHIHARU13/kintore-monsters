@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { useStore } from '../store'
 import { PeriodInput } from '../components/PeriodInput'
+import type { GachaSchedule } from '../lib/gachaSchedule'
 import { allSeries, collabLabel, gachaSeries, seriesOf } from '../lib/series'
 import { CONFIG } from '../config/gameConfig'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
@@ -31,6 +32,7 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
   const [theme] = useState(existing?.theme ?? 'royal')
   const [featured, setFeatured] = useState<string[]>(existing?.featured ?? [])
   const [slides, setSlides] = useState<BannerSlide[]>(existing?.slides ?? [])
+  const [schedule, setSchedule] = useState<GachaSchedule | undefined>(existing?.schedule)
   const builtin = existing?.builtin ?? false
   const draftId = existing?.id ?? 'new'
   // ピックアップにできるのはレア以上（ハズレとノーマルはどのガチャにも入っている）
@@ -99,6 +101,7 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
         banner: banner ?? undefined,
         removeBanner,
         pickups: builtin ? undefined : pickups,
+        schedule,
       })
       go({ name: 'gachaAdmin' })
     } catch (e) {
@@ -206,6 +209,8 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
           </button>
         )}
       </section>
+
+      {!builtin && <ScheduleEditor value={schedule} onChange={setSchedule} collab={collab} />}
 
       {!builtin && (
         <section className="card">
@@ -318,5 +323,53 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
         </button>
       )}
     </div>
+  )
+}
+
+/** 開催：いつでも／日付で決める（終わっても入れ直せば復刻）／毎月◯日〜◯日 */
+function ScheduleEditor({ value, onChange, collab }: { value: GachaSchedule | undefined; onChange: (s: GachaSchedule | undefined) => void; collab: string }) {
+  const kind = value?.kind ?? 'auto'
+  const pick = (k: string) => {
+    if (k === 'auto') onChange(undefined)
+    else if (k === 'always') onChange({ kind: 'always' })
+    else if (k === 'range') onChange({ kind: 'range', start: '', end: '' })
+    else onChange({ kind: 'monthly', from: 10, to: 20 })
+  }
+  return (
+    <section className="card">
+      <h2>開催</h2>
+      <div className="chips" role="group" aria-label="開催のしかた">
+        {(
+          [
+            ['auto', collab ? 'コラボの期間のまま' : 'いつでも'],
+            ['range', '日付で決める（復刻もここで）'],
+            ['monthly', '毎月◯日〜◯日'],
+          ] as const
+        ).map(([k, label]) => (
+          <button key={k} type="button" className={`chip${kind === k || (k === 'auto' && kind === 'always') ? ' on' : ''}`} onClick={() => pick(k)}>
+            {label}
+          </button>
+        ))}
+      </div>
+      {value?.kind === 'range' && (
+        <span className="row wrap">
+          <input type="date" value={value.start} onChange={(e) => onChange({ ...value, start: e.target.value })} aria-label="開始日" />
+          〜
+          <input type="date" value={value.end} onChange={(e) => onChange({ ...value, end: e.target.value })} aria-label="終了日" />
+        </span>
+      )}
+      {value?.kind === 'monthly' && (
+        <span className="row wrap">
+          毎月
+          <input type="number" min={1} max={31} value={value.from} onChange={(e) => onChange({ ...value, from: Number(e.target.value) })} aria-label="開始の日" />
+          日〜
+          <input type="number" min={1} max={31} value={value.to} onChange={(e) => onChange({ ...value, to: Number(e.target.value) })} aria-label="終了の日" />
+          日
+        </span>
+      )}
+      <p className="muted small">
+        開催していないあいだは、ショップに出ず「次の開催」として予告されます。終わったガチャも、日付を入れ直せば復刻できます。超筋肉祭なら「毎月10〜20日」のように。
+      </p>
+    </section>
   )
 }

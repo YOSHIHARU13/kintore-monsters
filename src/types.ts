@@ -1,3 +1,4 @@
+import type { GachaSchedule } from './lib/gachaSchedule'
 import type { Attr, FormAttr, Slot } from './data/exercises'
 
 export type Judge = 'beat' | 'keep' | 'normal'
@@ -40,6 +41,7 @@ export interface GameState {
   bestHabitStreak: number
   habitLabel: string | null // 習慣の名前（null なら初期の名前）
   habitMode: 'check' | 'minutes' // 習慣の記録のしかた：○× か 分数
+  habit2?: { kind: string | null; date: string | null; count: number } // 2つ目の習慣（設定で選ぶ）：その日に記録した回数
   lastCheckinDate: string | null // 最後に朝の記録をつけた「前日」の日付
   dexFound: Record<string, string[]> // 合体・ジョグレスでいなくなった個体が見つけていた形態（defId → nodeId）
   dexShiny: Record<string, boolean> // 色違いを見つけたモンスター（defId）
@@ -54,8 +56,10 @@ export interface GameState {
   challenge: Challenge | null // 今日挑戦しているクエスト
   questClears: number // クエストをクリアした回数
   clearedQuests: Record<string, number> // クエストごとのクリア回数（一覧の✓に使う）
-  tower: { month: string; cleared: number } | null // 試練の塔：その月にクリアした階の数
+  tower: { month: string; cleared: number } | null // 試練の塔（1つ目）：その月にクリアした階の数
+  towerMore?: { month: string; cleared: Record<string, number> } // 2つ目からの塔（塔の番号 → クリアした階の数）
   castle?: { month?: string; cleared: number } // 零の孤城：その月にクリアした階の数
+  kinkin?: { month: string; cleared: number } // 禁筋の獄：その月にクリアした階の数
   boosters: Partial<Record<BoosterKey, number>> // 持っているブースターの数
   boosts: { habit?: boolean; quest?: boolean; expSets?: number } // 使用中のブースター（EXPは残りセット数）
   freeClaims: Record<string, boolean> // 引いた無料ガチャ（'thursday:2026-10-22' のようなキー）
@@ -133,6 +137,7 @@ export interface MonsterDef {
   abilities?: string[] // アビリティ：対応するギミック名で持つ（例：'バリア' ならアーク）
   extraAbilities?: string[] // カスタマイズで足したアビリティ（読み込んだ個体に付くだけ。保存はしない）
   extraFavorite?: string // カスタマイズで足した得意種目（同上）
+  partNow?: FormAttr // 持っている個体の今の部位（読み込んだ個体に付くだけ。保存はしない）
   tier?: RarityKey // レア度（ノーマル・レア・激レア）。なければ、以前の rarity から読み替える
   rarity?: string // 旧：以前のレア度（hazure・normal・uncommon・superRare・rare）。読むだけ
   bossGrade?: QuestGrade // 降臨の格（上級〜爆絶）。星・アビリティの数・攻撃力と、そのボスのクエストの格が決まる
@@ -164,6 +169,7 @@ export interface Gacha {
   slides: BannerSlide[] // バナーでスライドする型。空なら出せるものを全部
   createdAt: number
   builtin: boolean // 「いつものガチャ」（消せない）
+  schedule?: GachaSchedule // 開催（なければ、コラボはコラボの期間、それ以外はいつでも）
 }
 
 export type QuestDifficulty = 'easy' | 'normal' | 'hard'

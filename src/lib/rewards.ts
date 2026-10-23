@@ -64,7 +64,9 @@ export function habitGoldNow(state: GameState, today: string, minutes: number): 
   return sameDay ? 0 : CONFIG.morning.habitGold
 }
 
-/** 歩数のオーブ：stepsPerGold 歩ごとに1オーブ（段階なし） */
+/** 歩数のオーブ：stepsPerGold 歩ごとに1オーブ＋届いた中でいちばん上のボーナス（8000歩・1万歩） */
 export function stepsGold(steps: number): number {
-  return Math.floor(Math.max(0, steps) / CONFIG.morning.stepsPerGold)
+  const s = Math.max(0, steps)
+  const bonus = CONFIG.morning.stepBonuses.filter((b) => s >= b.steps).reduce((max, b) => Math.max(max, b.gold), 0)
+  return Math.floor(s / CONFIG.morning.stepsPerGold) + bonus
 }

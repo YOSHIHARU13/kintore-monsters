@@ -2839,3 +2839,42 @@ details.tuning[open] > summary {
 .grid .tile {
   position: relative;
 }
+
+/* 上のバー：2段で大きく（1段目＝ランク・オーブ・トク玉・コイン、2段目＝EXP） */
+.topbar-2rows {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+.topbar-row1,
+.topbar-row2 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.topbar-row1 .topbar-item {
+  font-size: 1.1rem;
+}
+.topbar-row1 .topbar-icon {
+  font-size: 0.95rem;
+}
+.topbar-row2 .topbar-item {
+  font-size: 0.85rem;
+}
+.topbar-rank {
+  display: flex;
+  flex-direction: column;
+  min-width: 84px;
+}
+.topbar-rank-gauge {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+  overflow: hidden;
+}
+.topbar-rank-gauge i {
+  display: block;
+  height: 100%;
+  background: #ffd166;
+}

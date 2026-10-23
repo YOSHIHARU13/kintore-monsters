@@ -51,8 +51,8 @@ export function luckMaxReward(def: Pick<MonsterDef, 'questOnly'>): number {
   return def.questOnly ? CONFIG.luck.maxReward.quest : CONFIG.luck.maxReward.gacha
 }
 
-/** 運極の報酬は、1体につき1回だけ */
-export const luckMaxClaimKey = (monsterId: string) => `luckMax:${monsterId}`
+/** 運極の報酬は、1種類につき1回だけ（同じモンスターの運極は1種類として数える） */
+export const luckMaxClaimKey = (defId: string) => `luckMaxDef:${defId}`
 
 export interface FeedPlan {
   keeperId: string // 運を集める1体
