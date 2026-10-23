@@ -93,6 +93,7 @@ export const QUEST_RULES = 2
 const GRADE_BY_RARITY: Record<RarityKey, QuestGrade> = { hazure: 'jokyu', normal: 'kyukyoku', superRare: 'chozetsu' }
 
 export function autoGradeOf(def: MonsterDef): QuestGrade {
+  if (def.questOnly && def.questTier) return 'bakuzetsu' // 爆絶級（ラスボス級は孤城の11階だけ）
   // コラボの激レアは超究極
   if (rarityOf(def) === 'superRare' && seriesOf(def) !== '') return 'chokyukyoku'
   return GRADE_BY_RARITY[rarityOf(def)]

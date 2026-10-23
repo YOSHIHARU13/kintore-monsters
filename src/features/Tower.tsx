@@ -11,6 +11,8 @@ import { snapshotTower, towerCleared, towerMonth, type TowerFloor } from '../lib
 import type { Go } from '../nav'
 import type { GameState, MonsterDef } from '../types'
 import { boosterName } from '../lib/boosters'
+import { itemLabel } from '../lib/custom'
+import { isCastleQuest } from '../lib/castle'
 
 /** 報酬の説明（例：🔮300・トク玉1・剛腕の核×3・🗼アシリュウ） */
 export function towerRewardText(floor: TowerFloor, defs: MonsterDef[], state: GameState): string {
@@ -20,7 +22,11 @@ export function towerRewardText(floor: TowerFloor, defs: MonsterDef[], state: Ga
   if (r.cores > 0 && floor.quest.attr !== 'none') parts.push(`💎${CORE_LABEL[floor.quest.attr]}×${r.cores}`)
   if (r.booster) parts.push(boosterName(state, r.booster))
   if (r.sticks) parts.push(`🪄ワクワクステッキ×${r.sticks}`)
-  if (r.monsterDefId) parts.push(`🗼${defs.find((d) => d.id === r.monsterDefId)?.name ?? '塔限定モンスター'}`)
+  if (r.boosters && r.boosters.length > 0) parts.push(`🎁ブースター詰め合わせ×${r.boosters.length}`)
+  if (r.custom) parts.push(itemLabel(r.custom))
+  const castle = isCastleQuest(floor.quest.id)
+  if (r.monsterDefId)
+    parts.push(`${castle ? '👑' : '🗼'}${defs.find((d) => d.id === r.monsterDefId)?.name ?? (castle ? 'ラスボス' : '塔限定モンスター')}`)
   return parts.join('・')
 }
 

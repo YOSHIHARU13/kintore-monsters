@@ -1,6 +1,6 @@
 import { CONFIG } from '../config/gameConfig'
 import { rarityOf } from './gacha'
-import { isHidden, type MonsterDef, type Quest } from '../types'
+import { isHidden, type MonsterDef, type Quest, type QuestTier } from '../types'
 
 /** アビリティの名前の表（ギミック名 → アビリティ名）：最初からある分・以前あった分・クエストで作った分 */
 export function allGimmicks(quests: Pick<Quest, 'customGimmicks'>[]): Record<string, string> {
@@ -19,10 +19,12 @@ export function abilityName(gimmick: string, names: Record<string, string> = CON
 
 /** そのモンスターが持てるアビリティの数（レア度の格） */
 export function abilitySlots(
-  def: Pick<MonsterDef, 'recipe' | 'rarity' | 'common' | 'jogressGrade'> & { questOnly?: boolean },
+  def: Pick<MonsterDef, 'recipe' | 'rarity' | 'common' | 'jogressGrade'> & { questOnly?: boolean; questTier?: QuestTier | null },
 ): number {
   const slots = CONFIG.gimmicks.slots
   if (isHidden(def as MonsterDef)) return slots.jogress
+  // 爆絶級・ラスボス級の降臨は、レア度に関係なく格の数
+  if (def.questOnly && def.questTier) return CONFIG.gimmicks.questTierSlots[def.questTier]
   const n = slots[rarityOf(def as MonsterDef)]
   // 降臨は激レアでもガチャより弱く
   return def.questOnly ? Math.min(n, CONFIG.gimmicks.questOnlyMax) : n

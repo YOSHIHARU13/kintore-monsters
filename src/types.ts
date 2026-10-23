@@ -52,6 +52,7 @@ export interface GameState {
   questClears: number // クエストをクリアした回数
   clearedQuests: Record<string, number> // クエストごとのクリア回数（一覧の✓に使う）
   tower: { month: string; cleared: number } | null // 試練の塔：その月にクリアした階の数
+  castle?: { cleared: number } // 零の孤城：クリアした階の数（1回きり）
   boosters: Partial<Record<BoosterKey, number>> // 持っているブースターの数
   boosts: { habit?: boolean; quest?: boolean; expSets?: number } // 使用中のブースター（EXPは残りセット数）
   freeClaims: Record<string, boolean> // 引いた無料ガチャ（'thursday:2026-10-22' のようなキー）
@@ -122,6 +123,7 @@ export interface MonsterDef {
   fixedStars?: number // 進化しない（1形態だけの）クエスト限定モンスターの星（なければ fixedStarsDefault）
   jogressGrade?: number // 素材のうち激レアの数（0〜2）。保存するときに計算する。強さとアビリティの数に効く
   questOnly?: boolean // クエスト限定（ガチャには出ない。クエストのボスとして倒すと手に入る）
+  questTier?: QuestTier // 降臨の格（なければ通常）。爆絶級は爆絶のボス、ラスボス級は孤城の11階
   tower?: boolean // 試練の塔の報酬（降臨のうち。5階・10階で月替わりにもらえる）
   abilities?: string[] // アビリティ：対応するギミック名で持つ（例：'バリア' ならアーク）
   extraAbilities?: string[] // カスタマイズで足したアビリティ（読み込んだ個体に付くだけ。保存はしない）
@@ -137,6 +139,9 @@ export function plusName(def: MonsterDef, mon: OwnedMonster): string {
 }
 
 export type RarityKey = 'hazure' | 'normal' | 'superRare'
+
+/** 降臨の格：爆絶級（アビリティ2・攻撃力+4500）、ラスボス級（アビリティ3・攻撃力+6000）。なければ通常 */
+export type QuestTier = 'bakuzetsu' | 'lastBoss'
 
 /** バナーの型：上位1体のズーム・上位3体・上位5体・ほかのピックアップ一覧 */
 export type BannerSlide = 'top1' | 'top3' | 'top5' | 'pickups'

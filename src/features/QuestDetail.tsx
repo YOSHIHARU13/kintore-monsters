@@ -16,6 +16,7 @@ import { attackOf } from '../lib/stats'
 import { allGimmicks } from '../lib/gimmick'
 import { DROP_ICON, STONE_LABEL, dropLabel, dropOf, expectedDrop } from '../lib/cores'
 import { towerCleared, towerMonth } from '../lib/tower'
+import { castleCleared } from '../lib/castle'
 import { towerRewardText } from './Tower'
 import { plusName, type QuestDifficulty } from '../types'
 import { customized, isFavorite } from '../lib/custom'
@@ -23,11 +24,14 @@ import type { LotDrop } from '../lib/cores'
 
 /** クエストの詳細：ボスの弱点を見て、難易度と出撃メンバーを選んで挑戦する */
 export function QuestDetail({ id, go }: { id: string; go: Go }) {
-  const { state, quests, tower, defs, owned, menu, today, startChallenge } = useStore()
-  const towerFloor = tower.find((f) => f.quest.id === id)
+  const { state, quests, tower, castle, defs, owned, menu, today, startChallenge } = useStore()
+  // 試練の塔か零の孤城の階（どちらも1階ずつ）
+  const inCastle = castle.some((f) => f.quest.id === id)
+  const towerFloor = tower.find((f) => f.quest.id === id) ?? castle.find((f) => f.quest.id === id)
   const found = quests.find((q) => q.id === id) ?? towerFloor?.quest
-  const backTo = towerFloor ? ({ name: 'tower' } as const) : ({ name: 'quests' } as const)
-  const towerLocked = !!towerFloor && towerFloor.floor !== towerCleared(state, towerMonth(today)) + 1
+  const backTo = inCastle ? ({ name: 'castle' } as const) : towerFloor ? ({ name: 'tower' } as const) : ({ name: 'quests' } as const)
+  const cleared = inCastle ? castleCleared(state) : towerCleared(state, towerMonth(today))
+  const towerLocked = !!towerFloor && towerFloor.floor !== cleared + 1
   const current = state.challenge?.date === today ? state.challenge : null
   const [difficulty, setDifficulty] = useState<QuestDifficulty>(
     current?.questId === id ? current.difficulty : BOSS_DIFFICULTY,
@@ -106,7 +110,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
   return (
     <div className="page">
       <button className="back" onClick={() => go(backTo)}>
-        {towerFloor ? '← 試練の塔に戻る' : '← クエストに戻る'}
+        {inCastle ? '← 零の孤城に戻る' : towerFloor ? '← 試練の塔に戻る' : '← クエストに戻る'}
       </button>
       <QuestBanner quest={quest} boss={boss} />
 
@@ -190,7 +194,9 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
             <MaterialDropInfo kind={kind} label={dropLabel(quest)} difficulty={difficulty} luckCount={luck.count} misses={misses} />
           )
         ) : towerFloor ? (
-          <p className="small">報酬（月に1回）：{towerRewardText(towerFloor, defs, state)}</p>
+          <p className="small">
+            報酬（{inCastle ? '1回きり' : '月に1回'}）：{towerRewardText(towerFloor, defs, state)}
+          </p>
         ) : (
           <p className="small">
             ドロップ {boss?.name ?? '？'}

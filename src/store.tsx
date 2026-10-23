@@ -68,9 +68,10 @@ import { activeToday, currentStats, loginReady, loginReward, type Reward } from 
 import { builtinMaterialQuests, builtinTempleQuests } from './lib/materials'
 import { itemInfo, itemLabel, rollTempleItems } from './lib/custom'
 import type { Period, Periods } from './lib/series'
+import { castleCleared, castleFloors } from './lib/castle'
 import { TOWER_VERSION, towerCleared, towerFloors, towerMonth, type FixedFloor, type TowerFloor } from './lib/tower'
 import { ELEMENTS, elementInfo, jogressElementOf } from './lib/element'
-import { investedFor, isHidden, nodeAttr, type AttrExp, type BannerSlide, type BoosterKey, type Checkin, type Element, type Gacha, type Quest, type QuestDifficulty, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
+import { investedFor, isHidden, nodeAttr, type AttrExp, type BannerSlide, type BoosterKey, type Checkin, type Element, type Gacha, type Quest, type QuestDifficulty, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type QuestTier, type SetRecord, type Song } from './types'
 
 const zeroExp = () => ({ trained: 0, bought: 0 })
 
@@ -154,6 +155,7 @@ export interface MonsterDefInput {
   rarity: RarityKey
   questOnly: boolean
   tower?: boolean // 試練の塔の報酬にする（降臨のときだけ）
+  questTier?: QuestTier | null // 降臨の格（なければ通常）
   jogressBirthStars: number // 隠しモンスターが生まれるときの星
   jogressPlus: number // 隠しモンスターの素材に必要な＋
   fixedStars: number // 進化しない降臨モンスターの星
@@ -184,7 +186,8 @@ export interface QuestReward {
   monsterId: string | null // 手に入ったボス（素材クエストでは null）
   defId: string | null // 手に入ったモンスターの種類（塔では塔限定モンスター）
   eggs: number // 試練の塔でもらえたトク玉
-  towerFloor: number | null // 試練の塔の何階をクリアしたか
+  towerFloor: number | null // 試練の塔（castle なら零の孤城）の何階をクリアしたか
+  castle?: boolean
   booster?: BoosterKey | null // 試練の塔でもらえたブースター
   boosted?: boolean // 討伐ブースターで2倍になったか
   drops: ItemDrop[] // 落ちた素材（素材クエストで何も落ちなければ、0個の行が1つ）
@@ -233,6 +236,7 @@ interface Store {
   gachas: Gacha[] // 先頭が「いつものガチャ」、あとは作った順
   quests: Quest[] // 作った順
   tower: TowerFloor[] // 今月の試練の塔（1階から）
+  castle: TowerFloor[] // 零の孤城（1階から）
   week: string // 今週の月曜の日付
   today: string
   weekSets: SetRecord[] // 今週（月曜はじまり）のセット記録
@@ -479,6 +483,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     () => towerFloors(towerMonth(today), defs, selectableGimmicks(quests), quests, towerFixed),
     [today, defs, quests, towerFixed],
   )
+  const castle = useMemo(() => castleFloors(defs, selectableGimmicks(quests), quests), [defs, quests])
 
 
   useEffect(() => {
@@ -1029,6 +1034,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         tags: [], // タグはなくなった（前に付けていたものは消す）
         questOnly: input.questOnly,
         tower: input.questOnly && input.tower === true,
+        questTier: (input.questOnly && input.questTier) || null,
         fixedStars: input.fixedStars,
         abilities: input.abilities,
         ...(input.recipe.length === 2
@@ -1175,9 +1181,12 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
 
     const startChallenge: Store['startChallenge'] = (questId, difficulty, party) => {
       if (!quests.some((q) => q.id === questId)) {
-        // 試練の塔は、次の階だけ挑戦できる
+        // 試練の塔・零の孤城は、次の階だけ挑戦できる
         const floor = tower.find((f) => f.quest.id === questId)
-        if (!floor || floor.floor !== towerCleared(state, towerMonth(dateKey())) + 1) return
+        const castleFloor = castle.find((f) => f.quest.id === questId)
+        if (floor && floor.floor !== towerCleared(state, towerMonth(dateKey())) + 1) return
+        if (castleFloor && castleFloor.floor !== castleCleared(state) + 1) return
+        if (!floor && !castleFloor) return
       }
       const ids = party.filter((p) => owned.some((o) => o.id === p)).slice(0, CONFIG.quest.partySize)
       updateState({ challenge: { date: dateKey(), questId, difficulty, party: ids, startTs: Date.now() } })
@@ -1191,7 +1200,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const battle = battleOf(
         state.challenge,
         dateKey(),
-        [...quests, ...tower.map((f) => f.quest)],
+        [...quests, ...tower.map((f) => f.quest), ...castle.map((f) => f.quest)],
         defs,
         owned,
         weekSets,
@@ -1199,11 +1208,9 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       )
       if (!battle?.defeated) return null
       const towerFloor = tower.find((f) => f.quest.id === battle.quest.id)
-      if (towerFloor)
-        return claimTower(
-          towerFloor,
-          battle.party.map((m) => m.mon),
-        )
+      if (towerFloor) return claimTower(towerFloor, battle.party.map((m) => m.mon), 'tower')
+      const castleFloor = castle.find((f) => f.quest.id === battle.quest.id)
+      if (castleFloor) return claimTower(castleFloor, battle.party.map((m) => m.mon), 'castle')
       const c = battle.challenge
       const material = battle.quest.kind === 'material'
       const bonus = luckBonus(battle.party.map((m) => m.mon))
@@ -1291,9 +1298,10 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     }
 
     /** 試練の塔の報酬：オーブ・トク玉・核・塔限定モンスター。クリアした階を進める */
-    const claimTower = (floor: TowerFloor, party: OwnedMonster[]): QuestReward | null => {
+    const claimTower = (floor: TowerFloor, party: OwnedMonster[], kind: 'tower' | 'castle'): QuestReward | null => {
       const month = towerMonth(dateKey())
-      if (floor.floor !== towerCleared(state, month) + 1) return null
+      const cleared = kind === 'castle' ? castleCleared(state) : towerCleared(state, month)
+      if (floor.floor !== cleared + 1) return null
       const bonus = luckBonus(party)
       const boost = state.boosts?.quest ? 2 : 1
       const gold = Math.round(floor.reward.gold * bonus.goldRate * boost)
@@ -1304,7 +1312,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         ...(boost > 1 ? { 'boosts.quest': false } : {}),
         gold: increment(gold),
         questClears: increment(1),
-        tower: { month, cleared: floor.floor },
+        ...(kind === 'castle' ? { castle: { cleared: floor.floor } } : { tower: { month, cleared: floor.floor } }),
         coins: increment(coins),
         challenge: null,
       }
@@ -1314,6 +1322,11 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       if (cores > 0 && coreKey) update[`cores.${coreKey}`] = increment(cores)
       if (floor.reward.booster) update[`boosters.${floor.reward.booster}`] = increment(1)
       if (floor.reward.sticks) update.sticks = increment(floor.reward.sticks)
+      // 孤城：ブースター詰め合わせと、カスタマイズアイテム
+      const pack: Record<string, number> = {}
+      for (const b of floor.reward.boosters ?? []) pack[b] = (pack[b] ?? 0) + 1
+      for (const [b, n] of Object.entries(pack)) update[`boosters.${b}`] = increment(n + (floor.reward.booster === b ? 1 : 0))
+      if (floor.reward.custom) update[`customItems.${floor.reward.custom}`] = increment(1)
       let monsterId: string | null = null
       if (floor.reward.monsterDefId) {
         const shiny = false // 色違いはなくなった
@@ -1339,7 +1352,10 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         drops: [
           ...(cores > 0 && coreKey ? [{ icon: DROP_ICON.muscle, label: CORE_LABEL[coreKey], count: cores }] : []),
           ...(floor.reward.sticks ? [{ icon: '🪄', label: 'ワクワクステッキ', count: floor.reward.sticks }] : []),
+          ...Object.entries(pack).map(([b, n]) => ({ icon: CONFIG.boosters[b as BoosterKey].icon, label: CONFIG.boosters[b as BoosterKey].label, count: n })),
+          ...(floor.reward.custom ? [{ icon: '', label: itemLabel(floor.reward.custom, allGimmicks(questDocs)), count: 1 }] : []),
         ],
+        castle: kind === 'castle',
         coins,
         booster: floor.reward.booster,
         boosted: boost > 1,
@@ -1463,6 +1479,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       saveGacha,
       quests,
       tower,
+      castle,
       week,
       saveQuest,
       deleteQuest,
@@ -1476,7 +1493,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       claimRanks,
       deleteGacha,
     }
-  }, [user, base, state, menu, defs, owned, songs, seriesPeriods, towerFixed, gachas, quests, tower, today, yesterday, yesterdayCheckin, week, weekSets, todaySets, stateRef, menuRef, musicRef, seriesRef, towerRef, fail])
+  }, [user, base, state, menu, defs, owned, songs, seriesPeriods, towerFixed, gachas, quests, tower, castle, today, yesterday, yesterdayCheckin, week, weekSets, todaySets, stateRef, menuRef, musicRef, seriesRef, towerRef, fail])
 
   if (!store) {
     return (

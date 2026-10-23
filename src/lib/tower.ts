@@ -28,7 +28,9 @@ export interface TowerReward {
   cores: number // ボスの部位の核
   sticks?: number // ワクワクステッキ
   booster: BoosterKey | null // ブースター
-  monsterDefId: string | null // 塔限定モンスター
+  boosters?: BoosterKey[] // ブースター詰め合わせ（孤城）
+  custom?: string // カスタマイズアイテム（孤城）
+  monsterDefId: string | null // 塔限定モンスター（孤城ではラスボス）
 }
 
 export const TOWER_PREFIX = 'tower-'

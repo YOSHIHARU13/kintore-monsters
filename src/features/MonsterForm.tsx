@@ -7,7 +7,7 @@ import { nextCost } from '../lib/evolution'
 import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
 import { CONFIG } from '../config/gameConfig'
-import { isHidden, type Element, type MonsterDef, type RarityKey } from '../types'
+import { isHidden, type Element, type MonsterDef, type RarityKey, type QuestTier } from '../types'
 import { RARITY_KEYS, formLabel, rarityOf } from '../lib/gacha'
 import { abilityName, abilitySlots, allGimmicks, selectableGimmicks } from '../lib/gimmick'
 import {
@@ -45,6 +45,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
   const [jogressPlus] = useState(existing?.jogressPlus ?? 0)
   const [questOnly, setQuestOnly] = useState(existing?.questOnly === true || questPreset)
   const [tower, setTower] = useState(existing?.tower === true)
+  const [questTier, setQuestTier] = useState<QuestTier | null>(existing?.questTier ?? null)
   const [element, setElement] = useState<Element | ''>(existing?.element ?? '')
   const [favoriteSlot, setFavoriteSlot] = useState(existing?.favoriteSlot ?? '')
   const [abilities, setAbilities] = useState<string[]>(existing?.abilities ?? [])
@@ -78,13 +79,13 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
   }
   // 被りや不足を見るための集計（自分以外のモンスターと、作ってあるクエストから）
   const gimmickNames = allGimmicks(quests)
-  const maxAbilities = abilitySlots({ recipe, rarity, questOnly })
+  const maxAbilities = abilitySlots({ recipe, rarity, questOnly, questTier })
   const draftFull: MonsterDef = {
     ...draftDef,
     attrs: Object.fromEntries(template.nodes.map((n) => [n.id, attrOf(n.id)])),
     element: element || undefined,
     favoriteSlot: favoriteSlot || undefined,
-    abilities: abilities.slice(0, abilitySlots({ recipe, rarity, questOnly })),
+    abilities: abilities.slice(0, abilitySlots({ recipe, rarity, questOnly, questTier })),
     ...(recipe.length === 2
       ? { jogressElements: jogressElementOf(recipe, defs).elements, jogressSuper: jogressElementOf(recipe, defs).super }
       : {}),
@@ -187,9 +188,10 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
         element,
         favoriteSlot: validFavorite,
         series,
-        abilities: abilities.slice(0, abilitySlots({ recipe, rarity, questOnly })),
+        abilities: abilities.slice(0, abilitySlots({ recipe, rarity, questOnly, questTier })),
         questOnly: recipe.length !== 2 && questOnly,
         tower: recipe.length !== 2 && questOnly && tower,
+        questTier: recipe.length !== 2 && questOnly ? questTier : null,
         jogressBirthStars: birthStars,
         jogressPlus,
         fixedStars,
@@ -363,6 +365,27 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
             <input type="checkbox" checked={questOnly} onChange={(e) => setQuestOnly(e.target.checked)} />
             クエスト限定にする（ガチャには出ず、クエストのボスとして倒すと手に入る）
           </label>
+          {questOnly && (
+            <div className="field">
+              降臨の格
+              <div className="chips" role="group" aria-label="降臨の格">
+                {(
+                  [
+                    [null, `通常（アビリティ${CONFIG.gimmicks.questOnlyMax}）`],
+                    ['bakuzetsu', `爆絶級（アビリティ${CONFIG.gimmicks.questTierSlots.bakuzetsu}・攻撃力+${CONFIG.gacha.questTierAttack.bakuzetsu}）`],
+                    ['lastBoss', `ラスボス級（アビリティ${CONFIG.gimmicks.questTierSlots.lastBoss}・攻撃力+${CONFIG.gacha.questTierAttack.lastBoss}）`],
+                  ] as const
+                ).map(([k, label]) => (
+                  <button key={label} type="button" className={`chip${questTier === k ? ' on' : ''}`} onClick={() => setQuestTier(k)}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <span className="muted small">
+                爆絶級は爆絶のクエストと孤城の1〜10階のボスに、ラスボス級は孤城の11階（零属性のラスボス）になります。
+              </span>
+            </div>
+          )}
           {questOnly && (
             <label className="row">
               <input type="checkbox" checked={tower} onChange={(e) => setTower(e.target.checked)} />

@@ -30,6 +30,7 @@ import { ELEMENT_COLOR, elementInfo } from '../lib/element'
 import { CONFIG } from '../config/gameConfig'
 import { dropLabel } from '../lib/cores'
 import { towerCleared, towerMonth } from '../lib/tower'
+import { castleCleared } from '../lib/castle'
 import { QUEST_RULES, autoGradeOf, autoQuestSetup } from '../lib/questAuto'
 import { selectableGimmicks } from '../lib/gimmick'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
@@ -41,13 +42,13 @@ import { nodeAttr, plusName, type MonsterDef, type Quest } from '../types'
 
 /** クエストのタブ：今日の戦いと、クエストの一覧 */
 export function Quests({ go }: { go: Go }) {
-  const { state, quests, tower, defs, owned, today, seriesPeriods, quitChallenge, claimQuest, saveQuest, feedLuck, markQuestRules } = useStore()
+  const { state, quests, tower, castle, defs, owned, today, seriesPeriods, quitChallenge, claimQuest, saveQuest, feedLuck, markQuestRules } = useStore()
   const [fedLuck, setFedLuck] = useState<{ msg: string; keeperId: string } | null>(null) // 落ちた子を運に食べさせた
   const [made, setMade] = useState<number | null>(null)
   const [series, setSeries] = useState<SeriesFilter>('all')
   // まだボスクエストがない降臨モンスター（塔限定は塔でもらえるので除く）
   const pending = defs.filter(
-    (d) => d.questOnly && !d.tower && !quests.some((q) => q.kind !== 'material' && q.bossDefId === d.id),
+    (d) => d.questOnly && !d.tower && d.questTier !== 'lastBoss' && !quests.some((q) => q.kind !== 'material' && q.bossDefId === d.id),
   )
   /** 降臨モンスター1体につき1つ、おまかせでボスクエストを作る（名前はボスの名前・格はレア度から） */
   const makeAll = () => {
@@ -104,7 +105,10 @@ export function Quests({ go }: { go: Go }) {
   }, [state.questRules, defs.length])
   const towerDone = towerCleared(state, towerMonth(today))
   const battle = useBattle()
-  const towerFloor = battle ? tower.find((f) => f.quest.id === battle.quest.id) : undefined
+  const towerFloor = battle
+    ? (tower.find((f) => f.quest.id === battle.quest.id) ?? castle.find((f) => f.quest.id === battle.quest.id))
+    : undefined
+  const castleDone = castleCleared(state)
   const [confirmQuit, setConfirmQuit] = useState(false)
   const [view, setView] = useState<'icon' | 'banner'>(() => {
     try {
@@ -125,7 +129,7 @@ export function Quests({ go }: { go: Go }) {
   // 出撃した日のうちに倒せなかった戦い
   const expired =
     state.challenge && state.challenge.date !== today
-      ? [...quests, ...tower.map((f) => f.quest)].find((q) => q.id === state.challenge!.questId)
+      ? [...quests, ...tower.map((f) => f.quest), ...castle.map((f) => f.quest)].find((q) => q.id === state.challenge!.questId)
       : null
 
   return (
@@ -135,7 +139,8 @@ export function Quests({ go }: { go: Go }) {
       {got && (
         <section className="card center">
           <h2>
-            {got.towerFloor ? `試練の塔 ${got.towerFloor}階 突破！` : '討伐成功！'} 🔮+{got.gold}・🪙+{got.coins ?? 0}
+            {got.towerFloor ? `${got.castle ? '零の孤城' : '試練の塔'} ${got.towerFloor}階 突破！` : '討伐成功！'} 🔮+{got.gold}・🪙+
+            {got.coins ?? 0}
           </h2>
           {got.boosted && <p className="tag keep">⚔️ 討伐ブースターで報酬2倍！</p>}
           {got.eggs > 0 && <p>🟡 トク玉 ×{got.eggs} を手に入れた！</p>}
@@ -305,6 +310,19 @@ export function Quests({ go }: { go: Go }) {
             {towerDone >= CONFIG.tower.floors
               ? '今月は踏破！来月また新しい塔が出ます'
               : `${towerDone}／${CONFIG.tower.floors}階・次は${towerDone + 1}階（11階のボスは塔限定モンスター）`}
+          </span>
+        </span>
+        <span>›</span>
+      </button>
+
+      <button className="card tower-entry castle-entry" onClick={() => go({ name: 'castle' })}>
+        <span style={{ fontSize: '2rem' }}>🏯</span>
+        <span className="tower-body">
+          <strong>零の孤城</strong>
+          <span className="small muted">
+            {castleDone >= CONFIG.castle.floors
+              ? '踏破！'
+              : `${castleDone}／${CONFIG.castle.floors}階・全階爆絶・最上階は零属性のラスボス（報酬は1回きり）`}
           </span>
         </span>
         <span>›</span>

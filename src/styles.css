@@ -2578,3 +2578,14 @@ details.tuning[open] > summary {
   background: linear-gradient(120deg, #2b0010, #ff4d6d);
   color: #fff;
 }
+
+/* 零の孤城：塔より暗く、紅の縁 */
+.castle-entry {
+  background: linear-gradient(120deg, #12000a, #3a0a1e);
+  border-color: #ff4d6d;
+  color: #fff;
+}
+.castle .tower-floor.next {
+  border-color: #ff4d6d;
+  box-shadow: 0 0 12px rgba(255, 30, 80, 0.5);
+}
