@@ -179,6 +179,7 @@ beforeEach(() => {
     journal: [],
     bulkUpdateDefs: vi.fn(),
     toggleLock: vi.fn(),
+    setLocks: vi.fn(),
     shinka: vi.fn(() => true),
     renameSeries: vi.fn(),
     markQuestRules: vi.fn(),
@@ -1085,6 +1086,19 @@ describe('画面の表示', () => {
     const filter = el.querySelector('[aria-label="属性で絞り込み"]')!
     await act(async () => [...filter.querySelectorAll('button')].find((b) => b.textContent === '水')!.click())
     expect(names()).toEqual(['アシガメ'])
+  })
+
+  it('BOX：一覧の鍵でロックでき、まとめて選んでロックできる', async () => {
+    fake.store.owned = [owned[0], { id: 'o2', defId: 'm2', nodeId: 'n1', obtainedAt: 5 }]
+    const el = await render(<Box go={go} />)
+    await act(async () => (el.querySelector('[aria-label="アシガメをロックする"]') as HTMLButtonElement).click())
+    expect(fake.store.toggleLock).toHaveBeenCalledWith('o2')
+    await click('まとめてロック・解除')
+    await click('表示中を全部選ぶ')
+    expect(el.textContent).toContain('2体を選択中')
+    await click('🔒 ロック')
+    expect(fake.store.setLocks).toHaveBeenCalledWith(expect.arrayContaining(['o1', 'o2']), true)
+    expect(go).not.toHaveBeenCalledWith({ name: 'monster', id: 'o1' })
   })
 
   it('習慣：1分・3分から記録でき、タイマーでも計れる', async () => {

@@ -33,7 +33,22 @@ const rarityRank = (def: MonsterDef) => (isHidden(def) ? RARITY_KEYS.length : RA
 
 /** BOX：モンストのように小さいアイコンを並べる。並び替えと絞り込みつき */
 export function Box({ go }: { go: Go }) {
-  const { owned, defs, state, today, bulkFeed } = useStore()
+  const { owned, defs, state, today, bulkFeed, toggleLock, setLocks } = useStore()
+  // まとめてロック：選ぶモードのときは、タップで選ぶ（詳細は開かない）
+  const [picking, setPicking] = useState(false)
+  const [picked, setPicked] = useState<Set<string>>(new Set())
+  const togglePick = (id: string) =>
+    setPicked((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  const finishPick = (locked: boolean) => {
+    setLocks([...picked], locked)
+    setPicked(new Set())
+    setPicking(false)
+  }
   const [confirmFeed, setConfirmFeed] = useState(false)
   const [fedMsg, setFedMsg] = useState<string | null>(null)
   const feedPlans = planBulkFeed(owned, defs, protectedIds(state, today, owned), starsOf, bulkFeedTarget)
@@ -144,6 +159,34 @@ export function Box({ go }: { go: Go }) {
           </button>
         ))}
       </div>
+      {owned.length > 0 &&
+        (picking ? (
+          <div className="lock-bar">
+            <span className="small">{picked.size}体を選択中</span>
+            <button className="btn small" onClick={() => setPicked(new Set(list.map((r) => r.mon.id)))}>
+              表示中を全部選ぶ
+            </button>
+            <button className="btn small primary" disabled={picked.size === 0} onClick={() => finishPick(true)}>
+              🔒 ロック
+            </button>
+            <button className="btn small" disabled={picked.size === 0} onClick={() => finishPick(false)}>
+              🔓 解除
+            </button>
+            <button
+              className="btn small ghost"
+              onClick={() => {
+                setPicked(new Set())
+                setPicking(false)
+              }}
+            >
+              やめる
+            </button>
+          </div>
+        ) : (
+          <button className="btn small" onClick={() => setPicking(true)}>
+            🔒 まとめてロック・解除
+          </button>
+        ))}
       {owned.length === 0 && (
         <p className="muted">まだモンスターがいません。図鑑でモンスターを登録して、ショップでガチャを引きましょう。</p>
       )}
@@ -151,20 +194,29 @@ export function Box({ go }: { go: Go }) {
         {list.map(({ mon, def }) => {
           const el = elementInfo(def).elements[0]
           return (
-            <button
-              key={mon.id}
-              className="dex-cell box-cell"
-              style={el ? { borderColor: ELEMENT_COLOR[el] } : undefined}
-              onClick={() => go({ name: 'monster', id: mon.id })}
-              aria-label={plusName(def, mon)}
-            >
-              {partnerIds.has(mon.id) && <span className="box-partner">相</span>}
-              {mon.locked && <span className="box-lock">🔒</span>}
-              {isLuckMax(mon) && <span className="box-luck">運極</span>}
-              <MonsterImage {...monArt(def, mon)} size={56} plus={mon.plus} shiny={mon.shiny} />
-              <Stars def={def} nodeId={mon.nodeId} mon={mon} />
-              <span className="box-name">{plusName(def, mon)}</span>
-            </button>
+            <div key={mon.id} className="box-wrap">
+              <button
+                className={`dex-cell box-cell${picking && picked.has(mon.id) ? ' picked' : ''}`}
+                style={el ? { borderColor: ELEMENT_COLOR[el] } : undefined}
+                onClick={() => (picking ? togglePick(mon.id) : go({ name: 'monster', id: mon.id }))}
+                aria-label={plusName(def, mon)}
+                aria-pressed={picking ? picked.has(mon.id) : undefined}
+              >
+                {partnerIds.has(mon.id) && <span className="box-partner">相</span>}
+                {isLuckMax(mon) && <span className="box-luck">運極</span>}
+                <MonsterImage {...monArt(def, mon)} size={56} plus={mon.plus} shiny={mon.shiny} />
+                <Stars def={def} nodeId={mon.nodeId} mon={mon} />
+                <span className="box-name">{plusName(def, mon)}</span>
+              </button>
+              {/* 鍵はその場でロック・解除できる */}
+              <button
+                className={`box-lock${mon.locked ? ' on' : ''}`}
+                onClick={() => toggleLock(mon.id)}
+                aria-label={mon.locked ? `${plusName(def, mon)}のロックを外す` : `${plusName(def, mon)}をロックする`}
+              >
+                {mon.locked ? '🔒' : '🔓'}
+              </button>
+            </div>
           )
         })}
       </div>

@@ -302,6 +302,8 @@ interface Store {
   bulkUpdateDefs: (ids: string[], patch: { element?: Element | null; tier?: RarityKey; bossGrade?: QuestGrade; series?: string }) => void
   /** ロックする・外す（ロックした子は、まとめて合成・素材に使わない） */
   toggleLock: (monsterId: string) => void
+  /** まとめてロック・解除する */
+  setLocks: (monsterIds: string[], locked: boolean) => void
   /** ボスクエストの条件を、今の版のおまかせで作り直したことを記録する */
   markQuestRules: (version: number) => void
   /** たまっているランクアップ報酬をまとめて受け取る。受け取ったトク玉の数 */
@@ -1645,6 +1647,14 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       batch.commit().catch(fail)
     }
 
+    const setLocks: Store['setLocks'] = (monsterIds, locked) => {
+      const targets = owned.filter((o) => monsterIds.includes(o.id) && !!o.locked !== locked)
+      if (targets.length === 0) return
+      const batch = writeBatch(db)
+      for (const mon of targets) batch.update(doc(db, base, 'ownedMonsters', mon.id), { locked })
+      batch.commit().catch(fail)
+    }
+
     const markQuestRules: Store['markQuestRules'] = (version) => updateState({ questRules: version })
 
     const claimRanks: Store['claimRanks'] = () => {
@@ -1758,6 +1768,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       removeCustom,
       markQuestRules,
       toggleLock,
+      setLocks,
       bulkUpdateDefs,
       claimRanks,
       deleteGacha,

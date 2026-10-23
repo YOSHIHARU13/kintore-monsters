@@ -2814,11 +2814,44 @@ details.tuning[open] > summary {
   color: #1b1400;
 }
 
+.box-wrap {
+  position: relative;
+  display: flex;
+}
+.box-wrap > .box-cell {
+  flex: 1;
+}
+.box-cell.picked {
+  outline: 3px solid var(--primary);
+  outline-offset: -3px;
+  background: rgba(245, 179, 1, 0.18);
+}
 .box-lock {
   position: absolute;
-  top: 2px;
-  left: 2px;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  padding: 3px 4px;
+  border: none;
+  background: none;
   font-size: 0.7rem;
+  line-height: 1;
+  opacity: 0.35;
+  cursor: pointer;
+}
+.box-lock.on {
+  opacity: 1;
+}
+.lock-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: 6px 0;
+  background: var(--bg);
 }
 
 /* 登録一覧：まとめて変更 */
