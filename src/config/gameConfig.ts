@@ -483,6 +483,9 @@ export const CONFIG = {
 
   // ガチャ：いくつでも作れる。モンスターは最大3つのガチャに入れられる
   gacha: {
+    calendarDays: 35, // ショップの開催予定で見せる日数
+    minOpen: 2, // 開発側：いつでもこの数の期間限定ガチャが開いているように（足りない日をガチャの管理で知らせる）
+    planDays: 60, // ↑を確かめる日数
     maxPerMonster: 3,
     minPickups: 3,
     bannerMonsters: 5, // 自動バナーに出すモンスターの数（優先度の上位から）

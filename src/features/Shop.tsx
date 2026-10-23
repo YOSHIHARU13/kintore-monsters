@@ -3,7 +3,7 @@ import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { useStore } from '../store'
 import { CollabNews } from '../components/CollabNews'
 import { gachaSeries, seriesStatus } from '../lib/series'
-import { gachaOpen } from '../lib/gachaSchedule'
+import { gachaOpen, openPeriods, periodText } from '../lib/gachaSchedule'
 import { availableEvents, upcomingEvents } from '../lib/events'
 import { ACTIVE_HINT, activeToday } from '../lib/missions'
 import { ATTRS, ATTR_LABEL, type Attr } from '../data/exercises'
@@ -107,6 +107,7 @@ export function Shop({ go }: { go: Go }) {
         {soon.length > 0 && (
           <p className="muted small">次の開催：{soon.map((g) => `${g.name}（${openOf(g).label}）`).join('・')}</p>
         )}
+        <GachaCalendar />
         <GachaBanner
           gacha={gacha}
           count={table.length}
@@ -254,5 +255,40 @@ export function Shop({ go }: { go: Go }) {
         />
       )}
     </div>
+  )
+}
+
+/** ガチャの開催予定（これから5週間）。どのガチャが、いつからいつまで引けるか */
+function GachaCalendar() {
+  const { gachas, defs, seriesPeriods, today } = useStore()
+  const days = CONFIG.gacha.calendarDays
+  const rows = gachas
+    .filter((g) => !g.builtin)
+    .map((g) => {
+      const series = gachaSeries(rateTable(g.id, defs))
+      const periods = openPeriods((day) => gachaOpen(g, day, seriesStatus(series, seriesPeriods, day)).open, today, days)
+      return { g, periods }
+    })
+    .filter((r) => r.periods.length > 0)
+    .sort((a, b) => a.periods[0].start.localeCompare(b.periods[0].start))
+  if (rows.length === 0) return null
+  return (
+    <details className="card fold gacha-calendar">
+      <summary>
+        <h2>📅 ガチャの開催予定（{days / 7}週間）</h2>
+      </summary>
+      <ul className="mini-list">
+        {rows.map(({ g, periods }) => (
+          <li key={g.id}>
+            <span>
+              <strong>{g.name}</strong>
+              {periods[0].start <= today && <span className="tag keep small"> 開催中</span>}
+              <br />
+              <span className="small muted">{periods.map(periodText).join('・')}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </details>
   )
 }
