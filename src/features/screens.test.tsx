@@ -799,7 +799,7 @@ describe('画面の表示', () => {
     const el = await render(<Quests go={go} />)
     expect(el.textContent).toContain('与えたダメージ 28 ／ HP 25') // レアの★2（攻撃力8,500）：2.5 × 2.83 × 2 × 2
     expect(el.querySelector('.damage-share')!.textContent).toContain('👑MVP') // 誰がどれだけ削ったか
-    expect(el.textContent).toContain('討伐できる！')
+    expect(el.textContent).toContain('討伐！報酬を受け取ろう')
     await click('報酬を受け取る')
     expect(fake.store.claimQuest).toHaveBeenCalled()
     expect(el.textContent).toContain('討伐成功！')

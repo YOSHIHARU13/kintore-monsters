@@ -6,7 +6,6 @@ import { awakenOf, imageOf, glowOf, monArt } from '../lib/art'
 import { useStore } from '../store'
 import { SeriesChips } from '../components/SeriesChips'
 import { allSeries, inSeries, questSeries, seriesStatus, statusLabel, type SeriesFilter } from '../lib/series'
-import { Gauge } from '../components/Gauge'
 import { MonsterImage } from '../components/MonsterImage'
 import { QuestBanner } from '../components/QuestBanner'
 import { bannerNodeOf } from '../components/GachaBanner'
@@ -66,6 +65,7 @@ import { towerRewardText } from './Tower'
 import { boosterName } from '../lib/boosters'
 import type { QuestReward } from '../store'
 import { TreasureBoxes } from '../components/TreasureBoxes'
+import { BattleScene } from '../components/BattleScene'
 import type { Go, QuestCategory } from '../nav'
 import type { Periods } from '../lib/series'
 import { BattleBar } from '../components/BattleBar'
@@ -269,31 +269,21 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
           <h2>
             戦闘中：{battle.quest.name}（{questLevelLabel(battle.quest, battle.challenge.difficulty)}）
           </h2>
-          <div className="monster-row">
-            {battle.boss && (
-              <MonsterImage imageId={imageOf(battle.boss, bannerNodeOf(battle.boss))} awaken={awakenOf(battle.boss, bannerNodeOf(battle.boss))} glow={glowOf(battle.boss)} size={72} silhouette={!battle.defeated} />
-            )}
-            <div className="goal-body">
-              <strong>
-                {battle.defeated ? '討伐できる！' : `のこりHP ${(battle.hp - battle.damage).toLocaleString()}`}
-              </strong>
-              <Gauge value={Math.max(0, battle.hp - battle.damage)} max={battle.hp} color="#ef476f" />
-              <span className="muted small">
-                与えたダメージ {battle.damage.toLocaleString()} ／ HP {battle.hp.toLocaleString()}・編成倍率 ×
-                {formationOf(
-                  battle.party.map((m) => m.def),
-                  requirementsOf(battle.quest),
-                ).rate.toFixed(2)}
-                {luckBonus(battle.party.map((m) => m.mon)).count > 0 &&
-                  `・運極ボーナス オーブ×${luckBonus(battle.party.map((m) => m.mon)).goldRate.toFixed(1)}`}
-                ・今日中に倒そう
-              </span>
-            </div>
-          </div>
+          <BattleScene battle={battle} />
+          <p className="muted small">
+            与えたダメージ {battle.damage.toLocaleString()} ／ HP {battle.hp.toLocaleString()}・編成倍率 ×
+            {formationOf(
+              battle.party.map((m) => m.def),
+              requirementsOf(battle.quest),
+            ).rate.toFixed(2)}
+            {luckBonus(battle.party.map((m) => m.mon)).count > 0 &&
+              `・運極ボーナス オーブ×${luckBonus(battle.party.map((m) => m.mon)).goldRate.toFixed(1)}・宝箱+${luckBonus(battle.party.map((m) => m.mon)).count * CONFIG.boxes.perLuckMax}`}
+            ・今日中に倒そう
+          </p>
           {castleInfo && (
             <p className="small castle-battles">
               {'⚔️'.repeat(castleInfo.reached)}
-              {'・'.repeat(CONFIG.castle.battles - castleInfo.reached)} バトル {castleInfo.reached}/{CONFIG.castle.battles} 突破
+              {'・'.repeat(CONFIG.quest.battles - castleInfo.reached)} バトル {castleInfo.reached}/{CONFIG.quest.battles} 突破
               （今月の最高 {castleInfo.best}）。出撃は1回なので、受け取るとこの挑戦は終わります
             </p>
           )}

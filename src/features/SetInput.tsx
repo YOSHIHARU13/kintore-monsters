@@ -8,7 +8,7 @@ import { calcTarget, judgeSet, recentSessions, suggestProgression } from '../lib
 import { calcSetReward } from '../lib/rewards'
 import { partnerOf, rateText } from '../lib/partner'
 import { MonsterImage } from '../components/MonsterImage'
-import { BattleBar } from '../components/BattleBar'
+import { BattleScene } from '../components/BattleScene'
 import { formatClock, weekStartKey } from '../lib/date'
 import { Stepper } from '../components/Stepper'
 import { Gauge } from '../components/Gauge'
@@ -156,7 +156,6 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
         ← メニューに戻る
       </button>
       <MusicButtons />
-      <BattleBar go={go} />
       <h1 className="title">{ex.name}</h1>
       <p className="muted">
         {isBonus ? `全身枠・1セット 万能EXP +${CONFIG.bonus.anyExpPerSet}（オーブ +${CONFIG.bonus.goldPerSet}は1日${CONFIG.sets.perExercise}セットまで）・` : ''}
@@ -244,6 +243,9 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
           <p className="small center bonus-reward">追加のセット：EXPもダメージもそのまま入ります</p>
         ) : null}
       </section>
+
+      {/* 出撃中なら、確定ボタンのすぐ下で味方の攻撃が見える */}
+      <BattleScene go={go} compact />
 
       {todays.length > 0 && (
         <section className="card">

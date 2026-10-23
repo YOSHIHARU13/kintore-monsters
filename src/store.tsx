@@ -1492,15 +1492,15 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const month = towerMonth(dateKey())
       // 孤城は3バトル：その日に突破したバトルのうち、まだ受け取っていないぶんの報酬（アイテムやボスは全部突破したとき）
       const best = kind === 'castle' ? castleBest(state, month, floor.floor) : 0
-      const reached = kind === 'castle' ? battlesReached(battle.damage, battle.hp) : CONFIG.castle.battles
+      const reached = kind === 'castle' ? battlesReached(battle.damage, battle.hp) : CONFIG.quest.battles
       if (kind === 'castle') {
         if (!castleAvailable(state, month, floor.floor) || reached <= best) return null
       } else {
         const cleared = kind === 'kinkin' ? kinkinCleared(state, month) : towerCleared(state, month, floor.tower ?? 0)
         if (floor.floor !== cleared + 1 || !battle.defeated) return null
       }
-      const full = kind !== 'castle' || (reached >= CONFIG.castle.battles && best < CONFIG.castle.battles)
-      const share = kind === 'castle' ? (reached - best) / CONFIG.castle.battles : 1
+      const full = kind !== 'castle' || (reached >= CONFIG.quest.battles && best < CONFIG.quest.battles)
+      const share = kind === 'castle' ? (reached - best) / CONFIG.quest.battles : 1
       const r: TowerReward = full
         ? { ...floor.reward, gold: Math.round(floor.reward.gold * share), eggs: Math.round(floor.reward.eggs * share) }
         : { gold: Math.round(floor.reward.gold * share), eggs: Math.round(floor.reward.eggs * share), cores: 0, booster: null, monsterDefId: null }

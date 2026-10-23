@@ -41,6 +41,7 @@ export interface Hit {
   damage: number
   notes: string[] // 効いた補正（弱点・得意種目・相性・ギミック）
   byMember: Record<string, number> // 出撃した子ごとのダメージ（monsterId → ダメージ）
+  skills?: Record<string, string[]> // 出撃した子ごとに、効いた補正（戦闘画面の演出用。例：['部位一致', 'アビリティ×2']）
 }
 
 /** その子が持っている、クエストの条件に出てくるアビリティの数 */
@@ -72,37 +73,52 @@ export function setHit(set: SetInfo, quest: Quest, party: Member[], label: strin
   const strict = isStrict(quest)
   let damage = 0
   const byMember: Record<string, number> = {}
+  const skills: Record<string, string[]> = {}
   for (const m of party) {
     let d = base * powerOf(m)
+    const own: string[] = []
     // 条件に合うアビリティを持っている子は、その子自身も強い（1つにつき+25%）
     const matched = matchedAbilities(m.def, quest)
-    if (matched > 0) d *= 1 + q.abilityBonus * matched
+    if (matched > 0) {
+      d *= 1 + q.abilityBonus * matched
+      own.push(`アビリティ×${(1 + q.abilityBonus * matched).toFixed(2).replace(/0$/, '')}`)
+    }
     // 零属性：どこでも×1.2で、半減もされない
     const zero = elementInfo(m.def).elements.length === 0
     if (zero) {
       d *= q.zeroBonus
       notes.add(`${m.def.name}は零属性×${q.zeroBonus}`)
+      own.push(`零属性×${q.zeroBonus}`)
     } else if (strict && !fitsQuest(m.def, quest)) {
       const bakuzetsu = gradeOf(quest) === 'bakuzetsu'
       d *= bakuzetsu ? q.offElementBakuzetsu : q.offElementChozetsu
       notes.add(`${m.def.name}は属性が合わず${bakuzetsu ? '3分の1' : '半減'}`)
+      own.push(bakuzetsu ? '属性×1/3' : '属性×1/2')
+    } else if (hasAdvantage(m.def, quest.element)) {
+      own.push('有利属性')
     }
     // コラボの激レア・レアは、同じコラボのボスに×1.5
     if (isCollabHero(m.def, quest)) {
       d *= q.collabBonus
       notes.add(`${m.def.name}はコラボ×${q.collabBonus}`)
+      own.push(`コラボ×${q.collabBonus}`)
     }
-    if (partAttr && attrOf(m) === partAttr) d *= q.partMatch
+    if (partAttr && attrOf(m) === partAttr) {
+      d *= q.partMatch
+      own.push(`部位一致×${q.partMatch}`)
+    }
     if (bossPart) d *= q.bossPart
     if (weak) d *= q.weakSlot
     if (isFavorite(m.def, set.slotId)) {
       d *= q.favorite
       notes.add(`${m.def.name}の得意種目`)
+      own.push(`得意種目×${q.favorite}`)
     }
     damage += d
     byMember[m.mon.id] = (byMember[m.mon.id] ?? 0) + d * rate
+    skills[m.mon.id] = own
   }
-  return { label, damage: Math.round(damage * rate), notes: [...notes], byMember }
+  return { label, damage: Math.round(damage * rate), notes: [...notes], byMember, skills }
 }
 
 /** その難易度で使う編成の条件と弱点（最初からある素材クエストは難易度ごとに決まっている） */
@@ -176,6 +192,45 @@ export interface Battle {
   defeated: boolean
   byMember: Record<string, number> // 出撃した子ごとの、これまでのダメージ
   mvpId: string | null // いちばんダメージを与えた子
+  stages: (MonsterDef | undefined)[] // 3バトルの敵（道中・中ボス・ボス）
+  stage: number // 今戦っているバトル（1〜3。倒しきったら3）
+  reached: number // 突破したバトルの数（0〜3）
+}
+
+/** 与えたダメージで、何バトル目まで突破したか（HPを3等分） */
+export function battlesReached(damage: number, hp: number): number {
+  const n = CONFIG.quest.battles
+  return Math.max(0, Math.min(n, Math.floor((damage * n) / Math.max(1, hp) + 1e-9)))
+}
+
+/** 今のバトルのHP：そのバトルの最大と残り */
+export function stageHp(damage: number, hp: number): { max: number; left: number } {
+  const n = CONFIG.quest.battles
+  const max = hp / n
+  const stage = Math.min(n - 1, battlesReached(damage, hp))
+  return { max, left: Math.max(0, Math.min(max, (stage + 1) * max - damage)) }
+}
+
+function hashOf(s: string): number {
+  let h = 2166136261
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619)
+  return h >>> 0
+}
+
+/**
+ * 3バトルの敵：1バトル目は道中（ボスと同じ属性のノーマル・レア）、2バトル目は中ボス（同じ属性のほかの降臨か、レア）、3バトル目がボス。
+ * クエストのIDで決まる（塔は月ごとにIDが変わるので、道中と中ボスも入れ替わる）。いなければボスが3回出る
+ */
+export function stageEnemies(quest: Pick<Quest, 'id' | 'element'>, boss: MonsterDef | undefined, defs: MonsterDef[]): (MonsterDef | undefined)[] {
+  const h = hashOf(quest.id)
+  const sameEl = (d: MonsterDef) => (quest.element ? elementInfo(d).elements[0] === quest.element : elementInfo(d).elements.length === 0)
+  const others = defs.filter((d) => d.id !== boss?.id && !d.recipe?.length && sameEl(d))
+  const mobs = others.filter((d) => !d.questOnly && rarityOf(d) !== 'superRare')
+  const mids = others.filter((d) => (d.questOnly && !d.castleLord && !d.kinkinLord) || (!d.questOnly && rarityOf(d) === 'rare'))
+  const pick = (list: MonsterDef[], salt: number) => (list.length > 0 ? list[(h + salt) % list.length] : boss)
+  const mob = pick(mobs, 0)
+  const mid = pick(mids.filter((d) => d.id !== mob?.id), 7)
+  return [mob, mid, boss]
 }
 
 /** 今日の戦いの状況。挑戦していない・日付が変わった・クエストが消えたときは null */
@@ -205,7 +260,23 @@ export function battleOf(
   const byMember: Record<string, number> = {}
   for (const h of hits) for (const [id, d] of Object.entries(h.byMember)) byMember[id] = (byMember[id] ?? 0) + d
   const mvpId = Object.entries(byMember).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
-  return { challenge, quest, boss: defs.find((d) => d.id === quest.bossDefId), party, hits, damage, hp, defeated: damage >= hp, byMember, mvpId }
+  const boss = defs.find((d) => d.id === quest.bossDefId)
+  const reached = battlesReached(damage, hp)
+  return {
+    challenge,
+    quest,
+    boss,
+    party,
+    hits,
+    damage,
+    hp,
+    defeated: damage >= hp,
+    byMember,
+    mvpId,
+    stages: stageEnemies(quest, boss, defs),
+    stage: Math.min(CONFIG.quest.battles, reached + 1),
+    reached,
+  }
 }
 
 /** ボスの格 */

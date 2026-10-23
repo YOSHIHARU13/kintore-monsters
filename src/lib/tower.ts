@@ -150,8 +150,8 @@ export function towerFloors(
     const mi = t.monsterFloors.indexOf(floor)
     // 11階のボス：塔限定の子をパターンごとに入れ替える（塔ごとにずらす）
     const prize = mi >= 0 ? patternPick(prizes, pattern + index) : undefined
-    // 塔限定モンスターの階は、その子がボス。ほかは並び順のボス
-    const boss = prize ?? lineup[i % lineup.length]
+    // 塔限定モンスターの階は、その子がボス。ほかは並び順のボスを、月のパターンごとにずらす（同じ階でもボスごと入れ替わる）
+    const boss = prize ?? lineup[(i + t.patternShift * pattern) % lineup.length]
     const grade: QuestGrade = floor >= t.chozetsuFrom ? 'chozetsu' : floor >= t.kyukyokuFrom ? 'kyukyoku' : 'kiwami'
     // 条件：ほかのクエストで使っているスキルをなるべく避ける（そのボスの超絶クエストとは別のギミックに）。パターンごとに変わる
     const setup = boss

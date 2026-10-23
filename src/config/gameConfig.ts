@@ -189,6 +189,8 @@ export const CONFIG = {
       hard: { label: '究極', gold: 15, hpRatio: 2 },
     },
     partySize: 6, // 出撃できる数
+    // どのクエストも3バトル（HPを3等分。1バトル目が道中、2バトル目が中ボス、3バトル目がボス）
+    battles: 3,
   },
   // おまかせのクエスト：基本は「弱点属性＋アビリティの持ち物検査」。格が上がるほど、どちらも増える
   // element：ボスに有利な属性の数、kinds：零属性のボスのときに求める属性の種類（ジョグレスの2属性は2種類）
@@ -300,6 +302,7 @@ export const CONFIG = {
     boosters: { 3: 'habit', 6: 'exp', 9: 'quest' } as Record<number, 'habit' | 'exp' | 'quest'>, // その階でブースター
     sticks: { 5: 1, 10: 1 } as Record<number, number>, // その階でワクワクステッキ
     monsterFloors: [11], // 塔限定モンスターがボスになり、倒すともらえる階
+    patternShift: 3, // 月のパターンが1つ進むごとに、1〜10階のボスの並びをこれだけずらす（属性もボスも入れ替わる）
     eggsInsteadOfMonster: 2, // 塔限定モンスターが登録されていないときはトク玉
     elementReqFrom: 3, // この階から「適正の属性」の編成条件
     abilityReqFrom: 6, // この階からアビリティの編成条件
@@ -313,8 +316,7 @@ export const CONFIG = {
   // 1〜10階：爆絶のボス（爆絶級の降臨）を炎・水・木・光・闇の順に2周。11階：城主級の降臨が零属性の城主になる
   castle: {
     openDays: [21, 31] as [number, number], // 毎月21日〜月末。各階の報酬は月に1回
-    // 各階は3バトル（HPを3等分）。出撃は1回で、その日に削った分だけ突破する。突破したバトルぶんの報酬をもらえる
-    battles: 3,
+    // 各階は3バトル（quest.battles）。出撃は1回で、その日に削った分だけ突破する。突破したバトルぶんの報酬をもらえる
     battlesToNext: 2, // この数のバトルを突破すると、次の階が開く（最上階は1〜10階を全部突破してから）
     floors: 11,
     elementOrder: ['fire', 'water', 'wood', 'light', 'dark'] as const,
