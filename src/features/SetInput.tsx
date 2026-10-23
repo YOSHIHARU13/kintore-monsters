@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { customized, isFavorite } from '../lib/custom'
-import { awakenOf, imageOf, glowOf } from '../lib/art'
+import { monArt } from '../lib/art'
 import { useStore } from '../store'
 import { EXERCISES, SLOTS, dumbbellText, exerciseOfSlot, rangeText, repRange } from '../data/exercises'
 import { CONFIG } from '../config/gameConfig'
@@ -160,7 +160,7 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
       <button className="partner-banner" onClick={() => go({ name: 'partner', slotId })}>
         {partner ? (
           <>
-            <MonsterImage imageId={imageOf(partner.def, partner.mon.nodeId)} awaken={awakenOf(partner.def, partner.mon.nodeId)} glow={glowOf(partner.def)} size={40} plus={partner.mon.plus} />
+            <MonsterImage {...monArt(partner.def, partner.mon)} size={40} plus={partner.mon.plus} />
             <span>
               相棒：{partner.def.name}　<strong className="bonus-reward">EXP{rateText(partner.rate)}</strong>
               {isFavorite(customized(partner.def, partner.mon), slotId) && <span className="tag keep"> 得意種目</span>}

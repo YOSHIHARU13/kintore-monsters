@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { awakenOf, imageOf, glowOf } from '../lib/art'
+import { monArt } from '../lib/art'
 import { useStore } from '../store'
 import { bulkFeedTarget, planBulkFeed, protectedIds } from '../lib/fusion'
 import { SeriesChips } from '../components/SeriesChips'
@@ -149,7 +149,7 @@ export function Box({ go }: { go: Go }) {
             >
               {partnerIds.has(mon.id) && <span className="box-partner">相</span>}
               {isLuckMax(mon) && <span className="box-luck">運極</span>}
-              <MonsterImage imageId={imageOf(def, mon.nodeId)} awaken={awakenOf(def, mon.nodeId)} glow={glowOf(def)} size={56} plus={mon.plus} shiny={mon.shiny} />
+              <MonsterImage {...monArt(def, mon)} size={56} plus={mon.plus} shiny={mon.shiny} />
               <Stars def={def} nodeId={mon.nodeId} mon={mon} />
               <span className="box-name">{plusName(def, mon)}</span>
             </button>

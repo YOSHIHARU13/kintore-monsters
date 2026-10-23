@@ -2670,3 +2670,19 @@ details.tuning[open] > summary {
     animation: none;
   }
 }
+
+/* 獣神化の格：星の色とバッジ */
+.stars.shinka-gold {
+  color: #ffd166;
+  text-shadow: 0 0 6px rgba(255, 209, 102, 0.9);
+}
+.stars.shinka-silver {
+  color: #dfe6f0;
+  text-shadow: 0 0 6px rgba(223, 230, 240, 0.8);
+}
+.stars.shinka-bronze {
+  color: #e0a46b;
+}
+.shinka-mark {
+  margin-left: 2px;
+}

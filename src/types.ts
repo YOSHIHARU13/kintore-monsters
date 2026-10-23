@@ -127,6 +127,7 @@ export interface MonsterDef {
   jogressGrade?: number // 素材のうち激レアの数（0〜2）。保存するときに計算する。強さとアビリティの数に効く
   questOnly?: boolean // クエスト限定（ガチャには出ない。クエストのボスとして倒すと手に入る）
   questTier?: 'bakuzetsu' | 'lastBoss' | null // 旧：降臨の格（今はレア度で決める。読み込んだときに直す）
+  jogressPartner?: string // 金の獣神化（合体）の相手の激レア（defId）。絵は images.gold、名前は names.gold
   castleLord?: boolean // 零の孤城の城主（激レアの降臨のうち。最上階のボスになり、倒すともらえる）
   tower?: boolean // 試練の塔の報酬（降臨のうち。5階・10階で月替わりにもらえる）
   abilities?: string[] // アビリティ：対応するギミック名で持つ（例：'バリア' ならアーク）
@@ -141,7 +142,9 @@ export interface MonsterDef {
 
 /** 色違いを付けた名前（例：✨ショルベアー） */
 export function plusName(def: MonsterDef, mon: OwnedMonster): string {
-  return `${mon.shiny ? '✨' : ''}${monsterName(def, mon.nodeId)}`
+  // 獣神化していれば、獣神化の名前（金は合体の名前）
+  const shinkaName = mon.shinka ? def.names?.[mon.shinkaGold ? 'gold' : 'shinka']?.trim() : ''
+  return `${mon.shiny ? '✨' : ''}${shinkaName || monsterName(def, mon.nodeId)}`
 }
 
 export type RarityKey = 'normal' | 'rare' | 'superRare' // ノーマル・レア・激レア
@@ -230,7 +233,8 @@ export interface OwnedMonster {
   plusExp?: AttrExp // 次の＋に向けて注いだEXP
   plusFrom?: Partial<Record<ExpSource, AttrExp>> // 次の＋に向けて、どの財布から注いだか（返却用）
   shiny?: boolean // 色違い
-  shinka?: boolean // 神化：最終形態の激レアが、降臨を素材に★4になった
+  shinka?: boolean // 獣神化して★4になった
+  shinkaGold?: boolean // 金の獣神化（相手の激レアと合体した）
   custom?: string // カスタマイズ枠に付けたアイテム（lib/custom の itemKey）
   customSlot?: string // 「得意種目の追加」で選んだ種目の枠ID
   obtainedAt: number

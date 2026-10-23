@@ -63,7 +63,7 @@ import { autoPartners } from './lib/partner'
 import { finalAttrs, recommend } from './lib/coverage'
 import { abilitySlots, allGimmicks, jogressGradeOf, selectableGimmicks } from './lib/gimmick'
 import { boostActive } from './lib/boosters'
-import { canShinka, shinkaFoods } from './lib/shinka'
+import { canShinka, planLuckUse, shinkaRecipe } from './lib/shinka'
 import { availableEvents, claimKey } from './lib/events'
 import { activeToday, currentStats, loginReady, loginReward, type Reward } from './lib/missions'
 import { builtinMaterialQuests, builtinTempleQuests } from './lib/materials'
@@ -158,7 +158,8 @@ export interface MonsterDefInput {
   bossGrade?: QuestGrade // 降臨の格
   questOnly: boolean
   tower?: boolean // 試練の塔の報酬にする（降臨のときだけ）
-  castleLord?: boolean // 零の孤城の城主にする（激レアの降臨のときだけ）
+  castleLord?: boolean // 零の孤城の城主にする（爆絶の降臨のときだけ）
+  jogressPartner?: string // 金の獣神化（合体）の相手（激レアのときだけ）
   jogressBirthStars: number // 隠しモンスターが生まれるときの星
   jogressPlus: number // 隠しモンスターの素材に必要な＋
   fixedStars: number // 進化しない降臨モンスターの星
@@ -311,7 +312,11 @@ interface Store {
   bulkFeed: () => { kept: number; fed: number; luckMax: number; eggs: number }
   /** ＋5の2体を合わせて隠しモンスターを生む。生まれた個体のID */
   jogress: (monsterId: string, partnerId: string, hiddenDefId: string) => string | null
-  shinka: (monsterId: string, foodId: string) => boolean
+  /**
+   * 獣神化（★4）：レシピの降臨の運を使う。gold なら、相手の激レア（最終形態）1体も素材にして金の獣神化に。
+   * 素材の運が余ったら、その子は運を減らしてBOXに残る
+   */
+  shinka: (monsterId: string, gold?: boolean) => boolean
   saveMonsterDef: (input: MonsterDefInput) => Promise<void>
   /** 属性・得意種目・アビリティを、足りないものでまとめて埋める（1体ずつ、前に埋めた分も数えて） */
   autoTuneDefs: (ids: string[]) => void
@@ -927,17 +932,41 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
 
     // レシピの2体（どちらも最終形態の＋5）を合わせて、隠しモンスターを生む。2体はいなくなる
     /** 神化：最終形態の激レアに、同じ属性の降臨モンスターを1体食べさせて★4にする */
-    const shinka: Store['shinka'] = (monsterId, foodId) => {
+    const shinka: Store['shinka'] = (monsterId, gold = false) => {
       const found = findMonster(monsterId)
-      const food = findMonster(foodId)
-      if (!found || !food || monsterId === foodId || !canShinka(found.mon, found.def)) return false
-      if (!shinkaFoods(found.def, [food.mon], defs, new Set()).length) return false
+      if (!found || !canShinka(found.mon, found.def)) return false
       if ((state.coins ?? 0) < CONFIG.shinka.coins) return false
+      // 守る子（相棒・出撃中・この子自身）は素材にしない
+      const keep = new Set([...protectedIds(state, dateKey()), monsterId])
+      const removeIds: string[] = []
+      const luckUpdates: { id: string; luck: number }[] = []
+      for (const item of shinkaRecipe(found.def, defs)) {
+        const plan = planLuckUse(
+          item.count * item.luck,
+          owned.filter((o) => o.defId === item.defId && !keep.has(o.id)),
+        )
+        if (!plan) return false
+        removeIds.push(...plan.remove)
+        if (plan.keep) luckUpdates.push(plan.keep)
+      }
+      // 金：相手の激レアの最終形態を1体（運がいちばん低い子）
+      if (gold) {
+        const partnerDefId = found.def.jogressPartner
+        const partner = owned
+          .filter((o) => o.defId === partnerDefId && !keep.has(o.id) && !removeIds.includes(o.id))
+          .map((o) => findMonster(o.id))
+          .filter((f) => !!f && f.node.next.length === 0)
+          .sort((x, y) => (x!.mon.luck ?? 1) - (y!.mon.luck ?? 1))[0]
+        if (!partner) return false
+        removeIds.push(partner.mon.id)
+      }
+      const gone = removeIds.map(findMonster).filter((f): f is NonNullable<typeof f> => !!f)
       const update: DocumentData = { coins: increment(-CONFIG.shinka.coins) }
-      consume(update, [food])
+      consume(update, gone)
       const batch = writeBatch(db)
-      batch.update(doc(db, base, 'ownedMonsters', monsterId), { shinka: true })
-      batch.delete(doc(db, base, 'ownedMonsters', foodId))
+      batch.update(doc(db, base, 'ownedMonsters', monsterId), { shinka: true, shinkaGold: gold })
+      for (const f of gone) batch.delete(doc(db, base, 'ownedMonsters', f.mon.id))
+      for (const k of luckUpdates) batch.update(doc(db, base, 'ownedMonsters', k.id), { luck: k.luck })
       batch.update(stateRef, update)
       batch.commit().catch(fail)
       return true
@@ -1071,7 +1100,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         questOnly: input.questOnly,
         tower: input.questOnly && input.tower === true,
         questTier: null, // 旧：降臨の格（今はレア度で決める）
-        castleLord: input.questOnly && input.rarity === 'superRare' && input.castleLord === true,
+        castleLord: input.questOnly && input.bossGrade === 'bakuzetsu' && input.castleLord === true,
+        jogressPartner: input.jogressPartner || null,
         fixedStars: input.fixedStars,
         abilities: input.abilities,
         ...(input.recipe.length === 2

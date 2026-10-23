@@ -2,7 +2,7 @@ import { useStore } from '../store'
 import { allGimmicks } from '../lib/gimmick'
 import { itemInfo, itemLabel, itemOrder } from '../lib/custom'
 import { SLOTS, exerciseOfSlot } from '../data/exercises'
-import { awakenOf, glowOf, imageOf } from '../lib/art'
+import { monArt } from '../lib/art'
 import { MonsterImage } from '../components/MonsterImage'
 import type { Go } from '../nav'
 import { plusName } from '../types'
@@ -63,7 +63,7 @@ export function CustomItems({ go }: { go: Go }) {
               <li key={mon.id}>
                 <button className="choice" onClick={() => go({ name: 'monster', id: mon.id })}>
                   <span className="monster-row">
-                    <MonsterImage imageId={imageOf(def, mon.nodeId)} awaken={awakenOf(def, mon.nodeId)} glow={glowOf(def)} size={40} plus={mon.plus} />
+                    <MonsterImage {...monArt(def, mon)} size={40} plus={mon.plus} />
                     <span>
                       {plusName(def, mon)}
                       <br />

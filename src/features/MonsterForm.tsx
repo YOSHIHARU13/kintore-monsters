@@ -56,6 +56,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
   const [rarity, setRarity] = useState<RarityKey>(existing ? rarityOf(existing) : 'rare')
   const [bossGrade, setBossGrade] = useState<QuestGrade>((existing && bossGradeOf({ ...existing, questOnly: true })) || 'chozetsu')
   const [recipe, setRecipe] = useState<string[]>(existing?.recipe?.length === 2 ? existing.recipe : [])
+  const [jogressPartner, setJogressPartner] = useState(existing?.jogressPartner ?? '')
   // レシピに使えるのは、タマゴから生まれる普通のモンスター（自分以外）
   const parents = defs.filter((d) => d.id !== existing?.id && !isHidden(d))
   const [saving, setSaving] = useState(false)
@@ -173,11 +174,13 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
     setError(null)
     try {
       // 選んだテンプレに存在する段階の分だけを保存する
+      // 獣神化の絵と名前（shinka・gold）も、形態と同じように保存する
+      const extraKeys = ['shinka', 'gold']
       const validFiles = Object.fromEntries(
-        Object.entries(files).filter(([nodeId]) => template.nodes.some((n) => n.id === nodeId)),
+        Object.entries(files).filter(([nodeId]) => template.nodes.some((n) => n.id === nodeId) || extraKeys.includes(nodeId)),
       )
       const validNames = Object.fromEntries(
-        template.nodes.map((n) => [n.id, (names[n.id] ?? '').trim()] as const).filter(([, v]) => v !== ''),
+        [...template.nodes.map((n) => n.id), ...extraKeys].map((id) => [id, (names[id] ?? '').trim()] as const).filter(([, v]) => v !== ''),
       )
       const validAttrs = Object.fromEntries(template.nodes.map((n) => [n.id, attrOf(n.id)] as const))
       await saveMonsterDef({
@@ -199,6 +202,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
         questOnly: recipe.length !== 2 && questOnly,
         tower: recipe.length !== 2 && questOnly && tower,
         castleLord: recipe.length !== 2 && questOnly && bossGrade === 'bakuzetsu' && castleLord,
+        jogressPartner: !questOnly && rarity === 'superRare' ? jogressPartner : '',
         jogressBirthStars: birthStars,
         jogressPlus,
         fixedStars,
@@ -566,9 +570,65 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
           )}
         </section>
       )}
+      {!questOnly && rarity === 'superRare' && recipe.length !== 2 && (
+        <section className="card">
+          <h2>獣神化（★4）</h2>
+          <p className="muted small">
+            最終形態から、降臨の素材（この子だけのレシピ）で★4に獣神化します。絵を入れると🥈銀、入れなければ🥉銅（今の絵に後光）。
+            合体の相手を決めると、相手の激レアも素材にした🥇金の獣神化（このゲームで最強）ができます。
+          </p>
+          {(['shinka', 'gold'] as const).map((key) =>
+            key === 'gold' && !jogressPartner ? null : (
+              <div key={key} className="image-row">
+                {previews[key] ? (
+                  <img className="monster-img" style={{ width: 80, height: 80 }} src={previews[key]} alt="" />
+                ) : (
+                  <MonsterImage imageId={existing?.images[key]} size={80} />
+                )}
+                <div>
+                  <strong>{key === 'gold' ? '🥇 金の獣神化の絵' : '🥈 獣神化の絵（なくてもOK）'}</strong>
+                  <input
+                    className="stage-name"
+                    value={names[key] ?? ''}
+                    onChange={(e) => setNames({ ...names, [key]: e.target.value })}
+                    maxLength={20}
+                    placeholder={name.trim() || '名前'}
+                    aria-label={key === 'gold' ? '金の獣神化の名前' : '獣神化の名前'}
+                  />
+                  <label className="btn small file-btn">
+                    画像を選ぶ
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) setFiles({ ...files, [key]: file })
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+            ),
+          )}
+          <label className="field">
+            🥇 合体の相手（激レア）
+            <select value={jogressPartner} onChange={(e) => setJogressPartner(e.target.value)} aria-label="合体の相手">
+              <option value="">なし</option>
+              {defs
+                .filter((d) => d.id !== existing?.id && !isHidden(d) && !d.questOnly && rarityOf(d) === 'superRare')
+                .map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+            </select>
+          </label>
+        </section>
+      )}
+      {existing && recipe.length === 2 && (
       <details className="card fold" open={recipe.length === 2}>
         <summary>
-          <h2>隠しモンスター（ジョグレス）</h2>
+          <h2>以前のジョグレス（隠しモンスター）</h2>
         </summary>
         <label className="row">
           <input
@@ -619,6 +679,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
             </label>
           ))}
       </details>
+      )}
 
       {similar.length > 0 && (
         <p className="warn small">

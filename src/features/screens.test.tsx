@@ -174,6 +174,7 @@ beforeEach(() => {
     claimQuest: vi.fn(() => ({ monsterId: 'o8', drops: [{ icon: '💠', label: '木の結晶', count: 1 }], gold: 50 })),
     exchangeMaterial: vi.fn(),
     attachCustom: vi.fn(),
+    shinka: vi.fn(() => true),
     renameSeries: vi.fn(),
     markQuestRules: vi.fn(),
     removeCustom: vi.fn(),
@@ -931,6 +932,31 @@ describe('画面の表示', () => {
     expect(go).toHaveBeenCalledWith({ name: 'questAdmin' })
     await click('コラボの管理')
     expect(go).toHaveBeenCalledWith({ name: 'collabAdmin' })
+  })
+
+  it('獣神化：レシピの降臨の運を集めて★4に。合体の相手がいれば金の獣神化も', async () => {
+    const sr: MonsterDef = { ...defs[0], id: 'sr', name: 'カミドラ', tier: 'superRare', element: 'fire', jogressPartner: 'sr2', templateId: 'linear3' }
+    const sr2: MonsterDef = { ...defs[0], id: 'sr2', name: 'アクドラ', tier: 'superRare', element: 'dark', templateId: 'linear3' }
+    const izanami: MonsterDef = { id: 'iz', name: 'イザナミ', attr: 'legs', templateId: 'single', images: {}, questOnly: true, bossGrade: 'chozetsu', element: 'fire', createdAt: 9 }
+    fake.store.defs = [sr, sr2, izanami]
+    const { shinkaRecipe } = await import('../lib/shinka')
+    const recipe = shinkaRecipe(sr, [sr, sr2, izanami])
+    expect(recipe.map((r) => r.defId)).toEqual(['iz'])
+    const need = recipe[0].count * recipe[0].luck
+    fake.store.owned = [
+      { id: 'me', defId: 'sr', nodeId: 'n3', obtainedAt: 1 },
+      { id: 'p', defId: 'sr2', nodeId: 'n3', obtainedAt: 2 },
+      { id: 'f', defId: 'iz', nodeId: 'n1', luck: need, obtainedAt: 3 },
+    ]
+    fake.store.state = { ...state, coins: 1000 }
+    const el = await render(<MonsterDetail id="me" go={go} />)
+    expect(el.textContent).toContain(`イザナミ ×${recipe[0].count}体（運${recipe[0].luck}以上）`)
+    expect(el.textContent).toContain(`運 ${need}/${need}`)
+    await click('🥉 獣神化する')
+    expect(fake.store.shinka).toHaveBeenCalledWith('me', false)
+    await render(<MonsterDetail id="me" go={go} />)
+    await click('アクドラと合体して')
+    expect(fake.store.shinka).toHaveBeenCalledWith('me', true)
   })
 
   it('カスタマイズアイテムの一覧：持っているアイテムと、付けている子が見られる', async () => {

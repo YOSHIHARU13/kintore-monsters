@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useQuestTools } from './QuestAdmin'
 import { ATTRS, ATTR_LABEL, type Attr } from '../data/exercises'
 import { ATTR_COLOR } from '../nav'
-import { awakenOf, imageOf, glowOf } from '../lib/art'
+import { awakenOf, imageOf, glowOf, monArt } from '../lib/art'
 import { useStore } from '../store'
 import { SeriesChips } from '../components/SeriesChips'
 import { allSeries, inSeries, questSeries, seriesStatus, statusLabel, type SeriesFilter } from '../lib/series'
@@ -283,7 +283,7 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
           <div className="party-row">
             {battle.party.map((m) => (
               <span key={m.mon.id} title={plusName(m.def, m.mon)}>
-                <MonsterImage imageId={imageOf(m.def, m.mon.nodeId)} awaken={awakenOf(m.def, m.mon.nodeId)} glow={glowOf(m.def)} size={40} plus={m.mon.plus} shiny={m.mon.shiny} />
+                <MonsterImage {...monArt(m.def, m.mon)} size={40} plus={m.mon.plus} shiny={m.mon.shiny} />
               </span>
             ))}
           </div>
