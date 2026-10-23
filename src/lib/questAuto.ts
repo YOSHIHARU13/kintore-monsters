@@ -122,11 +122,11 @@ export function autoQuestSetup(
         const element = bossEl ?? 'none'
         const set = pickSet(pool.length >= a.abilities ? pool : gimmicks, a.abilities, highEnd, seed, element)
         if (a.combo > 0 && set.length >= 2) {
-          const pair = leastUsedPair(set, highEnd.map((t) => t.set))
+          const pair = leastUsedPair(set, highEnd, element)
           requirements.push({ tag: comboTag(pair[0], pair[1]), count: a.combo })
         }
         for (const g of set) requirements.push({ tag: abilityTag(g), count: a.abilityCount })
-        highEnd.push({ set, element, same: true })
+        highEnd.push({ set, element, combo: requirements.find((r) => r.tag.startsWith('ab2:'))?.tag })
       }
       return finish(requirements, boss, seed, a.weak)
     }
@@ -165,17 +165,21 @@ function finish(requirements: Requirement[], boss: MonsterDef, seed: number, wea
   return { requirements: requirements.slice(0, CONFIG.formation.maxRequirements), weakSlots: [...new Set(weakSlots)] }
 }
 
-/** 高難度の1階ぶんのアビリティの組と、その階のボスの属性（零属性は none） */
+/** 高難度の1階ぶんのアビリティの組と、その階のボスの属性（零属性は none）・「2つ同時」の組 */
 export interface HighEndSet {
   set: string[]
   element: string
-  same?: boolean // 同じ高難度（塔・禁筋・孤城のどれか）の階か。ほかの高難度の階は false
+  combo?: string // 「2つ同時に持つ」の組（comboTag）
 }
 
 /** 高難度のほかの階で求めたアビリティの組（塔 → 禁筋 → 孤城と、前の高難度と重ならないように） */
 export function abilitySets(quests: Pick<Quest, 'requirements' | 'gimmicks' | 'element'>[]): HighEndSet[] {
   return quests
-    .map((q) => ({ set: requirementsOf(q).filter((r) => r.tag.startsWith('ab:')).map((r) => r.tag.slice(3)), element: q.element ?? 'none' }))
+    .map((q) => ({
+      set: requirementsOf(q).filter((r) => r.tag.startsWith('ab:')).map((r) => r.tag.slice(3)),
+      element: q.element ?? 'none',
+      combo: requirementsOf(q).find((r) => r.tag.startsWith('ab2:'))?.tag,
+    }))
     .filter((s) => s.set.length > 0)
 }
 
@@ -198,35 +202,33 @@ function subsets(pool: string[], k: number): string[][] {
   return [...subsets(rest, k - 1).map((s) => [head, ...s]), ...subsets(rest, k)]
 }
 
+const pairsOf = (s: string[]) => subsets(s, 2).map(([a, b]) => comboTag(a, b))
+
 /**
- * 高難度のアビリティの組：これまでの階の組と重なりが少ないもの（同じ組はなるべく使わない。重なった数の2乗で数える）。
- * ボスの属性が同じ階（同じ属性のモンスターが刺さる階）とは、アビリティの「2つの組み合わせ」を共有しないことを最優先にする（同じ高難度の中は特に）
- * （2つ持ちのモンスターが、同じ属性の階で何度も上位にならないように）。同じくらいなら seed で決める（月のパターンで変わる）
+ * 高難度のアビリティの組。いちばん大事なのは「同じ属性の階（同じ属性のモンスターが刺さる階）で、アビリティの2つの組み合わせが均等に出る」こと：
+ * 塔・禁筋・孤城を全部合わせて、その属性の階でまだ出ていない組み合わせを含む組を選ぶ（出た回数の2乗で数える）。
+ * こうすると、アビリティ2つのモンスターなら、どの組み合わせでも同じくらいの数の階に刺さる（特定のモンスターだけ何か所も、がなくなる）。
+ * 次に、全体で同じアビリティばかりにならないように。同じくらいなら seed で決める（月のパターンで変わる）
  */
 export function pickSet(pool: string[], k: number, taken: HighEndSet[], seed: number, element = 'none'): string[] {
   const options = subsets([...new Set(pool)], Math.min(k, pool.length))
   const key = (s: string[]) => [...s].sort().join('+')
-  const takenKeys = new Set(taken.map((t) => key(t.set)))
-  const sharedPairs = (s: string[], t: string[]) => {
-    const n = s.filter((g) => t.includes(g)).length
-    return (n * (n - 1)) / 2
-  }
+  const takenKeys = new Set(taken.filter((t) => t.element === element).map((t) => key(t.set)))
+  const pairUse: Record<string, number> = {}
+  for (const t of taken) if (t.element === element) for (const p of pairsOf(t.set)) pairUse[p] = (pairUse[p] ?? 0) + 1
+  const single: Record<string, number> = {}
+  for (const t of taken) for (const g of t.set) single[g] = (single[g] ?? 0) + 1
   const score = (s: string[]) =>
-    (takenKeys.has(key(s)) ? 1000 : 0) +
-    taken.reduce(
-      (sum, t) => sum + (t.element === element ? (t.same ? 10000 : 100) * sharedPairs(s, t.set) : 0) + s.filter((g) => t.set.includes(g)).length ** 2,
-      0,
-    )
+    (takenKeys.has(key(s)) ? 1e6 : 0) + 100 * pairsOf(s).reduce((sum, p) => sum + (pairUse[p] ?? 0) ** 2, 0) + s.reduce((sum, g) => sum + (single[g] ?? 0), 0)
   return options
     .map((s, i) => ({ s, v: score(s), tie: hash(`${seed}:${i}`) }))
     .sort((a, b) => a.v - b.v || a.tie - b.tie)[0]?.s ?? []
 }
 
-/** 組の中で、これまでの階でいっしょに求められたことが少ない2つ（「2つ同時に持つ」の条件にする） */
-function leastUsedPair(set: string[], taken: string[][]): [string, string] {
-  const pairs = subsets(set, 2) as [string, string][]
-  const used = (p: string[]) => taken.filter((t) => p.every((g) => t.includes(g))).length
-  return pairs.sort((a, b) => used(a) - used(b))[0]
+/** 組の中から「2つ同時に持つ」の組：同じ属性の階でまだド適正にしていない組み合わせ（ド適正も均等に） */
+function leastUsedPair(set: string[], taken: HighEndSet[], element: string): [string, string] {
+  const used = (tag: string) => taken.filter((t) => t.element === element && t.combo === tag).length
+  return (subsets(set, 2) as [string, string][]).sort((a, b) => used(comboTag(a[0], a[1])) - used(comboTag(b[0], b[1])))[0]
 }
 
 /** おまかせの作り方の版。作り方を変えたら上げる（今あるボスクエストの条件を1回だけ作り直す） */

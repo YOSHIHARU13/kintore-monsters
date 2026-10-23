@@ -162,7 +162,7 @@ export function towerFloors(
     const grade: QuestGrade = floor >= t.chozetsuFrom ? 'chozetsu' : floor >= t.kyukyokuFrom ? 'kyukyoku' : 'kiwami'
     // 条件：ほかのクエストで使っているスキルをなるべく避ける（そのボスの超絶クエストとは別のギミックに）。パターンごとに変わる
     const setup = boss
-      ? autoQuestSetup(patternBoss(boss, pattern), grade, 'boss', sofar, gimmicks, `tower-${index}-${floor}`, defs, false, 'normal', ownAbilities(quests, boss.id), highEnd)
+      ? autoQuestSetup(patternBoss(boss, pattern), grade, 'boss', sofar, gimmicks, `tower-${index}-${floor}`, defs, false, 'normal', ownAbilities(quests, boss.id), floor >= t.chozetsuFrom ? highEnd : undefined)
       : { requirements: [], weakSlots: [] }
     // 持ち物検査：属性・アビリティに加えて、上の階では「その月の部位の子」（部位限定ガチャの子が活躍する）
     const partReq: Requirement[] = floor >= t.partReqFrom ? [{ tag: partTag(part), count: floor >= t.chozetsuFrom ? 3 : 2 }] : []

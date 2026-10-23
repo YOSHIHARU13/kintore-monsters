@@ -116,7 +116,7 @@ describe('零の孤城のバトル', () => {
 })
 
 describe('高難度の条件は個性優先', () => {
-  it('今いるモンスターに合わせず、塔→禁筋→孤城の全階でアビリティの組が重ならない', async () => {
+  it('今いるモンスターに合わせず、塔→禁筋→孤城を合わせて、同じ属性の階でアビリティの組み合わせが均等に出る', async () => {
     const { towerFloors } = await import('./tower')
     const { kinkinFloors } = await import('./kinkin')
     const { abilitySets } = await import('./questAuto')
@@ -130,14 +130,20 @@ describe('高難度の条件は個性優先', () => {
     const castle = castleFloors('2026-10', defs, ABS, [], undefined, [...tower, ...kinkin]).map((f) => f.quest)
     const all = abilitySets([...tower, ...kinkin, ...castle])
     const sets = all.map((s) => [...s.set].sort().join('+'))
-    // ボスの属性が同じ階どうしは、アビリティの2つの組み合わせを共有しない（2つ持ちのモンスターが何度も上位にならない）
+    // 同じ属性の階（塔・禁筋・孤城を全部合わせて）で、アビリティの2つの組み合わせが均等に出る：
+    // ほとんどの組み合わせが出て、どれも2回まで（2つ持ちのモンスターが、どの組み合わせでも同じくらいの数の階に刺さる）
     const pairsOf = (s: string[]) => s.flatMap((a, i) => s.slice(i + 1).map((b) => [a, b].sort().join('+')))
-    const castleSets = abilitySets(castle).filter((s) => s.element !== 'none')
-    for (const el of new Set(castleSets.map((s) => s.element))) {
-      const same = castleSets.filter((s) => s.element === el).flatMap((s) => pairsOf(s.set))
-      expect(new Set(same).size).toBe(same.length)
+    const hard = all.filter((s) => s.element !== 'none' && s.set.length >= 3)
+    for (const el of new Set(hard.map((s) => s.element))) {
+      const count: Record<string, number> = {}
+      for (const p of hard.filter((s) => s.element === el).flatMap((s) => pairsOf(s.set))) count[p] = (count[p] ?? 0) + 1
+      const n = Object.values(count)
+      expect(Object.keys(count).length).toBeGreaterThanOrEqual(18) // 21通りのほとんど（階の数で上限がある）
+      expect(Math.max(...n)).toBeLessThanOrEqual(2)
     }
-    expect(new Set(sets).size).toBe(sets.length)
+    // 同じ属性の階では、同じ組を使わない
+    const keyed = all.map((s) => `${s.element}:${[...s.set].sort().join('+')}`)
+    expect(new Set(keyed).size).toBe(keyed.length)
     // 誰も持っていないアビリティも求める（あとから来るモンスターが刺さる）
     expect(sets.some((s) => s.includes('ウィンド'))).toBe(true)
   })

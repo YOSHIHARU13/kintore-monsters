@@ -32,7 +32,7 @@ export function MonsterProfile({ defId, go }: { defId: string; go: Go }) {
         const i = list.findIndex((x) => x.def.id === defId)
         return i < 0 ? [] : [{ quest, percent: list[i].percent, rank: i + 1 }]
       })
-      .filter((r) => r.percent >= 50)
+      .filter((r) => r.percent >= 60)
       .sort((a, b) => b.percent - a.percent || a.rank - b.rank)
   }, [def, defs, defId, quests, tower, kinkin, castle])
   if (!def) return null
@@ -58,7 +58,7 @@ export function MonsterProfile({ defId, go }: { defId: string; go: Go }) {
       <section className="card">
         <h2>🎯 活躍できるクエスト（{rows.length}）</h2>
         <p className="muted small">
-          育ちきったときの適正度（このクエストのためにいるような激レアを100%）と、登録しているモンスターの中での順位。超絶以上と高難度で、50%以上のところだけ。
+          育ちきったときの適正度（このクエストのためにいるような激レアを100%）と、登録しているモンスターの中での順位。超絶以上と高難度で、60%以上（2つ以上のアビリティが合う）のところだけ。
         </p>
         {rows.length === 0 ? (
           <p className="muted small">今は、ド適正のクエストはありません。</p>
