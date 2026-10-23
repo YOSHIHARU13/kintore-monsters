@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
-import { useQuestTools } from './QuestAdmin'
+import { useState } from 'react'
 import { ATTRS, ATTR_LABEL, type Attr } from '../data/exercises'
 import { ATTR_COLOR } from '../nav'
 import { awakenOf, imageOf, glowOf, monArt } from '../lib/art'
@@ -60,7 +59,6 @@ import { dropLabel } from '../lib/cores'
 import { towerCleared, towerMonth, towerOpen } from '../lib/tower'
 import { battlesReached, castleBest, castleCleared, castleOpen } from '../lib/castle'
 import { kinkinCleared, kinkinOpen } from '../lib/kinkin'
-import { QUEST_RULES } from '../lib/questAuto'
 import { towerRewardText } from './Tower'
 import { boosterName } from '../lib/boosters'
 import type { QuestReward } from '../store'
@@ -75,20 +73,10 @@ import { plusName, type MonsterDef, type Quest } from '../types'
 
 /** クエストのタブ：入口（クエスト・零の孤城・試練の塔・素材・神殿・書庫）と、今日の戦い。入口を選ぶと一覧 */
 export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
-  const { state, quests, tower, castle, kinkin, defs, owned, today, seriesPeriods, quitChallenge, claimQuest, feedLuck, markQuestRules } = useStore()
+  const { state, quests, tower, castle, kinkin, defs, owned, today, seriesPeriods, quitChallenge, claimQuest, feedLuck } = useStore()
   const [fedLuck, setFedLuck] = useState<{ msg: string; keeperId: string } | null>(null) // 落ちた子を運に食べさせた
   const [series, setSeries] = useState<SeriesFilter>('all')
   const [part, setPart] = useState<Attr | 'all'>('all') // ボスの部位で絞り込む（「今日は胸」と決めてから選べる）
-  const { topQuests, redoTop } = useQuestTools()
-  // おまかせの作り方が変わったら、今あるボスクエストの条件を1回だけ作り直す
-  const redone = useRef(false)
-  useEffect(() => {
-    if (redone.current || (state.questRules ?? 0) >= QUEST_RULES || defs.length === 0) return
-    redone.current = true
-    if (topQuests.length > 0) redoTop()
-    markQuestRules(QUEST_RULES)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.questRules, defs.length])
   const towerDone = towerCleared(state, towerMonth(today))
   const towerTotal = Math.max(1, ...tower.map((f) => (f.tower ?? 0) + 1))
   const battle = useBattle()

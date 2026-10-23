@@ -242,6 +242,8 @@ function toGacha(id: string, data: DocumentData | undefined): Gacha {
 interface Store {
   user: User
   state: GameState
+  /** クエストとモンスターの最初の読み込みが終わったか（一括の作り直しは、これを待ってから） */
+  loaded: boolean
   menu: Record<string, string>
   defs: MonsterDef[]
   owned: OwnedMonster[]
@@ -376,6 +378,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
   const [towerFixed, setTowerFixed] = useState<FixedFloor[] | null>(null)
   const [gachaDocs, setGachaDocs] = useState<Gacha[]>([])
   const [questDocs, setQuests] = useState<Quest[]>([])
+  const [loaded, setLoaded] = useState({ quests: false, defs: false }) // クエストとモンスターの最初の読み込みが終わったか
   const [today, setToday] = useState(dateKey())
   const [weekSets, setWeekSets] = useState<SetRecord[]>([])
   const [yesterdayCheckin, setYesterdayCheckin] = useState<Checkin | null>(null)
@@ -449,12 +452,14 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       ),
       onSnapshot(
         collection(db, base, 'quests'),
-        (snap) =>
+        (snap) => {
           setQuests(
             snap.docs
               .map((d) => ({ ...(d.data() as Omit<Quest, 'id'>), id: d.id }))
               .sort((a, b) => a.createdAt - b.createdAt),
-          ),
+          )
+          setLoaded((l) => (l.quests ? l : { ...l, quests: true }))
+        },
         fail,
       ),
       onSnapshot(
@@ -464,12 +469,14 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       ),
       onSnapshot(
         collection(db, base, 'monsterDefs'),
-        (snap) =>
+        (snap) => {
           setDefs(
             snap.docs
               .map((d) => ({ ...(d.data() as Omit<MonsterDef, 'id'>), id: d.id }))
               .sort((a, b) => a.createdAt - b.createdAt),
-          ),
+          )
+          setLoaded((l) => (l.defs ? l : { ...l, defs: true }))
+        },
         fail,
       ),
       onSnapshot(
@@ -1749,6 +1756,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     return {
       user,
       state,
+      loaded: loaded.quests && loaded.defs,
       menu,
       defs,
       owned,
@@ -1818,7 +1826,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       claimRanks,
       deleteGacha,
     }
-  }, [user, base, state, menu, journal, defs, owned, songs, seriesPeriods, towerFixed, gachas, quests, tower, castle, kinkin, today, yesterday, yesterdayCheckin, week, weekSets, todaySets, stateRef, menuRef, musicRef, seriesRef, towerRef, fail])
+  }, [user, base, state, loaded, menu, journal, defs, owned, songs, seriesPeriods, towerFixed, gachas, quests, tower, castle, kinkin, today, yesterday, yesterdayCheckin, week, weekSets, todaySets, stateRef, menuRef, musicRef, seriesRef, towerRef, fail])
 
   if (!store) {
     return (
