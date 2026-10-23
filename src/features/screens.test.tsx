@@ -350,23 +350,13 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('休むと報酬の対象になります')
   })
 
-  it('セット入力：今週3セット終えた種目は2周目（EXP半分）', async () => {
-    fake.store.weekSets = [1, 2, 3].map((n) => past(n, 10, n, '2026-10-06'))
-    fake.store.today = '2026-10-07'
-    const el = await render(<SetInput slotId="mon2" go={go} />)
-    expect(el.textContent).toContain('今週 2周目 1セット目')
-    expect(el.textContent).toContain('EXPは50%')
-    await click('回で確定')
-    expect(fake.store.recordSet).toHaveBeenCalledWith(expect.objectContaining({ eligible: true }), expect.anything())
-  })
-
-  it('セット入力：2周目まで終えた種目は記録のみ', async () => {
+  it('セット入力：今週3セット終えた種目も、追加のセットはEXP満額', async () => {
     fake.store.weekSets = [1, 2, 3, 4, 5, 6].map((n) => past(n, 10, n, '2026-10-06'))
     fake.store.today = '2026-10-07'
     const el = await render(<SetInput slotId="mon2" go={go} />)
-    expect(el.textContent).toContain('記録のみ')
+    expect(el.textContent).toContain('今週 追加 4セット目')
     await click('回で確定')
-    expect(fake.store.recordSet).toHaveBeenCalledWith(expect.objectContaining({ eligible: false, exp: 0 }), false)
+    expect(fake.store.recordSet).toHaveBeenCalledWith(expect.objectContaining({ eligible: true, exp: 15 }), expect.anything())
   })
 
   it('セット入力：全消しした瞬間に演出が出る', async () => {

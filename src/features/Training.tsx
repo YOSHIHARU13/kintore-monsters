@@ -33,7 +33,7 @@ export function Training({ go }: { go: Go }) {
       ? Math.min(CONFIG.sets.perExercise, todaySets.filter((s) => s.slotId === slot.id).length)
       : slotDone(weekSets, slot.id)
     const complete = done >= CONFIG.sets.perExercise
-    const extraDone = isBonus ? 0 : Math.min(CONFIG.sets.perExercise, weekCount(weekSets, slot.id) - CONFIG.sets.perExercise)
+    const extraDone = isBonus ? 0 : weekCount(weekSets, slot.id) - CONFIG.sets.perExercise
     const partner = partnerOf(slot.id, state.partners, owned, defs)
     return (
       <li key={slot.id} className="slot-with-partner">
@@ -61,11 +61,7 @@ export function Training({ go }: { go: Go }) {
               {ex.weighted ? `・${dumbbellText(ex)}` : ''}
             </div>
             <div className="muted small how">{ex.how}</div>
-            {complete && !isBonus && (
-              <div className="small bonus-reward">
-                2周目 {Math.max(0, extraDone)}/{CONFIG.sets.perExercise}（EXP{Math.round(CONFIG.sets.extraExpRatio * 100)}%）
-              </div>
-            )}
+            {complete && !isBonus && extraDone > 0 && <div className="small bonus-reward">追加 {extraDone}セット</div>}
           </div>
           <span className="slot-count">
             {complete ? '✓ ' : ''}
@@ -99,7 +95,7 @@ export function Training({ go }: { go: Go }) {
       {partnerFlash && <div className="result keep">相棒をセットしました</div>}
       <p className="muted small">
         今週のタスクです。どの日に、どの種目からやってもOK。1種目は{CONFIG.sets.perExercise}セットで完了、月曜にリセットされます。
-        終わった種目は、余力があれば2周目（もう{CONFIG.sets.perExercise}セット、EXP{Math.round(CONFIG.sets.extraExpRatio * 100)}%）もできます。
+        終わった種目も、余力があれば何セットでも追加できます（EXPもダメージもそのまま入ります）。
       </p>
 
       {DAY_KEYS.map((day) => (

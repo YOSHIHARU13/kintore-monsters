@@ -50,15 +50,9 @@ describe('セット報酬', () => {
     expect(calcSetReward({ ...base, judge: 'keep' }).exp).toBe(12)
     expect(calcSetReward({ ...base, judge: 'beat' })).toEqual({ eligible: true, exp: 15, gold: 0, countsBeat: true })
   })
-  it('4〜6セット目は2周目でEXP半分、7セット目以降と30秒未満は対象外', () => {
-    expect(calcSetReward({ isBonus: false, setNo: 4, judge: 'normal', intervalOk: true }).exp).toBe(5)
-    expect(calcSetReward({ isBonus: false, setNo: 6, judge: 'beat', intervalOk: true }).exp).toBe(8)
-    expect(calcSetReward({ isBonus: false, setNo: 7, judge: 'beat', intervalOk: true })).toEqual({
-      eligible: false,
-      exp: 0,
-      gold: 0,
-      countsBeat: false,
-    })
+  it('4セット目以降も満額。30秒未満だけ対象外', () => {
+    expect(calcSetReward({ isBonus: false, setNo: 4, judge: 'normal', intervalOk: true }).exp).toBe(10)
+    expect(calcSetReward({ isBonus: false, setNo: 12, judge: 'beat', intervalOk: true })).toEqual({ eligible: true, exp: 15, gold: 0, countsBeat: true })
     expect(calcSetReward({ isBonus: false, setNo: 2, judge: 'beat', intervalOk: false }).exp).toBe(0)
   })
   it('腹筋ローラーは2オーブ＋万能EXP10', () => {

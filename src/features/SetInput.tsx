@@ -5,7 +5,7 @@ import { useStore } from '../store'
 import { EXERCISES, SLOTS, dumbbellText, exerciseOfSlot, rangeText, repRange } from '../data/exercises'
 import { CONFIG } from '../config/gameConfig'
 import { calcTarget, judgeSet, recentSessions, suggestProgression } from '../lib/target'
-import { calcSetReward, isExtraSet, maxRewardSet } from '../lib/rewards'
+import { calcSetReward } from '../lib/rewards'
 import { partnerOf, rateText } from '../lib/partner'
 import { MonsterImage } from '../components/MonsterImage'
 import { BattleBar } from '../components/BattleBar'
@@ -97,8 +97,7 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
   const intervalOk = elapsedSec >= CONFIG.sets.minIntervalSec
   const dayDone = todays.length >= CONFIG.sets.perExercise
   const baseDone = rewardNo > CONFIG.sets.perExercise
-  const extra = isExtraSet(isBonus, rewardNo) && rewardNo <= maxRewardSet(isBonus)
-  const allDone = rewardNo > maxRewardSet(isBonus)
+  const extra = !isBonus && baseDone
 
   const confirm = () => {
     const judge = judgeSet(reps, target)
@@ -202,7 +201,7 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
         <div className="set-head">
           <strong>
             {isBonus ? '' : '今週 '}
-            {extra ? `2周目 ${rewardNo - CONFIG.sets.perExercise}` : rewardNo}セット目
+            {extra ? `追加 ${rewardNo - CONFIG.sets.perExercise}` : rewardNo}セット目
           </strong>
           <span className="target">{target !== null ? `目標 ${target}回` : '目標なし（初回）'}</span>
         </div>
@@ -227,21 +226,14 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
           {reps}回で確定
         </button>
 
-        {allDone ? (
-          <p className="muted small center">
-            {isBonus
-              ? `今日の${CONFIG.sets.perExercise}セットは完了。`
-              : `今週は2周目まで完了。`}
-            ここからは記録のみ（報酬なし）
-          </p>
-        ) : !intervalOk ? (
+        {!intervalOk ? (
           <p className="warn small center">
             あと{Math.ceil(CONFIG.sets.minIntervalSec - elapsedSec)}秒 休むと報酬の対象になります
           </p>
+        ) : isBonus && dayDone ? (
+          <p className="muted small center">今日の{CONFIG.sets.perExercise}セットぶんのオーブは受け取り済み。ここからはEXPとダメージだけ入ります</p>
         ) : extra ? (
-          <p className="small center bonus-reward">
-            2周目：EXPは{Math.round(CONFIG.sets.extraExpRatio * 100)}%。もうひと押しで体も育成も伸びます
-          </p>
+          <p className="small center bonus-reward">追加のセット：EXPもダメージもそのまま入ります</p>
         ) : null}
       </section>
 
@@ -284,9 +276,7 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
               この種目は完了！ 次の種目へ
             </button>
           )}
-          {baseDone && !allDone && (
-            <p className="muted small center">余力があれば、このまま2周目（あと{maxRewardSet(isBonus) - rewardNo + 1}セット）もできます</p>
-          )}
+          {baseDone && <p className="muted small center">余力があれば、このまま何セットでも追加できます</p>}
         </section>
       )}
 
