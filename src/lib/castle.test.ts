@@ -26,17 +26,26 @@ describe('降臨のレア度＝ボスの格', () => {
 })
 
 describe('零の孤城', () => {
-  const bakus = ELS.flatMap((e) => [def(`${e}1`, { element: e, rarity: 'superRare' }), def(`${e}2`, { element: e, rarity: 'superRare' })])
-  const last = def('king', { element: 'dark', rarity: 'superRare', castleLord: true, abilities: ['バリア'] })
+  const bakus = ELS.flatMap((e) => [
+    def(`${e}1`, { element: e, bossGrade: 'bakuzetsu', castleOnly: true }),
+    def(`${e}2`, { element: e, bossGrade: 'bakuzetsu', castleOnly: true }),
+  ])
+  const last = def('king', { element: 'dark', bossGrade: 'bakuzetsu', castleLord: true, abilities: ['バリア'] })
   const holders = [
     def('h1', { questOnly: false, rarity: 'superRare', element: 'fire', abilities: ['バリア', 'シールド'] }),
     def('h2', { questOnly: false, rarity: 'superRare', element: 'water', abilities: ['リジェネ', 'ミラー'] }),
   ]
   const defs = [...bakus, last, ...holders]
 
-  it('1〜10階は激レアの降臨（爆絶のボス）を炎・水・木・光・闇の順に2周。城主は入れない', () => {
+  it('1〜10階は孤城限定の子を炎・水・木・光・闇の順に2周。城主は入れない。各階のボスは毎月の初回クリアで手に入る', () => {
     expect(castleLineup(defs, []).map((d) => d?.id)).toEqual(['fire1', 'water1', 'wood1', 'light1', 'dark1', 'fire2', 'water2', 'wood2', 'light2', 'dark2'])
     expect(lastBossOf(defs)?.id).toBe('king')
+    const floors = castleFloors(defs, [])
+    expect(floors[0].reward.monsterDefId).toBe('fire1')
+    // 孤城限定がいなくて、爆絶のボスで埋めた階は落とさない
+    const filled = castleFloors([def('bz', { element: 'fire', bossGrade: 'bakuzetsu' })], [])
+    expect(filled[0].quest.bossDefId).toBe('bz')
+    expect(filled[0].reward.monsterDefId).toBeNull()
   })
 
   it('全階爆絶。11階は零属性の城主で、属性の種類を求める', () => {

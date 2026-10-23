@@ -20,17 +20,17 @@ export function kinkinCleared(state: Pick<GameState, 'kinkin'>, month: string): 
   return state.kinkin?.month === month ? state.kinkin.cleared : 0
 }
 
-/** ボス：超絶・爆絶の降臨（コラボ・塔限定・城主は入れない）を、炎・水・木・光・闇の順に4周。足りなければ、ほかの降臨で埋める */
+/** ボス：爆絶の降臨（コラボ・塔限定・孤城限定・城主は入れない）を、炎・水・木・光・闇の順に4周。足りなければ超絶 → ほかの降臨で埋める */
 export function kinkinLineup(defs: MonsterDef[]): (MonsterDef | undefined)[] {
   const order = CONFIG.castle.elementOrder
-  const ok = (d: MonsterDef) => d.questOnly && !isHidden(d) && !d.tower && !d.castleLord && !d.series?.trim()
-  const strong = defs.filter((d) => ok(d) && ['chozetsu', 'bakuzetsu'].includes(bossGradeOf(d) ?? ''))
+  const ok = (d: MonsterDef) => d.questOnly && !isHidden(d) && !d.tower && !d.castleOnly && !d.castleLord && !d.series?.trim()
+  const strong = defs.filter((d) => ok(d) && bossGradeOf(d) === 'bakuzetsu')
   const lineup = Array.from({ length: CONFIG.kinkin.floors }, (_, i) => {
     const e = order[i % order.length]
     return strong.filter((d) => elementInfo(d).elements[0] === e)[Math.floor(i / order.length)]
   })
   const used = new Set(lineup.filter((d) => d).map((d) => d!.id))
-  const spare = [...strong, ...defs.filter(ok)]
+  const spare = [...strong, ...defs.filter((d) => ok(d) && bossGradeOf(d) === 'chozetsu'), ...defs.filter(ok)]
   return lineup.map((d, i) => {
     if (d) return d
     const next = spare.find((x) => !used.has(x.id)) ?? spare[i % Math.max(1, spare.length)]

@@ -14,7 +14,7 @@ export function useQuestTools() {
   const { quests, defs, saveQuest } = useStore()
   // まだボスクエストがない降臨モンスター（塔限定・城主は塔と孤城でもらえるので除く）
   const pending = defs.filter(
-    (d) => d.questOnly && !d.tower && !d.castleLord && !quests.some((q) => q.kind !== 'material' && q.bossDefId === d.id),
+    (d) => d.questOnly && !d.tower && !d.castleLord && !d.castleOnly && !quests.some((q) => q.kind !== 'material' && q.bossDefId === d.id),
   )
   const topQuests = quests.filter((q) => !q.builtin && q.kind !== 'material')
 

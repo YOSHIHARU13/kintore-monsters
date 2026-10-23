@@ -24,22 +24,22 @@ export function lastBossOf(defs: MonsterDef[]): MonsterDef | undefined {
 }
 
 /** 爆絶のボスになる降臨：格が爆絶の降臨（城主は除く） */
-export const isBakuzetsuBoss = (d: MonsterDef) => !d.castleLord && bossGradeOf(d) === 'bakuzetsu'
+export const isBakuzetsuBoss = (d: MonsterDef) => !d.castleLord && !d.castleOnly && bossGradeOf(d) === 'bakuzetsu'
+
+/** 孤城限定の子（1〜10階のボス。毎月の初回クリアで手に入る） */
+export const castleMonsters = (defs: MonsterDef[]) => defs.filter((d) => d.questOnly && d.castleOnly && !d.castleLord)
 
 /**
- * 1〜10階のボス：爆絶のボス（爆絶級の降臨と、爆絶クエストのボス）を、炎・水・木・光・闇の順に2周。
- * 足りない属性は、残りの爆絶ボス → 超絶のボス → ほかの降臨 → ガチャの子の順で埋める
+ * 1〜10階のボス：孤城限定の子を、炎・水・木・光・闇の順に2周。
+ * 足りない階は、爆絶のボス → 超絶のボス → ほかの降臨 → ガチャの子の順で埋める（コラボ・超究極・塔限定は入れない）
  */
 export function castleLineup(defs: MonsterDef[], quests: Pick<Quest, 'kind' | 'grade' | 'rank' | 'bossDefId' | 'builtin'>[]): (MonsterDef | undefined)[] {
   const c = CONFIG.castle
   const bossIds = (grade: string) =>
     new Set(quests.filter((q) => q.kind !== 'material' && !q.builtin && gradeOf(q) === grade).map((q) => q.bossDefId))
-  const bakuzetsuIds = bossIds('bakuzetsu')
-  const chozetsuIds = bossIds('chozetsu')
-  // コラボの子と、超究極のボスは入れない
   const strongIds = bossIds('chokyukyoku')
-  const ok = (d: MonsterDef) => !d.series?.trim() && !strongIds.has(d.id) && bossGradeOf(d) !== 'chokyukyoku'
-  const top = defs.filter((d) => (isBakuzetsuBoss(d) || (bakuzetsuIds.has(d.id) && !d.castleLord)) && ok(d))
+  const ok = (d: MonsterDef) => !d.series?.trim() && !strongIds.has(d.id) && bossGradeOf(d) !== 'chokyukyoku' && !d.tower && !d.castleLord
+  const top = castleMonsters(defs).filter(ok)
   const slots = c.elementOrder.length * 2
   const lineup: (MonsterDef | undefined)[] = Array.from({ length: slots }, (_, i) => {
     const e = c.elementOrder[i % c.elementOrder.length]
@@ -48,8 +48,9 @@ export function castleLineup(defs: MonsterDef[], quests: Pick<Quest, 'kind' | 'g
   const used = new Set(lineup.filter((d) => d).map((d) => d!.id))
   const spare = [
     ...top,
-    ...defs.filter((d) => chozetsuIds.has(d.id)),
-    ...defs.filter((d) => d.questOnly && !isHidden(d) && !d.castleLord && !d.tower),
+    ...defs.filter((d) => isBakuzetsuBoss(d) || bossIds('bakuzetsu').has(d.id)),
+    ...defs.filter((d) => bossIds('chozetsu').has(d.id) || bossGradeOf(d) === 'chozetsu'),
+    ...defs.filter((d) => d.questOnly && !isHidden(d)),
     ...defs.filter((d) => !d.questOnly && !isHidden(d) && rarityOf(d) !== 'normal'),
   ].filter((d) => !used.has(d.id) && ok(d))
   return lineup.map((d) => {
@@ -103,7 +104,8 @@ export function castleFloors(defs: MonsterDef[], gimmicks: string[], quests: Que
         booster: null,
         boosters: c.boosterPacks[floor] ?? [],
         custom: c.customs[floor],
-        monsterDefId: top && lastBoss ? lastBoss.id : null,
+        // 孤城限定の子と城主は、毎月の初回クリアで手に入る（ほかの埋め合わせのボスは落とさない）
+        monsterDefId: top ? (lastBoss?.id ?? null) : boss?.castleOnly ? boss.id : null,
       },
     }
   })
