@@ -31,15 +31,21 @@ describe('適正', () => {
   })
 })
 
-describe('適正キャラの順位は1撃の重さ', () => {
-  it('アビリティが2つ噛み合ったノーマルより、1つだけの激レアが上。零属性の降臨も攻撃が軽ければ下', () => {
-    const q = quest('q', { grade: 'bakuzetsu', requirements: [{ tag: 'ab:バリア', count: 3 }, { tag: 'ab:シールド', count: 3 }] })
+describe('適正キャラの順位は貢献（1撃＋編成の条件を埋めるぶん）', () => {
+  it('1撃の重さが同じなら、条件を多く埋めるほうが上。属性が合わないモンスターは並ばない', () => {
+    const q = quest('q', { grade: 'bakuzetsu', requirements: [{ tag: 'el:wood', count: 5 }, { tag: 'ab:バリア', count: 3 }, { tag: 'ab:シールド', count: 3 }] })
     const list = fitMembers(q, [
-      def('weak', { tier: 'normal', element: 'wood', abilities: ['バリア', 'シールド'] }),
-      def('zero', { questOnly: true, bossGrade: 'jokyu', templateId: 'single', element: undefined, abilities: ['バリア', 'シールド'] }),
-      def('strong', { tier: 'superRare', element: 'wood', abilities: ['バリア'] }),
+      def('one', { element: 'wood', abilities: ['バリア'] }),
+      def('two', { element: 'wood', abilities: ['バリア', 'シールド'] }),
+      def('fire', { element: 'fire', abilities: ['バリア', 'シールド'] }),
     ])
-    expect(list[0].def.id).toBe('strong')
-    expect(list.map((x) => x.hit)).toEqual([...list.map((x) => x.hit)].sort((a, b) => b - a))
+    expect(list.map((x) => x.def.id)).toEqual(['two', 'one'])
+    expect(list[0].hit).toBeGreaterThan(list[1].hit) // アビリティ2つで1撃も重い
+    expect(list[0].support).toBeGreaterThan(list[1].support)
+  })
+  it('零属性のボス（属性の種類）では、2属性のモンスターが属性1つのモンスターより上', () => {
+    const q = quest('q', { element: undefined, grade: 'bakuzetsu', requirements: [{ tag: 'kinds', count: 5 }] })
+    const list = fitMembers(q, [def('single', { element: 'wood' }), def('dual', { jogressElements: ['wood', 'fire'] } as Partial<MonsterDef>)])
+    expect(list[0].def.id).toBe('dual')
   })
 })

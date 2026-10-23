@@ -1,5 +1,6 @@
 import { elementInfo, hasAdvantage } from './element'
-import { KINDS_TAG, requirementsOf, tagAbilities, tagsOf } from './formation'
+import { KINDS_TAG, formationOf, requirementsOf, tagAbilities, tagsOf } from './formation'
+import { CONFIG } from '../config/gameConfig'
 import { fitsQuest, gradeOf, GRADES, isCollabHero, matchedAbilities, setHit } from './quest'
 import { grown } from './lifespan'
 import { getTemplate } from '../data/evolutionTemplates'
@@ -86,14 +87,28 @@ export function hitWeight(def: MonsterDef, quest: Quest): number {
   return Math.round(total / slots.length)
 }
 
-/** そのクエストの適正キャラ（1撃の重い順。持っていないモンスターも入る）。降臨とガチャに分けて使う */
-export function fitMembers(quest: Quest, defs: MonsterDef[]): { def: MonsterDef; fit: Fit; rate: number; hit: number }[] {
-  return defs
-    .flatMap((def) => {
-      const fit = fitOf(def, quest)
-      return fit ? [{ def, fit, rate: fitRate(def, quest), hit: hitWeight(def, quest) }] : []
+/**
+ * そのクエストの適正キャラ：入れたら編成全体のダメージがどれだけ増えるか（貢献）の順。持っていないモンスターも入る。
+ * 貢献 ＝ 1撃の重さ ＋ 編成の条件を埋めるぶん（6体の編成のダメージ × そのモンスター1体で上がる編成倍率）。
+ * 属性の種類（2属性なら2種類）・アビリティ・部位の条件を埋める役も、ここで評価される。
+ * 並ぶのは、属性が合うモンスター（零属性のボスならどれでも）。降臨とガチャに分けて使う
+ */
+export function fitMembers(quest: Quest, defs: MonsterDef[]): { def: MonsterDef; fit: Fit | null; hit: number; support: number; score: number }[] {
+  const reqs = requirementsOf(quest)
+  const zeroBoss = reqs.some((r) => r.tag === KINDS_TAG) || !quest.element
+  const base = CONFIG.formation.base
+  const rows = defs
+    .filter((def) => zeroBoss || fitsQuest(def, quest))
+    .map((def) => ({ def, fit: fitOf(def, quest), hit: hitWeight(def, quest), lift: Math.max(0, Math.min(1, formationOf([grown(def, quest.attr).def], reqs).rate) - base) }))
+  // 編成のダメージの目安：1撃の重い6体ぶん
+  const top = rows.map((r) => r.hit).sort((a, b) => b - a).slice(0, CONFIG.quest.partySize)
+  const party = (top.reduce((s, h) => s + h, 0) / Math.max(1, top.length)) * CONFIG.quest.partySize
+  return rows
+    .map((r) => {
+      const support = Math.round(party * r.lift)
+      return { def: r.def, fit: r.fit, hit: r.hit, support, score: r.hit + support }
     })
-    .sort((a, b) => b.hit - a.hit || b.rate - a.rate)
+    .sort((a, b) => b.score - a.score || b.hit - a.hit)
 }
 
 export const FIT_MARK: Record<Fit, string> = { best: '◎', good: '○' }
