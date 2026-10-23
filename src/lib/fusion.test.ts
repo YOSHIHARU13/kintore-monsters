@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canFeed, fusionGain, isLuckMax, luckAfter, luckBonus, planBulkFeed } from './fusion'
+import { canFeed, dropLuck, fusionGain, isLuckMax, luckAfter, luckBonus, luckMaxReward, planBulkFeed } from './fusion'
 import type { MonsterDef, OwnedMonster } from '../types'
 
 const def = (id: string, extra: Partial<MonsterDef> = {}): MonsterDef => ({
@@ -60,5 +60,20 @@ describe('ダブりをまとめて合成', () => {
     const plans = planBulkFeed(owned, [def('h', 'hazure')], new Set(), stars, target)
     expect(plans[0].foodIds).toHaveLength(1)
     expect(plans[0].luck).toBe(99)
+  })
+})
+
+describe('運極のバランス', () => {
+  it('クエストのボスは運4で落ち、出撃した運極1体ごとに＋1（最大＋4）', () => {
+    expect(dropLuck([])).toBe(4)
+    expect(dropLuck([{ luck: 99 }, { luck: 99 }, { luck: 5 }])).toBe(6)
+    expect(dropLuck(Array.from({ length: 6 }, () => ({ luck: 99 })))).toBe(8)
+    // 運極なしで25勝、運極4体なら13勝くらいで運極
+    expect(Math.ceil((99 - 4) / 4) + 1).toBe(25)
+    expect(Math.ceil((99 - 8) / 8) + 1).toBe(13)
+  })
+  it('運極の報酬：降臨はトク玉10個、ガチャの子は5個', () => {
+    expect(luckMaxReward({ questOnly: true })).toBe(10)
+    expect(luckMaxReward({})).toBe(5)
   })
 })

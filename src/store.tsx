@@ -44,7 +44,19 @@ import {
   type CoreKey,
 } from './lib/cores'
 import { pendingRanks, rankClaimKey, rankReward } from './lib/rank'
-import { bulkFeedTarget, canFeed, fusionGain, isLuckMax, luckAfter, luckBonus, planBulkFeed, protectedIds } from './lib/fusion'
+import {
+  bulkFeedTarget,
+  canFeed,
+  dropLuck,
+  fusionGain,
+  isLuckMax,
+  luckAfter,
+  luckBonus,
+  luckMaxClaimKey,
+  luckMaxReward,
+  planBulkFeed,
+  protectedIds,
+} from './lib/fusion'
 import { autoPartners } from './lib/partner'
 import { finalAttrs, recommend } from './lib/coverage'
 import { abilitySlots, jogressGradeOf, selectableGimmicks } from './lib/gimmick'
@@ -178,6 +190,7 @@ export interface QuestReward {
   drops: ItemDrop[] // 落ちた素材（素材クエストで何も落ちなければ、0個の行が1つ）
   gold: number // オーブ
   coins?: number // もらえた進化コイン
+  luck?: number // 手に入ったボスの運
 }
 
 export interface GachaInput {
@@ -276,9 +289,10 @@ interface Store {
   pourPlusExp: (monsterId: string, from: ExpSource) => void
   /** foodId のモンスターを monsterId（最終形態）に食べさせて＋1にする（同じモンスター同士だけ） */
   fuse: (monsterId: string, foodId: string) => void
-  /** 同じモンスターをまとめて食べさせて運を上げる（タダ・最大99） */
-  feedLuck: (monsterId: string, foodIds: string[]) => void
-  bulkFeed: () => { kept: number; fed: number }
+  /** 同じモンスターをまとめて食べさせて運を上げる（タダ・最大99）。運極になったらもらえたトク玉の数 */
+  feedLuck: (monsterId: string, foodIds: string[]) => number
+  /** ダブりをまとめて食べさせる。luckMax は新しく運極になった数、eggs はその報酬のトク玉 */
+  bulkFeed: () => { kept: number; fed: number; luckMax: number; eggs: number }
   /** ＋5の2体を合わせて隠しモンスターを生む。生まれた個体のID */
   jogress: (monsterId: string, partnerId: string, hiddenDefId: string) => string | null
   shinka: (monsterId: string, foodId: string) => boolean
@@ -805,35 +819,54 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     /** ノーマル以下のダブりを、モンスターごとにいちばん育っている1体へまとめて食べさせる */
     const bulkFeed: Store['bulkFeed'] = () => {
       const plans = planBulkFeed(owned, defs, protectedIds(state, dateKey()), starsOf, bulkFeedTarget)
-      if (plans.length === 0) return { kept: 0, fed: 0 }
+      if (plans.length === 0) return { kept: 0, fed: 0, luckMax: 0, eggs: 0 }
       const update: DocumentData = {}
       const batch = writeBatch(db)
       const foods = plans.flatMap((p) => p.foodIds).map(findMonster).filter((f) => !!f)
       consume(update, foods)
-      for (const p of plans) batch.update(doc(db, base, 'ownedMonsters', p.keeperId), { luck: p.luck })
+      let luckMax = 0
+      let eggs = 0
+      for (const p of plans) {
+        batch.update(doc(db, base, 'ownedMonsters', p.keeperId), { luck: p.luck })
+        const keeper = findMonster(p.keeperId)
+        const got = keeper ? luckMaxBonus(update, keeper.mon, keeper.def, p.luck) : 0
+        if (got > 0) luckMax++
+        eggs += got
+      }
+      if (eggs > 0) update.eggs = increment(eggs)
       for (const f of foods) batch.delete(doc(db, base, 'ownedMonsters', f.mon.id))
       if (Object.keys(update).length > 0) batch.update(stateRef, update)
       batch.commit().catch(fail)
-      return { kept: plans.length, fed: foods.length }
+      return { kept: plans.length, fed: foods.length, luckMax, eggs }
+    }
+
+    /** 運が99に届いたら、運極の報酬（1体につき1回）を update に書く。もらえるトク玉の数 */
+    const luckMaxBonus = (update: DocumentData, mon: OwnedMonster, def: MonsterDef, luck: number): number => {
+      if (isLuckMax(mon) || luck < CONFIG.luck.max || state.claims?.[luckMaxClaimKey(mon.id)]) return 0
+      update[`claims.${luckMaxClaimKey(mon.id)}`] = true
+      return luckMaxReward(def)
     }
 
     const feedLuck: Store['feedLuck'] = (monsterId, foodIds) => {
       const found = findMonster(monsterId)
-      if (!found || isLuckMax(found.mon)) return
+      if (!found || isLuckMax(found.mon)) return 0
       const foods = foodIds
         .filter((f) => f !== monsterId)
         .map(findMonster)
         .filter((f): f is NonNullable<typeof f> => !!f && f.mon.defId === found.mon.defId)
-      if (foods.length === 0) return
+      if (foods.length === 0) return 0
       // 1体ずつ足していく（最大99）
       const luck = foods.reduce((sum, f) => luckAfter({ luck: sum }, f.mon), found.mon.luck ?? 1)
       const update: DocumentData = {}
       consume(update, foods)
+      const eggs = luckMaxBonus(update, found.mon, found.def, luck)
+      if (eggs > 0) update.eggs = increment(eggs)
       const batch = writeBatch(db)
       batch.update(doc(db, base, 'ownedMonsters', monsterId), { luck })
       for (const f of foods) batch.delete(doc(db, base, 'ownedMonsters', f.mon.id))
       if (Object.keys(update).length > 0) batch.update(stateRef, update)
       batch.commit().catch(fail)
+      return eggs
     }
 
     // レシピの2体（どちらも最終形態の＋5）を合わせて、隠しモンスターを生む。2体はいなくなる
@@ -1201,6 +1234,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
           investedBy: {},
           investedFrom: {},
           plus: dropPlus(battle.quest),
+          luck: dropLuck(battle.party.map((m) => m.mon)),
           shiny,
           obtainedAt: Date.now(),
         })
@@ -1225,6 +1259,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         gold,
         eggs: 0,
         towerFloor: null,
+        luck: monsterId ? dropLuck(battle.party.map((m) => m.mon)) : undefined,
       }
     }
 
@@ -1261,6 +1296,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
           investedBy: {},
           investedFrom: {},
           plus: 0,
+          luck: dropLuck(party),
           shiny,
           obtainedAt: Date.now(),
         })
@@ -1279,6 +1315,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         gold,
         eggs: floor.reward.eggs,
         towerFloor: floor.floor,
+        luck: monsterId ? dropLuck(party) : undefined,
       }
     }
 

@@ -29,7 +29,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
   const [confirmAllLuck, setConfirmAllLuck] = useState(false)
   const [partnerKey, setPartnerKey] = useState<string | null>(null)
   const [born, setBorn] = useState<{ def: MonsterDef; id: string } | null>(null)
-  const [luckMaxNow, setLuckMaxNow] = useState(false)
+  const [luckMaxNow, setLuckMaxNow] = useState<number | null>(null) // 運極になったときの報酬のトク玉
   const mon = owned.find((o) => o.id === id)
   const def = mon && defs.find((d) => d.id === mon.defId)
 
@@ -152,8 +152,8 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
           </div>
         </div>
       )}
-      {luckMaxNow && (
-        <div className="beat-overlay clear-overlay" onClick={() => setLuckMaxNow(false)}>
+      {luckMaxNow !== null && (
+        <div className="beat-overlay clear-overlay" onClick={() => setLuckMaxNow(null)}>
           <div className="beat-burst" />
           <div className="beat-burst reverse" />
           {Array.from({ length: 42 }, (_, i) => (
@@ -166,6 +166,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
             <div className="beat-sub">
               クエストのオーブ＋{Math.round(CONFIG.luck.goldBonus * 100)}%・素材のくじ＋{CONFIG.materials.luckRolls}回
             </div>
+            {luckMaxNow > 0 && <div className="beat-sub">🟡 トク玉 ×{luckMaxNow} を手に入れた！</div>}
             <span className="luck-max">運極</span>
           </div>
         </div>
@@ -356,6 +357,9 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
         <p className="muted small">
           同じモンスターを食べさせると運が上がります（タダ。食べさせた側の運もそのまま足されます）。運{CONFIG.luck.max}で「運極」。運極を出撃させると、1体につきクエスト報酬のG＋
           {Math.round(CONFIG.luck.goldBonus * 100)}%、素材クエストのくじ＋{CONFIG.materials.luckRolls}回（たくさん落ちやすくなる）。
+          クエストのボスは運{CONFIG.luck.questDrop}で落ち、出撃した運極1体ごとに＋{CONFIG.luck.perLuckMax}（最大＋
+          {CONFIG.luck.perLuckMaxCap}）。運極になると🟡トク玉（降臨{CONFIG.luck.maxReward.quest}個・ガチャの子
+          {CONFIG.luck.maxReward.gacha}個）。
         </p>
         {isLuckMax(mon) ? (
           <p>運極！ クエストで報酬ボーナスがつきます。</p>
@@ -367,13 +371,13 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
               className={`btn${confirmAllLuck ? ' primary' : ''} wide`}
               onClick={() => {
                 if (!confirmAllLuck) return setConfirmAllLuck(true)
-                feedLuck(
+                const eggs = feedLuck(
                   id,
                   luckPicked.map((f) => f.id),
                 )
                 setConfirmAllLuck(false)
-                // この食べさせで運極になったら、お祝いの演出
-                if (luckOf(mon) + luckGain >= CONFIG.luck.max) setLuckMaxNow(true)
+                // この食べさせで運極になったら、お祝いの演出（トク玉の報酬つき）
+                if (luckOf(mon) + luckGain >= CONFIG.luck.max) setLuckMaxNow(eggs)
                 navigator.vibrate?.([60, 40, 200])
               }}
             >

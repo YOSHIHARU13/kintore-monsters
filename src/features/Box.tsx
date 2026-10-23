@@ -88,7 +88,10 @@ export function Box({ go }: { go: Go }) {
             if (!confirmFeed) return setConfirmFeed(true)
             const r = bulkFeed()
             setConfirmFeed(false)
-            setFedMsg(`${r.fed}体を、${r.kept}体に合成して運を上げました`)
+            setFedMsg(
+              `${r.fed}体を、${r.kept}体に合成して運を上げました` +
+                (r.luckMax > 0 ? `。運極が${r.luckMax}体できた！ 🟡トク玉×${r.eggs}` : ''),
+            )
           }}
         >
           {confirmFeed

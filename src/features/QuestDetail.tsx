@@ -9,7 +9,7 @@ import { QuestBanner } from '../components/QuestBanner'
 import { BOSS_DIFFICULTY, DIFFICULTIES, atDifficulty, fitsQuest, isStrict, sessionEstimate, attrOf, dropPlus, gradeOf, powerOf, questGold, questHp, type Member } from '../lib/quest'
 import { formationOf, requirementsOf, shortfallHelp, tagLabel, tagsOf } from '../lib/formation'
 import { FormationPanel } from '../components/FormationPanel'
-import { luckBonus } from '../lib/fusion'
+import { dropLuck, luckBonus } from '../lib/fusion'
 import { ELEMENT_COLOR, ELEMENT_LABEL, advantageElements, elementInfo, elementName } from '../lib/element'
 import { ATTR_COLOR, type Go } from '../nav'
 import { attackOf } from '../lib/stats'
@@ -63,7 +63,8 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
     return def ? [def] : []
   })
   const formation = formationOf(partyDefs, requirements)
-  const luck = luckBonus(party.flatMap((pid) => owned.filter((o) => o.id === pid)))
+  const partyMons = party.flatMap((pid) => owned.filter((o) => o.id === pid))
+  const luck = luckBonus(partyMons)
   // 候補は「まだ足りていない条件にいくつ貢献できるか」の順。同じなら攻撃力の順
   const members = owned
     .flatMap((mon): (Member & { help: number; tags: string[] })[] => {
@@ -185,7 +186,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
         ) : (
           <p className="small">
             ドロップ {boss?.name ?? '？'}
-            {dropPlus(quest) > 0 ? `＋${dropPlus(quest)}` : ''}・ときどき
+            {dropPlus(quest) > 0 ? `＋${dropPlus(quest)}` : ''}（運{dropLuck(partyMons)}）・ときどき
             {quest.element ? STONE_LABEL(quest.element) : '結晶'}
           </p>
         )}

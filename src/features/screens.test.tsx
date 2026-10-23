@@ -741,7 +741,7 @@ describe('画面の表示', () => {
     expect(names[1]).not.toContain('アーク')
     // ボスクエストは難易度を選ばない。格（決めていなければ極）でHPと報酬が決まる
     expect(el.querySelector('[aria-label="難易度"]')).toBeNull()
-    expect(el.textContent).toContain('HP 3,000・🔮8ドロップ アシガメ・ときどき木の結晶')
+    expect(el.textContent).toContain('HP 3,000・🔮8ドロップ アシガメ（運4）・ときどき木の結晶')
     await click('ムキドラゴ')
     expect(el.textContent).toContain('アーク1/2') // 選ぶとメーターが埋まる
     await click('出撃する')
@@ -770,6 +770,28 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('木の結晶 ×1 がドロップ！') // ボスクエストでも、ときどきボスの属性の結晶が落ちる
     await click('会いに行く')
     expect(go).toHaveBeenCalledWith({ name: 'monster', id: 'o8' })
+  })
+
+  it('クエスト：落ちたボスは、持っている同じ子の運にその場で食べさせられる', async () => {
+    const { Quests } = await import('./Quests')
+    const quest = {
+      id: 'q1', name: '脚竜の巣', bossDefId: 'm2', attr: 'legs' as const, element: 'wood' as const, weakSlots: ['mon2'], gimmicks: [],
+      hp: { easy: 25, normal: 25, hard: 25 }, catchphrase: '', theme: 'flame', createdAt: 1,
+    }
+    fake.store.quests = [quest]
+    fake.store.state = { ...state, challenge: { date: TODAY, questId: 'q1', difficulty: 'easy', party: ['o1'], startTs: 10 } }
+    fake.store.weekSets = [past(2, 10, 20, TODAY)]
+    fake.store.owned = [owned[0], { id: 'k', defId: 'm2', nodeId: 'n1', luck: 95, obtainedAt: 2 }, { id: 'o8', defId: 'm2', nodeId: 'n1', luck: 4, obtainedAt: 3 }]
+    fake.store.claimQuest = vi.fn(() => ({ monsterId: 'o8', defId: 'm2', drops: [], gold: 8, eggs: 0, towerFloor: null, luck: 4 }))
+    fake.store.feedLuck = vi.fn(() => 10)
+    const el = await render(<Quests go={go} />)
+    await click('報酬を受け取る')
+    expect(el.textContent).toContain('運 4 で手に入った')
+    await click('持っているアシガメ（運95）に食べさせる')
+    expect(fake.store.feedLuck).toHaveBeenCalledWith('k', ['o8'])
+    expect(el.textContent).toContain('運極達成！！ 🟡トク玉×10')
+    await click('会いに行く')
+    expect(go).toHaveBeenCalledWith({ name: 'monster', id: 'k' })
   })
 
   it('クエスト一覧：超絶・究極・極・素材の見出しで分かれ、バナーに格のリボンが付く', async () => {

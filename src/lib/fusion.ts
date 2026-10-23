@@ -40,6 +40,20 @@ export function luckBonus(party: Pick<OwnedMonster, 'luck'>[]): { count: number;
   return { count, goldRate: 1 + CONFIG.luck.goldBonus * count, extraRolls: CONFIG.materials.luckRolls * count }
 }
 
+/** クエストで落ちたボスの運：基本の運＋出撃した運極の数（上限あり） */
+export function dropLuck(party: Pick<OwnedMonster, 'luck'>[]): number {
+  const l = CONFIG.luck
+  return l.questDrop + Math.min(l.perLuckMaxCap, party.filter(isLuckMax).length * l.perLuckMax)
+}
+
+/** 運極ができたときのトク玉：降臨（クエストの子）は多め、ガチャの子は少なめ */
+export function luckMaxReward(def: Pick<MonsterDef, 'questOnly'>): number {
+  return def.questOnly ? CONFIG.luck.maxReward.quest : CONFIG.luck.maxReward.gacha
+}
+
+/** 運極の報酬は、1体につき1回だけ */
+export const luckMaxClaimKey = (monsterId: string) => `luckMax:${monsterId}`
+
 export interface FeedPlan {
   keeperId: string // 運を集める1体
   foodIds: string[] // 食べさせる（いなくなる）個体

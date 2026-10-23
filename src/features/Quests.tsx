@@ -23,7 +23,7 @@ const QUEST_GROUPS = [
   { key: 'archive', label: '📚 書庫（開催が終わったコラボ）' },
 ] as const
 import { formationOf, requirementsOf } from '../lib/formation'
-import { luckBonus } from '../lib/fusion'
+import { isLuckMax, luckBonus, luckOf } from '../lib/fusion'
 import { ELEMENT_COLOR, elementInfo } from '../lib/element'
 import { CONFIG } from '../config/gameConfig'
 import { dropLabel } from '../lib/cores'
@@ -39,7 +39,8 @@ import { nodeAttr, plusName, type MonsterDef, type Quest } from '../types'
 
 /** クエストのタブ：今日の戦いと、クエストの一覧 */
 export function Quests({ go }: { go: Go }) {
-  const { state, quests, tower, defs, today, seriesPeriods, quitChallenge, claimQuest, saveQuest } = useStore()
+  const { state, quests, tower, defs, owned, today, seriesPeriods, quitChallenge, claimQuest, saveQuest, feedLuck } = useStore()
+  const [fedLuck, setFedLuck] = useState<{ msg: string; keeperId: string } | null>(null) // 落ちた子を運に食べさせた
   const [made, setMade] = useState<number | null>(null)
   const [series, setSeries] = useState<SeriesFilter>('all')
   // まだボスクエストがない降臨モンスター（塔限定は塔でもらえるので除く）
@@ -150,8 +151,36 @@ export function Quests({ go }: { go: Go }) {
               </p>
             ),
           )}
+          {got.monsterId && got.luck !== undefined && <p className="small">運 {got.luck} で手に入った</p>}
+          {got.monsterId && (() => {
+            // すでに持っている同じ子（運極でない、いちばん運が高い子）に、その場で食べさせられる
+            const keeper = owned
+              .filter((o) => o.defId === got.defId && o.id !== got.monsterId && !isLuckMax(o))
+              .sort((a, b) => luckOf(b) - luckOf(a))[0]
+            const def = defs.find((d) => d.id === got.defId)
+            if (fedLuck) return <div className="result keep">{fedLuck.msg}</div>
+            if (!keeper || !def || !owned.some((o) => o.id === got.monsterId)) return null
+            return (
+              <button
+                className="btn wide"
+                onClick={() => {
+                  const eggs = feedLuck(keeper.id, [got.monsterId!])
+                  const luck = Math.min(CONFIG.luck.max, luckOf(keeper) + (got.luck ?? 1))
+                  setFedLuck({
+                    keeperId: keeper.id,
+                    msg:
+                      luck >= CONFIG.luck.max
+                        ? `運極達成！！${eggs > 0 ? ` 🟡トク玉×${eggs}` : ''}`
+                        : `持っている${def.name}の運が ${luckOf(keeper)} → ${luck} になった`,
+                  })
+                }}
+              >
+                🍖 持っている{def.name}（運{luckOf(keeper)}）に食べさせる
+              </button>
+            )
+          })()}
           {got.monsterId && (
-            <button className="btn primary wide" onClick={() => go({ name: 'monster', id: got.monsterId! })}>
+            <button className="btn primary wide" onClick={() => go({ name: 'monster', id: fedLuck?.keeperId ?? got.monsterId! })}>
               会いに行く
             </button>
           )}
@@ -191,6 +220,7 @@ export function Quests({ go }: { go: Go }) {
                 const reward = claimQuest()
                 if (reward) {
                   const def = defs.find((d) => d.id === reward.defId)
+                  setFedLuck(null)
                   setGot({
                     ...reward,
                     boss: def,
