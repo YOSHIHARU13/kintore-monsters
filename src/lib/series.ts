@@ -54,3 +54,10 @@ export function statusLabel(st: SeriesStatus): string {
   if (st.kind === 'ended') return '開催終了'
   return ''
 }
+
+/** 同じコラボの子（コラボのボスのクエストで活躍させる。降臨は入れない） */
+export function collabMates(boss: MonsterDef, defs: MonsterDef[]): MonsterDef[] {
+  const series = seriesOf(boss)
+  if (series === '') return []
+  return defs.filter((d) => d.id !== boss.id && !d.questOnly && seriesOf(d) === series)
+}

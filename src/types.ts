@@ -17,6 +17,7 @@ export type BoosterKey = 'habit' | 'exp' | 'quest'
 
 export interface GameState {
   gold: number // オーブ（ガチャ・ブースター）。中の名前は gold のまま
+  questRules?: number // ボスクエストの条件を、この版のおまかせで作り直してある
   orbScale?: number // 1 ならオーブの単位（以前のゴールドの10分の1）に直してある
   coins: number // 進化コイン（進化・ジョグレス・EXPの購入）
   eggs: number // トク玉（1個でガチャ1回）。中の名前は eggs のまま
@@ -116,7 +117,6 @@ export interface MonsterDef {
   jogressSuper?: boolean // 同じ属性どうしのジョグレスなら超属性
   favoriteSlot?: string // 得意種目（種目の枠ID）
   series?: string // シリーズ（コラボ名）。空なら通常
-  tags?: string[] // タグ（ドラゴン・侍…）。同じタグのボスのクエストで強い
   jogressBirthStars?: number // 隠しモンスターが生まれるときの星（素材はこの1つ下以上）
   jogressPlus?: number // 隠しモンスターの素材に必要な＋（なければ0）
   fixedStars?: number // 進化しない（1形態だけの）クエスト限定モンスターの星（なければ fixedStarsDefault）
@@ -158,7 +158,7 @@ export type QuestDifficulty = 'easy' | 'normal' | 'hard'
 
 /** 素材クエストで落ちるもの：属性の結晶・部位の核・筋肉玉・進化コイン */
 export type MaterialDrop = 'stone' | 'muscle' | 'ball' | 'coins' | 'custom' // custom：神殿のカスタマイズアイテム
-export type QuestGrade = 'jokyu' | 'kiwami' | 'kyukyoku' | 'chozetsu' | 'chokyukyoku'
+export type QuestGrade = 'jokyu' | 'kiwami' | 'kyukyoku' | 'chozetsu' | 'chokyukyoku' | 'bakuzetsu'
 
 /** クエストが求める人材の条件（タグ：'el:fire' のような属性か、'ab:バリア' のようなアビリティ） */
 export interface Requirement {
@@ -172,7 +172,6 @@ export interface Quest {
   autoName?: boolean // 名前を付けていない（読み込むときに付く。保存はしない）
   builtin?: boolean // 最初から用意されている素材クエスト（編集・削除できない）
   drop?: MaterialDrop // 素材クエストで落ちるもの（なければ、ボスの部位の核。部位がなければ筋肉玉）
-  bossTags?: string[] // ボスのタグ（読み込むときに付く。保存はしない）
   kind?: 'boss' | 'material' // ボスクエスト（ボスが手に入る）か、素材クエスト（核が落ちる）か。なければボス
   bossDefId: string // ボス（倒すと手に入るモンスター。素材クエストでは見た目だけ）
   attr: FormAttr // ボスの部位（素材クエストで落ちる核の種類）

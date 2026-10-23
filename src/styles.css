@@ -1306,6 +1306,7 @@ details.tuning[open] > summary {
   background: linear-gradient(120deg, #8a1c1c, #ffd166);
   color: #1b1400;
 }
+.grade-chip.on.grade-bakuzetsu,
 .grade-chip.on.grade-chokyukyoku,
 .grade-chip.on.grade-chozetsu,
 .grade-chip.on.grade-kyukyoku,
@@ -2547,4 +2548,24 @@ details.tuning[open] > summary {
 /* プレイヤーランク */
 .rank-card .btn {
   margin-top: 8px;
+}
+
+/* 爆絶：超絶の上。黒と紅 */
+.head-bakuzetsu {
+  background: linear-gradient(90deg, #120006, #b3002d 55%, #ff4d6d);
+}
+.quest-banner.frame-bakuzetsu {
+  border-color: #ff4d6d;
+  box-shadow: 0 0 16px rgba(255, 30, 80, 0.7);
+}
+.frame-bakuzetsu .grade-ribbon {
+  background: linear-gradient(90deg, #2b0010, #ff4d6d);
+}
+.quest-icon.frame-bakuzetsu {
+  border-color: #ff4d6d;
+  box-shadow: 0 0 12px rgba(255, 30, 80, 0.6);
+}
+.grade-bakuzetsu {
+  background: linear-gradient(120deg, #2b0010, #ff4d6d);
+  color: #fff;
 }

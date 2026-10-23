@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { useStore } from '../store'
 import { SeriesChips } from '../components/SeriesChips'
@@ -14,6 +14,7 @@ const VIEW_KEY = 'questListView'
 
 /** クエスト一覧の見出し：格の高い順、最後に素材 */
 const QUEST_GROUPS = [
+  { key: 'bakuzetsu', label: '爆絶' },
   { key: 'chokyukyoku', label: '超究極' },
   { key: 'chozetsu', label: '超絶' },
   { key: 'kyukyoku', label: '究極' },
@@ -29,7 +30,7 @@ import { ELEMENT_COLOR, elementInfo } from '../lib/element'
 import { CONFIG } from '../config/gameConfig'
 import { dropLabel } from '../lib/cores'
 import { towerCleared, towerMonth } from '../lib/tower'
-import { autoGradeOf, autoQuestSetup } from '../lib/questAuto'
+import { QUEST_RULES, autoGradeOf, autoQuestSetup } from '../lib/questAuto'
 import { selectableGimmicks } from '../lib/gimmick'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { towerRewardText } from './Tower'
@@ -40,7 +41,7 @@ import { nodeAttr, plusName, type MonsterDef, type Quest } from '../types'
 
 /** クエストのタブ：今日の戦いと、クエストの一覧 */
 export function Quests({ go }: { go: Go }) {
-  const { state, quests, tower, defs, owned, today, seriesPeriods, quitChallenge, claimQuest, saveQuest, feedLuck } = useStore()
+  const { state, quests, tower, defs, owned, today, seriesPeriods, quitChallenge, claimQuest, saveQuest, feedLuck, markQuestRules } = useStore()
   const [fedLuck, setFedLuck] = useState<{ msg: string; keeperId: string } | null>(null) // 落ちた子を運に食べさせた
   const [made, setMade] = useState<number | null>(null)
   const [series, setSeries] = useState<SeriesFilter>('all')
@@ -92,6 +93,15 @@ export function Quests({ go }: { go: Go }) {
     setConfirmRedo(false)
     setMade(topQuests.length)
   }
+  // おまかせの作り方が変わったら、今あるボスクエストの条件を1回だけ作り直す
+  const redone = useRef(false)
+  useEffect(() => {
+    if (redone.current || (state.questRules ?? 0) >= QUEST_RULES || defs.length === 0) return
+    redone.current = true
+    if (topQuests.length > 0) redoTop()
+    markQuestRules(QUEST_RULES)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.questRules, defs.length])
   const towerDone = towerCleared(state, towerMonth(today))
   const battle = useBattle()
   const towerFloor = battle ? tower.find((f) => f.quest.id === battle.quest.id) : undefined
@@ -397,7 +407,7 @@ export function Quests({ go }: { go: Go }) {
           <button className={`btn small${confirmRedo ? ' primary' : ' ghost'}`} onClick={() => (confirmRedo ? redoTop() : setConfirmRedo(true))}>
             {confirmRedo
               ? `本当にボスクエスト${topQuests.length}個の条件を作り直す（手で変えた条件は消えます）`
-              : '🎯 ボスクエストの条件を、タグの仲間・刺さるキャラから作り直す'}
+              : '🎯 ボスクエストの条件を、おまかせ（弱点属性＋アビリティ）で作り直す'}
           </button>
         )}
         {made !== null && <div className="result keep">{made}個のクエストを作りました・作り直しました</div>}

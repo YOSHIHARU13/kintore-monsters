@@ -2,11 +2,10 @@ import { CONFIG } from '../config/gameConfig'
 import { DAYS, SLOTS } from '../data/exercises'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { advantageElements, elementInfo } from './element'
-import { abilityTag, comboTag, elementTag, requirementsOf, tagAbilities } from './formation'
+import { KINDS_TAG, abilityTag, comboTag, elementTag, requirementsOf, tagAbilities } from './formation'
 import { abilitySlots } from './gimmick'
 import { rarityOf } from './gacha'
-import { seriesOf } from './series'
-import { tagMates } from './tags'
+import { collabMates, seriesOf } from './series'
 import { nodeAttr, type Element, type MonsterDef, type Quest, type QuestDifficulty, type QuestGrade, type RarityKey, type Requirement } from '../types'
 
 /** 文字列から決まる数（同じボスなら毎回同じ結果に） */
@@ -17,10 +16,11 @@ function hash(s: string): number {
 }
 
 /**
- * おまかせのクエスト：格に合わせて、編成の条件と弱点種目を自動で決める。
- * - ボスとタグが一致する子（因縁のある仲間・同じコラボ）がいれば、どの格でも、その子たちが刺さる条件にする（不利な属性でも）
- * - いなければ、ボスに有利な属性＋実際に誰かが持っているギミック（超絶以上は2つを両方もつ）
- * アビリティは、ほかのクエストであまり求められていないものから選ぶ（偏らないように）。
+ * おまかせのクエスト：基本は「弱点属性＋アビリティの持ち物検査」（モンストと同じ）。格が上がるほど、どちらも増える。
+ * - 有利な属性 element 体（無属性のボスは、属性の種類 kinds 種類。2属性のジョグレスは1体で2種類）
+ * - アビリティ abilities 種類 × abilityCount 体（1体1つずつでよい）。爆絶は「1体で2つ同時に持つ子」combo 体も
+ * - アビリティは、登録しているモンスターが実際に持っているものから、ほかのクエストであまり求められていない順に選ぶ
+ * 誰が刺さるかは決めない（プレイヤーが見つける）。ただしコラボのボスだけは、同じコラボの子が活躍する条件にする。
  */
 export function autoQuestSetup(
   boss: MonsterDef,
@@ -30,7 +30,7 @@ export function autoQuestSetup(
   gimmicks: string[],
   selfId?: string,
   defs: MonsterDef[] = [],
-  useTags = true, // false なら、タグの仲間は見ない（試練の塔：超絶クエストとは別のギミックにするため）
+  useCollab = true, // false なら、コラボの子も見ない（試練の塔）
   difficulty: QuestDifficulty = 'normal', // 素材クエストの難易度
 ): { requirements: Requirement[]; weakSlots: string[]; heroId?: string } {
   const a = kind === 'material' ? CONFIG.questAuto.material[difficulty] : CONFIG.questAuto[grade]
@@ -43,37 +43,39 @@ export function autoQuestSetup(
     if (q.id === selfId) continue
     for (const r of requirementsOf(q)) for (const g of tagAbilities(r.tag)) used[g] = (used[g] ?? 0) + 1
   }
-  // 登録されているモンスター（降臨以外）が実際に持っているアビリティだけから選ぶ（誰も持っていない条件にしない）
-  const holders = defs.filter((d) => !d.questOnly)
+  // 登録されているモンスターが実際に持っているアビリティだけから選ぶ（誰も持っていない条件にしない）
+  const holders = defs.filter((d) => d.id !== boss.id)
   const have = (g: string) => holders.filter((d) => slotted(d).includes(g)).length
   const real = gimmicks.filter((g) => have(g) > 0)
   const ranked = (holders.length > 0 ? real : gimmicks)
-    .map((g, i) => ({ g, n: used[g] ?? 0, tie: (i + seed) % gimmicks.length }))
+    .map((g, i) => ({ g, n: used[g] ?? 0, tie: (i + seed) % Math.max(1, gimmicks.length) }))
     .sort((x, y) => x.n - y.n || have(y.g) - have(x.g) || x.tie - y.tie)
     .map((x) => x.g)
-  // 2つを両方持つ組み合わせ：実際にその2つを持っている子がいるものから
-  const pairs = commonPairs(holders)
 
   let requirements: Requirement[] = []
   let heroId: string | undefined
-  // ボスとタグが一致する子（因縁のある仲間・同じコラボ）がいれば、その子たちが刺さる条件にする
-  const mates = kind === 'material' || !useTags ? [] : tagMates(boss, defs).slice(0, 3)
+  // コラボのボスは、同じコラボの子が活躍する条件にする
+  const mates = kind === 'material' || !useCollab ? [] : collabMates(boss, defs).slice(0, 3)
   if (mates.length > 0) {
     heroId = mates[0].id
     requirements = basisRequirements({ kind: 'hero', heroes: mates }, grade, boss)
-  } else if (kind !== 'material') {
-    // タグの仲間がいなければ、ふつうに「ボスに有利な属性＋実際に誰かが持っているギミック」（無茶な条件にしない）
-    const gi = GRADE_INDEX[grade]
-    if (adv) requirements.push({ tag: elementTag(adv), count: ADV_ELEMENT[gi] })
-    const pair = [...pairs].sort((x, y) => (used[x.a] ?? 0) + (used[x.b] ?? 0) - ((used[y.a] ?? 0) + (used[y.b] ?? 0)) || y.n - x.n)[0]
-    if (gi >= 3 && pair) requirements.push({ tag: comboTag(pair.a, pair.b), count: ABILITY[gi] })
-    else if (gi >= 1 && ranked[0]) requirements.push({ tag: abilityTag(ranked[0]), count: ABILITY[gi] })
-    // 超究極は、もう1つギミックを足す
-    const extra = ranked.find((g) => !requirements.some((r) => tagAbilities(r.tag).includes(g)))
-    if (gi >= 4 && extra) requirements.push({ tag: abilityTag(extra), count: 2 })
   } else {
-    if (adv && a.element > 0) requirements.push({ tag: elementTag(adv), count: a.element })
-    for (const g of ranked.slice(0, a.abilities)) requirements.push({ tag: abilityTag(g), count: a.abilityCount })
+    // 弱点属性（無属性のボスは、属性の種類）
+    if (bossEl ? adv && a.element > 0 : a.kinds > 0)
+      requirements.push(bossEl ? { tag: elementTag(adv), count: a.element } : { tag: KINDS_TAG, count: a.kinds })
+    // 2つ同時に持つ子：実際にその2つを持っている子がいる組み合わせから（あまり使われていないもの）
+    let picked: string[] = []
+    if (a.combo > 0) {
+      const pair = commonPairs(holders)
+        .filter((p) => ranked.includes(p.a) && ranked.includes(p.b))
+        .sort((x, y) => (used[x.a] ?? 0) + (used[x.b] ?? 0) - ((used[y.a] ?? 0) + (used[y.b] ?? 0)) || y.n - x.n)[0]
+      if (pair) {
+        picked = [pair.a, pair.b]
+        requirements.push({ tag: comboTag(pair.a, pair.b), count: a.combo })
+      }
+    }
+    picked = [...picked, ...ranked.filter((g) => !picked.includes(g))].slice(0, a.abilities)
+    for (const g of picked) requirements.push({ tag: abilityTag(g), count: a.abilityCount })
   }
   requirements = requirements.slice(0, CONFIG.formation.maxRequirements)
   // 弱点種目：ボスの部位の種目から（部位がなければどれでも）
@@ -84,6 +86,8 @@ export function autoQuestSetup(
   return { requirements, weakSlots: [...new Set(weakSlots)], heroId }
 }
 
+/** おまかせの作り方の版。作り方を変えたら上げる（今あるボスクエストの条件を1回だけ作り直す） */
+export const QUEST_RULES = 2
 
 /** まとめて作るときの格：レア度から（激レア→超絶、ノーマル→究極、ハズレ→上級） */
 const GRADE_BY_RARITY: Record<RarityKey, QuestGrade> = { hazure: 'jokyu', normal: 'kyukyoku', superRare: 'chozetsu' }
@@ -100,15 +104,13 @@ export type Basis =
   | { kind: 'gimmicks'; gimmicks: string[] } // 1つか2つ（2つなら「両方もつ」）
   | { kind: 'elements'; elements: Element[] } // 1つか2つ
 
-const GRADE_INDEX: Record<QuestGrade, number> = { jokyu: 0, kiwami: 1, kyukyoku: 2, chozetsu: 3, chokyukyoku: 4 }
+const GRADE_INDEX: Record<QuestGrade, number> = { jokyu: 0, kiwami: 1, kyukyoku: 2, chozetsu: 3, chokyukyoku: 4, bakuzetsu: 5 }
 // 格ごとの数：属性1つ・属性2つ（それぞれ）・アビリティ（両方もつも同じ）
-const ONE_ELEMENT = [1, 2, 3, 3, 4]
-const TWO_ELEMENTS = [1, 1, 2, 3, 3]
-const ABILITY = [1, 1, 2, 2, 3]
-// タグの仲間がいないときの、ボスに有利な属性の数
-const ADV_ELEMENT = [1, 2, 3, 4, 4]
+const ONE_ELEMENT = [1, 2, 3, 3, 4, 5]
+const TWO_ELEMENTS = [1, 1, 2, 3, 3, 3]
+const ABILITY = [1, 1, 2, 2, 3, 3]
 // 刺さるキャラから作るとき、理想の6体が満たす数のどれくらいを求めるか（上級は軽く、超究極は理想どおり）
-const GRADE_SCALE = [0.34, 0.5, 0.67, 0.84, 1]
+const GRADE_SCALE = [0.34, 0.5, 0.67, 0.84, 1, 1]
 
 /** 理想の6体：条件を多く持つ子ほど多く入れる（1体なら6体、2体なら4＋2、3体なら4＋1＋1） */
 export function idealParty(heroes: MonsterDef[]): MonsterDef[] {

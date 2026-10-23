@@ -70,11 +70,16 @@ describe('試練の塔', () => {
   })
   it('塔のギミックは、そのボスの超絶クエストで使っているスキルを避ける', () => {
     const holders = [def('x', { rarity: 'superRare', element: 'fire', abilities: ['バリア', 'シールド'] }), def('y', { rarity: 'superRare', element: 'fire', abilities: ['リジェネ', 'ミラー'] })]
-    const withQuest = [{ ...chozetsu('l2'), requirements: [{ tag: 'ab2:シールド|バリア', count: 2 }] }, ...quests.filter((q) => q.bossDefId !== 'l2')]
+    const withQuest = [
+      { ...chozetsu('l2'), requirements: [{ tag: 'ab:シールド', count: 3 }, { tag: 'ab:バリア', count: 3 }] },
+      ...quests.filter((q) => q.bossDefId !== 'l2'),
+    ]
     const floors = towerFloors('2026-10', [...defs, ...holders], ['バリア', 'シールド', 'リジェネ', 'ミラー'], withQuest)
     const l2 = floors.find((f) => f.quest.bossDefId === 'l2')!
-    expect(l2.quest.requirements!.some((r) => r.tag.startsWith('ab2:'))).toBe(true)
-    expect(l2.quest.requirements!.some((r) => r.tag === 'ab2:シールド|バリア')).toBe(false)
+    const abilities = l2.quest.requirements!.filter((r) => r.tag.startsWith('ab:')).map((r) => r.tag)
+    expect(abilities.length).toBeGreaterThan(0)
+    expect(abilities).not.toContain('ab:シールド')
+    expect(abilities).not.toContain('ab:バリア')
   })
   it('コラボの子と、超究極のボスは塔に入れない', () => {
     const extra = [def('c1', { questOnly: true, element: 'fire', series: '鬼' }), def('k1', { questOnly: true, element: 'fire' })]

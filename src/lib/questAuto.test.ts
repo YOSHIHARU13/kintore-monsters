@@ -6,20 +6,34 @@ import type { MonsterDef } from '../types'
 const boss = { id: 'b1', name: 'アシリュウ', templateId: 'single', attrs: { n1: 'legs' }, images: {}, element: 'water', questOnly: true, rarity: 'superRare', createdAt: 0 } as unknown as MonsterDef
 
 describe('おまかせのクエスト', () => {
-  it('タグの仲間がいなければ、ボスに有利な属性＋実際に誰かが持っているギミックだけ（無関係な属性は求めない）', () => {
+  it('基本は弱点属性＋アビリティの持ち物検査。格が上がるほど、数も種類も増える', () => {
     const sr = (id: string, element: string, abilities: string[]) =>
       ({ id, name: id, templateId: 'linear3', images: {}, rarity: 'superRare', element, abilities, createdAt: 0 }) as unknown as MonsterDef
+    const all = ['バリア', 'シールド', 'リジェネ', 'ミラー']
     const defs = [sr('h', 'fire', ['バリア', 'ミラー']), sr('i', 'water', ['シールド', 'リジェネ'])]
-    const r = autoQuestSetup(boss, 'chozetsu', 'boss', [], ['バリア', 'シールド', 'リジェネ', 'ミラー'], undefined, defs)
-    expect(r.heroId).toBeUndefined()
-    expect(r.requirements[0]).toEqual({ tag: 'el:wood', count: 4 }) // 水には木が有利
-    expect(r.requirements[1]).toMatchObject({ tag: expect.stringMatching(/^ab2:/), count: 2 }) // 誰かが両方持っている組み合わせ
-    expect(r.requirements.filter((x) => x.tag.startsWith('el:'))).toHaveLength(1) // 炎や水は求めない
-    expect(r.weakSlots.length).toBeGreaterThan(0)
-    // ノーマル1つ持ちだけなら、両方もつ条件は作らず、そのギミック1つ
-    const normal = { ...sr('n', 'fire', ['ミラー']), rarity: 'normal' } as MonsterDef
-    const r2 = autoQuestSetup(boss, 'chozetsu', 'boss', [], ['バリア', 'シールド', 'リジェネ', 'ミラー'], undefined, [normal])
-    expect(r2.requirements).toEqual([{ tag: 'el:wood', count: 4 }, { tag: 'ab:ミラー', count: 2 }])
+    const at = (g: Parameters<typeof autoQuestSetup>[1]) => autoQuestSetup(boss, g, 'boss', [], all, undefined, defs).requirements
+    expect(at('jokyu')).toEqual([{ tag: 'el:wood', count: 2 }]) // 水には木が有利。アビリティなし
+    expect(at('kiwami')).toEqual([{ tag: 'el:wood', count: 3 }, { tag: expect.stringMatching(/^ab:/), count: 2 }])
+    expect(at('kyukyoku')[1].count).toBe(3)
+    // 超絶：アビリティ2種類。1体1つずつでよい（単アビの子も連れて行ける）
+    const chozetsu = at('chozetsu')
+    expect(chozetsu[0]).toEqual({ tag: 'el:wood', count: 4 })
+    expect(chozetsu.filter((r) => r.tag.startsWith('ab:'))).toHaveLength(2)
+    expect(chozetsu.some((r) => r.tag.startsWith('ab2:'))).toBe(false)
+    // 爆絶：有利な属性5、アビリティ3種類、実際に誰かが2つ同時に持っている組み合わせ×2
+    const bakuzetsu = at('bakuzetsu')
+    expect(bakuzetsu[0]).toEqual({ tag: 'el:wood', count: 5 })
+    expect(bakuzetsu.find((r) => r.tag.startsWith('ab2:'))).toMatchObject({ count: 2 })
+    expect(['ab2:バリア|ミラー', 'ab2:シールド|リジェネ']).toContain(bakuzetsu.find((r) => r.tag.startsWith('ab2:'))!.tag)
+    expect(bakuzetsu.filter((r) => r.tag.startsWith('ab:'))).toHaveLength(3)
+    // 誰も持っていないアビリティは求めない
+    const r2 = autoQuestSetup(boss, 'chozetsu', 'boss', [], all, undefined, [{ ...sr('n', 'fire', ['ミラー']), rarity: 'normal' } as MonsterDef])
+    expect(r2.requirements).toEqual([{ tag: 'el:wood', count: 4 }, { tag: 'ab:ミラー', count: 3 }])
+  })
+  it('無属性のボスは、弱点の代わりに属性の種類を求める', () => {
+    const none = { ...boss, element: undefined } as MonsterDef
+    expect(autoQuestSetup(none, 'chozetsu', 'boss', [], [], undefined, []).requirements).toEqual([{ tag: 'kinds', count: 5 }])
+    expect(autoQuestSetup(none, 'jokyu', 'boss', [], [], undefined, []).requirements).toEqual([{ tag: 'kinds', count: 3 }])
   })
   it('刺さるキャラを3体選ぶと、その子たちに多い属性と、両方持っている組み合わせで条件を作る', () => {
     const sr = (id: string, element: string, abilities: string[]) =>
@@ -64,17 +78,11 @@ describe('おまかせのクエスト', () => {
     expect(fitsQuest(mk('light'), q)).toBe(true) // 条件の属性
     expect(fitsQuest(mk('fire'), q)).toBe(false)
   })
-  it('ボスとタグが同じ子たち（因縁の仲間）が刺さる条件になる。タグそのものは条件にしない', () => {
-    const mk = (id: string, element: string, abilities: string[], tags: string[], series?: string) =>
-      ({ id, name: id, templateId: 'linear3', images: {}, rarity: 'superRare', element, abilities, tags, series, createdAt: 0 }) as unknown as MonsterDef
-    const rival = { ...boss, tags: ['因縁'] } as MonsterDef
-    const defs = [mk('a', 'fire', ['バリア', 'ミラー'], ['因縁']), mk('b', 'fire', ['バリア', 'ミラー'], []), mk('c', 'dark', ['シールド', 'リジェネ'], ['因縁'], '鬼')]
-    const r = autoQuestSetup(rival, 'kyukyoku', 'boss', [], ['バリア', 'シールド', 'リジェネ', 'ミラー'], undefined, defs)
-    // 「因縁」が一致するのは a だけ（c はコラボの子なので、コラボの中だけのタグ）
-    expect(r.heroId).toBe('a')
-    expect(r.requirements).toEqual([
-      { tag: 'el:fire', count: 4 },
-      { tag: 'ab2:バリア|ミラー', count: 4 },
-    ])
+  it('タグはない：コラボでないボスは、同じ属性の子がいても誰かを接待しない', () => {
+    const mk = (id: string, series?: string) =>
+      ({ id, name: id, templateId: 'linear3', images: {}, rarity: 'superRare', element: 'fire', abilities: ['バリア'], series, createdAt: 0 }) as unknown as MonsterDef
+    const r = autoQuestSetup(boss, 'kyukyoku', 'boss', [], ['バリア'], undefined, [mk('a'), mk('b')])
+    expect(r.heroId).toBeUndefined()
+    expect(r.requirements).toEqual([{ tag: 'el:wood', count: 3 }, { tag: 'ab:バリア', count: 3 }])
   })
 })

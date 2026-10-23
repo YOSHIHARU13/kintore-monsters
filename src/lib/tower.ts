@@ -163,7 +163,7 @@ export function towerFloors(
 }
 
 /** 保存した塔の作り方の版。作り方を変えたら上げる（古い保存は使わず、作り直して保存し直す） */
-export const TOWER_VERSION = 2
+export const TOWER_VERSION = 3
 
 /** 保存する塔の1階ぶん（毎月同じにするため） */
 export interface FixedFloor {

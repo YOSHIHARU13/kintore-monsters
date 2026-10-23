@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../store'
-import { tagMates } from '../lib/tags'
+import { collabMates } from '../lib/series'
 import { CONFIG } from '../config/gameConfig'
 import { DAYS, FORM_ATTRS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type FormAttr } from '../data/exercises'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
@@ -253,13 +253,13 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
           ✨ おまかせで決める{auto ? '（おまかせ中）' : ''}
         </button>
         <p className="muted small">
-          おまかせ：格に合わせて条件を決めます。超絶・超究極は「刺さるキャラ」を1体選んで、その子の属性と、アビリティを両方もつ条件にします（超究極は同じコラボの子から）。弱点種目はボスの部位から。手で変えるとおまかせは止まります。
+          おまかせ：ボスに有利な属性（無属性のボスは属性の種類）と、アビリティの持ち物検査。格が上がるほど数も種類も増えます。コラボのボスは、同じコラボの子が活躍する条件になります。弱点種目はボスの部位から。手で変えるとおまかせは止まります。
         </p>
         {auto && heroId && (
           <p className="small">
             🎯 刺さるキャラ：
-            {boss && tagMates(boss, defs).length > 0
-              ? `${tagMates(boss, defs).slice(0, 3).map((d) => d.name).join('・')}（ボスとタグが同じ）`
+            {boss && collabMates(boss, defs).length > 0
+              ? `${collabMates(boss, defs).slice(0, 3).map((d) => d.name).join('・')}（同じコラボ）`
               : defs.find((d) => d.id === heroId)?.name}
           </p>
         )}
@@ -282,9 +282,9 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
               </button>
             ))}
           </div>
-          {basisKind === 'hero' && boss && tagMates(boss, defs).length > 0 && (
-            <button type="button" className="btn small ghost" onClick={() => setStars(tagMates(boss, defs).slice(0, 3).map((d) => d.id))}>
-              🏷️ ボスとタグが同じ子を選ぶ（{tagMates(boss, defs).slice(0, 3).map((d) => d.name).join('・')}）
+          {basisKind === 'hero' && boss && collabMates(boss, defs).length > 0 && (
+            <button type="button" className="btn small ghost" onClick={() => setStars(collabMates(boss, defs).slice(0, 3).map((d) => d.id))}>
+              🤝 同じコラボの子を選ぶ（{collabMates(boss, defs).slice(0, 3).map((d) => d.name).join('・')}）
             </button>
           )}
           {basisKind === 'hero' && (

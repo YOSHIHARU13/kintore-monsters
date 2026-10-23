@@ -67,6 +67,7 @@ const state: GameState = {
   stats: null,
   cores: { chestArms: 2, none: 2 },
   coreMisses: {},
+  questRules: 2,
 }
 const defs: MonsterDef[] = [
   {
@@ -172,6 +173,7 @@ beforeEach(() => {
     claimQuest: vi.fn(() => ({ monsterId: 'o8', drops: [{ icon: '💠', label: '木の結晶', count: 1 }], gold: 50 })),
     exchangeMaterial: vi.fn(),
     attachCustom: vi.fn(),
+    markQuestRules: vi.fn(),
     removeCustom: vi.fn(),
     claimRanks: vi.fn(() => 3),
     setSlot: vi.fn(),

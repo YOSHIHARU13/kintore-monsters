@@ -136,6 +136,7 @@ export const CONFIG = {
     rollerDamage: 4, // 腹筋ローラー1セット（全員で攻撃）
     weakSlot: 2, // ボスの弱点種目のセット
     offElementChozetsu: 0.5, // 超絶では、ボスの属性に有利な属性を持たないモンスターの攻撃はこの倍率
+    offElementBakuzetsu: 1 / 3, // 爆絶ではこの倍率
     favorite: 1.5, // 攻撃したモンスターの得意種目のセット
     maxWeakSlots: 2,
     // ボスの格：初級・中級・上級のHPとGが、まとめてこの倍率になる
@@ -154,7 +155,8 @@ export const CONFIG = {
       kiwami: { label: '極', hpRatio: 0.9, gold: 8, plus: 0 },
       kyukyoku: { label: '究極', hpRatio: 1.5, gold: 15, plus: 0 },
       chozetsu: { label: '超絶', hpRatio: 2.5, gold: 30, plus: 1 },
-      chokyukyoku: { label: '超究極', hpRatio: 2.5, gold: 30, plus: 1 }, // 主にコラボ用（因縁の強敵など、たまの例外にも）。強さと報酬は超絶と同じ
+      chokyukyoku: { label: '超究極', hpRatio: 2.5, gold: 30, plus: 1 },
+      bakuzetsu: { label: '爆絶', hpRatio: 3.5, gold: 50, plus: 1 }, // 超絶の上。孤城の1〜10階のボス // 主にコラボ用（因縁の強敵など、たまの例外にも）。強さと報酬は超絶と同じ
     },
     // 素材クエストの難易度：HPは「1回のトレーニングで与えるダメージの目安 × materials.hpRatio × hpRatio」
     // 上の難易度ほど編成の条件がきつくなるが、セットあたりのドロップは多くなる（そろえられるなら上を回るほうが得）
@@ -165,18 +167,23 @@ export const CONFIG = {
     },
     partySize: 6, // 出撃できる数
   },
-  // おまかせのクエスト：格ごとの条件（適正の属性の数・アビリティの種類と数・弱点種目の数）
+  // おまかせのクエスト：基本は「弱点属性＋アビリティの持ち物検査」。格が上がるほど、どちらも増える
+  // element：ボスに有利な属性の数、kinds：無属性のボスのときに求める属性の種類（ジョグレスの2属性は2種類）
+  // abilities：アビリティの種類、abilityCount：1種類あたりの数（1体1つずつでよい。単アビの子も連れて行ける）
+  // combo：1体で2つ同時に持つ子の数、weak：弱点種目の数
+  // コラボのボスだけは、同じコラボの子が活躍する条件にする（超究極など）
   questAuto: {
-    jokyu: { element: 1, abilities: 0, abilityCount: 0, weak: 1 },
-    kiwami: { element: 2, abilities: 1, abilityCount: 1, weak: 1 },
-    kyukyoku: { element: 3, abilities: 1, abilityCount: 2, weak: 1 },
-    chozetsu: { element: 3, abilities: 2, abilityCount: 2, weak: 2 },
-    chokyukyoku: { element: 3, abilities: 2, abilityCount: 2, weak: 2 },
+    jokyu: { element: 2, kinds: 3, abilities: 0, abilityCount: 0, combo: 0, weak: 1 },
+    kiwami: { element: 3, kinds: 3, abilities: 1, abilityCount: 2, combo: 0, weak: 1 },
+    kyukyoku: { element: 3, kinds: 4, abilities: 1, abilityCount: 3, combo: 0, weak: 1 },
+    chozetsu: { element: 4, kinds: 5, abilities: 2, abilityCount: 3, combo: 0, weak: 2 },
+    bakuzetsu: { element: 5, kinds: 5, abilities: 3, abilityCount: 3, combo: 2, weak: 2 },
+    chokyukyoku: { element: 4, kinds: 5, abilities: 2, abilityCount: 3, combo: 0, weak: 2 },
     // 素材クエストは難易度ごと（初級はほぼ縛りなし、究極でやっとアビリティ）
     material: {
-      easy: { element: 0, abilities: 0, abilityCount: 0, weak: 1 },
-      normal: { element: 2, abilities: 0, abilityCount: 0, weak: 1 },
-      hard: { element: 3, abilities: 1, abilityCount: 2, weak: 2 },
+      easy: { element: 0, kinds: 0, abilities: 0, abilityCount: 0, combo: 0, weak: 1 },
+      normal: { element: 2, kinds: 3, abilities: 0, abilityCount: 0, combo: 0, weak: 1 },
+      hard: { element: 3, kinds: 4, abilities: 1, abilityCount: 2, combo: 0, weak: 2 },
     },
   },
   // 神化：最終形態のガチャの激レアが、降臨モンスター1体（同じ属性）を素材に★4になる

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '../store'
-import { ownTagsOf, parseTags, tagSuggestions } from '../lib/tags'
 import { allSeries } from '../lib/series'
 import { ATTRS, DAYS, FORM_ATTRS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type FormAttr } from '../data/exercises'
 import { FIRST_NODE_ID, TEMPLATES, canChangeTemplate, getTemplate } from '../data/evolutionTemplates'
@@ -37,8 +36,6 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
   )
   const [name, setName] = useState(existing?.name ?? '')
   const [series, setSeries] = useState(existing?.series ?? '')
-  const [tags, setTags] = useState<string[]>(ownTagsOf(existing))
-  const [tagText, setTagText] = useState('')
   const [templateId, setTemplateId] = useState(existing?.templateId ?? (questPreset ? 'single' : selectable[0].id))
   const [attrs, setAttrs] = useState<Record<string, FormAttr>>(existing?.attrs ?? {})
   const [names, setNames] = useState<Record<string, string>>(existing?.names ?? {})
@@ -190,7 +187,6 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
         element,
         favoriteSlot: validFavorite,
         series,
-        tags,
         abilities: abilities.slice(0, abilitySlots({ recipe, rarity, questOnly })),
         questOnly: recipe.length !== 2 && questOnly,
         tower: recipe.length !== 2 && questOnly && tower,
@@ -232,33 +228,6 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
             ))}
           </datalist>
         </label>
-        <div className="field">
-          <span>タグ（因縁のある子どうしの目印。コラボの子のタグはそのコラボの中だけ。ボスと同じタグの子が刺さるように、クエストの条件が自動で作られます。コラボ名は自動でタグになります）</span>
-          <div className="chips" role="group" aria-label="タグ">
-            {[...new Set([...tags, ...tagSuggestions(defs, series)])].map((t) => {
-              const on = tags.includes(t)
-              return (
-                <button key={t} type="button" className={`chip small${on ? ' on' : ''}`} onClick={() => setTags(on ? tags.filter((x) => x !== t) : [...tags, t])}>
-                  🏷️{t}
-                </button>
-              )
-            })}
-          </div>
-          <span className="row">
-            <input value={tagText} onChange={(e) => setTagText(e.target.value)} maxLength={30} placeholder="新しいタグ（、で区切って複数）" aria-label="新しいタグ" />
-            <button
-              type="button"
-              className="btn small"
-              disabled={parseTags(tagText).length === 0}
-              onClick={() => {
-                setTags([...new Set([...tags, ...parseTags(tagText)])])
-                setTagText('')
-              }}
-            >
-              追加
-            </button>
-          </span>
-        </div>
 
         <label className="field">
           <span>

@@ -62,8 +62,9 @@ export function setHit(set: SetInfo, quest: Quest, party: Member[], label: strin
   for (const m of party) {
     let d = base * powerOf(m)
     if (strict && !fitsQuest(m.def, quest)) {
-      d *= q.offElementChozetsu
-      notes.add(`${m.def.name}は属性が合わず半減`)
+      const bakuzetsu = gradeOf(quest) === 'bakuzetsu'
+      d *= bakuzetsu ? q.offElementBakuzetsu : q.offElementChozetsu
+      notes.add(`${m.def.name}は属性が合わず${bakuzetsu ? '3分の1' : '半減'}`)
     }
     if (partAttr && attrOf(m) === partAttr) d *= q.partMatch
     if (weak) d *= q.weakSlot
@@ -173,7 +174,7 @@ export function rankOf(quest: Pick<Quest, 'rank'>) {
   return ranks[Math.min(ranks.length - 1, Math.max(0, quest.rank ?? 1))]
 }
 
-export const GRADES: QuestGrade[] = ['jokyu', 'kiwami', 'kyukyoku', 'chozetsu', 'chokyukyoku']
+export const GRADES: QuestGrade[] = ['jokyu', 'kiwami', 'kyukyoku', 'chozetsu', 'bakuzetsu', 'chokyukyoku']
 
 
 /** 適正：ボスに有利な属性か、編成の条件で求められている属性を持っている */
@@ -186,7 +187,7 @@ export function fitsQuest(def: MonsterDef, quest: Pick<Quest, 'element' | 'requi
 /** 適正の属性以外が半減する格（超絶・超究極） */
 export function isStrict(quest: Pick<Quest, 'kind' | 'grade' | 'rank' | 'element'>): boolean {
   const g = gradeOf(quest)
-  return quest.kind !== 'material' && (g === 'chozetsu' || g === 'chokyukyoku') && !!quest.element
+  return quest.kind !== 'material' && (g === 'chozetsu' || g === 'chokyukyoku' || g === 'bakuzetsu') && !!quest.element
 }
 
 /** ボスクエストは難易度が1つだけ（内部では normal を使う） */

@@ -11,6 +11,19 @@ import type { Element, MonsterDef, Quest, Requirement } from '../types'
 export type Tag = string
 
 export const elementTag = (e: Element): Tag => `el:${e}`
+/** 無属性のボスで求める「属性の種類」：パーティにいる属性の種類の数（2属性のジョグレスは1体で2種類、無属性の子は「無」で1種類） */
+export const KINDS_TAG: Tag = 'kinds'
+
+/** そのモンスターの属性の種類（無属性は 'none'） */
+const kindsOfDef = (def: MonsterDef): string[] => {
+  const els = elementInfo(def).elements
+  return els.length > 0 ? els : ['none']
+}
+
+/** パーティにいる属性の種類の数 */
+export function kindsOf(party: MonsterDef[]): number {
+  return new Set(party.flatMap(kindsOfDef)).size
+}
 export const abilityTag = (gimmick: string): Tag => `ab:${gimmick}`
 /** 2つのアビリティを「両方」持つ（同じ1体で） */
 export const comboTag = (a: string, b: string): Tag => `ab2:${[a, b].sort().join('|')}`
@@ -41,6 +54,7 @@ export function requirementsOf(quest: Pick<Quest, 'requirements' | 'gimmicks'>):
 
 /** タグの表示名（🔥炎、アーク など） */
 export function tagLabel(tag: Tag, names: Record<string, string>): string {
+  if (tag === KINDS_TAG) return '🎨属性の種類'
   if (tag.startsWith('el:')) {
     const e = tag.slice(3) as Element
     return `${CONFIG.formation.elementIcon[e]}${ELEMENT_LABEL[e]}`
@@ -69,6 +83,7 @@ export function formationOf(party: MonsterDef[], requirements: Requirement[]): F
   const f = CONFIG.formation
   const total: Record<Tag, number> = {}
   for (const def of party) for (const [tag, n] of Object.entries(tagsOf(def))) total[tag] = (total[tag] ?? 0) + n
+  total[KINDS_TAG] = kindsOf(party) // 種類は足し算ではなく、重ならない数
   const rows = requirements.map((r) => ({ tag: r.tag, need: r.count, have: total[r.tag] ?? 0 }))
   if (rows.length === 0) return { rows, rate: 1 }
   const fill = rows.reduce((sum, r) => sum + Math.min(1, r.have / Math.max(1, r.need)), 0) / rows.length
@@ -79,7 +94,7 @@ export function formationOf(party: MonsterDef[], requirements: Requirement[]): F
 
 /** そのモンスターが、まだ足りていない条件にいくつ貢献できるか（候補を並べる順番に使う） */
 export function shortfallHelp(def: MonsterDef, rows: FormationRow[]): number {
-  const tags = tagsOf(def)
+  const tags = { ...tagsOf(def), [KINDS_TAG]: kindsOfDef(def).length }
   return rows.reduce((sum, r) => sum + Math.min(tags[r.tag] ?? 0, Math.max(0, r.need - r.have)), 0)
 }
 
@@ -99,6 +114,7 @@ export function requirementsFromMonsters(picked: MonsterDef[]): Requirement[] {
 
 /** 手持ちのモンスター全員で、その条件をいくつ満たせるか（出撃は6体までなので目安） */
 export function ownedSupply(tag: Tag, owned: { defId: string }[], defs: MonsterDef[]): number {
+  if (tag === KINDS_TAG) return kindsOf(owned.flatMap((o) => defs.filter((d) => d.id === o.defId)))
   return owned.reduce((sum, o) => {
     const def = defs.find((d) => d.id === o.defId)
     return sum + (def ? (tagsOf(def)[tag] ?? 0) : 0)

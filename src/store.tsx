@@ -67,7 +67,6 @@ import { availableEvents, claimKey } from './lib/events'
 import { activeToday, currentStats, loginReady, loginReward, type Reward } from './lib/missions'
 import { builtinMaterialQuests, builtinTempleQuests } from './lib/materials'
 import { itemInfo, itemLabel, rollTempleItems } from './lib/custom'
-import { tagsOfDef } from './lib/tags'
 import type { Period, Periods } from './lib/series'
 import { TOWER_VERSION, towerCleared, towerFloors, towerMonth, type FixedFloor, type TowerFloor } from './lib/tower'
 import { ELEMENTS, elementInfo, jogressElementOf } from './lib/element'
@@ -161,7 +160,6 @@ export interface MonsterDefInput {
   element: Element | '' // 属性（無属性は空）
   favoriteSlot: string // 得意種目の枠ID（なしは空）
   series?: string // シリーズ（コラボ名）。空なら通常
-  tags?: string[] // タグ
   abilities: string[] // アビリティ（対応するギミック名）
 }
 
@@ -274,6 +272,8 @@ interface Store {
   attachCustom: (monsterId: string, itemKey: string, favoriteSlot?: string, useStick?: boolean) => void
   /** ワクワクステッキを使って、付けているアイテムを外して持ち物に戻す */
   removeCustom: (monsterId: string) => void
+  /** ボスクエストの条件を、今の版のおまかせで作り直したことを記録する */
+  markQuestRules: (version: number) => void
   /** たまっているランクアップ報酬をまとめて受け取る。受け取ったトク玉の数 */
   claimRanks: () => number
   setSlot: (slotId: string, exerciseId: string) => void
@@ -466,9 +466,12 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         const autoName = !q.name?.trim()
         const name = autoName ? (boss?.name ?? '名前のないクエスト') : q.name
         return boss
-          ? { ...q, name, autoName, element: elementInfo(boss).elements[0], bossTags: tagsOfDef(boss) }
+          ? { ...q, name, autoName, element: elementInfo(boss).elements[0] }
           : { ...q, name, autoName }
-      }).concat([...builtinMaterialQuests(defs, today, selectableGimmicks(questDocs)), ...builtinTempleQuests(defs, today, selectableGimmicks(questDocs))].map((q) => ({ ...q, bossTags: tagsOfDef(defs.find((d) => d.id === q.bossDefId)) }))),
+      }).concat([
+        ...builtinMaterialQuests(defs, today, selectableGimmicks(questDocs)),
+        ...builtinTempleQuests(defs, today, selectableGimmicks(questDocs)),
+      ]),
     [questDocs, defs, today],
   )
   const yesterday = useMemo(() => prevDateKey(today), [today])
@@ -1023,7 +1026,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         element: input.element || null,
         favoriteSlot: input.favoriteSlot,
         series: input.series?.trim() || null,
-        tags: input.tags ?? [],
+        tags: [], // タグはなくなった（前に付けていたものは消す）
         questOnly: input.questOnly,
         tower: input.questOnly && input.tower === true,
         fixedStars: input.fixedStars,
@@ -1150,7 +1153,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
 
     const saveQuest: Store['saveQuest'] = (input) => {
       // 読み込むときに付けた項目は保存しない
-      const { id, autoName: _a, builtin: _b, bossTags: _t, ...data } = input
+      const { id, autoName: _a, builtin: _b, ...data } = input
       const current = id ? quests.find((q) => q.id === id) : undefined
       const ref = id ? doc(db, base, 'quests', id) : doc(collection(db, base, 'quests'))
       setDoc(ref, {
@@ -1383,6 +1386,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       batch.commit().catch(fail)
     }
 
+    const markQuestRules: Store['markQuestRules'] = (version) => updateState({ questRules: version })
+
     const claimRanks: Store['claimRanks'] = () => {
       const ranks = pendingRanks(state)
       if (ranks.length === 0) return 0
@@ -1467,6 +1472,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       exchangeMaterial,
       attachCustom,
       removeCustom,
+      markQuestRules,
       claimRanks,
       deleteGacha,
     }

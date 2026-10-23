@@ -82,3 +82,13 @@ describe('編成', () => {
     expect(ownedSupply('el:water', owned, defs)).toBe(0)
   })
 })
+
+describe('属性の種類（無属性のボス）', () => {
+  it('パーティにいる属性の種類を数える。2属性のジョグレスは1体で2種類、無属性の子は「無」で1種類', () => {
+    const j = def('j', { recipe: ['x', 'y'], jogressElements: ['fire', 'water'] })
+    const party = [j, def('f', { element: 'fire' }), def('n', {})]
+    const f = formationOf(party, [{ tag: 'kinds', count: 5 }])
+    expect(f.rows[0]).toMatchObject({ need: 5, have: 3 }) // 炎・水・無
+    expect(shortfallHelp(j, f.rows)).toBe(2)
+  })
+})
