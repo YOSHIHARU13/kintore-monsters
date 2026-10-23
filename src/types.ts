@@ -112,7 +112,7 @@ export interface MonsterDef {
   names?: Record<string, string> // nodeId → その段階だけの名前（なければ name を使う）
   recipe?: string[] // 隠しモンスターのレシピ（2体の defId）。あればタマゴからは生まれず、ジョグレスでだけ生まれる
   gachas?: string[] // 入っているガチャのID（最大3つ）。なければ「いつものガチャ」
-  element?: Element // 属性（なければ無属性）。ジョグレスは素材から決まる
+  element?: Element // 属性（なければ零属性）。ジョグレスは素材から決まる
   jogressElements?: Element[] // ジョグレスの属性（保存するときに素材から計算する）
   jogressSuper?: boolean // 同じ属性どうしのジョグレスなら超属性
   favoriteSlot?: string // 得意種目（種目の枠ID）
@@ -175,7 +175,7 @@ export interface Quest {
   kind?: 'boss' | 'material' // ボスクエスト（ボスが手に入る）か、素材クエスト（核が落ちる）か。なければボス
   bossDefId: string // ボス（倒すと手に入るモンスター。素材クエストでは見た目だけ）
   attr: FormAttr // ボスの部位（素材クエストで落ちる核の種類）
-  element?: Element // ボスの属性（相性に使う。なければ無属性）
+  element?: Element // ボスの属性（相性に使う。なければ零属性）
   weakSlots: string[] // 弱点種目（種目の枠ID）
   requirements?: Requirement[] // 求められる編成（6体の合計で満たす）
   requirementsBy?: Partial<Record<QuestDifficulty, Requirement[]>> // 難易度ごとの編成（最初からある素材クエスト）

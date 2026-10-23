@@ -4,6 +4,9 @@ export const ELEMENTS: Element[] = ['fire', 'water', 'wood', 'light', 'dark']
 
 export const ELEMENT_LABEL: Record<Element, string> = { fire: '炎', water: '水', wood: '木', light: '光', dark: '闇' }
 
+/** 属性がない子・ボスの呼び名（光や闇に寄らない「何もない」質感で「零」） */
+export const ZERO_LABEL = '零属性'
+
 export const ELEMENT_COLOR: Record<Element, string> = {
   fire: '#ff6b4a',
   water: '#4cc9f0',
@@ -14,7 +17,7 @@ export const ELEMENT_COLOR: Record<Element, string> = {
 
 /** そのモンスターの属性。ジョグレスは素材から決まる（同じ属性なら超属性、違えば複合属性） */
 export interface ElementInfo {
-  elements: Element[] // 0個（無属性）・1個・2個（複合）
+  elements: Element[] // 0個（零属性）・1個・2個（複合）
   super: boolean // 超属性（有利な相手にさらに強い）
 }
 
@@ -32,9 +35,9 @@ export function jogressElementOf(recipe: string[], defs: MonsterDef[]): ElementI
   return { elements: unique.slice(0, 2), super: false }
 }
 
-/** 属性の表示（例：炎、超炎、炎×水、無属性） */
+/** 属性の表示（例：炎、超炎、炎×水、零属性） */
 export function elementName(info: ElementInfo): string {
-  if (info.elements.length === 0) return '無属性'
+  if (info.elements.length === 0) return ZERO_LABEL
   const names = info.elements.map((e) => ELEMENT_LABEL[e]).join('×')
   return info.super ? `超${names}` : names
 }

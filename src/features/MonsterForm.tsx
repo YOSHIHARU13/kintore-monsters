@@ -22,7 +22,7 @@ import {
   finalAttrs,
   type Supply,
 } from '../lib/coverage'
-import { ELEMENTS, ELEMENT_COLOR, ELEMENT_LABEL, elementInfo, elementName, jogressElementOf } from '../lib/element'
+import { ELEMENTS, ELEMENT_COLOR, ELEMENT_LABEL, elementInfo, elementName, jogressElementOf, ZERO_LABEL } from '../lib/element'
 import { requirementsOf, tagAbilities } from '../lib/formation'
 
 export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' | 'quest'; go: Go }) {
@@ -433,7 +433,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
                   setAuto(false)
                   setElement('')
                 }}>
-                無属性
+                {ZERO_LABEL}
               </button>
               {ELEMENTS.map((e) => (
                 <button

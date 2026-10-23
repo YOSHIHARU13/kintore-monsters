@@ -28,6 +28,6 @@ describe('ジョグレスの属性', () => {
   it('隠しモンスターは保存された属性を使う', () => {
     const hidden = def('h', { recipe: ['f1', 'f2'], jogressElements: ['fire'], jogressSuper: true })
     expect(elementName(elementInfo(hidden))).toBe('超炎')
-    expect(elementName(elementInfo(def('x')))).toBe('無属性')
+    expect(elementName(elementInfo(def('x')))).toBe('零属性')
   })
 })

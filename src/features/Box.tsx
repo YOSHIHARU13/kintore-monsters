@@ -10,7 +10,7 @@ import { Stars } from '../components/Stars'
 import { MonsterTabs } from '../components/MonsterTabs'
 import type { Go } from '../nav'
 import { RARITY_KEYS, rarityOf, starsOf } from '../lib/gacha'
-import { ELEMENTS, ELEMENT_COLOR, ELEMENT_LABEL, elementInfo } from '../lib/element'
+import { ELEMENTS, ELEMENT_COLOR, ELEMENT_LABEL, elementInfo, ZERO_LABEL } from '../lib/element'
 import { attackOf, monStars } from '../lib/stats'
 import { isLuckMax, luckOf } from '../lib/fusion'
 import { isHidden, nodeAttr, plusName, type Element, type MonsterDef, type OwnedMonster } from '../types'
@@ -120,7 +120,7 @@ export function Box({ go }: { go: Go }) {
           </button>
         ))}
         <button type="button" className={`chip small${element === 'none' ? ' on' : ''}`} onClick={() => setElement('none')}>
-          無属性
+          {ZERO_LABEL}
         </button>
       </div>
       <div className="chips" role="group" aria-label="部位で絞り込み">

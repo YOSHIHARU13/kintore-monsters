@@ -7,7 +7,7 @@ import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { QuestBanner } from '../components/QuestBanner'
 import { DIFFICULTIES, GRADES, defaultBossHp, defaultHp, gradeOf, questGold, standardSessionDamage } from '../lib/quest'
 import { allGimmicks, selectableGimmicks, abilityName, abilitySlots } from '../lib/gimmick'
-import { ELEMENTS, ELEMENT_COLOR, ELEMENT_LABEL, advantageElements, elementInfo } from '../lib/element'
+import { ELEMENTS, ELEMENT_COLOR, ELEMENT_LABEL, advantageElements, elementInfo, ZERO_LABEL } from '../lib/element'
 import { abilityTag, elementTag, ownedSupply, requirementsOf, tagLabel, comboTag, tagAbilities } from '../lib/formation'
 import { CORE_LABEL } from '../lib/cores'
 import { autoQuestSetup, basisRequirements, type Basis } from '../lib/questAuto'
@@ -192,7 +192,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
           <span>
             ボスの属性：
             <strong style={element ? { color: ELEMENT_COLOR[element] } : undefined}>
-              {element ? ELEMENT_LABEL[element] : '無属性'}
+              {element ? ELEMENT_LABEL[element] : ZERO_LABEL}
             </strong>
             （ボスのモンスターと同じ）
           </span>
@@ -253,7 +253,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
           ✨ おまかせで決める{auto ? '（おまかせ中）' : ''}
         </button>
         <p className="muted small">
-          おまかせ：ボスに有利な属性（無属性のボスは属性の種類）と、アビリティの持ち物検査。格が上がるほど数も種類も増えます。コラボのボスは、同じコラボの子が活躍する条件になります。弱点種目はボスの部位から。手で変えるとおまかせは止まります。
+          おまかせ：ボスに有利な属性（零属性のボスは属性の種類）と、アビリティの持ち物検査。格が上がるほど数も種類も増えます。コラボのボスは、同じコラボの子が活躍する条件になります。弱点種目はボスの部位から。手で変えるとおまかせは止まります。
         </p>
         {auto && heroId && (
           <p className="small">

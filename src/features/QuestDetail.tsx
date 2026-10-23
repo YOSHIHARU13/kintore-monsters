@@ -10,7 +10,7 @@ import { BOSS_DIFFICULTY, atDifficulty, difficultyLabel, levelsOf, fitsQuest, is
 import { formationOf, requirementsOf, shortfallHelp, tagLabel, tagsOf } from '../lib/formation'
 import { FormationPanel } from '../components/FormationPanel'
 import { dropLuck, luckBonus } from '../lib/fusion'
-import { ELEMENT_COLOR, ELEMENT_LABEL, advantageElements, elementInfo, elementName } from '../lib/element'
+import { ELEMENT_COLOR, ELEMENT_LABEL, ZERO_LABEL, advantageElements, elementInfo, elementName } from '../lib/element'
 import { ATTR_COLOR, type Go } from '../nav'
 import { attackOf } from '../lib/stats'
 import { allGimmicks } from '../lib/gimmick'
@@ -126,7 +126,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
           <li>
             <span>属性</span>
             <span style={quest.element ? { color: ELEMENT_COLOR[quest.element] } : undefined}>
-              {quest.element ? ELEMENT_LABEL[quest.element] : '無属性'}
+              {quest.element ? ELEMENT_LABEL[quest.element] : ZERO_LABEL}
             </span>
           </li>
           {quest.element && (

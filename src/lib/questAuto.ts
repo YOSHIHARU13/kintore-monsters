@@ -17,7 +17,7 @@ function hash(s: string): number {
 
 /**
  * おまかせのクエスト：基本は「弱点属性＋アビリティの持ち物検査」（モンストと同じ）。格が上がるほど、どちらも増える。
- * - 有利な属性 element 体（無属性のボスは、属性の種類 kinds 種類。2属性のジョグレスは1体で2種類）
+ * - 有利な属性 element 体（零属性のボスは、属性の種類 kinds 種類。2属性のジョグレスは1体で2種類）
  * - アビリティ abilities 種類 × abilityCount 体（1体1つずつでよい）。爆絶は「1体で2つ同時に持つ子」combo 体も
  * - アビリティは、登録しているモンスターが実際に持っているものから、ほかのクエストであまり求められていない順に選ぶ
  * 誰が刺さるかは決めない（プレイヤーが見つける）。ただしコラボのボスだけは、同じコラボの子が活躍する条件にする。
@@ -60,7 +60,7 @@ export function autoQuestSetup(
     heroId = mates[0].id
     requirements = basisRequirements({ kind: 'hero', heroes: mates }, grade, boss)
   } else {
-    // 弱点属性（無属性のボスは、属性の種類）
+    // 弱点属性（零属性のボスは、属性の種類）
     if (bossEl ? adv && a.element > 0 : a.kinds > 0)
       requirements.push(bossEl ? { tag: elementTag(adv), count: a.element } : { tag: KINDS_TAG, count: a.kinds })
     // 2つ同時に持つ子：実際にその2つを持っている子がいる組み合わせから（あまり使われていないもの）

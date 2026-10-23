@@ -11,10 +11,10 @@ import type { Element, MonsterDef, Quest, Requirement } from '../types'
 export type Tag = string
 
 export const elementTag = (e: Element): Tag => `el:${e}`
-/** 無属性のボスで求める「属性の種類」：パーティにいる属性の種類の数（2属性のジョグレスは1体で2種類、無属性の子は「無」で1種類） */
+/** 零属性のボスで求める「属性の種類」：パーティにいる属性の種類の数（2属性のジョグレスは1体で2種類、零属性の子は「零」で1種類） */
 export const KINDS_TAG: Tag = 'kinds'
 
-/** そのモンスターの属性の種類（無属性は 'none'） */
+/** そのモンスターの属性の種類（零属性は 'none'） */
 const kindsOfDef = (def: MonsterDef): string[] => {
   const els = elementInfo(def).elements
   return els.length > 0 ? els : ['none']
