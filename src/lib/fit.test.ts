@@ -49,3 +49,13 @@ describe('適正キャラの順位は貢献（1撃＋編成の条件を埋める
     expect(list[0].def.id).toBe('dual')
   })
 })
+
+describe('適正度（理想の激レアを100%）', () => {
+  it('有利な属性で、求められるアビリティを2つ持つ激レアは100%前後。アビリティが合わないほど下がる', () => {
+    const q = quest('q', { grade: 'bakuzetsu', requirements: [{ tag: 'el:wood', count: 5 }, { tag: 'ab:バリア', count: 3 }, { tag: 'ab:シールド', count: 3 }] })
+    const list = fitMembers(q, [def('two', { element: 'wood', abilities: ['バリア', 'シールド'] }), def('none', { element: 'wood', abilities: ['ミラー'] })])
+    expect(list[0].percent).toBeGreaterThanOrEqual(95)
+    expect(list[0].percent).toBeLessThanOrEqual(105)
+    expect(list[1].percent).toBeLessThan(80)
+  })
+})

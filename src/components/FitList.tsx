@@ -80,12 +80,12 @@ export function FitMembers({ quest }: { quest: Quest }) {
   if (drops.length === 0 && gacha.length === 0) return null
   const has = (d: MonsterDef) => owned.some((o) => o.defId === d.id)
   const group = (label: string, list: typeof all) =>
-    list.length > 0 && groupOf(label, list, list[0].score)
-  const groupOf = (label: string, list: typeof all, top: number) => (
+    list.length > 0 && groupOf(label, list)
+  const groupOf = (label: string, list: typeof all) => (
       <div className="fit-group">
         <h3 className="small">{label}</h3>
         <ol className="fit-rank">
-          {list.map(({ def, fit, hit, support, score }, i) => (
+          {list.map(({ def, fit, hit, support, percent }, i) => (
             <li key={def.id} className={`fit-member${has(def) ? '' : ' unowned'}${i === 0 ? ' top' : ''}`}>
               <span className="fit-no">{i + 1}</span>
               <MonsterImage imageId={imageOf(def, bannerNodeOf(def))} awaken={awakenOf(def, bannerNodeOf(def))} glow={glowOf(def)} size={44} />
@@ -94,9 +94,9 @@ export function FitMembers({ quest }: { quest: Quest }) {
                 {!has(def) && <span className="muted">（未所持）</span>}
               </span>
               <span className="fit-rate">
-                <strong>{score.toLocaleString()}</strong>
+                <strong>{percent}%</strong>
                 <span className="fit-bar">
-                  <i style={{ width: `${Math.round((score / Math.max(1, top)) * 100)}%` }} />
+                  <i style={{ width: `${Math.min(100, percent)}%` }} />
                 </span>
                 <span className="muted small">
                   1撃{hit.toLocaleString()}＋編成{support.toLocaleString()}
@@ -113,7 +113,7 @@ export function FitMembers({ quest }: { quest: Quest }) {
         <h2>🎯 適正キャラ（降臨{drops.length}体・ガチャ{gacha.length}体）</h2>
       </summary>
       <p className="muted small">
-        貢献の順：入れたら編成全体のダメージ（1セットあたり）がどれだけ増えるか。1撃＝育ちきった1体が与えるダメージ（攻撃力×属性・アビリティ・コラボ・部位一致・弱点・得意種目の倍率）、編成＝属性・属性の種類・アビリティ・部位の条件を埋めて、6体みんなのダメージが上がるぶん
+        適正度：このクエストのためにいるような激レア（有利な属性・求められるアビリティ2つ・ボスの部位、育ちきり）を100%として、入れたら編成全体のダメージ（1セットあたり）がどれだけ増えるか。目安は90%以上で最適、70%前後で主力、50%前後で代役。1撃＝育ちきった1体が与えるダメージ（攻撃力×属性・アビリティ・コラボ・部位一致・弱点・得意種目の倍率）、編成＝属性・属性の種類・アビリティ・部位の条件を埋めて、6体みんなのダメージが上がるぶん
       </p>
       {group('⚔️ 降臨（クエストで手に入る）', drops)}
       {group('🎰 ガチャ', gacha)}
