@@ -3,7 +3,7 @@ import { elementInfo } from './element'
 import { partTag } from './formation'
 import { bossGradeOf } from './gacha'
 import { standardSessionDamage } from './quest'
-import { autoQuestSetup, ownAbilities } from './questAuto'
+import { abilitySets, autoQuestSetup, ownAbilities } from './questAuto'
 import { PATTERN_PARTS, applyOrder, patternBoss, patternOf, patternPick, weakSlotsFor, patternTag } from './pattern'
 import { isOpenOn, type TowerFloor } from './tower'
 import { isHidden, type GameState, type MonsterDef, type Quest, type QuestGrade } from '../types'
@@ -55,14 +55,15 @@ export function kinkinFloors(month: string, defs: MonsterDef[], gimmicks: string
   // 前の階の条件も数えて、階ごとにちがう子が主役になるように
   // taken：ほかの高難度の階（そこで求めたアビリティも避ける）
   const sofar: Pick<Quest, 'id' | 'requirements' | 'gimmicks'>[] = [...quests, ...taken]
-  const stars = new Set<string>()
+  // 高難度の条件は、今いるモンスターに合わせず、アビリティの組が重ならないように（個性優先）
+  const highEnd: string[][] = abilitySets(taken)
   return Array.from({ length: k.floors }, (_, i) => {
     const floor = i + 1
     const top = floor === k.floors
     const boss = top && lord ? lord : lineup[i]
     const grade: QuestGrade = floor >= k.bakuzetsuFrom ? 'bakuzetsu' : 'chozetsu'
     const setup = boss
-      ? autoQuestSetup(patternBoss(boss, pattern), grade, 'boss', sofar, gimmicks, `${KINKIN_PREFIX}${floor}`, defs, false, 'normal', ownAbilities(quests, boss.id), stars)
+      ? autoQuestSetup(patternBoss(boss, pattern), grade, 'boss', sofar, gimmicks, `${KINKIN_PREFIX}${floor}`, defs, false, 'normal', ownAbilities(quests, boss.id), highEnd)
       : { requirements: [], weakSlots: [] }
     const hp = Math.max(100, Math.round((standardSessionDamage() * k.hpRatio[i]) / 100) * 100)
     const quest: Quest = {

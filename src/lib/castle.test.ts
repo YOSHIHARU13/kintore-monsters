@@ -110,3 +110,23 @@ describe('零の孤城のバトル', () => {
     expect(castleCleared(all, '2026-10')).toBe(10)
   })
 })
+
+describe('高難度の条件は個性優先', () => {
+  it('今いるモンスターに合わせず、塔→禁筋→孤城の全階でアビリティの組が重ならない', async () => {
+    const { towerFloors } = await import('./tower')
+    const { kinkinFloors } = await import('./kinkin')
+    const { abilitySets } = await import('./questAuto')
+    const ABS = ['バリア', 'シールド', 'リジェネ', 'ミラー', 'ワープ', 'ブロック', 'ウィンド']
+    const els = ['fire', 'water', 'wood', 'light', 'dark'] as const
+    const defs = Array.from({ length: 30 }, (_, i) =>
+      def(`b${i}`, { element: els[i % 5], bossGrade: i < 10 ? 'chozetsu' : 'bakuzetsu', castleOnly: i >= 20, abilities: ['バリア'] }),
+    )
+    const tower = towerFloors('2026-10', defs, ABS).map((f) => f.quest)
+    const kinkin = kinkinFloors('2026-10', defs, ABS, [], undefined, tower).map((f) => f.quest)
+    const castle = castleFloors('2026-10', defs, ABS, [], undefined, [...tower, ...kinkin]).map((f) => f.quest)
+    const sets = abilitySets([...tower, ...kinkin, ...castle]).map((s) => [...s].sort().join('+'))
+    expect(new Set(sets).size).toBe(sets.length)
+    // 誰も持っていないアビリティも求める（あとから来るモンスターが刺さる）
+    expect(sets.some((s) => s.includes('ウィンド'))).toBe(true)
+  })
+})

@@ -43,7 +43,7 @@ describe('試練の塔', () => {
     const jan = towerFloors('2027-01', defs, ['バリア'], quests)
     expect(oct.slice(0, 10).map((f) => f.quest.bossDefId)).toEqual(jan.slice(0, 10).map((f) => f.quest.bossDefId))
   })
-  it('属性はボスの属性。上の階ほどHPが高く、3階から条件、8階から超絶。条件はボスに有利な属性と、誰かが持っているスキル', () => {
+  it('属性はボスの属性。上の階ほどHPが高く、3階から条件、8階から超絶。条件はボスに有利な属性と、アビリティ（今いるモンスターに合わせない）', () => {
     const floors = towerFloors('2026-10', defs, ['バリア', 'シールド'], quests)
     for (let i = 1; i < floors.length; i++) expect(floors[i].quest.hp.normal).toBeGreaterThan(floors[i - 1].quest.hp.normal)
     // 10月はパターン1：並びが3つずれて、1階は光のボス（l1）、6階は光のボス（l2）
@@ -52,7 +52,7 @@ describe('試練の塔', () => {
     expect(floors[0].quest.requirements).toEqual([])
     expect(floors[5].quest.element).toBe('light')
     expect(floors[5].quest.requirements!.filter((r) => r.tag.startsWith('el:')).map((r) => r.tag)).toEqual(['el:dark'])
-    expect(floors[5].quest.requirements!.some((r) => r.tag.includes('シールド'))).toBe(false) // 誰も持っていないスキルは求めない
+    expect(floors[5].quest.requirements!.some((r) => r.tag.startsWith('ab:'))).toBe(true) // 高難度は、まだ誰も持っていないアビリティも求める（個性優先）
     expect(floors[7].quest.grade).toBe('chozetsu')
   })
   it('塔限定モンスターがいなければ、11階は卵', () => {

@@ -43,7 +43,6 @@ export function spotlightOf(
   quests: Pick<Quest, 'requirements' | 'gimmicks' | 'id'>[],
   defs: MonsterDef[],
   selfId?: string,
-  skip?: Set<string>, // もう主役にしたモンスター（高難度で、同じモンスターが何階も主役にならないように。コラボも主役にしない）
 ): MonsterDef | undefined {
   const bossEl = elementInfo(boss).elements[0]
   const adv = advantageElements(bossEl)[0]
@@ -51,7 +50,6 @@ export function spotlightOf(
   const seed = hash(boss.id)
   return defs
     .filter((d) => !d.questOnly && !d.recipe?.length && d.id !== boss.id && slotted(d).length > 0)
-    .filter((d) => !skip || (!skip.has(d.id) && seriesOf(d) === ''))
     .filter((d) => (bossEl ? !!adv && elementInfo(d).elements.includes(adv) : elementInfo(d).elements.length > 0))
     .map((d) => ({ d, n: coverageOf(d, quests, selfId), r: rank[rarityOf(d)], tie: hash(d.id + seed) }))
     .sort((x, y) => x.n - y.n || x.r - y.r || x.tie - y.tie)[0]?.d
@@ -76,7 +74,7 @@ export function autoQuestSetup(
   useCollab = true, // false なら、コラボの子も見ない（試練の塔）
   difficulty: QuestDifficulty = 'normal', // 素材クエストの難易度
   avoid: string[] = [], // 使わないアビリティ（塔などで、そのボスのふつうのクエストと同じにしないため）
-  stars?: Set<string>, // 高難度：もう主役にしたモンスター（選んだ主役をここに足す）
+  highEnd?: string[][], // 高難度：これまでの階で求めたアビリティの組（選んだ組をここに足す）。あれば、モンスターを見ずに組み合わせだけで決める
 ): { requirements: Requirement[]; weakSlots: string[]; heroId?: string } {
   const a = kind === 'material' ? CONFIG.questAuto.material[difficulty] : CONFIG.questAuto[grade]
   const seed = hash(boss.id + grade + (kind ?? 'boss'))
@@ -117,9 +115,22 @@ export function autoQuestSetup(
     // 弱点属性（零属性のボスは、属性の種類）
     if (bossEl ? adv && a.element > 0 : a.kinds > 0)
       requirements.push(bossEl ? { tag: elementTag(adv), count: a.element } : { tag: KINDS_TAG, count: a.kinds })
+    if (highEnd) {
+      // 高難度：今いるモンスターに合わせず、これまでの階となるべく重ならないアビリティの組（個性優先）
+      if (a.abilities > 0) {
+        const pool = gimmicks.filter((g) => !avoid.includes(g))
+        const set = pickSet(pool.length >= a.abilities ? pool : gimmicks, a.abilities, highEnd, seed)
+        highEnd.push(set)
+        if (a.combo > 0 && set.length >= 2) {
+          const pair = leastUsedPair(set, highEnd.slice(0, -1))
+          requirements.push({ tag: comboTag(pair[0], pair[1]), count: a.combo })
+        }
+        for (const g of set) requirements.push({ tag: abilityTag(g), count: a.abilityCount })
+      }
+      return finish(requirements, boss, seed, a.weak)
+    }
     // 主役のアビリティを先に（ほかのクエストであまり使われていない順）
-    const star = kind === 'material' || a.abilities === 0 ? undefined : spotlightOf(boss, quests, defs, selfId, stars)
-    if (star) stars?.add(star.id)
+    const star = kind === 'material' || a.abilities === 0 ? undefined : spotlightOf(boss, quests, defs, selfId)
     const starAbilities = star ? ranked.filter((g) => slotted(star).includes(g)) : []
     // 2つ同時に持つ子：主役が2つ持っていればその2つ。なければ、実際にその2つを持っている子がいる組み合わせから
     let picked: string[] = []
@@ -141,13 +152,50 @@ export function autoQuestSetup(
     )
     for (const g of picked) requirements.push({ tag: abilityTag(g), count: a.abilityCount })
   }
-  requirements = requirements.slice(0, CONFIG.formation.maxRequirements)
-  // 弱点種目：ボスの部位の種目から（部位がなければどれでも）
+  return { ...finish(requirements, boss, seed, a.weak), heroId }
+}
+
+/** 条件を上限までに切り、弱点種目（ボスの部位の種目から。部位がなければどれでも）を付ける */
+function finish(requirements: Requirement[], boss: MonsterDef, seed: number, weak: number): { requirements: Requirement[]; weakSlots: string[] } {
   const attr = nodeAttr(boss, FIRST_NODE_ID)
   const day = (Object.keys(DAYS) as (keyof typeof DAYS)[]).find((d) => DAYS[d].attr === attr)
   const pool = SLOTS.filter((s) => s.day !== 'bonus' && (!day || s.day === day)).map((s) => s.id)
-  const weakSlots = Array.from({ length: Math.min(a.weak, pool.length) }, (_, i) => pool[(seed + i * 2) % pool.length])
-  return { requirements, weakSlots: [...new Set(weakSlots)], heroId }
+  const weakSlots = Array.from({ length: Math.min(weak, pool.length) }, (_, i) => pool[(seed + i * 2) % pool.length])
+  return { requirements: requirements.slice(0, CONFIG.formation.maxRequirements), weakSlots: [...new Set(weakSlots)] }
+}
+
+/** 高難度のほかの階で求めたアビリティの組（塔 → 禁筋 → 孤城と、前の高難度と重ならないように） */
+export function abilitySets(quests: Pick<Quest, 'requirements' | 'gimmicks'>[]): string[][] {
+  return quests.map((q) => requirementsOf(q).filter((r) => r.tag.startsWith('ab:')).map((r) => r.tag.slice(3))).filter((s) => s.length > 0)
+}
+
+/** k 個の組み合わせを全部 */
+function subsets(pool: string[], k: number): string[][] {
+  if (k === 0) return [[]]
+  if (pool.length < k) return []
+  const [head, ...rest] = pool
+  return [...subsets(rest, k - 1).map((s) => [head, ...s]), ...subsets(rest, k)]
+}
+
+/**
+ * 高難度のアビリティの組：これまでの階の組と重なりが少ないもの（同じ組はなるべく使わない。重なった数の2乗で数える）。
+ * 同じくらいなら seed で決める（月のパターンで変わる）
+ */
+export function pickSet(pool: string[], k: number, taken: string[][], seed: number): string[] {
+  const options = subsets([...new Set(pool)], Math.min(k, pool.length))
+  const key = (s: string[]) => [...s].sort().join('+')
+  const takenKeys = new Set(taken.map(key))
+  const score = (s: string[]) => (takenKeys.has(key(s)) ? 1000 : 0) + taken.reduce((sum, t) => sum + s.filter((g) => t.includes(g)).length ** 2, 0)
+  return options
+    .map((s, i) => ({ s, v: score(s), tie: hash(`${seed}:${i}`) }))
+    .sort((a, b) => a.v - b.v || a.tie - b.tie)[0]?.s ?? []
+}
+
+/** 組の中で、これまでの階でいっしょに求められたことが少ない2つ（「2つ同時に持つ」の条件にする） */
+function leastUsedPair(set: string[], taken: string[][]): [string, string] {
+  const pairs = subsets(set, 2) as [string, string][]
+  const used = (p: string[]) => taken.filter((t) => p.every((g) => t.includes(g))).length
+  return pairs.sort((a, b) => used(a) - used(b))[0]
 }
 
 /** おまかせの作り方の版。作り方を変えたら上げる（今あるボスクエストの条件を1回だけ作り直す） */
