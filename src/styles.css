@@ -2763,17 +2763,63 @@ details.tuning[open] > summary {
 }
 
 /* 適正 */
-.fit-members {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.fit-group h3 {
+  margin: 10px 0 4px;
 }
-.fit-member {
+.fit-rank {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
+  gap: 4px;
+}
+.fit-member {
+  display: grid;
+  grid-template-columns: 22px 44px minmax(0, 1fr) 64px;
   align-items: center;
-  width: 64px;
-  text-align: center;
+  gap: 6px;
+}
+.fit-member.top .fit-no {
+  background: var(--gold);
+  color: var(--primary-text);
+}
+.fit-no {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--card2);
+  font-size: 0.7rem;
+  font-weight: 900;
+}
+/* 持っていない子は、絵が見えるくらいの薄い影 */
+.fit-member.unowned .frame,
+.fit-member.unowned img {
+  filter: grayscale(0.6) brightness(0.65);
+}
+.fit-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.fit-rate {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.fit-bar {
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--card2);
+  overflow: hidden;
+}
+.fit-bar i {
+  display: block;
+  height: 100%;
+  background: var(--keep);
 }
 .fit-hint {
   margin-top: 6px;

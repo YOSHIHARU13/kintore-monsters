@@ -1024,13 +1024,15 @@ describe('画面の表示', () => {
     expect(fake.store.toggleLock).toHaveBeenCalledWith('o1')
   })
 
-  it('適正キャラ：持っていない子も名前が見える（絵だけ黒い）', async () => {
+  it('適正キャラ：ガチャと降臨に分けて順位と刺さる率。持っていない子も名前が見え、分岐は最終形態の名前で', async () => {
     const { FitMembers } = await import('../components/FitList')
     const quest = { id: 'q', name: 'q', bossDefId: 'b', attr: 'legs' as const, element: 'water' as const, weakSlots: [], requirements: [{ tag: 'ab:バリア', count: 3 }], hp: { easy: 1, normal: 1, hard: 1 }, catchphrase: '', theme: '', createdAt: 0 }
     fake.store.defs = [{ ...defs[0], name: 'モクドラ', element: 'wood', tier: 'superRare', abilities: ['バリア'] }]
     fake.store.owned = []
     const el = await render(<FitMembers quest={quest} />)
-    expect(el.textContent).toContain('モクドラ（未所持）')
+    expect(el.textContent).toContain('🎰 ガチャ1')
+    expect(el.textContent).toContain('モクドラ（胸腕）／ヤミムキドラ（脚）（未所持）100%')
+    expect(el.querySelector('.fit-member.unowned')).not.toBeNull()
   })
 
   it('高難度のボス：最上階の入れ替わるボスの数と、今月の各階のボスが見られて、編集に行ける', async () => {

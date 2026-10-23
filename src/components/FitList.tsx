@@ -1,6 +1,6 @@
 import { useStore } from '../store'
 import { CONFIG } from '../config/gameConfig'
-import { FIT_MARK, fitMembers, fitQuests } from '../lib/fit'
+import { FIT_MARK, fitForms, fitMembers, fitQuests } from '../lib/fit'
 import { gradeOf } from '../lib/quest'
 import { awakenOf, glowOf, imageOf } from '../lib/art'
 import { bannerNodeOf } from './GachaBanner'
@@ -25,6 +25,14 @@ export function FitQuests({ def, go, limit }: { def: MonsterDef; go?: Go; limit?
           <li key={quest.id}>
             <button className="link-button" onClick={() => go?.({ name: 'quest', id: quest.id })}>
               {FIT_MARK[fit]} <span className={`grade-badge grade-${gradeOf(quest)}`}>{CONFIG.quest.grades[gradeOf(quest)].label}</span> {quest.name}
+              {(() => {
+                // 分岐があって部位の条件があるクエストは、どの形態が適正か
+                const forms = fitForms(def, quest)
+                const ok = forms.filter((f) => f.ok)
+                return forms.length > 1 && ok.length < forms.length && ok.length > 0 ? (
+                  <span className="small muted">（{ok.map((f) => f.name).join('・')}が適正）</span>
+                ) : null
+              })()}
             </button>
           </li>
         ))}
@@ -45,29 +53,57 @@ export function FitHint({ def }: { def: MonsterDef }) {
   )
 }
 
-/** そのクエストの適正キャラ（上位5体。持っていない子はシルエット） */
+/** 最終形態の名前（分岐があれば、適正の形態だけ。部位の条件がなければ全部を「／」で） */
+function formNames(def: MonsterDef, quest: Quest): string {
+  const forms = fitForms(def, quest)
+  if (forms.length <= 1) return forms[0]?.name ?? def.name
+  const ok = forms.filter((f) => f.ok)
+  return (ok.length > 0 ? ok : forms).map((f) => `${f.name}（${f.attr}）`).join('／')
+}
+
+/**
+ * そのクエストの適正キャラ：降臨の上位5体と、ガチャの上位5体。順位と刺さる率つき。
+ * 持っていない子も出す（当てる・落とす目標になるように）。絵は薄い影をかけるだけ
+ */
 export function FitMembers({ quest }: { quest: Quest }) {
   const { defs, owned } = useStore()
-  const list = fitMembers(quest, defs).slice(0, 5)
-  if (list.length === 0) return null
-  // 持っていない子も名前は出す（ガチャで当てる目標になるように）。絵だけ黒くする
+  const all = fitMembers(quest, defs).filter((x) => x.rate > 0)
+  const drops = all.filter((x) => x.def.questOnly).slice(0, 5)
+  const gacha = all.filter((x) => !x.def.questOnly).slice(0, 5)
+  if (drops.length === 0 && gacha.length === 0) return null
   const has = (d: MonsterDef) => owned.some((o) => o.defId === d.id)
+  const group = (label: string, list: typeof all) =>
+    list.length > 0 && (
+      <div className="fit-group">
+        <h3 className="small">{label}</h3>
+        <ol className="fit-rank">
+          {list.map(({ def, fit, rate }, i) => (
+            <li key={def.id} className={`fit-member${has(def) ? '' : ' unowned'}${i === 0 ? ' top' : ''}`}>
+              <span className="fit-no">{i + 1}</span>
+              <MonsterImage imageId={imageOf(def, bannerNodeOf(def))} awaken={awakenOf(def, bannerNodeOf(def))} glow={glowOf(def)} size={44} />
+              <span className="fit-name small">
+                {FIT_MARK[fit]} {formNames(def, quest)}
+                {!has(def) && <span className="muted">（未所持）</span>}
+              </span>
+              <span className="fit-rate">
+                <strong>{Math.round(rate * 100)}%</strong>
+                <span className="fit-bar">
+                  <i style={{ width: `${Math.round(rate * 100)}%` }} />
+                </span>
+              </span>
+            </li>
+          ))}
+        </ol>
+      </div>
+    )
   return (
     <details className="card fold fit-list">
       <summary>
-        <h2>🎯 適正キャラ（上位{list.length}体）</h2>
+        <h2>🎯 適正キャラ（降臨{drops.length}体・ガチャ{gacha.length}体）</h2>
       </summary>
-      <div className="fit-members">
-        {list.map(({ def, fit }) => (
-          <span key={def.id} className="fit-member">
-            <MonsterImage imageId={imageOf(def, bannerNodeOf(def))} awaken={awakenOf(def, bannerNodeOf(def))} glow={glowOf(def)} size={48} silhouette={!has(def)} />
-            <span className="small">
-              {FIT_MARK[fit]} {def.name}
-              {!has(def) && <span className="muted">（未所持）</span>}
-            </span>
-          </span>
-        ))}
-      </div>
+      <p className="muted small">刺さる率：その子1体で、このクエストの条件（属性・アビリティ・部位）をどれだけ満たせるか</p>
+      {group('⚔️ 降臨（クエストで手に入る）', drops)}
+      {group('🎰 ガチャ', gacha)}
     </details>
   )
 }
