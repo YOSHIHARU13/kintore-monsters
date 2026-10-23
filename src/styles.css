@@ -2886,3 +2886,7 @@ details.tuning[open] > summary {
   border: 1px solid rgba(255, 209, 102, 0.4);
   font-size: 0.85rem;
 }
+
+.castle-battles {
+  letter-spacing: 1px;
+}

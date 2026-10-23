@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { castleCleared, castleFloors, castleLineup, castleOpen, lastBossOf } from './castle'
+import { battlesReached, castleAvailable, castleBest, castleCleared, castleFloors, castleLineup, castleOpen, lastBossOf } from './castle'
 import { towerOpen } from './tower'
 import { abilitySlots } from './gimmick'
 import { attackOf } from './stats'
@@ -86,5 +86,26 @@ describe('零の孤城', () => {
     const ids = castleLineup([collab, ...defs], [{ kind: 'boss', grade: 'chokyukyoku', bossDefId: 'fire1' }]).map((d) => d?.id)
     expect(ids).not.toContain('cb')
     expect(ids).not.toContain('fire1')
+  })
+})
+
+describe('零の孤城のバトル', () => {
+  it('HPを3等分して、削った分だけ突破（出撃は1回）', () => {
+    expect(battlesReached(0, 900)).toBe(0)
+    expect(battlesReached(299, 900)).toBe(0)
+    expect(battlesReached(300, 900)).toBe(1)
+    expect(battlesReached(650, 900)).toBe(2)
+    expect(battlesReached(2000, 900)).toBe(3)
+  })
+  it('2バトル突破で次の階。最上階は1〜10階を全部突破してから。以前の記録は全部突破として読む', () => {
+    const st = { castleBattles: { month: '2026-10', best: { '1': 2, '2': 1 } } }
+    expect(castleAvailable(st, '2026-10', 1)).toBe(true)
+    expect(castleAvailable(st, '2026-10', 2)).toBe(true)
+    expect(castleAvailable(st, '2026-10', 3)).toBe(false)
+    const all = { castleBattles: { month: '2026-10', best: Object.fromEntries(Array.from({ length: 10 }, (_, i) => [String(i + 1), 3])) } }
+    expect(castleAvailable(all, '2026-10', 11)).toBe(true)
+    expect(castleAvailable({ castleBattles: { month: '2026-10', best: { ...all.castleBattles.best, '7': 2 } } }, '2026-10', 11)).toBe(false)
+    expect(castleBest({ castle: { month: '2026-10', cleared: 2 } }, '2026-10', 2)).toBe(3)
+    expect(castleCleared(all, '2026-10')).toBe(10)
   })
 })

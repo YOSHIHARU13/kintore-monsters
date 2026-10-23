@@ -3,6 +3,7 @@ import { awakenOf, imageOf, glowOf, monArt } from '../lib/art'
 import { useStore } from '../store'
 import { SLOTS, exerciseOfSlot } from '../data/exercises'
 import { battleOf } from '../lib/quest'
+import { battlesReached, isCastleQuest } from '../lib/castle'
 import { Gauge } from './Gauge'
 import { MonsterImage } from './MonsterImage'
 import { bannerNodeOf } from './GachaBanner'
@@ -49,7 +50,11 @@ export function BattleBar({ go }: { go: Go }) {
       <span className="goal-body">
         <strong className="small">
           ⚔️ {battle.quest.name}
-          {battle.defeated ? '　討伐！タップして報酬を受け取る' : `　のこりHP ${left.toLocaleString()}`}
+          {battle.defeated
+            ? '　討伐！タップして報酬を受け取る'
+            : isCastleQuest(battle.quest.id) && battlesReached(battle.damage, battle.hp) > 0
+              ? `　バトル${battlesReached(battle.damage, battle.hp)}突破！のこりHP ${left.toLocaleString()}`
+              : `　のこりHP ${left.toLocaleString()}`}
         </strong>
         <Gauge value={left} max={battle.hp} color="#ef476f" />
       </span>

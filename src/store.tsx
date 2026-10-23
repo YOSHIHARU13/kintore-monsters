@@ -70,9 +70,9 @@ import { activeToday, currentStats, loginReady, loginReward, type Reward } from 
 import { builtinMaterialQuests, builtinTempleQuests } from './lib/materials'
 import { itemInfo, itemLabel, rollTempleItems } from './lib/custom'
 import { seriesOf, type Period, type Periods } from './lib/series'
-import { castleCleared, castleFloors, castleOpen } from './lib/castle'
+import { battlesReached, castleAvailable, castleBest, castleFloors, castleOpen } from './lib/castle'
 import { kinkinCleared, kinkinFloors, kinkinOpen } from './lib/kinkin'
-import { TOWER_VERSION, allTowers, towerOpen, towerCleared, towerMonth, type FixedFloor, type TowerFloor } from './lib/tower'
+import { TOWER_VERSION, allTowers, type TowerReward, towerOpen, towerCleared, towerMonth, type FixedFloor, type TowerFloor } from './lib/tower'
 import { ELEMENTS, elementInfo, jogressElementOf } from './lib/element'
 import { investedFor, isHidden, nodeAttr, type AttrExp, type BannerSlide, type BoosterKey, type Checkin, type Element, type Gacha, type Quest, type QuestDifficulty, type QuestGrade, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
 
@@ -197,6 +197,7 @@ export interface QuestReward {
   towerFloor: number | null // 試練の塔（castle なら零の孤城、kinkin なら禁筋の獄）の何階をクリアしたか
   castle?: boolean
   kinkin?: boolean
+  battles?: { from: number; to: number } // 孤城：今回突破したバトル（何番目から何番目まで）
   booster?: BoosterKey | null // 試練の塔でもらえたブースター
   boosted?: boolean // 討伐ブースターで2倍になったか
   drops: ItemDrop[] // 落ちた素材（素材クエストで何も落ちなければ、0個の行が1つ）
@@ -1335,7 +1336,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         if (kinkinFloor && (!kinkinOpen(dateKey()) || kinkinFloor.floor !== kinkinCleared(state, towerMonth(dateKey())) + 1)) return
         // 開催している日だけ（塔は1〜15日、孤城は16日〜月末）
         if (floor && (!towerOpen(dateKey()) || floor.floor !== towerCleared(state, towerMonth(dateKey()), floor.tower ?? 0) + 1)) return
-        if (castleFloor && (!castleOpen(dateKey()) || castleFloor.floor !== castleCleared(state, towerMonth(dateKey())) + 1)) return
+        if (castleFloor && (!castleOpen(dateKey()) || !castleAvailable(state, towerMonth(dateKey()), castleFloor.floor))) return
         if (!floor && !castleFloor && !kinkinFloor) return
       }
       const ids = party.filter((p) => owned.some((o) => o.id === p)).slice(0, CONFIG.quest.partySize)
@@ -1369,11 +1370,13 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         weekSets,
         () => '',
       )
-      if (!battle?.defeated) return null
-      const towerFloor = tower.find((f) => f.quest.id === battle.quest.id)
-      if (towerFloor) return claimTower(towerFloor, battle, 'tower')
+      if (!battle) return null
+      // 孤城は倒しきらなくても、突破したバトルぶん受け取れる
       const castleFloor = castle.find((f) => f.quest.id === battle.quest.id)
       if (castleFloor) return claimTower(castleFloor, battle, 'castle')
+      if (!battle.defeated) return null
+      const towerFloor = tower.find((f) => f.quest.id === battle.quest.id)
+      if (towerFloor) return claimTower(towerFloor, battle, 'tower')
       const kinkinFloor = kinkin.find((f) => f.quest.id === battle.quest.id)
       if (kinkinFloor) return claimTower(kinkinFloor, battle, 'kinkin')
       const c = battle.challenge
@@ -1470,18 +1473,25 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     const claimTower = (floor: TowerFloor, battle: Battle, kind: 'tower' | 'castle' | 'kinkin'): QuestReward | null => {
       const party = battle.party.map((m) => m.mon)
       const month = towerMonth(dateKey())
-      const cleared =
-        kind === 'castle'
-          ? castleCleared(state, month)
-          : kind === 'kinkin'
-            ? kinkinCleared(state, month)
-            : towerCleared(state, month, floor.tower ?? 0)
-      if (floor.floor !== cleared + 1) return null
+      // 孤城は3バトル：その日に突破したバトルのうち、まだ受け取っていないぶんの報酬（アイテムやボスは全部突破したとき）
+      const best = kind === 'castle' ? castleBest(state, month, floor.floor) : 0
+      const reached = kind === 'castle' ? battlesReached(battle.damage, battle.hp) : CONFIG.castle.battles
+      if (kind === 'castle') {
+        if (!castleAvailable(state, month, floor.floor) || reached <= best) return null
+      } else {
+        const cleared = kind === 'kinkin' ? kinkinCleared(state, month) : towerCleared(state, month, floor.tower ?? 0)
+        if (floor.floor !== cleared + 1 || !battle.defeated) return null
+      }
+      const full = kind !== 'castle' || (reached >= CONFIG.castle.battles && best < CONFIG.castle.battles)
+      const share = kind === 'castle' ? (reached - best) / CONFIG.castle.battles : 1
+      const r: TowerReward = full
+        ? { ...floor.reward, gold: Math.round(floor.reward.gold * share), eggs: Math.round(floor.reward.eggs * share) }
+        : { gold: Math.round(floor.reward.gold * share), eggs: Math.round(floor.reward.eggs * share), cores: 0, booster: null, monsterDefId: null }
       const bonus = luckBonus(party)
       const boost = state.boosts?.quest ? 2 : 1
-      const gold = Math.round(floor.reward.gold * bonus.goldRate * boost)
+      const gold = Math.round(r.gold * bonus.goldRate * boost)
       const coins = gold * CONFIG.coins.perOrb
-      const cores = floor.reward.cores * boost
+      const cores = r.cores * boost
       const batch = writeBatch(db)
       writeRecords(batch, battle)
       const update: DocumentData = {
@@ -1489,7 +1499,12 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         gold: increment(gold),
         questClears: increment(1),
         ...(kind === 'castle'
-          ? { castle: { month, cleared: floor.floor } }
+          ? {
+              castleBattles: {
+                month,
+                best: { ...(state.castleBattles?.month === month ? state.castleBattles.best : {}), [String(floor.floor)]: reached },
+              },
+            }
           : kind === 'kinkin'
             ? { kinkin: { month, cleared: floor.floor } }
             : (floor.tower ?? 0) === 0
@@ -1504,23 +1519,23 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         challenge: null,
       }
       bumpStats(update, { quest: 1, strict: isStrict(floor.quest) ? 1 : 0 })
-      if (floor.reward.eggs > 0) update.eggs = increment(floor.reward.eggs)
+      if (r.eggs > 0) update.eggs = increment(r.eggs)
       const coreKey = floor.quest.attr === 'none' ? null : (floor.quest.attr as CoreKey)
       if (cores > 0 && coreKey) update[`cores.${coreKey}`] = increment(cores)
-      if (floor.reward.booster) update[`boosters.${floor.reward.booster}`] = increment(1)
-      if (floor.reward.sticks) update.sticks = increment(floor.reward.sticks)
+      if (r.booster) update[`boosters.${r.booster}`] = increment(1)
+      if (r.sticks) update.sticks = increment(r.sticks)
       // 孤城：ブースター詰め合わせと、カスタマイズアイテム
       const pack: Record<string, number> = {}
-      for (const b of floor.reward.boosters ?? []) pack[b] = (pack[b] ?? 0) + 1
-      for (const [b, n] of Object.entries(pack)) update[`boosters.${b}`] = increment(n + (floor.reward.booster === b ? 1 : 0))
-      if (floor.reward.custom) update[`customItems.${floor.reward.custom}`] = increment(1)
-      if (floor.reward.balls) update[`cores.${BALL_KEY}`] = increment(floor.reward.balls)
+      for (const b of r.boosters ?? []) pack[b] = (pack[b] ?? 0) + 1
+      for (const [b, n] of Object.entries(pack)) update[`boosters.${b}`] = increment(n + (r.booster === b ? 1 : 0))
+      if (r.custom) update[`customItems.${r.custom}`] = increment(1)
+      if (r.balls) update[`cores.${BALL_KEY}`] = increment(r.balls)
       let monsterId: string | null = null
-      if (floor.reward.monsterDefId) {
+      if (r.monsterDefId) {
         const shiny = false // 色違いはなくなった
         const ref = doc(collection(db, base, 'ownedMonsters'))
         batch.set(ref, {
-          defId: floor.reward.monsterDefId,
+          defId: r.monsterDefId,
           nodeId: FIRST_NODE_ID,
           investedBy: {},
           investedFrom: {},
@@ -1529,28 +1544,29 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
           shiny,
           obtainedAt: Date.now(),
         })
-        if (shiny) update[`dexShiny.${floor.reward.monsterDefId}`] = true
+        if (shiny) update[`dexShiny.${r.monsterDefId}`] = true
         monsterId = ref.id
       }
       batch.update(stateRef, update)
       batch.commit().catch(fail)
       return {
         monsterId,
-        defId: floor.reward.monsterDefId,
+        defId: r.monsterDefId,
         drops: [
           ...(cores > 0 && coreKey ? [{ icon: DROP_ICON.muscle, label: CORE_LABEL[coreKey], count: cores }] : []),
-          ...(floor.reward.sticks ? [{ icon: '🪄', label: 'ワクワクステッキ', count: floor.reward.sticks }] : []),
-          ...(floor.reward.balls ? [{ icon: '🟣', label: '筋肉玉', count: floor.reward.balls }] : []),
+          ...(r.sticks ? [{ icon: '🪄', label: 'ワクワクステッキ', count: r.sticks }] : []),
+          ...(r.balls ? [{ icon: '🟣', label: '筋肉玉', count: r.balls }] : []),
           ...Object.entries(pack).map(([b, n]) => ({ icon: CONFIG.boosters[b as BoosterKey].icon, label: CONFIG.boosters[b as BoosterKey].label, count: n })),
-          ...(floor.reward.custom ? [{ icon: '', label: itemLabel(floor.reward.custom, allGimmicks(questDocs)), count: 1 }] : []),
+          ...(r.custom ? [{ icon: '', label: itemLabel(r.custom, allGimmicks(questDocs)), count: 1 }] : []),
         ],
         castle: kind === 'castle',
+        battles: kind === 'castle' ? { from: best + 1, to: reached } : undefined,
         kinkin: kind === 'kinkin',
         coins,
-        booster: floor.reward.booster,
+        booster: r.booster,
         boosted: boost > 1,
         gold,
-        eggs: floor.reward.eggs,
+        eggs: r.eggs,
         towerFloor: floor.floor,
         luck: monsterId ? CONFIG.luck.prizeDrop : undefined,
         byMember: battle.byMember,

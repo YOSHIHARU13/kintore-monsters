@@ -11,9 +11,35 @@ import { isHidden, type GameState, type MonsterDef, type Quest } from '../types'
 export const CASTLE_PREFIX = 'castle-'
 export const isCastleQuest = (id: string) => id.startsWith(CASTLE_PREFIX)
 
-/** その月にクリアした階の数（月が変わると0から） */
-export function castleCleared(state: Pick<GameState, 'castle'>, month: string): number {
-  return state.castle?.month === month ? state.castle.cleared : 0
+/** その月、その階で突破したバトルの数（0〜3。月が変わると0から）。以前の記録（クリアした階の数）は3として読む */
+export function castleBest(state: Pick<GameState, 'castle' | 'castleBattles'>, month: string, floor: number): number {
+  const best = state.castleBattles?.month === month ? state.castleBattles.best[String(floor)] : undefined
+  if (best !== undefined) return best
+  return state.castle?.month === month && floor <= state.castle.cleared ? CONFIG.castle.battles : 0
+}
+
+/** その月に全部突破した階の数 */
+export function castleCleared(state: Pick<GameState, 'castle' | 'castleBattles'>, month: string): number {
+  let n = 0
+  for (let f = 1; f <= CONFIG.castle.floors; f++) if (castleBest(state, month, f) >= CONFIG.castle.battles) n++
+  return n
+}
+
+/** 挑戦できる階か：1階はいつでも。次の階は前の階を2バトル突破で。最上階は1〜10階を全部突破してから */
+export function castleAvailable(state: Pick<GameState, 'castle' | 'castleBattles'>, month: string, floor: number): boolean {
+  const c = CONFIG.castle
+  if (floor <= 1) return true
+  if (floor === c.floors) {
+    for (let f = 1; f < c.floors; f++) if (castleBest(state, month, f) < c.battles) return false
+    return true
+  }
+  return castleBest(state, month, floor - 1) >= c.battlesToNext
+}
+
+/** 与えたダメージで、何バトル目まで突破したか（HPを3等分） */
+export function battlesReached(damage: number, hp: number): number {
+  const n = CONFIG.castle.battles
+  return Math.max(0, Math.min(n, Math.floor((damage * n) / Math.max(1, hp) + 1e-9)))
 }
 
 /** 零の孤城は毎月16日〜月末 */
