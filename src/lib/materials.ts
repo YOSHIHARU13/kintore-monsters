@@ -33,7 +33,7 @@ interface Slot {
  */
 export function builtinMaterialQuests(defs: MonsterDef[], today: string, gimmicks: string[] = []): Quest[] {
   const looks = defs.filter((d) => !isHidden(d) && !d.questOnly)
-  const hazure = looks.filter((d) => rarityOf(d) === 'hazure')
+  const hazure = looks.filter((d) => rarityOf(d) === 'normal')
   const day = Math.floor(Date.parse(`${today}T12:00:00Z`) / 86400000)
   // 同じ日に同じ敵が2つのクエストに並ばないよう、使った子は外す（ほかにいなければ仕方なく使う）
   const used = new Set<string>()
@@ -125,7 +125,7 @@ export function builtinTempleQuests(defs: MonsterDef[], today: string, gimmicks:
   const day = Math.floor(Date.parse(`${today}T12:00:00Z`) / 86400000)
   return ELEMENTS.map((e) => {
     const sameEl = looks.filter((d) => elementInfo(d).elements.includes(e))
-    const pool = [sameEl.filter((d) => rarityOf(d) === 'normal'), sameEl, looks].find((p) => p.length > 0) ?? []
+    const pool = [sameEl.filter((d) => rarityOf(d) === 'rare'), sameEl, looks].find((p) => p.length > 0) ?? []
     const enemy = pool.length > 0 ? pool[day % pool.length] : undefined
     const requirementsBy: Partial<Record<QuestDifficulty, Requirement[]>> = {}
     const weakSlotsBy: Partial<Record<QuestDifficulty, string[]>> = {}

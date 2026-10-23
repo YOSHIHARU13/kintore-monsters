@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
+import { dexGroupOf, dexOrder } from '../lib/dex'
+import { isLuckMax } from '../lib/fusion'
 import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { useStore } from '../store'
 import { SeriesChips } from '../components/SeriesChips'
@@ -36,7 +38,8 @@ export function Dex({ go }: { go: Go }) {
   const [series, setSeries] = useState<SeriesFilter>('all')
 
   let no = 0
-  const entries: Entry[] = defs.flatMap((def) => {
+  // 図鑑はグループ（ガチャのレア度・降臨の格・コラボ）ごとにかたまる並び
+  const entries: Entry[] = dexOrder(defs).flatMap((def) => {
     const template = getTemplate(def.templateId)
     const mons = owned.filter((o) => o.defId === def.id)
     // 持っている1体ずつの「今の姿までの道のり」と、合体・ジョグレスでいなくなった個体が見つけていた形態
@@ -68,6 +71,7 @@ export function Dex({ go }: { go: Go }) {
           発見 {foundCount}／{entries.length}
         </strong>
         <span className="dex-rate">{entries.length ? Math.floor((foundCount / entries.length) * 100) : 0}%</span>
+        <span className="luck-max small">運極 {new Set(owned.filter(isLuckMax).map((o) => o.defId)).size}種</span>
       </div>
       <div className="chips" role="group" aria-label="図鑑の絞り込み">
         {(
@@ -86,11 +90,15 @@ export function Dex({ go }: { go: Go }) {
       {defs.length === 0 && <p className="muted">まだモンスターが登録されていません。</p>}
 
       <div className="dex-grid">
-        {list.map((e) => {
+        {list.map((e, i) => {
           const el = elementInfo(e.def).elements[0]
+          const group = dexGroupOf(e.def)
+          const head = i === 0 || dexGroupOf(list[i - 1].def).key !== group.key
+          const lucky = owned.some((o) => o.defId === e.def.id && isLuckMax(o))
           return (
+            <Fragment key={`${e.def.id}-${e.node.id}`}>
+            {head && <h3 className="dex-group">{group.label}</h3>}
             <button
-              key={`${e.def.id}-${e.node.id}`}
               className={`dex-cell${e.found ? '' : ' unknown'}`}
               style={e.found && el ? { borderColor: ELEMENT_COLOR[el] } : undefined}
               onClick={() => setOpen(e)}
@@ -105,7 +113,9 @@ export function Dex({ go }: { go: Go }) {
                 size={56}
               />
               {e.found && <Stars def={e.def} nodeId={e.node.id} />}
+              {lucky && <span className="dex-luck">運極</span>}
             </button>
+            </Fragment>
           )
         })}
       </div>

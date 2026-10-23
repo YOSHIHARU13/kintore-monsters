@@ -2670,3 +2670,172 @@ details.tuning[open] > summary {
     animation: none;
   }
 }
+
+/* 獣神化の格：星の色とバッジ */
+.stars.shinka-gold {
+  color: #ffd166;
+  text-shadow: 0 0 6px rgba(255, 209, 102, 0.9);
+}
+.stars.shinka-silver {
+  color: #dfe6f0;
+  text-shadow: 0 0 6px rgba(223, 230, 240, 0.8);
+}
+.stars.shinka-bronze {
+  color: #e0a46b;
+}
+.shinka-mark {
+  margin-left: 2px;
+}
+
+/* ダメージの割合とMVP */
+.damage-share {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+.damage-share li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.share-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.share-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--line);
+  overflow: hidden;
+}
+.share-bar i {
+  display: block;
+  height: 100%;
+  background: #ef476f;
+}
+.damage-share li.mvp .share-bar i {
+  background: linear-gradient(90deg, #ffd166, #ff8a3d);
+}
+.mvp-mark {
+  color: #ffd166;
+}
+
+/* セットごとに、削った子の顔とダメージ */
+.pop-member {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 6px;
+  font-size: 0.75rem;
+}
+.pop-member.top {
+  font-size: 0.95rem;
+  color: #ffd166;
+}
+
+.battle-pop {
+  display: flex;
+  align-items: center;
+}
+
+/* 倒すまでの目安（セット数） */
+.estimate-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.estimate-table th,
+.estimate-table td {
+  padding: 4px 2px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+.estimate-table th:nth-child(n + 2),
+.estimate-table td:nth-child(n + 2) {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* 適正 */
+.fit-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.fit-member {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 64px;
+  text-align: center;
+}
+.fit-hint {
+  margin-top: 6px;
+  color: #ffd166;
+}
+.fit-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #ef476f;
+  color: #fff;
+}
+.link-button {
+  background: none;
+  border: none;
+  color: inherit;
+  text-align: left;
+  padding: 0;
+}
+
+/* 図鑑：グループの見出しと運極の印 */
+.dex-group {
+  grid-column: 1 / -1;
+  margin: 8px 0 2px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.dex-luck {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  font-size: 0.55rem;
+  font-weight: 800;
+  padding: 0 3px;
+  border-radius: 4px;
+  background: #ffd166;
+  color: #1b1400;
+}
+
+.box-lock {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  font-size: 0.7rem;
+}
+
+/* 登録一覧：まとめて変更 */
+.tile.picked {
+  outline: 3px solid var(--primary);
+}
+.pick-mark {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+}
+.bulk-bar {
+  position: sticky;
+  top: 48px;
+  z-index: 5;
+}
+
+.grid .tile {
+  position: relative;
+}

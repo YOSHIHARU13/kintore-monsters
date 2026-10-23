@@ -1,6 +1,6 @@
 import { CONFIG } from '../config/gameConfig'
 import { elementInfo } from './element'
-import { rarityOf } from './gacha'
+import { bossGradeOf, rarityOf } from './gacha'
 import { isHidden, type GameState, type MonsterDef, type OwnedMonster } from '../types'
 
 /**
@@ -65,13 +65,18 @@ export interface FeedPlan {
  * 相棒・出撃中など keep に入っている個体は食べさせない（あれば、その子に集める）。運が最大になったら止める。
  */
 export function bulkFeedTarget(def: MonsterDef): boolean {
-  // 激レアと、超絶以上の降臨（レア・激レアの降臨）は残す（ジョグレス・神化の素材にするため）
-  return !isHidden(def) && rarityOf(def) !== 'superRare' && !(def.questOnly && rarityOf(def) === 'uncommon')
+  // 激レアと、超絶以上の降臨は残す（獣神化の素材にするため）
+  const grade = bossGradeOf(def)
+  return !isHidden(def) && rarityOf(def) !== 'superRare' && !(grade === 'chozetsu' || grade === 'chokyukyoku' || grade === 'bakuzetsu')
 }
 
-/** 守る個体：相棒と、今日出撃しているメンバー */
-export function protectedIds(state: Pick<GameState, 'partners' | 'challenge'>, today: string): Set<string> {
-  return new Set([...Object.values(state.partners), ...(state.challenge?.date === today ? state.challenge.party : [])])
+/** 守る個体：相棒と、今日出撃しているメンバーと、ロックした子（まとめて合成・素材に使わない） */
+export function protectedIds(
+  state: Pick<GameState, 'partners' | 'challenge'>,
+  today: string,
+  owned: Pick<OwnedMonster, 'id' | 'locked'>[] = [],
+): Set<string> {
+  return new Set([...Object.values(state.partners), ...(state.challenge?.date === today ? state.challenge.party : []), ...owned.filter((o) => o.locked).map((o) => o.id)])
 }
 
 export function planBulkFeed(

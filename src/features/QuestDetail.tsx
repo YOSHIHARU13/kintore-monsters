@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { awakenOf, imageOf, glowOf } from '../lib/art'
+import { monArt } from '../lib/art'
 import { useStore } from '../store'
 import { CONFIG } from '../config/gameConfig'
-import { DAYS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot } from '../data/exercises'
+import { FORM_ATTR_LABEL, SLOTS, exerciseOfSlot } from '../data/exercises'
 import { MonsterImage } from '../components/MonsterImage'
 import { Stars } from '../components/Stars'
 import { QuestBanner } from '../components/QuestBanner'
-import { BOSS_DIFFICULTY, atDifficulty, difficultyLabel, levelsOf, fitsQuest, isStrict, sessionEstimate, attrOf, dropPlus, gradeOf, powerOf, questGold, questHp, type Member } from '../lib/quest'
+import { BOSS_DIFFICULTY, atDifficulty, difficultyLabel, levelsOf, fitsQuest, isStrict, attrOf, dropPlus, gradeOf, powerOf, questGold, questHp, type Member } from '../lib/quest'
 import { formationOf, requirementsOf, shortfallHelp, tagLabel, tagsOf } from '../lib/formation'
 import { FormationPanel } from '../components/FormationPanel'
 import { dropLuck, luckBonus } from '../lib/fusion'
@@ -16,11 +16,14 @@ import { questCategoryOf } from './Quests'
 import { attackOf } from '../lib/stats'
 import { allGimmicks } from '../lib/gimmick'
 import { DROP_ICON, STONE_LABEL, dropLabel, dropOf, expectedDrop } from '../lib/cores'
-import { towerCleared, towerMonth } from '../lib/tower'
-import { castleCleared } from '../lib/castle'
+import { towerCleared, towerMonth, towerOpen } from '../lib/tower'
+import { castleCleared, castleOpen } from '../lib/castle'
 import { towerRewardText } from './Tower'
 import { plusName, type QuestDifficulty } from '../types'
 import { customized, isFavorite } from '../lib/custom'
+import { SetsEstimate } from '../components/SetsEstimate'
+import { FitMembers } from '../components/FitList'
+import { useBattle } from '../components/BattleBar'
 import { autoParty } from '../lib/autoParty'
 import type { LotDrop } from '../lib/cores'
 
@@ -38,8 +41,10 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
       : found
         ? { name: 'quests', category: questCategoryOf(found, defs, seriesPeriods, today) }
         : { name: 'quests' }
-  const cleared = inCastle ? castleCleared(state) : towerCleared(state, towerMonth(today))
-  const towerLocked = !!towerFloor && towerFloor.floor !== cleared + 1
+  const cleared = inCastle ? castleCleared(state, towerMonth(today)) : towerCleared(state, towerMonth(today))
+  // 塔・孤城は、開催中で、次の階だけ挑戦できる（条件はいつでも見られる）
+  const closed = !!towerFloor && !(inCastle ? castleOpen(today) : towerOpen(today))
+  const towerLocked = !!towerFloor && (closed || towerFloor.floor !== cleared + 1)
   const current = state.challenge?.date === today ? state.challenge : null
   const [difficulty, setDifficulty] = useState<QuestDifficulty>(
     current?.questId === id ? current.difficulty : BOSS_DIFFICULTY,
@@ -90,6 +95,14 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
         .filter((r) => own[r.tag])
         .map((r) => `${tagLabel(r.tag, names)}${own[r.tag] > 1 ? `×${own[r.tag]}` : ''}`)
       if (quest.weakSlots.some((w) => isFavorite(def, w))) tags.push('得意種目が弱点')
+      // この子を入れると（選んでいれば、抜くと）編成倍率がどう変わるか
+      const at = party.indexOf(mon.id)
+      const without = at >= 0 ? partyDefs.filter((_, i) => i !== at) : partyDefs
+      if (at >= 0 || party.length < CONFIG.quest.partySize) {
+        const a = formationOf(without, requirements).rate
+        const b = formationOf([...without, def], requirements).rate
+        if (b > a) tags.push(`倍率×${a.toFixed(2)}→×${b.toFixed(2)}`)
+      }
       if (elementInfo(def).elements.length === 0) tags.unshift(`零×${CONFIG.quest.zeroBonus}`)
       else if (fitsQuest(def, quest)) tags.unshift('属性◎')
       else if (isStrict(quest)) tags.push('半減')
@@ -105,11 +118,8 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
   const max = CONFIG.quest.partySize
   // 選んだメンバーで、各部位の日に1回トレーニングしたときのダメージの見込み
   const partyMembers = party.flatMap((pid) => members.filter((m) => m.mon.id === pid))
-  const estimate = sessionEstimate(quest, partyMembers)
   const hp = questHp(quest, difficulty)
-  const bestEntry = estimate.reduce((a, b) => (b.damage > a.damage ? b : a), estimate[0])
-  const best = bestEntry.damage
-  const bestDay = bestEntry.day
+  const battle = useBattle()
   const switching = !!current && current.questId !== id
 
   const toggle = (monId: string) =>
@@ -132,6 +142,8 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
           </p>
         )}
       </section>
+
+      <FitMembers quest={quest} />
 
       <section className="card">
         <h2>ボスの情報</h2>
@@ -212,7 +224,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
           )
         ) : towerFloor ? (
           <p className="small">
-            報酬（{inCastle ? '1回きり' : '月に1回'}）：{towerRewardText(towerFloor, defs, state)}
+            報酬（月に1回）：{towerRewardText(towerFloor, defs, state)}
           </p>
         ) : (
           <p className="small">
@@ -225,23 +237,8 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
 
       {party.length > 0 && (
         <section className="card">
-          <h2>倒せる見込み</h2>
-          <ul className="mini-list">
-            {estimate.map((e) => (
-              <li key={e.day}>
-                <span>{DAYS[e.day].title}メニュー1回分</span>
-                <span className={`tag ${e.damage >= hp ? 'keep' : 'warn'}`}>
-                  約{Math.round(e.damage).toLocaleString()}（{Math.round((e.damage / hp) * 100)}%）
-                </span>
-              </li>
-            ))}
-          </ul>
-          <p className="small">
-            {best >= hp
-              ? `${DAYS[bestDay].title}メニューを1回やれば、その日のうちに倒せそう（HP ${hp.toLocaleString()}）。`
-              : `今のメンバーだと、メニュー1回でHPの約${Math.round((best / hp) * 100)}%。出撃した日のうちに倒す必要があるので、2部位やる日に挑むか、編成をそろえるか、格の低いクエストがおすすめ。`}
-          </p>
-          <p className="muted small">基本セット（1種目3セット）とローラーを全部やったときの目安。弱点種目・得意種目・部位の一致・編成倍率込み。</p>
+          <h2>倒すまでの目安</h2>
+          <SetsEstimate quest={quest} party={partyMembers} hpLeft={current?.questId === id && battle ? battle.hp - battle.damage : hp} />
         </section>
       )}
 
@@ -272,7 +269,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
                   onClick={() => toggle(m.mon.id)}
                 >
                   <span className="monster-row">
-                    <MonsterImage imageId={imageOf(m.def, m.mon.nodeId)} awaken={awakenOf(m.def, m.mon.nodeId)} glow={glowOf(m.def)} size={44} plus={m.mon.plus} shiny={m.mon.shiny} />
+                    <MonsterImage {...monArt(m.def, m.mon)} size={44} plus={m.mon.plus} shiny={m.mon.shiny} />
                     <span>
                       {on ? '✓ ' : ''}
                       {plusName(m.def, m.mon)} <Stars def={m.def} nodeId={m.mon.nodeId} mon={m.mon} />
@@ -305,7 +302,11 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
           go({ name: 'quests' })
         }}
       >
-        {towerLocked
+        {closed
+          ? inCastle
+            ? `零の孤城は毎月${CONFIG.castle.openDays[0]}日〜月末に挑戦できます`
+            : `試練の塔は毎月${CONFIG.tower.openDays[0]}〜${CONFIG.tower.openDays[1]}日に挑戦できます`
+          : towerLocked
           ? '下の階をクリアすると挑戦できます'
           : switching
             ? '今の戦いをやめて、これに出撃する'

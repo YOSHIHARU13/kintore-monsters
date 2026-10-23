@@ -6,6 +6,7 @@ import { CONFIG } from '../config/gameConfig'
 import { getTemplate } from '../data/evolutionTemplates'
 import { MonsterImage } from './MonsterImage'
 import { ElementBadge } from './ElementBadge'
+import { FitBadge } from './FitList'
 import { Stars } from './Stars'
 import { isPickupRarity, rarityOf, starsOf, type Rate } from '../lib/gacha'
 import { ELEMENT_COLOR, elementInfo } from '../lib/element'
@@ -39,8 +40,8 @@ export function featuredOf(gacha: Gacha, table: Rate[], defs: MonsterDef[]): Mon
     seen.add(el)
     return true
   })
-  // 激レアで足りなければ、レア（中当たり）も
-  const mids = table.filter((t) => t.rarity === 'uncommon').map((t) => t.def)
+  // 激レアで足りなければ、コラボのレア（中当たり）も（いつものレアはどのガチャにもいるので出さない）
+  const mids = table.filter((t) => t.rarity === 'rare' && t.def.series?.trim()).map((t) => t.def)
   return [...spread, ...rares.filter((d) => !spread.includes(d)), ...mids].slice(0, max)
 }
 
@@ -202,6 +203,7 @@ export function GachaBanner({ gacha, count, featured = [], pickups = [], selecte
               <span className="pickup-name">{d.name}</span>
               <Stars def={d} nodeId={bannerNodeOf(d)} />
               <ElementBadge def={d} />
+              <FitBadge def={d} />
             </span>
           ))}
         </span>

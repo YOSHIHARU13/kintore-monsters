@@ -174,6 +174,9 @@ beforeEach(() => {
     claimQuest: vi.fn(() => ({ monsterId: 'o8', drops: [{ icon: '💠', label: '木の結晶', count: 1 }], gold: 50 })),
     exchangeMaterial: vi.fn(),
     attachCustom: vi.fn(),
+    bulkUpdateDefs: vi.fn(),
+    toggleLock: vi.fn(),
+    shinka: vi.fn(() => true),
     renameSeries: vi.fn(),
     markQuestRules: vi.fn(),
     removeCustom: vi.fn(),
@@ -262,9 +265,9 @@ describe('画面の表示', () => {
     fake.store.defs = [{ ...defs[0], favoriteSlot: 'mon2' }, defs[1]]
     fake.store.owned = [{ ...owned[0], plus: 2 }, { id: 'o2', defId: 'm2', nodeId: 'n1', obtainedAt: 2 }]
     const pick = await render(<PartnerPick slotId="mon2" go={go} />)
-    // ムキドラゴ：ノーマルの★2 → 攻撃力 2×3,000＋1,500 = 7,500 → (1 + 0.125) × 1.2（得意種目）= 1.35
-    expect(pick.textContent).toContain('攻撃力 7,500')
-    expect(pick.textContent).toContain('EXP×1.35')
+    // ムキドラゴ：レアの★2 → 攻撃力 2×3,000＋2,500 = 8,500 → (1 + 0.142) × 1.2（得意種目）= 1.37
+    expect(pick.textContent).toContain('攻撃力 8,500')
+    expect(pick.textContent).toContain('EXP×1.37')
     expect(pick.textContent).toContain('得意種目！')
     await click('ムキドラゴ')
     expect(fake.store.setPartner).toHaveBeenCalledWith('mon2', 'o1')
@@ -272,7 +275,7 @@ describe('画面の表示', () => {
     const el = await render(<SetInput slotId="mon2" go={go} />)
     expect(el.textContent).toContain('相棒：ムキドラ')
     await click('11回で確定')
-    expect(fake.store.recordSet).toHaveBeenCalledWith(expect.objectContaining({ exp: 20 }), true) // 15 × 1.35
+    expect(fake.store.recordSet).toHaveBeenCalledWith(expect.objectContaining({ exp: 21 }), true) // 15 × 1.37
   })
 
   it('習慣：やった直後にその場で分数を記録してオーブをもらう（1日30分まで）', async () => {
@@ -550,9 +553,9 @@ describe('画面の表示', () => {
     )
   })
 
-  it('ショップ：レア度ごとの確率と天井が出る。ハズレとノーマルはどのガチャにも入る', async () => {
+  it('ショップ：レア度ごとの確率が出る（モンストと同じ）。ノーマルとレアはどのガチャにも入る', async () => {
     fake.store.gachas = [gachas[0], gacha('g1', '脚まつり', { createdAt: 1 })]
-    fake.store.state = { ...state, pity: { g1: 27 } }
+    fake.store.state = { ...state, normalCount: 47 }
     fake.store.defs = [
       { ...defs[0], rarity: 'rare', gachas: ['g1'] },
       { ...defs[1], rarity: 'superRare', gachas: ['g1'] },
@@ -564,12 +567,11 @@ describe('画面の表示', () => {
     // 引けるガチャのうち、いちばん新しいものが選ばれている
     expect(el.querySelector('.gacha-tab.on')!.textContent).toBe('脚まつり')
     expect(el.textContent).toContain('全5種')
-    // 以前の「レア」は激レア（そのガチャ限定）として数える
-    // レアがいないので、ほかのレア度で割り直す（激レア12・ノーマル32・ハズレ38 → 合計82%で割る）
-    expect(el.textContent).toContain('激レア 合計14.6%（3種）')
-    expect(el.textContent).toContain('ノーマル 合計39%（1種）')
-    expect(el.textContent).toContain('ハズレ 合計46.3%（1種）')
-    expect(el.textContent).toContain('激レア確定まで あと3回')
+    // 以前の「レア」は激レア（そのガチャ限定）、以前のハズレはノーマル、以前のノーマルはレアとして数える
+    expect(el.textContent).toContain('激レア 合計3.6%（3種）')
+    expect(el.textContent).toContain('レア 合計8.4%（1種）')
+    expect(el.textContent).toContain('ノーマル 合計88%（1種）')
+    expect(el.textContent).toContain('ノーマルがあと3回出ると、🌟ホシ玉')
     expect(el.textContent).toContain('？？？') // まだ会っていないモンスターは名前を伏せる
     // 作ったガチャがあれば「いつものガチャ」は出さない
     expect([...el.querySelectorAll('.gacha-tab')].map((t) => t.textContent)).not.toContain('いつものガチャ')
@@ -620,7 +622,7 @@ describe('画面の表示', () => {
     expect([...el.querySelectorAll('button.choice')].find((x) => x.textContent?.includes('イソガシ'))!.hasAttribute('disabled')).toBe(true)
     await pick('ツノウサ')
     await pick('カミドラ')
-    expect(el.textContent).toContain('激レア 合計27.3%') // ハズレがいないので、その分が回る（15 ÷ 55）
+    expect(el.textContent).toContain('激レア 合計30%') // ノーマルがいないので、その分が回る（3.6 ÷ 12）
     expect(el.textContent).toContain('あと1体で')
     const type = async (input: HTMLInputElement, value: string) =>
       act(async () => {
@@ -728,6 +730,22 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('💧水')
   })
 
+  it('クエスト詳細：倒すまでの目安はセット数（弱点種目・ボスの部位・ほかの部位・ローラー）', async () => {
+    const { QuestDetail } = await import('./QuestDetail')
+    fake.store.quests = [
+      { id: 'q1', name: '脚竜の巣', bossDefId: 'm2', attr: 'legs' as const, element: 'wood' as const, weakSlots: ['wed1'], hp: { easy: 1000, normal: 1000, hard: 1000 }, catchphrase: '', theme: 'flame', createdAt: 1 },
+    ]
+    fake.store.owned = [owned[0]]
+    fake.store.state = { ...state, challenge: null }
+    const el = await render(<QuestDetail id="q1" go={go} />)
+    await click('ムキドラゴ')
+    const table = el.querySelector('.estimate-table')!
+    expect(table.textContent).toContain('🎯 弱点種目')
+    expect(table.textContent).toContain('⚔️ 脚の種目（ボスの部位）')
+    expect(table.textContent).toContain('腹筋ローラー')
+    expect(table.textContent).toMatch(/あと\d+セット/)
+  })
+
   it('クエスト詳細：効きやすい順にメンバーが並び、選んで挑戦できる', async () => {
     const { QuestDetail } = await import('./QuestDetail')
     const quest = {
@@ -748,7 +766,7 @@ describe('画面の表示', () => {
     expect(names[1]).not.toContain('アーク')
     // ボスクエストは難易度を選ばない。格（決めていなければ極）でHPと報酬が決まる
     expect(el.querySelector('[aria-label="難易度"]')).toBeNull()
-    expect(el.textContent).toContain('HP 3,000・🔮8ドロップ アシガメ（運4）・ときどき木の結晶')
+    expect(el.textContent).toContain('HP 3,000・🔮12ドロップ アシガメ（運4）・ときどき木の結晶')
     await click('ムキドラゴ')
     expect(el.textContent).toContain('アーク1/2') // 選ぶとメーターが埋まる
     await click('出撃する')
@@ -770,7 +788,8 @@ describe('画面の表示', () => {
     // 開始前のセットは数えない。ムキドラゴ（胸腕・攻撃力7,500）がフロアプレス（弱点）を攻撃：2.5 × 2.5 × 2（部位一致）× 2（弱点）= 25
     fake.store.weekSets = [past(1, 10, 5, TODAY), past(2, 10, 20, TODAY)]
     const el = await render(<Quests go={go} />)
-    expect(el.textContent).toContain('与えたダメージ 25 ／ HP 25')
+    expect(el.textContent).toContain('与えたダメージ 28 ／ HP 25') // レアの★2（攻撃力8,500）：2.5 × 2.83 × 2 × 2
+    expect(el.querySelector('.damage-share')!.textContent).toContain('👑MVP') // 誰がどれだけ削ったか
     expect(el.textContent).toContain('討伐できる！')
     await click('報酬を受け取る')
     expect(fake.store.claimQuest).toHaveBeenCalled()
@@ -890,20 +909,22 @@ describe('画面の表示', () => {
     expect(fake.store.removeCustom).toHaveBeenCalledWith('o1')
   })
 
-  it('零の孤城：下から1階ずつ。報酬は1回きりで、最上階は零属性の城主', async () => {
+  it('零の孤城：毎月16日〜月末、下から1階ずつ。全階の条件が見えて、最上階は零属性の城主', async () => {
     const { Castle } = await import('./Castle')
     const { castleFloors } = await import('../lib/castle')
     const king: MonsterDef = { id: 'king', name: 'ゼロキング', attr: 'legs', templateId: 'single', images: {}, questOnly: true, rarity: 'superRare', castleLord: true, createdAt: 9 }
     fake.store.defs = [...defs, king]
     fake.store.castle = castleFloors([...defs, king], [])
-    fake.store.state = { ...state, castle: { cleared: 2 } }
+    fake.store.state = { ...state, castle: { month: '2026-10', cleared: 2 } }
+    fake.store.today = '2026-10-20' // 孤城は16日〜月末
     const el = await render(<Castle go={go} />)
     expect(el.textContent).toContain('2／11階クリア・次は3階')
+    expect(el.textContent).toContain('求む：') // 全部の階の条件が見える
     expect(el.textContent).toContain('ブースター詰め合わせ×3')
     expect(el.textContent).toContain('👑ゼロキング')
     const floors = [...el.querySelectorAll<HTMLButtonElement>('.tower-floor')]
-    expect(floors.find((b) => b.textContent?.startsWith('3F'))!.disabled).toBe(false)
-    expect(floors.find((b) => b.textContent?.startsWith('4F'))!.disabled).toBe(true)
+    expect(floors.find((b) => b.textContent?.startsWith('3F'))!.textContent).toContain('挑戦')
+    expect(floors.find((b) => b.textContent?.startsWith('4F'))!.textContent).toContain('🔒') // 上の階も開いて条件は見られる
     await act(async () => floors.find((b) => b.textContent?.startsWith('3F'))!.click())
     expect(go).toHaveBeenCalledWith({ name: 'quest', id: 'castle-3' })
   })
@@ -932,6 +953,64 @@ describe('画面の表示', () => {
     expect(go).toHaveBeenCalledWith({ name: 'questAdmin' })
     await click('コラボの管理')
     expect(go).toHaveBeenCalledWith({ name: 'collabAdmin' })
+  })
+
+  it('獣神化：レシピの降臨の運を集めて★4に。合体の相手がいれば金の獣神化も', async () => {
+    const sr: MonsterDef = { ...defs[0], id: 'sr', name: 'カミドラ', tier: 'superRare', element: 'fire', jogressPartner: 'sr2', templateId: 'linear3' }
+    const sr2: MonsterDef = { ...defs[0], id: 'sr2', name: 'アクドラ', tier: 'superRare', element: 'dark', templateId: 'linear3' }
+    const izanami: MonsterDef = { id: 'iz', name: 'イザナミ', attr: 'legs', templateId: 'single', images: {}, questOnly: true, bossGrade: 'chozetsu', element: 'fire', createdAt: 9 }
+    fake.store.defs = [sr, sr2, izanami]
+    const { shinkaRecipe } = await import('../lib/shinka')
+    const recipe = shinkaRecipe(sr, [sr, sr2, izanami])
+    expect(recipe.map((r) => r.defId)).toEqual(['iz'])
+    const need = recipe[0].count * recipe[0].luck
+    fake.store.owned = [
+      { id: 'me', defId: 'sr', nodeId: 'n3', obtainedAt: 1 },
+      { id: 'p', defId: 'sr2', nodeId: 'n3', obtainedAt: 2 },
+      { id: 'f', defId: 'iz', nodeId: 'n1', luck: need, obtainedAt: 3 },
+    ]
+    fake.store.state = { ...state, coins: 1000 }
+    const el = await render(<MonsterDetail id="me" go={go} />)
+    expect(el.textContent).toContain(`イザナミ ×${recipe[0].count}体（運${recipe[0].luck}以上）`)
+    expect(el.textContent).toContain(`運 ${need}/${need}`)
+    await click('🥉 獣神化する')
+    expect(fake.store.shinka).toHaveBeenCalledWith('me', false)
+    await render(<MonsterDetail id="me" go={go} />)
+    await click('アクドラと合体して')
+    expect(fake.store.shinka).toHaveBeenCalledWith('me', true)
+  })
+
+  it('登録一覧：何体か選んで、属性・レア度・シリーズをまとめて変えられる', async () => {
+    fake.store.defs = [{ ...defs[0], element: 'fire' }, { ...defs[1], element: 'water' }]
+    const el = await render(<MonsterRegistry go={go} />)
+    await click('何体か選んで、まとめて変える')
+    await click('表示中を全部選ぶ')
+    expect(el.textContent).toContain('2体を選択中')
+    const els = el.querySelector('[aria-label="まとめて変える属性"]')!
+    await act(async () => [...els.querySelectorAll('button')].find((b) => b.textContent === '光')!.click())
+    await click('2体をまとめて変える')
+    expect(fake.store.bulkUpdateDefs).toHaveBeenCalledWith(['m1', 'm2'], expect.objectContaining({ element: 'light' }))
+  })
+
+  it('図鑑：グループごとに見出しがつき、運極の子に印', async () => {
+    fake.store.defs = [
+      { ...defs[0], tier: 'superRare' },
+      { ...defs[1], tier: 'normal' },
+      { id: 'q', name: 'コウリン', attr: 'legs', templateId: 'single', images: {}, questOnly: true, bossGrade: 'chozetsu', createdAt: 3 },
+    ]
+    fake.store.owned = [{ id: 'o1', defId: 'm1', nodeId: 'n1', luck: 99, obtainedAt: 1 }]
+    const el = await render(<Dex go={go} />)
+    expect([...el.querySelectorAll('.dex-group')].map((h) => h.textContent)).toEqual(['ノーマル', '激レア', '降臨・超絶'])
+    expect(el.querySelector('.dex-luck')).not.toBeNull()
+    expect(el.textContent).toContain('運極 1種')
+  })
+
+  it('ロック：詳細でロックでき、ロックした子は運の素材の候補に出ない', async () => {
+    fake.store.owned = [owned[0], { id: 'o2', defId: 'm1', nodeId: 'n1', luck: 10, locked: true, obtainedAt: 2 }]
+    const el = await render(<MonsterDetail id="o1" go={go} />)
+    expect(el.textContent).toContain('同じモンスターがいません') // ロックした子は食べさせない
+    await click('ロックする')
+    expect(fake.store.toggleLock).toHaveBeenCalledWith('o1')
   })
 
   it('カスタマイズアイテムの一覧：持っているアイテムと、付けている子が見られる', async () => {
@@ -1020,12 +1099,14 @@ describe('画面の表示', () => {
     expect(go).toHaveBeenCalledWith({ name: 'monster', id: 'b' })
   })
 
-  it('ショップ：天井で激レアが出ると演出に出る', async () => {
-    fake.store.hatchEgg = vi.fn(() => ({ def: { ...defs[1], rarity: 'superRare' }, monsterId: 'o2', shiny: false, pity: true }))
+  it('ショップ：ホシ玉で引くとレア以上が確定し、演出に出る', async () => {
+    fake.store.hatchEgg = vi.fn(() => ({ def: { ...defs[1], tier: 'superRare' }, monsterId: 'o2', shiny: false, pity: true }))
+    fake.store.state = { ...state, hoshi: 2 }
     const shop = await render(<Shop go={go} />)
-    await click('1回引く')
+    await click('ホシ玉で引く')
+    expect(fake.store.hatchEgg).toHaveBeenCalledWith('default', 'hoshi')
     await click('スキップ')
-    expect(shop.textContent).toContain('天井で確定！')
+    expect(shop.textContent).toContain('レア以上確定！')
     expect(shop.textContent).toContain('激レア！')
   })
 
@@ -1092,7 +1173,7 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('脚竜の巣')
   })
 
-  it('モンスター登録：進化しない降臨モンスターは「1形態だけ」＋クエスト限定で、星を選べる', async () => {
+  it('モンスター登録：降臨は格を選ぶだけ（星・アビリティの数・クエストの格が決まる）', async () => {
     const el = await render(<MonsterForm go={go} />)
     const type = async (input: HTMLInputElement, value: string) =>
       act(async () => {
@@ -1109,14 +1190,18 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('クエスト限定のモンスター専用です')
     const questOnly = [...el.querySelectorAll('label.row')].find((l) => l.textContent?.includes('クエスト限定にする'))!
     await act(async () => questOnly.querySelector('input')!.click())
-    await act(async () => el.querySelector('[aria-label="進化しないモンスターの星"]')!.querySelectorAll('button')[1].click())
+    const grades = el.querySelector('[aria-label="降臨の格"]')!
+    expect(el.textContent).not.toContain('城主にする') // 城主は爆絶だけ
+    await act(async () => [...grades.querySelectorAll('button')].find((b) => b.textContent === '爆絶')!.click())
+    expect(el.textContent).toContain('城主にする')
+    await act(async () => [...grades.querySelectorAll('button')].find((b) => b.textContent === '極')!.click())
     await click('保存する')
     expect(fake.store.saveMonsterDef).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'コウリンオー', templateId: 'single', questOnly: true, fixedStars: 2 }),
+      expect.objectContaining({ name: 'コウリンオー', templateId: 'single', questOnly: true, bossGrade: 'kiwami' }),
     )
   })
 
-  it('モンスター登録：🎯このクエスト用にすると、条件に合わせて属性・アビリティ・得意種目が入る', async () => {
+  it('モンスター登録：🎯このクエスト用にすると、条件に合わせてアビリティ・得意種目が入る（属性は変えない）', async () => {
     fake.store.quests = [
       {
         id: 'q1', name: '脚竜の巣', bossDefId: 'm2', attr: 'legs', weakSlots: ['wed1'],
@@ -1132,7 +1217,7 @@ describe('画面の表示', () => {
       picker.dispatchEvent(new Event('change', { bubbles: true }))
     })
     const on = [...el.querySelectorAll('button.chip.on')].map((b) => b.textContent)
-    expect(on.some((t) => t?.startsWith('水'))).toBe(true)
+    expect(on.some((t) => t?.startsWith('水'))).toBe(false) // 属性は自分で決める（おまかせでは変えない）
     expect(on.some((t) => t?.startsWith('ノヴァ'))).toBe(true)
     expect(el.textContent).toContain('◎ 脚竜の巣')
   })
@@ -1164,7 +1249,7 @@ describe('画面の表示', () => {
     expect((el.querySelector('select') as HTMLSelectElement).value).toBe('single')
     const questOnly = [...el.querySelectorAll('label.row')].find((l) => l.textContent?.includes('クエスト限定にする'))!
     expect(questOnly.querySelector('input')!.checked).toBe(true)
-    expect(el.querySelector('[aria-label="レア度"] .on')!.textContent).toBe('激レア')
+    expect(el.querySelector('[aria-label="降臨の格"] .on')!.textContent).toBe('超絶')
   })
 
   it('モンスター登録：入るガチャは3つまで', async () => {
@@ -1203,7 +1288,7 @@ describe('画面の表示', () => {
         attrs: { n1: 'chestArms', n2: 'legs', n3: 'none' },
         names: { n2: 'テストモン改' },
         gachas: [],
-        rarity: 'normal',
+        rarity: 'rare',
       }),
     )
     expect(go).toHaveBeenCalledWith({ name: 'registry' })

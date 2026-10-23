@@ -1,5 +1,5 @@
 import { CONFIG } from '../config/gameConfig'
-import { rarityOf } from './gacha'
+import { rarityOf, bossGradeOf } from './gacha'
 import { isHidden, type MonsterDef, type Quest } from '../types'
 
 /** アビリティの名前の表（ギミック名 → アビリティ名）：最初からある分・以前あった分・クエストで作った分 */
@@ -19,12 +19,13 @@ export function abilityName(gimmick: string, names: Record<string, string> = CON
 
 /** そのモンスターが持てるアビリティの数（レア度の格） */
 export function abilitySlots(
-  def: Pick<MonsterDef, 'recipe' | 'rarity' | 'common' | 'jogressGrade'> & { questOnly?: boolean },
+  def: Pick<MonsterDef, 'recipe' | 'tier' | 'rarity' | 'common' | 'jogressGrade' | 'bossGrade' | 'series'> & { questOnly?: boolean },
 ): number {
   const slots = CONFIG.gimmicks.slots
   if (isHidden(def as MonsterDef)) return slots.jogress
-  // 降臨は、レア度（＝どの格のボスか）ごとの数
-  if (def.questOnly) return CONFIG.gimmicks.questSlots[rarityOf(def as MonsterDef)]
+  // 降臨は格で決まる
+  const grade = bossGradeOf(def as MonsterDef)
+  if (grade) return CONFIG.quest.bossGrades[grade].abilities
   return slots[rarityOf(def as MonsterDef)]
 }
 

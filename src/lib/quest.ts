@@ -1,8 +1,9 @@
 import { CONFIG } from '../config/gameConfig'
 import { DAYS, SLOTS, type FormAttr } from '../data/exercises'
 import { attackOf } from './stats'
+import { rarityOf } from './gacha'
 import { customized, isFavorite } from './custom'
-import { formationOf, requirementsOf } from './formation'
+import { abilityTag, formationOf, requirementsOf, tagAbilities, tagsOf } from './formation'
 import { elementInfo, hasAdvantage } from './element'
 import { nodeAttr, type Challenge, type MonsterDef, type OwnedMonster, type Quest, type QuestDifficulty, type QuestGrade, type SetRecord } from '../types'
 
@@ -39,6 +40,14 @@ export interface Hit {
   label: string // 何の攻撃か（例：アームカール 3セット目）
   damage: number
   notes: string[] // 効いた補正（弱点・得意種目・相性・ギミック）
+  byMember: Record<string, number> // 出撃した子ごとのダメージ（monsterId → ダメージ）
+}
+
+/** その子が持っている、クエストの条件に出てくるアビリティの数 */
+export function matchedAbilities(def: MonsterDef, quest: Pick<Quest, 'requirements' | 'gimmicks'>): number {
+  const wanted = new Set(requirementsOf(quest).flatMap((r) => tagAbilities(r.tag)))
+  const own = tagsOf(def)
+  return [...wanted].filter((g) => own[abilityTag(g)]).length
 }
 
 type SetInfo = Pick<SetRecord, 'slotId' | 'day' | 'eligible'>
@@ -57,13 +66,17 @@ export function setHit(set: SetInfo, quest: Quest, party: Member[], label: strin
   if (weak) notes.add('弱点種目')
   if (party.length === 0) {
     // 出撃メンバーがいなければ、自分で殴る
-    return { label, damage: Math.round(base * (bossPart ? q.bossPart : 1) * (weak ? q.weakSlot : 1)), notes: [...notes, '素手'] }
+    return { label, damage: Math.round(base * (bossPart ? q.bossPart : 1) * (weak ? q.weakSlot : 1)), notes: [...notes, '素手'], byMember: {} }
   }
   // 超絶では、ボスの属性に有利な属性を持たないモンスターの攻撃が半減
   const strict = isStrict(quest)
   let damage = 0
+  const byMember: Record<string, number> = {}
   for (const m of party) {
     let d = base * powerOf(m)
+    // 条件に合うアビリティを持っている子は、その子自身も強い（1つにつき+25%）
+    const matched = matchedAbilities(m.def, quest)
+    if (matched > 0) d *= 1 + q.abilityBonus * matched
     // 零属性：どこでも×1.2で、半減もされない
     const zero = elementInfo(m.def).elements.length === 0
     if (zero) {
@@ -74,6 +87,11 @@ export function setHit(set: SetInfo, quest: Quest, party: Member[], label: strin
       d *= bakuzetsu ? q.offElementBakuzetsu : q.offElementChozetsu
       notes.add(`${m.def.name}は属性が合わず${bakuzetsu ? '3分の1' : '半減'}`)
     }
+    // コラボの激レア・レアは、同じコラボのボスに×1.5
+    if (isCollabHero(m.def, quest)) {
+      d *= q.collabBonus
+      notes.add(`${m.def.name}はコラボ×${q.collabBonus}`)
+    }
     if (partAttr && attrOf(m) === partAttr) d *= q.partMatch
     if (bossPart) d *= q.bossPart
     if (weak) d *= q.weakSlot
@@ -82,8 +100,9 @@ export function setHit(set: SetInfo, quest: Quest, party: Member[], label: strin
       notes.add(`${m.def.name}の得意種目`)
     }
     damage += d
+    byMember[m.mon.id] = (byMember[m.mon.id] ?? 0) + d * rate
   }
-  return { label, damage: Math.round(damage * rate), notes: [...notes] }
+  return { label, damage: Math.round(damage * rate), notes: [...notes], byMember }
 }
 
 /** その難易度で使う編成の条件と弱点（最初からある素材クエストは難易度ごとに決まっている） */
@@ -93,6 +112,12 @@ export function atDifficulty(quest: Quest, difficulty: QuestDifficulty): Quest {
   return requirements || weakSlots
     ? { ...quest, requirements: requirements ?? quest.requirements, weakSlots: weakSlots ?? quest.weakSlots }
     : quest
+}
+
+/** コラボの激レア・レアが、同じコラボのボスと戦っているか */
+export function isCollabHero(def: MonsterDef, quest: Pick<Quest, 'bossSeries'>): boolean {
+  const series = def.series?.trim() ?? ''
+  return series !== '' && series === quest.bossSeries && !def.questOnly && rarityOf(def) !== 'normal'
 }
 
 /** 挑戦を始めてからの攻撃（報酬が出るセットだけ数える） */
@@ -148,6 +173,8 @@ export interface Battle {
   damage: number
   hp: number
   defeated: boolean
+  byMember: Record<string, number> // 出撃した子ごとの、これまでのダメージ
+  mvpId: string | null // いちばんダメージを与えた子
 }
 
 /** 今日の戦いの状況。挑戦していない・日付が変わった・クエストが消えたときは null */
@@ -174,7 +201,10 @@ export function battleOf(
   const hits = questHits(quest, party, sets, exerciseName)
   const damage = hits.reduce((sum, h) => sum + h.damage, 0)
   const hp = questHp(quest, challenge.difficulty)
-  return { challenge, quest, boss: defs.find((d) => d.id === quest.bossDefId), party, hits, damage, hp, defeated: damage >= hp }
+  const byMember: Record<string, number> = {}
+  for (const h of hits) for (const [id, d] of Object.entries(h.byMember)) byMember[id] = (byMember[id] ?? 0) + d
+  const mvpId = Object.entries(byMember).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
+  return { challenge, quest, boss: defs.find((d) => d.id === quest.bossDefId), party, hits, damage, hp, defeated: damage >= hp, byMember, mvpId }
 }
 
 /** ボスの格 */
@@ -219,9 +249,9 @@ export function questGold(quest: Pick<Quest, 'rank' | 'kind' | 'grade'>, difficu
   return Math.round(CONFIG.quest.difficulties[difficulty].gold * rankOf(quest).gold)
 }
 
-/** ボスクエストで手に入るボスの＋ */
-export function dropPlus(quest: Pick<Quest, 'grade' | 'rank'>): number {
-  return CONFIG.quest.grades[gradeOf(quest)].plus
+/** ボスクエストで手に入るボスの＋（＋はなくなったので、いつも0） */
+export function dropPlus(_quest: Pick<Quest, 'grade' | 'rank'>): number {
+  return 0
 }
 
 /** クエストの格や難易度の表示（例：超絶、素材の上級） */

@@ -4,7 +4,7 @@ import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { advantageElements, elementInfo } from './element'
 import { KINDS_TAG, abilityTag, comboTag, elementTag, requirementsOf, tagAbilities } from './formation'
 import { abilitySlots } from './gimmick'
-import { rarityOf } from './gacha'
+import { bossGradeOf, rarityOf } from './gacha'
 import { collabMates, seriesOf } from './series'
 import { nodeAttr, type Element, type MonsterDef, type Quest, type QuestDifficulty, type QuestGrade, type RarityKey, type Requirement } from '../types'
 
@@ -89,17 +89,13 @@ export function autoQuestSetup(
 /** おまかせの作り方の版。作り方を変えたら上げる（今あるボスクエストの条件を1回だけ作り直す） */
 export const QUEST_RULES = 2
 
-/** まとめて作るときの格：レア度から（激レア→超絶、ノーマル→究極、ハズレ→上級） */
-const GRADE_BY_RARITY: Record<RarityKey, QuestGrade> = { hazure: 'jokyu', normal: 'kyukyoku', uncommon: 'kyukyoku', superRare: 'chozetsu' }
+/** ガチャの子がボスのときの格：レア度から（激レア→超絶、レア→究極、ノーマル→上級） */
+const GRADE_BY_RARITY: Record<RarityKey, QuestGrade> = { normal: 'jokyu', rare: 'kyukyoku', superRare: 'chozetsu' }
 
-/** 降臨のレア度＝ボスの格（ハズレ＝上級、ノーマル＝究極、レア＝超絶（コラボは超究極）、激レア＝爆絶） */
-const GRADE_BY_QUEST_RARITY: Record<RarityKey, QuestGrade> = { hazure: 'jokyu', normal: 'kyukyoku', uncommon: 'chozetsu', superRare: 'bakuzetsu' }
-
+/** そのボスのクエストの格：降臨は格のまま。ガチャの子はレア度から */
 export function autoGradeOf(def: MonsterDef): QuestGrade {
-  if (def.questOnly) {
-    const g = GRADE_BY_QUEST_RARITY[rarityOf(def)]
-    return g === 'chozetsu' && seriesOf(def) !== '' ? 'chokyukyoku' : g
-  }
+  const grade = bossGradeOf(def)
+  if (grade) return grade
   // コラボの激レアは超究極
   if (rarityOf(def) === 'superRare' && seriesOf(def) !== '') return 'chokyukyoku'
   return GRADE_BY_RARITY[rarityOf(def)]
@@ -190,3 +186,29 @@ export function commonPairs(defs: MonsterDef[]): { a: string; b: string; n: numb
   return Object.values(count).sort((x, y) => y.n - x.n)
 }
 
+
+/**
+ * 降臨のボスクエストを、降臨の格と部位に合わせるための書き込み（なければ新しく作る）。
+ * 合っていれば null。塔限定・城主は塔と孤城で出るので作らない
+ */
+export function bossQuestSync(
+  boss: MonsterDef,
+  quests: (Pick<Quest, 'id' | 'kind' | 'bossDefId' | 'grade' | 'attr' | 'requirements' | 'gimmicks'>)[],
+  gimmicks: string[],
+  defs: MonsterDef[],
+  hpOf: (grade: QuestGrade) => number,
+): { id: string | null; data: Partial<Quest> } | null {
+  const grade = bossGradeOf(boss)
+  if (!grade || boss.tower || boss.castleLord) return null
+  const current = quests.find((q) => q.kind !== 'material' && q.bossDefId === boss.id)
+  const attr = nodeAttr(boss, FIRST_NODE_ID)
+  if (current && current.grade === grade && current.attr === attr) return null
+  const r = autoQuestSetup(boss, grade, 'boss', quests, gimmicks, current?.id, defs)
+  const hp = hpOf(grade)
+  const changed = { grade, attr, hp: { easy: hp, normal: hp, hard: hp }, requirements: r.requirements, weakSlots: r.weakSlots }
+  if (current) return { id: current.id, data: changed }
+  return {
+    id: null,
+    data: { name: '', kind: 'boss', bossDefId: boss.id, customGimmicks: {}, rank: 1, catchphrase: '', theme: 'flame', ...changed },
+  }
+}

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useQuestTools } from './QuestAdmin'
 import { ATTRS, ATTR_LABEL, type Attr } from '../data/exercises'
 import { ATTR_COLOR } from '../nav'
-import { awakenOf, imageOf, glowOf } from '../lib/art'
+import { awakenOf, imageOf, glowOf, monArt } from '../lib/art'
 import { useStore } from '../store'
 import { SeriesChips } from '../components/SeriesChips'
 import { allSeries, inSeries, questSeries, seriesStatus, statusLabel, type SeriesFilter } from '../lib/series'
@@ -58,8 +58,8 @@ import { isLuckMax, luckBonus, luckOf } from '../lib/fusion'
 import { ELEMENT_COLOR } from '../lib/element'
 import { CONFIG } from '../config/gameConfig'
 import { dropLabel } from '../lib/cores'
-import { towerCleared, towerMonth } from '../lib/tower'
-import { castleCleared } from '../lib/castle'
+import { towerCleared, towerMonth, towerOpen } from '../lib/tower'
+import { castleCleared, castleOpen } from '../lib/castle'
 import { QUEST_RULES } from '../lib/questAuto'
 import { towerRewardText } from './Tower'
 import { boosterName } from '../lib/boosters'
@@ -67,6 +67,8 @@ import type { QuestReward } from '../store'
 import type { Go, QuestCategory } from '../nav'
 import type { Periods } from '../lib/series'
 import { BattleBar } from '../components/BattleBar'
+import { DamageShare } from '../components/DamageShare'
+import { SetsEstimate } from '../components/SetsEstimate'
 import { plusName, type MonsterDef, type Quest } from '../types'
 
 /** クエストのタブ：入口（クエスト・零の孤城・試練の塔・素材・神殿・書庫）と、今日の戦い。入口を選ぶと一覧 */
@@ -90,7 +92,7 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
   const towerFloor = battle
     ? (tower.find((f) => f.quest.id === battle.quest.id) ?? castle.find((f) => f.quest.id === battle.quest.id))
     : undefined
-  const castleDone = castleCleared(state)
+  const castleDone = castleCleared(state, towerMonth(today))
   const [confirmQuit, setConfirmQuit] = useState(false)
   const [view, setView] = useState<'icon' | 'banner'>(() => {
     try {
@@ -123,14 +125,22 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
       key: 'castle',
       icon: '🏯',
       label: '零の孤城',
-      hint: castleDone >= CONFIG.castle.floors ? '踏破！' : `${castleDone}／${CONFIG.castle.floors}階・全階爆絶・最上階は零属性の城主（報酬は1回きり）`,
+      hint: !castleOpen(today)
+        ? `毎月${CONFIG.castle.openDays[0]}日〜月末に開催・全階爆絶・最上階は零属性の城主`
+        : castleDone >= CONFIG.castle.floors
+          ? '今月は踏破！'
+          : `開催中 ${castleDone}／${CONFIG.castle.floors}階・全階爆絶・最上階は零属性の城主`,
       open: () => go({ name: 'castle' }),
     },
     {
       key: 'tower',
       icon: '🗼',
       label: '試練の塔',
-      hint: towerDone >= CONFIG.tower.floors ? '今月は踏破！来月また新しい塔が出ます' : `${towerDone}／${CONFIG.tower.floors}階・次は${towerDone + 1}階（毎月1日に新しく）`,
+      hint: !towerOpen(today)
+        ? `毎月${CONFIG.tower.openDays[0]}〜${CONFIG.tower.openDays[1]}日に開催`
+        : towerDone >= CONFIG.tower.floors
+          ? '今月は踏破！'
+          : `開催中 ${towerDone}／${CONFIG.tower.floors}階・次は${towerDone + 1}階`,
       open: () => go({ name: 'tower' }),
     },
     { key: 'material', icon: '💎', label: '素材クエスト', hint: '結晶・核・筋肉玉・進化コイン（初級・上級・究極）', open: () => go({ name: 'quests', category: 'material' }) },
@@ -149,6 +159,7 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
             {got.towerFloor ? `${got.castle ? '零の孤城' : '試練の塔'} ${got.towerFloor}階 突破！` : '討伐成功！'} 🔮+{got.gold}・🪙+
             {got.coins ?? 0}
           </h2>
+          {got.byMember && <DamageShare byMember={got.byMember} mvpId={got.mvpId} />}
           {got.boosted && <p className="tag keep">⚔️ 討伐ブースターで報酬2倍！</p>}
           {got.eggs > 0 && <p>🟡 トク玉 ×{got.eggs} を手に入れた！</p>}
           {got.booster && (
@@ -283,10 +294,12 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
           <div className="party-row">
             {battle.party.map((m) => (
               <span key={m.mon.id} title={plusName(m.def, m.mon)}>
-                <MonsterImage imageId={imageOf(m.def, m.mon.nodeId)} awaken={awakenOf(m.def, m.mon.nodeId)} glow={glowOf(m.def)} size={40} plus={m.mon.plus} shiny={m.mon.shiny} />
+                <MonsterImage {...monArt(m.def, m.mon)} size={40} plus={m.mon.plus} shiny={m.mon.shiny} />
               </span>
             ))}
           </div>
+          <DamageShare byMember={battle.byMember} mvpId={battle.mvpId} />
+          {!battle.defeated && <SetsEstimate quest={battle.quest} party={battle.party} hpLeft={battle.hp - battle.damage} />}
           <details>
             <summary className="small">攻撃の記録（{battle.hits.length}回）</summary>
             <ul className="mini-list">

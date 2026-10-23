@@ -1,5 +1,5 @@
 import type { Reward } from '../lib/missions'
-import type { BoosterKey, RarityKey } from '../types'
+import type { BoosterKey, QuestGrade, RarityKey } from '../types'
 import type { FreePullEvent } from '../lib/events'
 // ============================================================
 // ゲームの数値はすべてこのファイルにまとめてあります。
@@ -122,9 +122,7 @@ export const CONFIG = {
       オーラ: 'オーライーター',
     } as Record<string, string>,
     // 持てるアビリティの数（レア度の格）。ジョグレスは jogress
-    slots: { hazure: 0, normal: 1, uncommon: 1, superRare: 2, jogress: 3 },
-    // 降臨（クエスト限定）のレア度は「どの格のボスか」：ハズレ＝上級、ノーマル＝極・究極、レア＝超絶・超究極、激レア＝爆絶・零の孤城の城主
-    questSlots: { hazure: 0, normal: 1, uncommon: 2, superRare: 3 } as Record<RarityKey, number>,
+    slots: { normal: 1, rare: 2, superRare: 2, jogress: 3 },
   },
 
   // クエスト：出撃したら、その日のうちに倒す勝負。出撃してからのセットがそのままダメージになる（何回でも挑戦できる）
@@ -139,6 +137,8 @@ export const CONFIG = {
     bossPart: 1.3, // ボスの部位（胸腕・脚・背肩）の種目のセットは、どれでもこの倍率。中でも弱点種目がいちばん効く
     offElementChozetsu: 0.5, // 超絶では、ボスの属性に有利な属性を持たないモンスターの攻撃はこの倍率
     offElementBakuzetsu: 1 / 3, // 爆絶ではこの倍率
+    abilityBonus: 0.25, // クエストの条件に合うアビリティ1つにつき、その子のダメージ +25%（2つなら×1.5）
+    collabBonus: 1.5, // コラボの激レア・レアは、同じコラボのボスのクエストで攻撃がこの倍率（確定）
     zeroBonus: 1.2, // 零属性の子は、どのクエストでも攻撃がこの倍率（弱点はつけないが、半減もされない）
     favorite: 1.5, // 攻撃したモンスターの得意種目のセット
     maxWeakSlots: 2,
@@ -153,20 +153,29 @@ export const CONFIG = {
     // ボスクエストの格：難易度は1つだけで、クエストそのものに格がある（素材クエストは初級〜上級のまま）
     // hpRatio：1回のトレーニングで与えるダメージの目安に対するHPの倍率
     grades: {
-      // gold はオーブ（進化コインはその coins.perOrb 倍）
-      jokyu: { label: '上級', hpRatio: 0.45, gold: 5, plus: 0 }, // 育ちきっていなくても倒せる入門
-      kiwami: { label: '極', hpRatio: 0.9, gold: 8, plus: 0 },
-      kyukyoku: { label: '究極', hpRatio: 1.5, gold: 15, plus: 0 },
-      chozetsu: { label: '超絶', hpRatio: 2.5, gold: 30, plus: 1 },
-      chokyukyoku: { label: '超究極', hpRatio: 2.5, gold: 30, plus: 1 },
-      bakuzetsu: { label: '爆絶', hpRatio: 3.5, gold: 50, plus: 1 }, // 超絶の上。孤城の1〜10階のボス // 主にコラボ用（因縁の強敵など、たまの例外にも）。強さと報酬は超絶と同じ
+      // gold はオーブ（進化コインはその coins.perOrb 倍）。頑張った分だけ増える報酬なので多め（週100連が目安）
+      jokyu: { label: '上級', hpRatio: 0.45, gold: 8 }, // 育ちきっていなくても倒せる入門
+      kiwami: { label: '極', hpRatio: 0.9, gold: 12 },
+      kyukyoku: { label: '究極', hpRatio: 1.5, gold: 20 },
+      chozetsu: { label: '超絶', hpRatio: 2.5, gold: 40 },
+      chokyukyoku: { label: '超究極', hpRatio: 2.5, gold: 40 }, // 主にコラボ用。強さと報酬は超絶と同じ
+      bakuzetsu: { label: '爆絶', hpRatio: 3.5, gold: 60 }, // 超絶の上。零の孤城の1〜10階のボス
     },
+    // 降臨の格＝そのボスとして落ちる子の強さ：星・アビリティの数・攻撃力の上乗せ（爆絶は獣神化で★4）
+    bossGrades: {
+      jokyu: { stars: 1, abilities: 0, attack: 0 },
+      kiwami: { stars: 2, abilities: 1, attack: 0 },
+      kyukyoku: { stars: 3, abilities: 1, attack: 1500 },
+      chozetsu: { stars: 3, abilities: 2, attack: 4500 }, // 同じ★3でも、究極より強い
+      chokyukyoku: { stars: 3, abilities: 2, attack: 4500 },
+      bakuzetsu: { stars: 3, abilities: 3, attack: 6000 },
+    } as Record<QuestGrade, { stars: number; abilities: number; attack: number }>,
     // 素材クエストの難易度：HPは「1回のトレーニングで与えるダメージの目安 × materials.hpRatio × hpRatio」
     // 上の難易度ほど編成の条件がきつくなるが、セットあたりのドロップは多くなる（そろえられるなら上を回るほうが得）
     difficulties: {
-      easy: { label: '初級', plus: 0, gold: 3, hpRatio: 0.8 },
-      normal: { label: '上級', plus: 1, gold: 6, hpRatio: 1.4 },
-      hard: { label: '究極', plus: 2, gold: 10, hpRatio: 2 },
+      easy: { label: '初級', gold: 5, hpRatio: 0.8 },
+      normal: { label: '上級', gold: 10, hpRatio: 1.4 },
+      hard: { label: '究極', gold: 15, hpRatio: 2 },
     },
     partySize: 6, // 出撃できる数
   },
@@ -189,9 +198,14 @@ export const CONFIG = {
       hard: { element: 3, kinds: 4, abilities: 1, abilityCount: 2, combo: 0, weak: 2 },
     },
   },
-  // 神化：最終形態のガチャの激レアが、降臨モンスター1体（同じ属性）を素材に★4になる
+  // 獣神化（★4）：格は金（激レア2体の合体）・銀（専用の絵）・銅（後光だけ）。素材はモンスターごとのレシピ（lib/shinka）
+  // bonus：★が1つ増えるぶんとは別の攻撃力の上乗せ。爆絶の降臨の獣神化（銅）は questBonus（降臨なので少し弱い）
+  // luckScale：レシピの運（1〜5）に掛ける数（ボスは運4で落ちるので、モンストの「運3」は運12）
   shinka: {
     coins: 300,
+    bonus: { gold: 6000, silver: 3000, bronze: 1500 },
+    questBonus: 0,
+    luckScale: 4,
   },
   // 進化コイン：進化・ジョグレス・EXPの購入に使う（オーブはガチャとブースター用）。ボスクエストではオーブと同じだけもらえる
   coins: {
@@ -248,14 +262,15 @@ export const CONFIG = {
     exp: { icon: '💪', label: '筋トレブースター', price: 30, text: '次の10セットのEXPが2倍', sets: 10 },
     quest: { icon: '⚔️', label: '討伐ブースター', price: 25, text: '次のクエスト報酬（オーブ・コイン・素材）が2倍' },
   },
-  // 試練の塔：毎月10階を自動で作る。下から1階ずつ挑戦し、各階の報酬は月に1回だけ
+  // 試練の塔：毎月 openDays の日だけ開催。下から1階ずつ挑戦し、各階の報酬は月に1回だけ
   tower: {
+    openDays: [1, 15] as [number, number],
     // 1〜10階：超絶・超究極のボスを、炎・水・木・光・闇の順に2周（図鑑の番号順）。11階：塔限定モンスターがボス
     floors: 11,
     elementOrder: ['fire', 'water', 'wood', 'light', 'dark'] as const,
     // HP：1回のトレーニングで与えるダメージの目安に対する倍率
     hpRatio: [0.6, 0.8, 1.0, 1.2, 1.4, 1.7, 2.0, 2.3, 2.7, 3.2, 3.6],
-    gold: [10, 12, 15, 18, 22, 26, 30, 35, 40, 50, 60], // オーブ（進化コインはこの coins.perOrb 倍）
+    gold: [20, 24, 30, 36, 44, 52, 60, 70, 80, 100, 120], // オーブ（進化コインはこの coins.perOrb 倍）。高難易度なので多め
     eggs: { 2: 1, 4: 1, 7: 1, 8: 1 } as Record<number, number>, // その階でトク玉
     cores: {} as Record<number, number>, // その階でボスの部位の核
     boosters: { 3: 'habit', 6: 'exp', 9: 'quest' } as Record<number, 'habit' | 'exp' | 'quest'>, // その階でブースター
@@ -269,9 +284,10 @@ export const CONFIG = {
     chozetsuFrom: 8, // この階から超絶（適正の属性以外は半減）
   },
 
-  // 零の孤城：エンドコンテンツ。全11階を下から1階ずつ、報酬は各階1回だけ（作り直しはしない）
+  // 零の孤城：エンドコンテンツ。全11階を下から1階ずつ、報酬は各階、月に1回
   // 1〜10階：爆絶のボス（爆絶級の降臨）を炎・水・木・光・闇の順に2周。11階：城主級の降臨が零属性の城主になる
   castle: {
+    openDays: [16, 31] as [number, number], // 毎月16日〜月末。各階の報酬は月に1回
     floors: 11,
     elementOrder: ['fire', 'water', 'wood', 'light', 'dark'] as const,
     hpRatio: [3, 3.2, 3.4, 3.6, 3.8, 4, 4.3, 4.6, 5, 5.5, 6.5], // 1回のトレーニングで与えるダメージの目安に対する倍率
@@ -422,26 +438,23 @@ export const CONFIG = {
     defaultName: 'いつものガチャ',
     // レア度ごとの確率（合計1）。同じレア度のモンスターで山分けする
     // ハズレとノーマルはどのガチャからも出る。激レアはそのガチャ限定（ガチャの「顔」）
-    // uncommon（レア）：そのガチャの「中当たり」。当たりやすくて運極にしやすい、そこそこ強いやつ
+    // レア度（モンストと同じ確率）：ノーマル88%・レア8.4%・激レア3.6%。同じレア度のモンスターで山分けする
+    // ノーマルとレアはどのガチャからも出る（コラボの子だけは、どのレア度でもそのコラボのガチャからだけ）。激レアはそのガチャ限定
+    // maxStars：そのレア度の星の上限（激レアは獣神化で★4）
     rarities: {
-      hazure: { label: 'ハズレ', rate: 0.38, attackBonus: 0, everyGacha: true, hint: 'どのガチャからも出る。2段階で終わるような軽いやつ' },
-      normal: { label: 'ノーマル', rate: 0.32, attackBonus: 1500, everyGacha: true, hint: 'どのガチャからも出る。3段階まで進化する普通のやつ' },
-      uncommon: {
-        label: 'レア',
-        rate: 0.18,
-        attackBonus: 3000,
-        everyGacha: false,
-        hint: 'そのガチャ限定の中当たり。当たりやすくて運極にしやすい、そこそこ強いやつ',
-      },
+      normal: { label: 'ノーマル', rate: 0.88, attackBonus: 0, everyGacha: true, maxStars: 2, hint: 'どのガチャからも出る。1→2で終わる軽いやつ' },
+      rare: { label: 'レア', rate: 0.084, attackBonus: 2500, everyGacha: true, maxStars: 3, hint: 'どのガチャからも出る当たり。★3まで進化する' },
       superRare: {
         label: '激レア',
-        rate: 0.12,
-        attackBonus: 4500,
+        rate: 0.036,
+        attackBonus: 6000,
         everyGacha: false,
-        hint: 'そのガチャ限定。ジョグレスの素材になる、いちばんかっこいいやつ',
+        maxStars: 3,
+        hint: 'そのガチャ限定。獣神化で★4になる、いちばんかっこいいやつ',
       },
-    },
-    questAttackBonus: { hazure: 0, normal: 1500, uncommon: 4500, superRare: 6000 } as Record<RarityKey, number>, // 降臨のレア度ごとの攻撃力の上乗せ
+    } as Record<RarityKey, { label: string; rate: number; attackBonus: number; everyGacha: boolean; maxStars: number; hint: string }>,
+    // ホシ玉：ガチャでノーマルが累計 normals 回出るたびに1個。引くとレア以上が確定（激レア superRareRate、残りはレア）
+    hoshi: { normals: 50, superRareRate: 0.4 },
     // 星は進化形態だけで決まる（レア度は関係ない）：1段目が★1、進化するたびに1つ増える（最大 maxStars）
     // ジョグレスの隠しモンスターは、レシピで決めた「生まれるときの星」から（決めていなければ jogressDefaultBirth）
     // レア度は星には出さず、攻撃力の上乗せ（attackBonus）にだけ効く。ジョグレスは jogressAttackBonus
@@ -452,8 +465,6 @@ export const CONFIG = {
     jogressAttackBonus: 4500,
     fixedStarsDefault: 3, // 進化しない降臨モンスターの星（★1〜★3で選べる）
     fixedStarsChoices: [1, 2, 3],
-    // 天井：同じガチャで、激レアが出ないままこの回数目を引くと激レア確定
-    pity: { rarity: 'superRare' as const, pulls: 30 },
     shinyRateChoices: [1 / 50, 1 / 20, 1 / 10, 1 / 5], // ガチャごとに選べる色違いの確率
   },
 

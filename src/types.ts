@@ -17,7 +17,9 @@ export type BoosterKey = 'habit' | 'exp' | 'quest'
 
 export interface GameState {
   gold: number // オーブ（ガチャ・ブースター）。中の名前は gold のまま
-  questRarity?: number // 1 なら、降臨のレア度を「格」の意味に直してある
+  redesign?: number // 1 なら、降臨の格（bossGrade）を書き込んである
+  hoshi?: number // ホシ玉の数（引くとレア以上が確定）
+  normalCount?: number // 次のホシ玉までに出たノーマルの数
   questRules?: number // ボスクエストの条件を、この版のおまかせで作り直してある
   orbScale?: number // 1 ならオーブの単位（以前のゴールドの10分の1）に直してある
   coins: number // 進化コイン（進化・ジョグレス・EXPの購入）
@@ -53,7 +55,7 @@ export interface GameState {
   questClears: number // クエストをクリアした回数
   clearedQuests: Record<string, number> // クエストごとのクリア回数（一覧の✓に使う）
   tower: { month: string; cleared: number } | null // 試練の塔：その月にクリアした階の数
-  castle?: { cleared: number } // 零の孤城：クリアした階の数（1回きり）
+  castle?: { month?: string; cleared: number } // 零の孤城：その月にクリアした階の数
   boosters: Partial<Record<BoosterKey, number>> // 持っているブースターの数
   boosts: { habit?: boolean; quest?: boolean; expSets?: number } // 使用中のブースター（EXPは残りセット数）
   freeClaims: Record<string, boolean> // 引いた無料ガチャ（'thursday:2026-10-22' のようなキー）
@@ -125,22 +127,27 @@ export interface MonsterDef {
   jogressGrade?: number // 素材のうち激レアの数（0〜2）。保存するときに計算する。強さとアビリティの数に効く
   questOnly?: boolean // クエスト限定（ガチャには出ない。クエストのボスとして倒すと手に入る）
   questTier?: 'bakuzetsu' | 'lastBoss' | null // 旧：降臨の格（今はレア度で決める。読み込んだときに直す）
+  jogressPartner?: string // 金の獣神化（合体）の相手の激レア（defId）。絵は images.gold、名前は names.gold
   castleLord?: boolean // 零の孤城の城主（激レアの降臨のうち。最上階のボスになり、倒すともらえる）
   tower?: boolean // 試練の塔の報酬（降臨のうち。5階・10階で月替わりにもらえる）
   abilities?: string[] // アビリティ：対応するギミック名で持つ（例：'バリア' ならアーク）
   extraAbilities?: string[] // カスタマイズで足したアビリティ（読み込んだ個体に付くだけ。保存はしない）
   extraFavorite?: string // カスタマイズで足した得意種目（同上）
-  rarity?: RarityKey | 'rare' // レア度（なければノーマル。以前の「レア」は激レアとして扱う）
+  tier?: RarityKey // レア度（ノーマル・レア・激レア）。なければ、以前の rarity から読み替える
+  rarity?: string // 旧：以前のレア度（hazure・normal・uncommon・superRare・rare）。読むだけ
+  bossGrade?: QuestGrade // 降臨の格（上級〜爆絶）。星・アビリティの数・攻撃力と、そのボスのクエストの格が決まる
   common?: boolean // 旧形式：ハズレ枠（レア度ができる前のデータ）
   createdAt: number
 }
 
 /** 色違いを付けた名前（例：✨ショルベアー） */
 export function plusName(def: MonsterDef, mon: OwnedMonster): string {
-  return `${mon.shiny ? '✨' : ''}${monsterName(def, mon.nodeId)}`
+  // 獣神化していれば、獣神化の名前（金は合体の名前）
+  const shinkaName = mon.shinka ? def.names?.[mon.shinkaGold ? 'gold' : 'shinka']?.trim() : ''
+  return `${mon.shiny ? '✨' : ''}${shinkaName || monsterName(def, mon.nodeId)}`
 }
 
-export type RarityKey = 'hazure' | 'normal' | 'uncommon' | 'superRare' // uncommon は画面では「レア」（以前の 'rare' は激レアのこと）
+export type RarityKey = 'normal' | 'rare' | 'superRare' // ノーマル・レア・激レア
 
 
 /** バナーの型：上位1体のズーム・上位3体・上位5体・ほかのピックアップ一覧 */
@@ -175,6 +182,7 @@ export interface Quest {
   id: string
   name: string // 空ならボスの名前を出す
   autoName?: boolean // 名前を付けていない（読み込むときに付く。保存はしない）
+  bossSeries?: string // ボスのコラボ名（読み込むときに付く。保存はしない）
   builtin?: boolean // 最初から用意されている素材クエスト（編集・削除できない）
   drop?: MaterialDrop // 素材クエストで落ちるもの（なければ、ボスの部位の核。部位がなければ筋肉玉）
   kind?: 'boss' | 'material' // ボスクエスト（ボスが手に入る）か、素材クエスト（核が落ちる）か。なければボス
@@ -225,9 +233,12 @@ export interface OwnedMonster {
   plusExp?: AttrExp // 次の＋に向けて注いだEXP
   plusFrom?: Partial<Record<ExpSource, AttrExp>> // 次の＋に向けて、どの財布から注いだか（返却用）
   shiny?: boolean // 色違い
-  shinka?: boolean // 神化：最終形態の激レアが、降臨を素材に★4になった
+  shinka?: boolean // 獣神化して★4になった
+  shinkaGold?: boolean // 金の獣神化（相手の激レアと合体した）
   custom?: string // カスタマイズ枠に付けたアイテム（lib/custom の itemKey）
   customSlot?: string // 「得意種目の追加」で選んだ種目の枠ID
+  locked?: boolean // ロック：まとめて合成・素材に使わない
+  record?: { damage: number; quests: number; mvp: number; best: number } // 記録：通算ダメージ・出撃回数（倒した回数）・MVP回数・1回の最大ダメージ
   obtainedAt: number
 }
 

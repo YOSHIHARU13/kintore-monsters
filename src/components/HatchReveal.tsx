@@ -4,6 +4,7 @@ import { CONFIG } from '../config/gameConfig'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { starsOf } from '../lib/gacha'
 import { MonsterImage } from './MonsterImage'
+import { FitHint } from './FitList'
 import { monsterName, type MonsterDef, type RarityKey } from '../types'
 
 export interface Hatched {
@@ -88,17 +89,18 @@ export function HatchReveal({ hatched, onClose, onMeet }: { hatched: Hatched; on
       {big && <div className="beat-burst reverse" />}
       {big && Array.from({ length: 42 }, (_, i) => <i key={i} className="spark" style={{ ['--i' as string]: i }} />)}
       <div className="beat-text">
-        {hatched.pity && <div className="beat-sub">天井で確定！</div>}
+        {hatched.pity && <div className="beat-sub">レア以上確定！</div>}
         {hatched.rarity !== 'normal' && (
           <div className={`beat-title rarity-${hatched.rarity}`}>
             {CONFIG.gacha.rarities[hatched.rarity].label}
-            {hatched.rarity === 'hazure' ? '…' : '！'}
+            ！
           </div>
         )}
         {starRow}
         <MonsterImage imageId={imageOf(hatched.def, FIRST_NODE_ID)} awaken={awakenOf(hatched.def, FIRST_NODE_ID)} glow={glowOf(hatched.def)} size={180} shiny={hatched.shiny} />
         <div className="beat-title">{monsterName(hatched.def, FIRST_NODE_ID)}</div>
         <div className="beat-sub">が生まれた！</div>
+        {hatched.rarity !== 'normal' && <FitHint def={hatched.def} />}
         <button
           className="btn primary"
           onClick={(e) => {

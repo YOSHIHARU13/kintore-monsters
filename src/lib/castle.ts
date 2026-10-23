@@ -3,25 +3,28 @@ import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { elementInfo } from './element'
 import { gradeOf, standardSessionDamage } from './quest'
 import { autoQuestSetup } from './questAuto'
-import { rarityOf } from './gacha'
-import type { TowerFloor } from './tower'
+import { bossGradeOf, rarityOf } from './gacha'
+import { isOpenOn, type TowerFloor } from './tower'
 import { isHidden, nodeAttr, type GameState, type MonsterDef, type Quest } from '../types'
 
 export const CASTLE_PREFIX = 'castle-'
 export const isCastleQuest = (id: string) => id.startsWith(CASTLE_PREFIX)
 
-/** クリアした階の数（1回きり） */
-export function castleCleared(state: Pick<GameState, 'castle'>): number {
-  return state.castle?.cleared ?? 0
+/** その月にクリアした階の数（月が変わると0から） */
+export function castleCleared(state: Pick<GameState, 'castle'>, month: string): number {
+  return state.castle?.month === month ? state.castle.cleared : 0
 }
+
+/** 零の孤城は毎月16日〜月末 */
+export const castleOpen = (today: string) => isOpenOn(today, CONFIG.castle.openDays)
 
 /** 城主：激レアの降臨のうち「零の孤城の城主」にした子（図鑑の番号順で最初の子） */
 export function lastBossOf(defs: MonsterDef[]): MonsterDef | undefined {
   return defs.find((d) => d.questOnly && d.castleLord)
 }
 
-/** 爆絶のボスになる降臨：激レアの降臨（城主は除く） */
-export const isBakuzetsuBoss = (d: MonsterDef) => !!d.questOnly && !d.castleLord && rarityOf(d) === 'superRare'
+/** 爆絶のボスになる降臨：格が爆絶の降臨（城主は除く） */
+export const isBakuzetsuBoss = (d: MonsterDef) => !d.castleLord && bossGradeOf(d) === 'bakuzetsu'
 
 /**
  * 1〜10階のボス：爆絶のボス（爆絶級の降臨と、爆絶クエストのボス）を、炎・水・木・光・闇の順に2周。
@@ -33,7 +36,10 @@ export function castleLineup(defs: MonsterDef[], quests: Pick<Quest, 'kind' | 'g
     new Set(quests.filter((q) => q.kind !== 'material' && !q.builtin && gradeOf(q) === grade).map((q) => q.bossDefId))
   const bakuzetsuIds = bossIds('bakuzetsu')
   const chozetsuIds = bossIds('chozetsu')
-  const top = defs.filter((d) => isBakuzetsuBoss(d) || (bakuzetsuIds.has(d.id) && !d.castleLord))
+  // コラボの子と、超究極のボスは入れない
+  const strongIds = bossIds('chokyukyoku')
+  const ok = (d: MonsterDef) => !d.series?.trim() && !strongIds.has(d.id) && bossGradeOf(d) !== 'chokyukyoku'
+  const top = defs.filter((d) => (isBakuzetsuBoss(d) || (bakuzetsuIds.has(d.id) && !d.castleLord)) && ok(d))
   const slots = c.elementOrder.length * 2
   const lineup: (MonsterDef | undefined)[] = Array.from({ length: slots }, (_, i) => {
     const e = c.elementOrder[i % c.elementOrder.length]
@@ -43,9 +49,9 @@ export function castleLineup(defs: MonsterDef[], quests: Pick<Quest, 'kind' | 'g
   const spare = [
     ...top,
     ...defs.filter((d) => chozetsuIds.has(d.id)),
-    ...defs.filter((d) => d.questOnly && !isHidden(d) && !d.castleLord),
-    ...defs.filter((d) => !d.questOnly && !isHidden(d) && rarityOf(d) !== 'hazure'),
-  ].filter((d) => !used.has(d.id))
+    ...defs.filter((d) => d.questOnly && !isHidden(d) && !d.castleLord && !d.tower),
+    ...defs.filter((d) => !d.questOnly && !isHidden(d) && rarityOf(d) !== 'normal'),
+  ].filter((d) => !used.has(d.id) && ok(d))
   return lineup.map((d) => {
     if (d) return d
     const next = spare.find((x) => !used.has(x.id))

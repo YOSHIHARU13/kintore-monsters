@@ -7,7 +7,8 @@ import { bannerNodeOf } from '../components/GachaBanner'
 import { ELEMENT_COLOR, ELEMENT_LABEL } from '../lib/element'
 import { CORE_LABEL } from '../lib/cores'
 import { gradeOf } from '../lib/quest'
-import { snapshotTower, towerCleared, towerMonth, type TowerFloor } from '../lib/tower'
+import { snapshotTower, towerCleared, towerMonth, towerOpen, type TowerFloor } from '../lib/tower'
+import { FloorReqs } from '../components/FloorReqs'
 import type { Go } from '../nav'
 import type { GameState, MonsterDef } from '../types'
 import { boosterName } from '../lib/boosters'
@@ -37,7 +38,7 @@ function daysLeft(today: string): number {
   return Math.round((end.getTime() - d.getTime()) / 86400000) + 1
 }
 
-/** 試練の塔：毎月11階。1〜10階は超絶ボスが属性順に2周、11階は塔限定モンスターがボス */
+/** 試練の塔：毎月1〜15日、11階。1〜10階は超絶ボスが属性順に2周、11階は塔限定モンスターがボス */
 export function Tower({ go }: { go: Go }) {
   const { state, tower, defs, today, towerFixed, fixTower } = useStore()
   // まだ保存していなければ、今の塔を保存して、来月以降も同じにする
@@ -47,6 +48,8 @@ export function Tower({ go }: { go: Go }) {
   }, [towerFixed])
   const cleared = towerCleared(state, towerMonth(today))
   const [, m] = towerMonth(today).split('-').map(Number)
+  const open = towerOpen(today)
+  const left = CONFIG.tower.openDays[1] - Number(today.slice(8, 10)) + 1
 
   return (
     <div className="page">
@@ -55,8 +58,9 @@ export function Tower({ go }: { go: Go }) {
       </button>
       <h1 className="title">🗼 試練の塔（{m}月）</h1>
       <p className="muted">
-        {cleared}／{CONFIG.tower.floors}階クリア・のこり{daysLeft(today)}
-        日。毎月1日に新しい塔になります。各階の報酬は月に1回です。
+        {open
+          ? `${cleared}／${CONFIG.tower.floors}階クリア・のこり${left}日（毎月${CONFIG.tower.openDays[0]}〜${CONFIG.tower.openDays[1]}日）。各階の報酬は月に1回です。`
+          : `開催は毎月${CONFIG.tower.openDays[0]}〜${CONFIG.tower.openDays[1]}日です（今は零の孤城の期間・あと${daysLeft(today)}日で開催）。条件は今から見られます。`}
       </p>
       <p className="muted small">
         塔は毎月同じです（ボス・条件・弱点を保存してあります）。ギミックはボスの超絶クエストとはなるべく別のスキルにしてあります。11階のボスは塔限定モンスター（複数いれば月替わり）。
@@ -71,8 +75,7 @@ export function Tower({ go }: { go: Go }) {
           return (
             <li key={f.floor}>
               <button
-                className={`tower-floor${done ? ' done' : ''}${next ? ' next' : ''}`}
-                disabled={!done && !next}
+                className={`tower-floor${done ? ' done' : ''}${next && open ? ' next' : ''}`}
                 style={el ? { ['--el' as string]: ELEMENT_COLOR[el] } : undefined}
                 onClick={() => go({ name: 'quest', id: f.quest.id })}
               >
@@ -89,10 +92,11 @@ export function Tower({ go }: { go: Go }) {
                       {CONFIG.quest.grades[gradeOf(f.quest)].label}
                     </span>
                   </strong>
+                  <FloorReqs quest={f.quest} />
                   <span className="small">{towerRewardText(f, defs, state)}</span>
                 </span>
                 {prize && <MonsterImage imageId={imageOf(prize, bannerNodeOf(prize))} awaken={awakenOf(prize, bannerNodeOf(prize))} glow={glowOf(prize)} size={40} silhouette={!done} />}
-                <span className="tower-state">{done ? '✓' : next ? '挑戦' : '🔒'}</span>
+                <span className="tower-state">{done ? '✓' : next && open ? '挑戦' : '🔒'}</span>
               </button>
             </li>
           )

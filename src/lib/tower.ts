@@ -37,6 +37,15 @@ export const TOWER_PREFIX = 'tower-'
 export const isTowerQuest = (id: string) => id.startsWith(TOWER_PREFIX)
 export const towerMonth = (date: string) => date.slice(0, 7)
 
+/** 開催中か（月の何日から何日まで） */
+export function isOpenOn(today: string, days: [number, number]): boolean {
+  const d = Number(today.slice(8, 10))
+  return d >= days[0] && d <= days[1]
+}
+
+/** 試練の塔は毎月1〜15日 */
+export const towerOpen = (today: string) => isOpenOn(today, CONFIG.tower.openDays)
+
 /** 今月クリアした階の数 */
 export function towerCleared(state: Pick<GameState, 'tower'>, month: string): number {
   return state.tower?.month === month ? state.tower.cleared : 0
