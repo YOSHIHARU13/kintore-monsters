@@ -39,8 +39,8 @@ export function featuredOf(gacha: Gacha, table: Rate[], defs: MonsterDef[]): Mon
     seen.add(el)
     return true
   })
-  // 激レアで足りなければ、レア（中当たり）も
-  const mids = table.filter((t) => t.rarity === 'uncommon').map((t) => t.def)
+  // 激レアで足りなければ、コラボのレア（中当たり）も（いつものレアはどのガチャにもいるので出さない）
+  const mids = table.filter((t) => t.rarity === 'rare' && t.def.series?.trim()).map((t) => t.def)
   return [...spread, ...rares.filter((d) => !spread.includes(d)), ...mids].slice(0, max)
 }
 

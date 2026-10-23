@@ -17,7 +17,9 @@ export type BoosterKey = 'habit' | 'exp' | 'quest'
 
 export interface GameState {
   gold: number // オーブ（ガチャ・ブースター）。中の名前は gold のまま
-  questRarity?: number // 1 なら、降臨のレア度を「格」の意味に直してある
+  redesign?: number // 1 なら、降臨の格（bossGrade）を書き込んである
+  hoshi?: number // ホシ玉の数（引くとレア以上が確定）
+  normalCount?: number // 次のホシ玉までに出たノーマルの数
   questRules?: number // ボスクエストの条件を、この版のおまかせで作り直してある
   orbScale?: number // 1 ならオーブの単位（以前のゴールドの10分の1）に直してある
   coins: number // 進化コイン（進化・ジョグレス・EXPの購入）
@@ -130,7 +132,9 @@ export interface MonsterDef {
   abilities?: string[] // アビリティ：対応するギミック名で持つ（例：'バリア' ならアーク）
   extraAbilities?: string[] // カスタマイズで足したアビリティ（読み込んだ個体に付くだけ。保存はしない）
   extraFavorite?: string // カスタマイズで足した得意種目（同上）
-  rarity?: RarityKey | 'rare' // レア度（なければノーマル。以前の「レア」は激レアとして扱う）
+  tier?: RarityKey // レア度（ノーマル・レア・激レア）。なければ、以前の rarity から読み替える
+  rarity?: string // 旧：以前のレア度（hazure・normal・uncommon・superRare・rare）。読むだけ
+  bossGrade?: QuestGrade // 降臨の格（上級〜爆絶）。星・アビリティの数・攻撃力と、そのボスのクエストの格が決まる
   common?: boolean // 旧形式：ハズレ枠（レア度ができる前のデータ）
   createdAt: number
 }
@@ -140,7 +144,7 @@ export function plusName(def: MonsterDef, mon: OwnedMonster): string {
   return `${mon.shiny ? '✨' : ''}${monsterName(def, mon.nodeId)}`
 }
 
-export type RarityKey = 'hazure' | 'normal' | 'uncommon' | 'superRare' // uncommon は画面では「レア」（以前の 'rare' は激レアのこと）
+export type RarityKey = 'normal' | 'rare' | 'superRare' // ノーマル・レア・激レア
 
 
 /** バナーの型：上位1体のズーム・上位3体・上位5体・ほかのピックアップ一覧 */

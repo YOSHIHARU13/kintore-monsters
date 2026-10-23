@@ -26,7 +26,7 @@ import { fusionCost, isExpFull, jogressStones, materialKeys, missingMaterials, n
 import { habitGoldNow, stepsGold } from './lib/rewards'
 import { isWeekCleared } from './lib/week'
 import { compressImage } from './lib/imageCompress'
-import { draw, isPickupRarity, isPity, isReady, pullsAffordable, rarityOf, rateTable, starsOf, type Pay } from './lib/gacha'
+import { bossGradeOf, drawSure, isPickupRarity, isReady, pickFrom, pullsAffordable, rarityOf, rateTable, starsOf, type Pay } from './lib/gacha'
 import { isJogressReady } from './lib/stats'
 import { battleOf, dropPlus, isStrict, questGold } from './lib/quest'
 import {
@@ -71,7 +71,7 @@ import type { Period, Periods } from './lib/series'
 import { castleCleared, castleFloors } from './lib/castle'
 import { TOWER_VERSION, towerCleared, towerFloors, towerMonth, type FixedFloor, type TowerFloor } from './lib/tower'
 import { ELEMENTS, elementInfo, jogressElementOf } from './lib/element'
-import { investedFor, isHidden, nodeAttr, type AttrExp, type BannerSlide, type BoosterKey, type Checkin, type Element, type Gacha, type Quest, type QuestDifficulty, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
+import { investedFor, isHidden, nodeAttr, type AttrExp, type BannerSlide, type BoosterKey, type Checkin, type Element, type Gacha, type Quest, type QuestDifficulty, type QuestGrade, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
 
 const zeroExp = () => ({ trained: 0, bought: 0 })
 
@@ -115,7 +115,7 @@ function initialState(): GameState {
     stones: {},
     coreMisses: {},
     orbScale: 1,
-    questRarity: 1,
+    redesign: 1,
   }
 }
 
@@ -153,7 +153,8 @@ export interface MonsterDefInput {
   files: Record<string, File> // nodeId → 新しくアップロードする画像
   recipe: string[] // 隠しモンスターのレシピ（2体の defId）。普通のモンスターは空
   gachas: string[] // 入るガチャのID（最大3つ。空なら「いつものガチャ」）
-  rarity: RarityKey
+  rarity: RarityKey // レア度（ノーマル・レア・激レア）
+  bossGrade?: QuestGrade // 降臨の格
   questOnly: boolean
   tower?: boolean // 試練の塔の報酬にする（降臨のときだけ）
   castleLord?: boolean // 零の孤城の城主にする（激レアの降臨のときだけ）
@@ -172,7 +173,7 @@ export interface HatchResult {
   def: MonsterDef
   monsterId: string
   shiny: boolean
-  pity: boolean // 天井で確定したか
+  pity: boolean // 確定で引いた（ホシ玉・確定ガチャ）か
 }
 
 /** 落ちた素材（例：💠 炎の結晶 ×4） */
@@ -442,21 +443,22 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     return () => unsubs.forEach((u) => u())
   }, [base, stateRef, menuRef, musicRef, seriesRef, towerRef, fail])
 
-  // 降臨のレア度を「どの格のボスか」の意味に直す（1回だけ）：
-  // 前の激レアの降臨（超絶のボス）→ レア、前に選んだ爆絶級・城主級 → 激レア（城主級は城主に）
-  const migratedRarity = useRef(false)
+  // 作り直し（2026-10）のデータの引っ越し（1回だけ）：降臨の格を書き込む。
+  // 格は、今あるボスクエストの格から（なければ以前のレア度から）。レア度は読むときに読み替えるので書き換えない
+  const migrated = useRef(false)
   useEffect(() => {
-    if (!state || state.questRarity === 1 || defs.length === 0 || migratedRarity.current) return
-    migratedRarity.current = true
+    if (!state || state.redesign === 1 || defs.length === 0 || migrated.current) return
+    migrated.current = true
     const batch = writeBatch(db)
-    for (const d of defs.filter((x) => x.questOnly && !isHidden(x))) {
-      const ref = doc(db, base, 'monsterDefs', d.id)
-      if (d.questTier) batch.update(ref, { rarity: 'superRare', questTier: null, castleLord: d.questTier === 'lastBoss' })
-      else if (rarityOf(d) === 'superRare') batch.update(ref, { rarity: 'uncommon' })
+    for (const d of defs.filter((x) => x.questOnly && !isHidden(x) && !x.bossGrade)) {
+      const quest = questDocs.find((q) => q.kind !== 'material' && q.bossDefId === d.id && q.grade)
+      // 激レアの降臨は、前の作り直しで「爆絶級」にした子。それ以外は今のクエストの格を引き継ぐ
+      const grade = d.questTier || d.rarity === 'superRare' ? 'bakuzetsu' : (quest?.grade ?? bossGradeOf(d))
+      batch.update(doc(db, base, 'monsterDefs', d.id), { bossGrade: grade, ...(d.questTier === 'lastBoss' ? { castleLord: true } : {}), questTier: null })
     }
-    batch.update(stateRef, { questRarity: 1 })
+    batch.update(stateRef, { redesign: 1 })
     batch.commit().catch(fail)
-  }, [state, defs, base, stateRef, fail])
+  }, [state, defs, questDocs, base, stateRef, fail])
 
   // 「いつものガチャ」は、保存していなくても必ずある
   const gachas = useMemo(() => {
@@ -715,13 +717,16 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       if (!isReady(gacha, table)) return []
       const batch = writeBatch(db)
       const update: DocumentData = {}
-      let pulls = state.pity[gacha.id] ?? 0
       const results: HatchResult[] = []
+      // ホシ玉：ノーマルが累計 hoshi.normals 回出るたびに1個
+      let normals = state.normalCount ?? 0
+      let hoshi = 0
       for (let i = 0; i < times; i++) {
-        // 確定ガチャの1回目は、激レアの中から
-        const sure = opts.guaranteed && i === 0 && table.some((t) => t.rarity === CONFIG.gacha.pity.rarity)
-        const pity = sure || isPity(pulls, table)
-        const def = draw(table, sure ? CONFIG.gacha.pity.pulls : pulls, Math.random())
+        // ホシ玉と、激レア確定ガチャの1回目は、レア以上が確定
+        const sure = opts.pay === 'hoshi' || (opts.guaranteed && i === 0)
+        const def = sure
+          ? drawSure(table, Math.random(), opts.guaranteed ? 1 : CONFIG.gacha.hoshi.superRareRate)
+          : pickFrom(table, Math.random())
         if (!def) break
         const shiny = false // 色違いはなくなった
         const ref = doc(collection(db, base, 'ownedMonsters'))
@@ -734,14 +739,21 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
           luck: CONFIG.luck.gachaStart,
           obtainedAt: Date.now() + i, // まとめて引いても入手順がずれないように
         })
-        if (shiny) update[`dexShiny.${def.id}`] = true
-        pulls = rarityOf(def) === CONFIG.gacha.pity.rarity ? 0 : pulls + 1
-        results.push({ def, monsterId: ref.id, shiny, pity })
+        if (rarityOf(def) === 'normal') {
+          normals++
+          if (normals >= CONFIG.gacha.hoshi.normals) {
+            normals -= CONFIG.gacha.hoshi.normals
+            hoshi++
+          }
+        }
+        results.push({ def, monsterId: ref.id, shiny, pity: !!sure })
       }
       if (!opts.free && opts.pay === 'orbs') update.gold = increment(-results.length * CONFIG.shop.pullPrice)
+      else if (!opts.free && opts.pay === 'hoshi') update.hoshi = increment(-results.length + hoshi)
       else if (!opts.free) update.eggs = increment(-results.length)
+      if (hoshi > 0 && opts.pay !== 'hoshi') update.hoshi = increment(hoshi)
       if (opts.claim) update[`freeClaims.${opts.claim}`] = true
-      update[`pity.${gacha.id}`] = pulls
+      update.normalCount = normals
       batch.update(stateRef, update)
       batch.commit().catch(fail)
       return results
@@ -1045,8 +1057,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         names: input.names,
         recipe: input.recipe,
         gachas: input.gachas.slice(0, CONFIG.gacha.maxPerMonster),
-        rarity: input.rarity,
-        common: false,
+        tier: input.rarity,
+        bossGrade: (input.questOnly && input.bossGrade) || null,
         element: input.element || null,
         favoriteSlot: input.favoriteSlot,
         series: input.series?.trim() || null,
@@ -1070,7 +1082,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       })
       // このモンスターを素材にする隠しモンスターの格を計算し直す（レア度を変えたとき）
       const updated = defs.map((d) =>
-        d.id === defRef.id ? { ...d, rarity: input.rarity, element: input.element || undefined } : d,
+        d.id === defRef.id ? { ...d, tier: input.rarity, element: input.element || undefined } : d,
       )
       for (const hidden of defs.filter((d) => isHidden(d) && d.recipe!.includes(defRef.id))) {
         const el = jogressElementOf(hidden.recipe!, updated)
@@ -1098,7 +1110,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         const rec = recommend(working, quests, selectableGimmicks(quests), abilitySlots(def), def.id, slotIds, own)
         const tuned: Partial<MonsterDef> = {}
         if (!def.element) tuned.element = rec.element
-        if (!def.rarity && !def.common) tuned.rarity = 'normal'
+        if (!def.tier && !def.rarity && !def.common) tuned.tier = 'rare'
         if (!def.favoriteSlot && rec.favoriteSlot) tuned.favoriteSlot = rec.favoriteSlot
         const slots = abilitySlots({ ...def, ...tuned })
         if ((def.abilities ?? []).length === 0 && slots > 0) tuned.abilities = rec.abilities.slice(0, slots)

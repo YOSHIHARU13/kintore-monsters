@@ -44,8 +44,6 @@ export function Shop({ go }: { go: Go }) {
 
   const gacha = shown.find((g) => g.id === gachaId) ?? shown[0]
   const table = rateTable(gacha.id, defs)
-  const hasPityTier = table.some((t) => t.rarity === CONFIG.gacha.pity.rarity)
-  const pityLeft = CONFIG.gacha.pity.pulls - (state.pity[gacha.id] ?? 0)
   const met = (defId: string) => owned.some((o) => o.defId === defId) || (state.dexFound[defId]?.length ?? 0) > 0
   const ready = isReady(gacha, table)
   const hatch = (pay: Pay) => {
@@ -136,14 +134,17 @@ export function Shop({ go }: { go: Go }) {
               </button>
             ))}
             {freeEvents.length > 0 && !active && <p className="muted small">{ACTIVE_HINT}</p>}
+            {(state.hoshi ?? 0) > 0 && (
+              <button className="btn primary wide hoshi-pull" onClick={() => hatch('hoshi')}>
+                🌟 ホシ玉で引く（レア以上確定・残り{state.hoshi}個）
+              </button>
+            )}
             {state.eggs > 0 && pullRow('eggs')}
             {pullRow('orbs')}
             <p className="muted small center">1回：トク玉1個 か オーブ{price}個</p>
-            {hasPityTier && (
-              <p className="small center bonus-reward">
-                {CONFIG.gacha.rarities[CONFIG.gacha.pity.rarity].label}確定まで あと{pityLeft}回
-              </p>
-            )}
+            <p className="small center bonus-reward">
+              ノーマルがあと{CONFIG.gacha.hoshi.normals - (state.normalCount ?? 0)}回出ると、🌟ホシ玉（レア以上確定）
+            </p>
             <details>
               <summary className="small">提供割合を見る</summary>
             {[...tierRates(table)].reverse().map(({ rarity, rate, count }) => (

@@ -1,6 +1,6 @@
 import { CONFIG } from '../config/gameConfig'
 import { getNode, getTemplate } from '../data/evolutionTemplates'
-import { rarityOf, starsOf } from './gacha'
+import { bossGradeOf, rarityOf, starsOf } from './gacha'
 import { customAttack } from './custom'
 import { isHidden, type MonsterDef, type OwnedMonster } from '../types'
 
@@ -18,8 +18,8 @@ export function attackOf(mon: OwnedMonster, def: MonsterDef): number {
   const level = monStars(mon, def) - CONFIG.gacha.formStarBase
   const bonus = isHidden(def)
     ? CONFIG.gacha.jogressAttackBonus + (def.jogressGrade ?? 0) * CONFIG.jogress.superRareBonus
-    : def.questOnly
-      ? CONFIG.gacha.questAttackBonus[rarityOf(def)]
+    : bossGradeOf(def)
+      ? CONFIG.quest.bossGrades[bossGradeOf(def)!].attack
       : CONFIG.gacha.rarities[rarityOf(def)].attackBonus
   return level * perStar + bonus + customAttack(mon)
 }

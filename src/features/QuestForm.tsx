@@ -450,8 +450,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
             ))}
           </div>
           <p className="muted small">
-            {CONFIG.quest.grades[grade].label}：報酬 {CONFIG.quest.grades[grade].gold}オーブ・ボス
-            {CONFIG.quest.grades[grade].plus > 0 ? `＋${CONFIG.quest.grades[grade].plus}` : ''}がドロップ。格を選ぶとHPが入り直します（手で書き換えてもOK）。
+            {CONFIG.quest.grades[grade].label}：報酬 {CONFIG.quest.grades[grade].gold}オーブ・ボスがドロップ。格を選ぶとHPが入り直します（手で書き換えてもOK）。
           </p>
           <label className="field">
             HP（編成がちょうどそろっていて、1回のトレーニングで約{session.toLocaleString()}ダメージが目安）

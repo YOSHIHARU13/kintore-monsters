@@ -88,11 +88,11 @@ export function HatchReveal({ hatched, onClose, onMeet }: { hatched: Hatched; on
       {big && <div className="beat-burst reverse" />}
       {big && Array.from({ length: 42 }, (_, i) => <i key={i} className="spark" style={{ ['--i' as string]: i }} />)}
       <div className="beat-text">
-        {hatched.pity && <div className="beat-sub">天井で確定！</div>}
+        {hatched.pity && <div className="beat-sub">レア以上確定！</div>}
         {hatched.rarity !== 'normal' && (
           <div className={`beat-title rarity-${hatched.rarity}`}>
             {CONFIG.gacha.rarities[hatched.rarity].label}
-            {hatched.rarity === 'hazure' ? '…' : '！'}
+            ！
           </div>
         )}
         {starRow}

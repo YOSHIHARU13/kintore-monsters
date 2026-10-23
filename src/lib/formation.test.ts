@@ -14,11 +14,11 @@ describe('編成', () => {
   ]
 
   it('タグ：超属性は2、複合属性は両方に1、アビリティは持てる数まで', () => {
-    expect(tagsOf(def('a', { rarity: 'rare', element: 'fire', abilities: ['バリア'] }))).toEqual({ 'el:fire': 1, 'ab:バリア': 1 })
+    expect(tagsOf(def('a', { tier: 'superRare', element: 'fire', abilities: ['バリア'] }))).toEqual({ 'el:fire': 1, 'ab:バリア': 1 })
     expect(tagsOf(def('s', { recipe: ['x', 'y'], jogressElements: ['fire'], jogressSuper: true }))).toEqual({ 'el:fire': 2 })
     expect(tagsOf(def('d', { recipe: ['x', 'y'], jogressElements: ['fire', 'water'] }))).toEqual({ 'el:fire': 1, 'el:water': 1 })
-    expect(tagsOf(def('h', { rarity: 'hazure', abilities: ['バリア'] }))).toEqual({}) // ハズレはアビリティ0個
-    expect(tagsOf(def('n', { abilities: ['バリア', 'シールド'] }))).toEqual({ 'ab:バリア': 1 }) // ノーマルは1個
+    expect(tagsOf(def('n', { tier: 'normal', abilities: ['バリア', 'シールド'] }))).toEqual({ 'ab:バリア': 1 }) // ノーマルは1個
+    expect(tagsOf(def('r', { tier: 'rare', abilities: ['バリア', 'シールド', 'ミラー'] }))['ab2:シールド|バリア']).toBe(1) // レアは2個
     // 激レアは2個、ジョグレスは3個まで
     // 2つ持っていれば「両方もつ」の条件にも数える
     expect(tagsOf(def('s', { rarity: 'superRare', abilities: ['バリア', 'シールド', 'ミラー'] }))).toEqual({

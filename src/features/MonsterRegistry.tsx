@@ -30,7 +30,7 @@ export function todosOf(def: MonsterDef): string[] {
   const todos: string[] = []
   if (!imageOf(def, FIRST_NODE_ID)) todos.push('画像なし')
   if (!isHidden(def) && elementInfo(def).elements.length === 0) todos.push('属性なし')
-  if (!isHidden(def) && !def.rarity && !def.common) todos.push('レア度未設定')
+  if (!isHidden(def) && !def.questOnly && !def.tier && !def.rarity && !def.common) todos.push('レア度未設定')
   // レア・激レアはガチャに入れないと手に入らない（いつものガチャはなくなった）
   if (!isHidden(def) && !def.questOnly && isPickupRarity(rarityOf(def)) && !(def.gachas ?? []).length) todos.push('ガチャ未所属')
   return todos
@@ -50,7 +50,7 @@ export function MonsterRegistry({ go }: { go: Go }) {
     (d) =>
       !isHidden(d) &&
       (elementInfo(d).elements.length === 0 ||
-        (!d.rarity && !d.common) ||
+        (!d.questOnly && !d.tier && !d.rarity && !d.common) ||
         !d.favoriteSlot ||
         ((d.abilities ?? []).length === 0 && abilitySlots(d) > 0)),
   )

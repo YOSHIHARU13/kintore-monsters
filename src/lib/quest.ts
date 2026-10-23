@@ -219,9 +219,9 @@ export function questGold(quest: Pick<Quest, 'rank' | 'kind' | 'grade'>, difficu
   return Math.round(CONFIG.quest.difficulties[difficulty].gold * rankOf(quest).gold)
 }
 
-/** ボスクエストで手に入るボスの＋ */
-export function dropPlus(quest: Pick<Quest, 'grade' | 'rank'>): number {
-  return CONFIG.quest.grades[gradeOf(quest)].plus
+/** ボスクエストで手に入るボスの＋（＋はなくなったので、いつも0） */
+export function dropPlus(_quest: Pick<Quest, 'grade' | 'rank'>): number {
+  return 0
 }
 
 /** クエストの格や難易度の表示（例：超絶、素材の上級） */

@@ -3,7 +3,7 @@ import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { elementInfo } from './element'
 import { gradeOf, standardSessionDamage } from './quest'
 import { autoQuestSetup } from './questAuto'
-import { rarityOf } from './gacha'
+import { bossGradeOf, rarityOf } from './gacha'
 import type { TowerFloor } from './tower'
 import { isHidden, nodeAttr, type GameState, type MonsterDef, type Quest } from '../types'
 
@@ -20,8 +20,8 @@ export function lastBossOf(defs: MonsterDef[]): MonsterDef | undefined {
   return defs.find((d) => d.questOnly && d.castleLord)
 }
 
-/** 爆絶のボスになる降臨：激レアの降臨（城主は除く） */
-export const isBakuzetsuBoss = (d: MonsterDef) => !!d.questOnly && !d.castleLord && rarityOf(d) === 'superRare'
+/** 爆絶のボスになる降臨：格が爆絶の降臨（城主は除く） */
+export const isBakuzetsuBoss = (d: MonsterDef) => !d.castleLord && bossGradeOf(d) === 'bakuzetsu'
 
 /**
  * 1〜10階のボス：爆絶のボス（爆絶級の降臨と、爆絶クエストのボス）を、炎・水・木・光・闇の順に2周。
@@ -44,7 +44,7 @@ export function castleLineup(defs: MonsterDef[], quests: Pick<Quest, 'kind' | 'g
     ...top,
     ...defs.filter((d) => chozetsuIds.has(d.id)),
     ...defs.filter((d) => d.questOnly && !isHidden(d) && !d.castleLord),
-    ...defs.filter((d) => !d.questOnly && !isHidden(d) && rarityOf(d) !== 'hazure'),
+    ...defs.filter((d) => !d.questOnly && !isHidden(d) && rarityOf(d) !== 'normal'),
   ].filter((d) => !used.has(d.id))
   return lineup.map((d) => {
     if (d) return d

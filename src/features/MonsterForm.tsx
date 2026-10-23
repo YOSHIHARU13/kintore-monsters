@@ -7,8 +7,11 @@ import { nextCost } from '../lib/evolution'
 import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
 import { CONFIG } from '../config/gameConfig'
-import { isHidden, type Element, type MonsterDef, type RarityKey } from '../types'
-import { RARITY_KEYS, formLabel, rarityOf } from '../lib/gacha'
+import { isHidden, type Element, type MonsterDef, type RarityKey, type QuestGrade } from '../types'
+import { RARITY_KEYS, bossGradeOf, formLabel, rarityOf } from '../lib/gacha'
+
+/** 降臨の格（選べる順） */
+const BOSS_GRADES: QuestGrade[] = ['jokyu', 'kiwami', 'kyukyoku', 'chozetsu', 'chokyukyoku', 'bakuzetsu']
 import { abilityName, abilitySlots, allGimmicks, selectableGimmicks } from '../lib/gimmick'
 import {
   abilitySupply,
@@ -41,7 +44,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
   const [names, setNames] = useState<Record<string, string>>(existing?.names ?? {})
   const [files, setFiles] = useState<Record<string, File>>({})
   const [birthStars, setBirthStars] = useState(existing?.jogressBirthStars ?? CONFIG.gacha.jogressDefaultBirth)
-  const [fixedStars, setFixedStars] = useState(existing?.fixedStars ?? CONFIG.gacha.fixedStarsDefault)
+  const [fixedStars] = useState(existing?.fixedStars ?? CONFIG.gacha.fixedStarsDefault)
   const [jogressPlus] = useState(existing?.jogressPlus ?? 0)
   const [questOnly, setQuestOnly] = useState(existing?.questOnly === true || questPreset)
   const [tower, setTower] = useState(existing?.tower === true)
@@ -50,7 +53,8 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
   const [favoriteSlot, setFavoriteSlot] = useState(existing?.favoriteSlot ?? '')
   const [abilities, setAbilities] = useState<string[]>(existing?.abilities ?? [])
   const [inGachas, setInGachas] = useState<string[]>(existing?.gachas ?? [])
-  const [rarity, setRarity] = useState<RarityKey>(existing ? rarityOf(existing) : questPreset ? 'superRare' : 'normal')
+  const [rarity, setRarity] = useState<RarityKey>(existing ? rarityOf(existing) : 'rare')
+  const [bossGrade, setBossGrade] = useState<QuestGrade>((existing && bossGradeOf({ ...existing, questOnly: true })) || 'chozetsu')
   const [recipe, setRecipe] = useState<string[]>(existing?.recipe?.length === 2 ? existing.recipe : [])
   // レシピに使えるのは、タマゴから生まれる普通のモンスター（自分以外）
   const parents = defs.filter((d) => d.id !== existing?.id && !isHidden(d))
@@ -71,7 +75,9 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
     attr: attrOf('n1'),
     templateId,
     images: {},
-    rarity,
+    tier: rarity,
+    questOnly,
+    bossGrade: questOnly ? bossGrade : undefined,
     recipe,
     jogressBirthStars: birthStars,
     fixedStars,
@@ -79,13 +85,13 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
   }
   // 被りや不足を見るための集計（自分以外のモンスターと、作ってあるクエストから）
   const gimmickNames = allGimmicks(quests)
-  const maxAbilities = abilitySlots({ recipe, rarity, questOnly })
+  const maxAbilities = abilitySlots({ recipe, tier: rarity, questOnly, bossGrade })
   const draftFull: MonsterDef = {
     ...draftDef,
     attrs: Object.fromEntries(template.nodes.map((n) => [n.id, attrOf(n.id)])),
     element: element || undefined,
     favoriteSlot: favoriteSlot || undefined,
-    abilities: abilities.slice(0, abilitySlots({ recipe, rarity, questOnly })),
+    abilities: abilities.slice(0, abilitySlots({ recipe, tier: rarity, questOnly, bossGrade })),
     ...(recipe.length === 2
       ? { jogressElements: jogressElementOf(recipe, defs).elements, jogressSuper: jogressElementOf(recipe, defs).super }
       : {}),
@@ -185,13 +191,14 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
         // 消したガチャのIDは残さない
         gachas: inGachas.filter((g) => gachas.some((x) => x.id === g && !x.builtin)),
         rarity,
+        bossGrade: questOnly ? bossGrade : undefined,
         element,
         favoriteSlot: validFavorite,
         series,
-        abilities: abilities.slice(0, abilitySlots({ recipe, rarity, questOnly })),
+        abilities: abilities.slice(0, abilitySlots({ recipe, tier: rarity, questOnly, bossGrade })),
         questOnly: recipe.length !== 2 && questOnly,
         tower: recipe.length !== 2 && questOnly && tower,
-        castleLord: recipe.length !== 2 && questOnly && rarity === 'superRare' && castleLord,
+        castleLord: recipe.length !== 2 && questOnly && bossGrade === 'bakuzetsu' && castleLord,
         jogressBirthStars: birthStars,
         jogressPlus,
         fixedStars,
@@ -212,7 +219,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
       <h1 className="title">{existing ? 'モンスターの編集' : questPreset ? '降臨モンスターの登録' : 'モンスターの登録'}</h1>
       {questPreset && (
         <p className="muted small">
-          クエスト限定・1形態だけ・★{CONFIG.gacha.fixedStarsDefault}・激レアで始めます。属性やアビリティはおまかせで埋まるので、名前と画像だけで登録できます。
+          クエスト限定・1形態だけ・格は超絶で始めます。属性やアビリティはおまかせで埋まるので、名前と画像だけで登録できます。
         </p>
       )}
 
@@ -347,7 +354,16 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
 
       {recipe.length !== 2 && (
         <section className="card">
-          <h2>レア度とガチャ</h2>
+          <h2>{questOnly ? '降臨の格' : 'レア度とガチャ'}</h2>
+          {questOnly ? (
+            <div className="chips" role="group" aria-label="降臨の格">
+              {BOSS_GRADES.map((g) => (
+                <button key={g} type="button" className={`chip grade-chip grade-${g}${bossGrade === g ? ' on' : ''}`} onClick={() => setBossGrade(g)}>
+                  {CONFIG.quest.grades[g].label}
+                </button>
+              ))}
+            </div>
+          ) : (
           <div className="chips" role="group" aria-label="レア度">
             {RARITY_KEYS.map((r) => (
               <button
@@ -360,19 +376,20 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
               </button>
             ))}
           </div>
-          <p className="muted small">{CONFIG.gacha.rarities[rarity].hint}</p>
+          )}
+          {!questOnly && <p className="muted small">{CONFIG.gacha.rarities[rarity].hint}</p>}
           <label className="row">
             <input type="checkbox" checked={questOnly} onChange={(e) => setQuestOnly(e.target.checked)} />
             クエスト限定にする（ガチャには出ず、クエストのボスとして倒すと手に入る）
           </label>
           {questOnly && (
             <p className="muted small">
-              降臨のレア度は「どの格のボスか」：ハズレ＝上級・ノーマル＝極/究極・レア＝超絶/超究極・激レア＝爆絶。アビリティは
-              {RARITY_KEYS.map((r) => `${CONFIG.gacha.rarities[r].label}${CONFIG.gimmicks.questSlots[r]}`).join('・')}、攻撃力の上乗せは
-              {RARITY_KEYS.map((r) => `${CONFIG.gacha.rarities[r].label}+${CONFIG.gacha.questAttackBonus[r]}`).join('・')}。
+              降臨は格で、星・アビリティの数・攻撃力と、そのボスのクエストの格が決まります（
+              {BOSS_GRADES.map((g) => `${CONFIG.quest.grades[g].label}★${CONFIG.quest.bossGrades[g].stars}・アビ${CONFIG.quest.bossGrades[g].abilities}`).join('／')}
+              。爆絶は獣神化で★4）。
             </p>
           )}
-          {questOnly && rarity === 'superRare' && (
+          {questOnly && bossGrade === 'bakuzetsu' && (
             <label className="row">
               <input type="checkbox" checked={castleLord} onChange={(e) => setCastleLord(e.target.checked)} />
               👑 零の孤城の城主にする（最上階の零属性のボスになり、倒すともらえる）
@@ -383,21 +400,6 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
               <input type="checkbox" checked={tower} onChange={(e) => setTower(e.target.checked)} />
               🗼 試練の塔の報酬にする（11階のボスになり、倒すともらえる。複数いれば月替わり）
             </label>
-          )}
-          {questOnly && templateId === 'single' && (
-            <div className="field">
-              進化しないので、星を決めます
-              <div className="chips" role="group" aria-label="進化しないモンスターの星">
-                {CONFIG.gacha.fixedStarsChoices.map((n) => (
-                  <button key={n} type="button" className={`chip${fixedStars === n ? ' on' : ''}`} onClick={() => setFixedStars(n)}>
-                    ★{n}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          {questOnly && templateId !== 'single' && (
-            <p className="muted small">進化しない降臨モンスターにしたいときは、上の進化ツリーで「1形態だけ」を選んでください。</p>
           )}
           {!questOnly && !CONFIG.gacha.rarities[rarity].everyGacha && (
             <>
@@ -532,8 +534,8 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
             })}
           </div>
           <span className="muted small">
-            クエストの「求められる編成」の条件になります。持てる数はレア度で決まります（ハズレ{CONFIG.gimmicks.slots.hazure}・ノーマル{CONFIG.gimmicks.slots.normal}、激レア
-            {CONFIG.gimmicks.slots.superRare}、ジョグレス{CONFIG.gimmicks.slots.jogress}。降臨はレア度ごとに{RARITY_KEYS.map((r) => CONFIG.gimmicks.questSlots[r]).join('・')}）。
+            クエストの「求められる編成」の条件になります。持てる数はレア度で決まります（ノーマル{CONFIG.gimmicks.slots.normal}・レア
+            {CONFIG.gimmicks.slots.rare}・激レア{CONFIG.gimmicks.slots.superRare}・ジョグレス{CONFIG.gimmicks.slots.jogress}。降臨は格で決まる）。
           </span>
         </div>
         </details>
