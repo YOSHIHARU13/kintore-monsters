@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { autoGradeOf, autoQuestSetup, basisRequirements } from './questAuto'
+import { autoGradeOf, autoQuestSetup, basisRequirements, bossQuestSync } from './questAuto'
 import { fitsQuest, isStrict } from './quest'
 import type { MonsterDef } from '../types'
 
@@ -88,5 +88,19 @@ describe('おまかせのクエスト', () => {
     const r = autoQuestSetup(boss, 'kyukyoku', 'boss', [], ['バリア'], undefined, [mk('a'), mk('b')])
     expect(r.heroId).toBeUndefined()
     expect(r.requirements).toEqual([{ tag: 'el:wood', count: 3 }, { tag: 'ab:バリア', count: 3 }])
+  })
+})
+
+describe('降臨のボスクエストは自動', () => {
+  it('なければ作る。格や部位が変わったら合わせる。合っていれば何もしない。塔限定・城主は作らない', () => {
+    const hp = () => 1000
+    const made = bossQuestSync({ ...boss, bossGrade: 'kiwami' }, [], [], [], hp)!
+    expect(made.id).toBeNull()
+    expect(made.data).toMatchObject({ kind: 'boss', bossDefId: 'b1', grade: 'kiwami', attr: 'legs', hp: { normal: 1000 } })
+    const existing = [{ id: 'q', kind: 'boss' as const, bossDefId: 'b1', grade: 'kiwami' as const, attr: 'legs' as const }]
+    expect(bossQuestSync({ ...boss, bossGrade: 'kiwami' }, existing, [], [], hp)).toBeNull()
+    expect(bossQuestSync({ ...boss, bossGrade: 'bakuzetsu' }, existing, [], [], hp)).toMatchObject({ id: 'q', data: { grade: 'bakuzetsu' } })
+    expect(bossQuestSync({ ...boss, tower: true }, [], [], [], hp)).toBeNull()
+    expect(bossQuestSync({ ...boss, castleLord: true }, [], [], [], hp)).toBeNull()
   })
 })

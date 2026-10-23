@@ -1,6 +1,7 @@
 import { CONFIG } from '../config/gameConfig'
 import { DAYS, SLOTS, type FormAttr } from '../data/exercises'
 import { attackOf } from './stats'
+import { rarityOf } from './gacha'
 import { customized, isFavorite } from './custom'
 import { formationOf, requirementsOf } from './formation'
 import { elementInfo, hasAdvantage } from './element'
@@ -74,6 +75,11 @@ export function setHit(set: SetInfo, quest: Quest, party: Member[], label: strin
       d *= bakuzetsu ? q.offElementBakuzetsu : q.offElementChozetsu
       notes.add(`${m.def.name}は属性が合わず${bakuzetsu ? '3分の1' : '半減'}`)
     }
+    // コラボの激レア・レアは、同じコラボのボスに×1.5
+    if (isCollabHero(m.def, quest)) {
+      d *= q.collabBonus
+      notes.add(`${m.def.name}はコラボ×${q.collabBonus}`)
+    }
     if (partAttr && attrOf(m) === partAttr) d *= q.partMatch
     if (bossPart) d *= q.bossPart
     if (weak) d *= q.weakSlot
@@ -93,6 +99,12 @@ export function atDifficulty(quest: Quest, difficulty: QuestDifficulty): Quest {
   return requirements || weakSlots
     ? { ...quest, requirements: requirements ?? quest.requirements, weakSlots: weakSlots ?? quest.weakSlots }
     : quest
+}
+
+/** コラボの激レア・レアが、同じコラボのボスと戦っているか */
+export function isCollabHero(def: MonsterDef, quest: Pick<Quest, 'bossSeries'>): boolean {
+  const series = def.series?.trim() ?? ''
+  return series !== '' && series === quest.bossSeries && !def.questOnly && rarityOf(def) !== 'normal'
 }
 
 /** 挑戦を始めてからの攻撃（報酬が出るセットだけ数える） */

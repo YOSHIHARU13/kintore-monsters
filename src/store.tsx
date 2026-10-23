@@ -28,7 +28,8 @@ import { isWeekCleared } from './lib/week'
 import { compressImage } from './lib/imageCompress'
 import { bossGradeOf, drawSure, isPickupRarity, isReady, pickFrom, pullsAffordable, rarityOf, rateTable, starsOf, type Pay } from './lib/gacha'
 import { isJogressReady } from './lib/stats'
-import { battleOf, dropPlus, isStrict, questGold } from './lib/quest'
+import { battleOf, defaultBossHp, dropPlus, isStrict, questGold } from './lib/quest'
+import { bossQuestSync } from './lib/questAuto'
 import {
   BALL_KEY,
   CORE_KEYS,
@@ -67,7 +68,7 @@ import { availableEvents, claimKey } from './lib/events'
 import { activeToday, currentStats, loginReady, loginReward, type Reward } from './lib/missions'
 import { builtinMaterialQuests, builtinTempleQuests } from './lib/materials'
 import { itemInfo, itemLabel, rollTempleItems } from './lib/custom'
-import type { Period, Periods } from './lib/series'
+import { seriesOf, type Period, type Periods } from './lib/series'
 import { castleCleared, castleFloors } from './lib/castle'
 import { TOWER_VERSION, towerCleared, towerFloors, towerMonth, type FixedFloor, type TowerFloor } from './lib/tower'
 import { ELEMENTS, elementInfo, jogressElementOf } from './lib/element'
@@ -454,7 +455,11 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const quest = questDocs.find((q) => q.kind !== 'material' && q.bossDefId === d.id && q.grade)
       // 激レアの降臨は、前の作り直しで「爆絶級」にした子。それ以外は今のクエストの格を引き継ぐ
       const grade = d.questTier || d.rarity === 'superRare' ? 'bakuzetsu' : (quest?.grade ?? bossGradeOf(d))
-      batch.update(doc(db, base, 'monsterDefs', d.id), { bossGrade: grade, ...(d.questTier === 'lastBoss' ? { castleLord: true } : {}), questTier: null })
+      const lord = d.questTier === 'lastBoss' || d.castleLord
+      batch.update(doc(db, base, 'monsterDefs', d.id), { bossGrade: grade, ...(lord ? { castleLord: true } : {}), questTier: null })
+      // ボスクエストの格も、降臨の格に合わせる
+      const sync = bossQuestSync({ ...d, bossGrade: grade, castleLord: lord }, questDocs, selectableGimmicks(questDocs), defs, defaultBossHp)
+      if (sync?.id) batch.update(doc(db, base, 'quests', sync.id), sync.data)
     }
     batch.update(stateRef, { redesign: 1 })
     batch.commit().catch(fail)
@@ -491,7 +496,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         const autoName = !q.name?.trim()
         const name = autoName ? (boss?.name ?? '名前のないクエスト') : q.name
         return boss
-          ? { ...q, name, autoName, element: elementInfo(boss).elements[0] }
+          ? { ...q, name, autoName, element: elementInfo(boss).elements[0], bossSeries: seriesOf(boss) }
           : { ...q, name, autoName }
       }).concat([
         ...builtinMaterialQuests(defs, today, selectableGimmicks(questDocs)),
@@ -1045,7 +1050,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         if (images[nodeId]) batch.delete(doc(db, base, 'images', images[nodeId]))
         images[nodeId] = imageRef.id
       }
-      batch.set(defRef, {
+      const payload = {
         name: input.name,
         attr: input.attrs[FIRST_NODE_ID],
         attrs: input.attrs,
@@ -1079,7 +1084,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
             }
           : {}),
         createdAt: existing?.createdAt ?? Date.now(),
-      })
+      }
+      batch.set(defRef, payload)
       // このモンスターを素材にする隠しモンスターの格を計算し直す（レア度を変えたとき）
       const updated = defs.map((d) =>
         d.id === defRef.id ? { ...d, tier: input.rarity, element: input.element || undefined } : d,
@@ -1092,6 +1098,11 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
           jogressSuper: el.super,
         })
       }
+      // 降臨なら、ボスクエストも自動で作る（格や部位を変えたら、クエストもついてくる。属性はボスから読むので自動）
+      const saved = { ...payload, id: defRef.id, element: payload.element ?? undefined } as unknown as MonsterDef
+      const sync = bossQuestSync(saved, questDocs, selectableGimmicks(questDocs), [...defs.filter((d) => d.id !== saved.id), saved], defaultBossHp)
+      if (sync?.id) batch.update(doc(db, base, 'quests', sync.id), sync.data)
+      else if (sync) batch.set(doc(collection(db, base, 'quests')), { ...sync.data, createdAt: Date.now() })
       batch.commit().catch(fail)
     }
 
@@ -1191,7 +1202,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
 
     const saveQuest: Store['saveQuest'] = (input) => {
       // 読み込むときに付けた項目は保存しない
-      const { id, autoName: _a, builtin: _b, ...data } = input
+      const { id, autoName: _a, builtin: _b, bossSeries: _s, ...data } = input
       const current = id ? quests.find((q) => q.id === id) : undefined
       const ref = id ? doc(db, base, 'quests', id) : doc(collection(db, base, 'quests'))
       setDoc(ref, {

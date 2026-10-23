@@ -179,6 +179,7 @@ export interface Quest {
   id: string
   name: string // 空ならボスの名前を出す
   autoName?: boolean // 名前を付けていない（読み込むときに付く。保存はしない）
+  bossSeries?: string // ボスのコラボ名（読み込むときに付く。保存はしない）
   builtin?: boolean // 最初から用意されている素材クエスト（編集・削除できない）
   drop?: MaterialDrop // 素材クエストで落ちるもの（なければ、ボスの部位の核。部位がなければ筋肉玉）
   kind?: 'boss' | 'material' // ボスクエスト（ボスが手に入る）か、素材クエスト（核が落ちる）か。なければボス

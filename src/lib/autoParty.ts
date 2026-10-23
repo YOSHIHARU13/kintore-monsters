@@ -2,7 +2,7 @@ import { CONFIG } from '../config/gameConfig'
 import { elementInfo } from './element'
 import { formationOf, requirementsOf } from './formation'
 import { isLuckMax } from './fusion'
-import { fitsQuest, gradeOf, isStrict, powerOf, type Member } from './quest'
+import { fitsQuest, gradeOf, isCollabHero, isStrict, powerOf, type Member } from './quest'
 import type { Quest } from '../types'
 
 /** おまかせ編成の型：最強（倍率をとにかく高く）か、運極重視（運極を積めるだけ積んで、編成倍率×1.0はキープ） */
@@ -10,6 +10,12 @@ export type PartyMode = 'strongest' | 'luck'
 
 /** 1体の強さ（属性の倍率込み）：零属性は×1.2、超絶以上で属性が合わない子は半減（爆絶は3分の1） */
 function memberPower(m: Member, quest: Quest): number {
+  const q = CONFIG.quest
+  const collab = isCollabHero(m.def, quest) ? q.collabBonus : 1
+  return elementPower(m, quest) * collab
+}
+
+function elementPower(m: Member, quest: Quest): number {
   const q = CONFIG.quest
   if (elementInfo(m.def).elements.length === 0) return powerOf(m) * q.zeroBonus
   if (isStrict(quest) && !fitsQuest(m.def, quest)) {

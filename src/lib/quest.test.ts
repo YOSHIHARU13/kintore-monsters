@@ -139,3 +139,14 @@ describe('ボスの部位', () => {
     expect(setHit(set('mon1', 'mon'), q, [legs], '').damage).toBe(3) // 胸腕のセットは補正なし（2.5）
   })
 })
+
+describe('コラボ', () => {
+  it('コラボの激レア・レアは、同じコラボのボスに×1.5（ノーマルと降臨、ほかのコラボには付かない）', () => {
+    const q = { ...quest, bossSeries: '鬼' }
+    const hit = (extra: Partial<MonsterDef>) => setHit(set('mon1', 'mon'), q, [{ mon: mon('a', 'a'), def: def('a', extra) }], '', 100).damage
+    const base = hit({})
+    expect(hit({ series: '鬼', tier: 'rare' })).toBe(Math.round(((base * 5500) / 3000) * 1.5)) // レア★1は攻撃力5,500
+    expect(hit({ series: '鬼', tier: 'normal' })).toBe(base)
+    expect(hit({ series: '桃', tier: 'rare' })).toBe(Math.round((base * 5500) / 3000))
+  })
+})
