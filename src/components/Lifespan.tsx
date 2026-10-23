@@ -23,7 +23,7 @@ function signature(month: string, defs: MonsterDef[], owned: OwnedMonster[], que
 
 /** 寿命の目安を、画面を止めずに計算する（結果はこの端末に覚えておき、登録が変わったら計算し直す） */
 export function useLifespan(): { result: Lifespans | null; busy: boolean } {
-  const { defs, owned, quests, state, today, loaded } = useStore()
+  const { defs, owned, quests, state, today, loaded, tower, kinkin } = useStore()
   const month = towerMonth(today)
   const boss = quests.filter((q) => q.kind !== 'material' && !q.builtin)
   const order = state.bossOrder?.castle
@@ -65,7 +65,7 @@ export function useLifespan(): { result: Lifespans | null; busy: boolean } {
       setBusy(false)
       worker.terminate()
     }
-    worker.postMessage({ month, defs, owned, gimmicks: selectableGimmicks(quests), quests: boss, order })
+    worker.postMessage({ month, defs, owned, gimmicks: selectableGimmicks(quests), quests: boss, order, taken: [...tower, ...kinkin].map((f) => f.quest) })
     return () => worker.terminate()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sig, loaded])

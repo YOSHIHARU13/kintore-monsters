@@ -118,12 +118,15 @@ export const CONFIG = {
   gimmicks: {
     // アビリティ（スキル）の名前。クエストは「アーク 4体」のようにスキル名で募集する。
     // コラボキャラのイメージを壊さないよう、短くて抽象的な名前にしてある。左は内部の名前（変えないこと）
-    // 選べるのは4種類だけ（多すぎると分かりにくいので）
+    // 2026-10-23 に4種類から7種類に（組み合わせを増やして、高難度の寿命を延ばす）
     defaults: {
       バリア: 'アーク',
       シールド: 'ノヴァ',
       リジェネ: 'パルス',
       ミラー: 'ルーン',
+      ワープ: 'エッジ',
+      ブロック: 'ヴェイル',
+      ウィンド: 'ギア',
     } as Record<string, string>,
     // 以前あったもの（選べないが、付けてあるモンスターやクエストの表示用に名前だけ残す）
     legacy: {
@@ -200,10 +203,10 @@ export const CONFIG = {
   questAuto: {
     jokyu: { element: 2, kinds: 3, abilities: 0, abilityCount: 0, combo: 0, weak: 1 },
     kiwami: { element: 3, kinds: 3, abilities: 1, abilityCount: 2, combo: 0, weak: 1 },
-    kyukyoku: { element: 3, kinds: 4, abilities: 1, abilityCount: 3, combo: 0, weak: 1 },
-    chozetsu: { element: 4, kinds: 5, abilities: 2, abilityCount: 3, combo: 0, weak: 2 },
-    bakuzetsu: { element: 5, kinds: 5, abilities: 3, abilityCount: 3, combo: 2, weak: 2 },
-    chokyukyoku: { element: 4, kinds: 5, abilities: 2, abilityCount: 3, combo: 0, weak: 2 },
+    kyukyoku: { element: 3, kinds: 4, abilities: 2, abilityCount: 2, combo: 0, weak: 1 },
+    chozetsu: { element: 4, kinds: 5, abilities: 3, abilityCount: 3, combo: 0, weak: 2 },
+    bakuzetsu: { element: 5, kinds: 5, abilities: 4, abilityCount: 3, combo: 2, weak: 2 },
+    chokyukyoku: { element: 4, kinds: 5, abilities: 3, abilityCount: 3, combo: 0, weak: 2 },
     // 素材クエストは難易度ごと（初級はほぼ縛りなし、究極でやっとアビリティ）
     material: {
       easy: { element: 0, kinds: 0, abilities: 0, abilityCount: 0, combo: 0, weak: 1 },

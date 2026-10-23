@@ -71,6 +71,7 @@ import { seriesOf, type Period, type Periods } from './lib/series'
 import { battlesReached, castleAvailable, castleBest, castleFloors, castleOpen } from './lib/castle'
 import { kinkinCleared, kinkinFloors, kinkinOpen } from './lib/kinkin'
 import type { BossOrderKind } from './lib/pattern'
+import { ABILITY_RULES, planAbilities } from './lib/abilityPlan'
 import { TOWER_VERSION, allTowers, type TowerReward, towerOpen, towerCleared, towerMonth, type FixedFloor, type TowerFloor } from './lib/tower'
 import { ELEMENTS, elementInfo, jogressElementOf } from './lib/element'
 import { investedFor, isHidden, nodeAttr, type AttrExp, type BannerSlide, type BoosterKey, type Checkin, type Element, type Gacha, type Quest, type QuestDifficulty, type QuestGrade, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
@@ -532,6 +533,21 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     batch.commit().catch(fail)
   }, [state, defs, owned, base, stateRef, fail])
 
+  // アビリティの種類を増やしたら、全モンスターのアビリティを1回だけ配り直す（前のアビリティは abilitiesBefore に残す）
+  const replannedAbilities = useRef(false)
+  useEffect(() => {
+    if (!state || defs.length === 0 || replannedAbilities.current || (state.abilityRules ?? 0) >= ABILITY_RULES) return
+    replannedAbilities.current = true
+    const plan = planAbilities(defs, selectableGimmicks(questDocs))
+    const batch = writeBatch(db)
+    for (const p of plan) {
+      const before = defs.find((d) => d.id === p.id)?.abilities ?? []
+      batch.update(doc(db, base, 'monsterDefs', p.id), { abilities: p.abilities, abilitiesBefore: before })
+    }
+    batch.update(stateRef, { abilityRules: ABILITY_RULES })
+    batch.commit().catch(fail)
+  }, [state, defs, questDocs, base, stateRef, fail])
+
   // 「いつものガチャ」は、保存していなくても必ずある
   const gachas = useMemo(() => {
     const builtin = gachaDocs.find((g) => g.builtin) ?? toGacha(CONFIG.gacha.defaultId, undefined)
@@ -583,13 +599,18 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     () => allTowers(towerMonth(today), defs, selectableGimmicks(quests), quests, state?.bossOrder?.tower).flat(),
     [today, defs, quests, state?.bossOrder?.tower],
   )
-  const castle = useMemo(
-    () => castleFloors(towerMonth(today), defs, selectableGimmicks(quests), quests, state?.bossOrder?.castle),
-    [today, defs, quests, state?.bossOrder?.castle],
-  )
+  // 試練の塔 → 禁筋の獄 → 零の孤城の順に、前の高難度で求めたアビリティを避ける（同じギミックばかりにしない）
   const kinkin = useMemo(
-    () => kinkinFloors(towerMonth(today), defs, selectableGimmicks(quests), quests, state?.bossOrder?.kinkin),
-    [today, defs, quests, state?.bossOrder?.kinkin],
+    () => kinkinFloors(towerMonth(today), defs, selectableGimmicks(quests), quests, state?.bossOrder?.kinkin, tower.map((f) => f.quest)),
+    [today, defs, quests, state?.bossOrder?.kinkin, tower],
+  )
+  const castle = useMemo(
+    () =>
+      castleFloors(towerMonth(today), defs, selectableGimmicks(quests), quests, state?.bossOrder?.castle, [
+        ...tower.map((f) => f.quest),
+        ...kinkin.map((f) => f.quest),
+      ]),
+    [today, defs, quests, state?.bossOrder?.castle, tower, kinkin],
   )
 
 

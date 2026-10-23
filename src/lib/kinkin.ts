@@ -46,14 +46,15 @@ export const kinkinLords = (defs: MonsterDef[]) => defs.filter((d) => d.questOnl
  * 禁筋の獄の10階ぶん。上の階ほどきびしく、6階から爆絶。持ち物検査は属性・アビリティ・部位。
  * 月ごとのパターン（胸腕・脚・背肩の月）で、部位・弱点・条件と、最上階のボスが変わる
  */
-export function kinkinFloors(month: string, defs: MonsterDef[], gimmicks: string[], quests: Quest[] = [], order?: string[]): TowerFloor[] {
+export function kinkinFloors(month: string, defs: MonsterDef[], gimmicks: string[], quests: Quest[] = [], order?: string[], taken: Quest[] = []): TowerFloor[] {
   const k = CONFIG.kinkin
   const pattern = patternOf(month)
   const part = PATTERN_PARTS[pattern]
   const lineup = applyOrder(kinkinLineup(defs), order)
   const lord = patternPick(kinkinLords(defs), pattern)
   // 前の階の条件も数えて、階ごとにちがう子が主役になるように
-  const sofar: Pick<Quest, 'id' | 'requirements' | 'gimmicks'>[] = [...quests]
+  // taken：ほかの高難度の階（そこで求めたアビリティも避ける）
+  const sofar: Pick<Quest, 'id' | 'requirements' | 'gimmicks'>[] = [...quests, ...taken]
   return Array.from({ length: k.floors }, (_, i) => {
     const floor = i + 1
     const top = floor === k.floors

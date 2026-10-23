@@ -86,7 +86,7 @@ export function castleLineup(defs: MonsterDef[], quests: Pick<Quest, 'kind' | 'g
 }
 
 /** 零の孤城の11階ぶん。どの階も爆絶。11階は零属性の城主（属性の種類を求める） */
-export function castleFloors(month: string, defs: MonsterDef[], gimmicks: string[], quests: Quest[] = [], order?: string[]): TowerFloor[] {
+export function castleFloors(month: string, defs: MonsterDef[], gimmicks: string[], quests: Quest[] = [], order?: string[], taken: Quest[] = []): TowerFloor[] {
   const c = CONFIG.castle
   // 月ごとのパターン（胸腕・脚・背肩の月）：部位・弱点・条件と、城主が変わる
   const pattern = patternOf(month)
@@ -94,7 +94,8 @@ export function castleFloors(month: string, defs: MonsterDef[], gimmicks: string
   const lineup = applyOrder(castleLineup(defs, quests), order)
   const lastBoss = lastBossOf(defs, pattern)
   // 前の階の条件も数えて、階ごとにちがう子が主役になるように
-  const sofar: Pick<Quest, 'id' | 'requirements' | 'gimmicks'>[] = [...quests]
+  // taken：ほかの高難度の階（そこで求めたアビリティも避ける）
+  const sofar: Pick<Quest, 'id' | 'requirements' | 'gimmicks'>[] = [...quests, ...taken]
   return Array.from({ length: c.floors }, (_, i) => {
     const floor = i + 1
     const top = floor === c.floors

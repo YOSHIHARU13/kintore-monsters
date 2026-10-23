@@ -147,7 +147,7 @@ export function autoQuestSetup(
 }
 
 /** おまかせの作り方の版。作り方を変えたら上げる（今あるボスクエストの条件を1回だけ作り直す） */
-export const QUEST_RULES = 3
+export const QUEST_RULES = 4
 
 /** ガチャの子がボスのときの格：レア度から（激レア→超絶、レア→究極、ノーマル→上級） */
 const GRADE_BY_RARITY: Record<RarityKey, QuestGrade> = { normal: 'jokyu', rare: 'kyukyoku', superRare: 'chozetsu' }

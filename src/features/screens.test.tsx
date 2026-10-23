@@ -532,14 +532,14 @@ describe('画面の表示', () => {
     const boss: MonsterDef = { id: 'b', name: 'コウリン', attr: 'legs', templateId: 'single', images: {}, questOnly: true, bossGrade: 'kiwami', element: 'fire', createdAt: 1 }
     fake.store.defs = [...defs, boss]
     fake.store.quests = [{ id: 'q1', name: '', kind: 'boss', bossDefId: 'b', attr: 'legs', weakSlots: [], hp: { easy: 1, normal: 1, hard: 1 }, grade: 'kiwami', catchphrase: '', theme: '', createdAt: 1 }]
-    fake.store.state = { ...state, questRules: 2 }
+    fake.store.state = { ...state, questRules: 2, abilityRules: 1 }
     fake.store.loaded = false
     await render(<QuestRulesUpdater />)
     expect(fake.store.markQuestRules).not.toHaveBeenCalled() // 読み込みが終わるまで待つ
     fake.store.loaded = true
     await render(<QuestRulesUpdater />)
     expect(fake.store.saveQuest).toHaveBeenCalledWith(expect.objectContaining({ id: 'q1' }))
-    expect(fake.store.markQuestRules).toHaveBeenCalledWith(3)
+    expect(fake.store.markQuestRules).toHaveBeenCalledWith(4)
   })
 
   it('図鑑：隠しモンスターはヒントだけ。合体でいなくなった個体の発見も残る', async () => {

@@ -14,18 +14,19 @@ describe('おまかせのクエスト', () => {
     const at = (g: Parameters<typeof autoQuestSetup>[1]) => autoQuestSetup(boss, g, 'boss', [], all, undefined, defs).requirements
     expect(at('jokyu')).toEqual([{ tag: 'el:wood', count: 2 }]) // 水には木が有利。アビリティなし
     expect(at('kiwami')).toEqual([{ tag: 'el:wood', count: 3 }, { tag: expect.stringMatching(/^ab:/), count: 2 }])
-    expect(at('kyukyoku')[1].count).toBe(3)
-    // 超絶：アビリティ2種類。1体1つずつでよい（単アビの子も連れて行ける）
+    // 究極：アビリティ2種類×2体
+    expect(at('kyukyoku').filter((r) => r.tag.startsWith('ab:'))).toEqual([expect.objectContaining({ count: 2 }), expect.objectContaining({ count: 2 })])
+    // 超絶：アビリティ3種類。1体1つずつでよい（単アビのモンスターも連れて行ける）
     const chozetsu = at('chozetsu')
     expect(chozetsu[0]).toEqual({ tag: 'el:wood', count: 4 })
-    expect(chozetsu.filter((r) => r.tag.startsWith('ab:'))).toHaveLength(2)
+    expect(chozetsu.filter((r) => r.tag.startsWith('ab:'))).toHaveLength(3)
     expect(chozetsu.some((r) => r.tag.startsWith('ab2:'))).toBe(false)
-    // 爆絶：有利な属性5、アビリティ3種類、実際に誰かが2つ同時に持っている組み合わせ×2
+    // 爆絶：有利な属性5、アビリティ4種類、実際に誰かが2つ同時に持っている組み合わせ×2
     const bakuzetsu = at('bakuzetsu')
     expect(bakuzetsu[0]).toEqual({ tag: 'el:wood', count: 5 })
     expect(bakuzetsu.find((r) => r.tag.startsWith('ab2:'))).toMatchObject({ count: 2 })
     expect(['ab2:バリア|ミラー', 'ab2:シールド|リジェネ']).toContain(bakuzetsu.find((r) => r.tag.startsWith('ab2:'))!.tag)
-    expect(bakuzetsu.filter((r) => r.tag.startsWith('ab:'))).toHaveLength(3)
+    expect(bakuzetsu.filter((r) => r.tag.startsWith('ab:'))).toHaveLength(4)
     // 誰も持っていないアビリティは求めない
     const r2 = autoQuestSetup(boss, 'chozetsu', 'boss', [], all, undefined, [{ ...sr('n', 'fire', ['ミラー']), rarity: 'normal' } as MonsterDef])
     expect(r2.requirements).toEqual([{ tag: 'el:wood', count: 4 }, { tag: 'ab:ミラー', count: 3 }])
@@ -87,7 +88,7 @@ describe('おまかせのクエスト', () => {
       ({ id, name: id, templateId: 'linear3', images: {}, rarity: 'superRare', element: 'fire', abilities: ['バリア'], series, createdAt: 0 }) as unknown as MonsterDef
     const r = autoQuestSetup(boss, 'kyukyoku', 'boss', [], ['バリア'], undefined, [mk('a'), mk('b')])
     expect(r.heroId).toBeUndefined()
-    expect(r.requirements).toEqual([{ tag: 'el:wood', count: 3 }, { tag: 'ab:バリア', count: 3 }])
+    expect(r.requirements).toEqual([{ tag: 'el:wood', count: 3 }, { tag: 'ab:バリア', count: 2 }])
   })
 })
 

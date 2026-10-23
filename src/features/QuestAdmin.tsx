@@ -4,6 +4,7 @@ import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { CONFIG } from '../config/gameConfig'
 import { defaultBossHp, gradeOf } from '../lib/quest'
 import { QUEST_RULES, autoGradeOf, autoQuestSetup } from '../lib/questAuto'
+import { ABILITY_RULES } from '../lib/abilityPlan'
 import { selectableGimmicks } from '../lib/gimmick'
 import { elementInfo } from '../lib/element'
 import type { Go } from '../nav'
@@ -134,11 +135,12 @@ export function QuestRulesUpdater() {
   const { topQuests, redoTop } = useQuestTools()
   const redone = useRef(false)
   useEffect(() => {
-    if (redone.current || !loaded || (state.questRules ?? 0) >= QUEST_RULES) return
+    // アビリティの配り直しが済んでから（新しいアビリティで条件を作るため）
+    if (redone.current || !loaded || (state.abilityRules ?? 0) < ABILITY_RULES || (state.questRules ?? 0) >= QUEST_RULES) return
     redone.current = true
     if (topQuests.length > 0) redoTop()
     markQuestRules(QUEST_RULES)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loaded, state.questRules])
+  }, [loaded, state.questRules, state.abilityRules])
   return null
 }

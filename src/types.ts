@@ -22,6 +22,7 @@ export interface GameState {
   hoshi?: number // ホシ玉の数（引くとレア以上が確定）
   normalCount?: number // 次のホシ玉までに出たノーマルの数
   questRules?: number // ボスクエストの条件を、この版のおまかせで作り直してある
+  abilityRules?: number // モンスターのアビリティを、この版で配り直してある（lib/abilityPlan）
   orbScale?: number // 1 ならオーブの単位（以前のゴールドの10分の1）に直してある
   coins: number // 進化コイン（進化・ジョグレス・EXPの購入）
   eggs: number // トク玉（1個でガチャ1回）。中の名前は eggs のまま
@@ -139,6 +140,7 @@ export interface MonsterDef {
   castleLord?: boolean // 零の孤城の城主（激レアの降臨のうち。最上階のボスになり、倒すともらえる）
   tower?: boolean // 試練の塔の報酬（降臨のうち。5階・10階で月替わりにもらえる）
   abilities?: string[] // アビリティ：対応するギミック名で持つ（例：'バリア' ならアーク）
+  abilitiesBefore?: string[] // アビリティを配り直す前のアビリティ（戻したいとき用）
   extraAbilities?: string[] // カスタマイズで足したアビリティ（読み込んだ個体に付くだけ。保存はしない）
   extraFavorite?: string // カスタマイズで足した得意種目（同上）
   partNow?: FormAttr // 持っている個体の今の部位（読み込んだ個体に付くだけ。保存はしない）
