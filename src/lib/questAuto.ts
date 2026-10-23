@@ -1,7 +1,7 @@
 import { CONFIG } from '../config/gameConfig'
 import { DAYS, SLOTS } from '../data/exercises'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
-import { advantageElements, elementInfo } from './element'
+import { ELEMENTS, advantageElements, elementInfo } from './element'
 import { KINDS_TAG, abilityTag, comboTag, elementTag, requirementsOf, tagAbilities } from './formation'
 import { abilitySlots } from './gimmick'
 import { bossGradeOf, rarityOf } from './gacha'
@@ -114,7 +114,7 @@ export function autoQuestSetup(
   } else {
     // 弱点属性（零属性のボスは、属性の種類）
     if (bossEl ? adv && a.element > 0 : a.kinds > 0)
-      requirements.push(bossEl ? { tag: elementTag(adv), count: a.element } : { tag: KINDS_TAG, count: a.kinds })
+      requirements.push(...(bossEl ? [{ tag: elementTag(adv), count: a.element }] : zeroElementRequirements(a, seed)))
     if (highEnd) {
       // 高難度：今いるモンスターに合わせず、これまでの階となるべく重ならないアビリティの組（個性優先）
       if (a.abilities > 0) {
@@ -167,6 +167,17 @@ function finish(requirements: Requirement[], boss: MonsterDef, seed: number, wea
 /** 高難度のほかの階で求めたアビリティの組（塔 → 禁筋 → 孤城と、前の高難度と重ならないように） */
 export function abilitySets(quests: Pick<Quest, 'requirements' | 'gimmicks'>[]): string[][] {
   return quests.map((q) => requirementsOf(q).filter((r) => r.tag.startsWith('ab:')).map((r) => r.tag.slice(3))).filter((s) => s.length > 0)
+}
+
+/**
+ * 零属性のボスの属性の条件：ふつうは「属性の種類」。爆絶は「3属性×3体ずつ」（ボスごとに決まる3属性）。
+ * 6体で9体ぶん要るので、2属性のモンスター（金の獣神化など）がいないと満たせない
+ */
+function zeroElementRequirements(a: (typeof CONFIG.questAuto)[QuestGrade], seed: number): Requirement[] {
+  const split = 'zeroSplit' in a ? a.zeroSplit : 0
+  if (!split) return a.kinds > 0 ? [{ tag: KINDS_TAG, count: a.kinds }] : []
+  const start = seed % ELEMENTS.length
+  return Array.from({ length: split }, (_, i) => ({ tag: elementTag(ELEMENTS[(start + i * 2) % ELEMENTS.length]), count: CONFIG.quest.partySize / 2 }))
 }
 
 /** k 個の組み合わせを全部 */

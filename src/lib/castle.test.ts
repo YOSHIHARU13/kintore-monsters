@@ -48,7 +48,7 @@ describe('零の孤城', () => {
     expect(filled[0].reward.monsterDefId).toBeNull()
   })
 
-  it('全階爆絶。11階は零属性の城主で、属性の種類を求める', () => {
+  it('全階爆絶。11階は零属性の城主で、3属性×3体ずつを求める', () => {
     const floors = castleFloors('2026-10', defs, ['バリア', 'シールド', 'リジェネ', 'ミラー'])
     expect(floors).toHaveLength(11)
     expect(floors.every((f) => f.quest.grade === 'bakuzetsu')).toBe(true)
@@ -56,7 +56,11 @@ describe('零の孤城', () => {
     expect(floors[0].quest.requirements).toContainEqual({ tag: 'kinds', count: 3 })
     const top = floors[10]
     expect(top.quest.element).toBeUndefined()
-    expect(top.quest.requirements![0]).toEqual({ tag: 'kinds', count: 5 })
+    // 3属性×3体ずつ（1属性のモンスター6体では届かない）
+    const els = top.quest.requirements!.filter((r) => r.tag.startsWith('el:'))
+    expect(els).toHaveLength(3)
+    expect(els.every((r) => r.count === 3)).toBe(true)
+    expect(top.quest.requirements!.filter((r) => r.tag.startsWith('ab:'))).toHaveLength(4)
     expect(top.reward.monsterDefId).toBe('king')
     // HPは上の階ほど高い
     expect(top.quest.hp.normal).toBeGreaterThan(floors[0].quest.hp.normal)

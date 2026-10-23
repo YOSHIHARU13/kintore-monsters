@@ -208,7 +208,8 @@ export const CONFIG = {
     kiwami: { element: 3, kinds: 3, abilities: 1, abilityCount: 2, combo: 0, weak: 1 },
     kyukyoku: { element: 3, kinds: 4, abilities: 2, abilityCount: 2, combo: 0, weak: 1 },
     chozetsu: { element: 4, kinds: 5, abilities: 3, abilityCount: 3, combo: 0, weak: 2 },
-    bakuzetsu: { element: 5, kinds: 5, abilities: 4, abilityCount: 3, combo: 2, weak: 2 },
+    // 零属性の爆絶は、属性の種類ではなく「3属性×3体ずつ」（1属性のモンスター6体では届かない＝2属性のモンスターが必須級）
+    bakuzetsu: { element: 5, kinds: 5, abilities: 4, abilityCount: 3, combo: 2, weak: 2, zeroSplit: 3 },
     chokyukyoku: { element: 4, kinds: 5, abilities: 3, abilityCount: 3, combo: 0, weak: 2 },
     // 素材クエストは難易度ごと（初級はほぼ縛りなし、究極でやっとアビリティ）
     material: {
@@ -363,7 +364,7 @@ export const CONFIG = {
     base: 0.4,
     perExtra: 0.15,
     max: 2.5,
-    maxRequirements: 6,
+    maxRequirements: 8,
     elementIcon: { fire: '🔥', water: '💧', wood: '🌿', light: '✨', dark: '🌑' },
   },
 
