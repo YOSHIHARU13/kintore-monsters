@@ -12,6 +12,7 @@ import type { Go } from '../nav'
 import { bossGradeOf } from '../lib/gacha'
 import { ELEMENT_LABEL, ZERO_LABEL, elementInfo } from '../lib/element'
 import type { BossRole } from '../lib/questAuto'
+import { LifespanCard } from '../components/Lifespan'
 import { isHidden, type MonsterDef } from '../types'
 
 const ROLE_LABEL: Record<BossRole, string> = { tower: '塔の11階', kinkinLord: '禁筋の最上階', castleLord: '城主', castleOnly: '孤城限定' }
@@ -52,6 +53,7 @@ export function BossAdmin({ go }: { go: Go }) {
       <p className="muted small">
         今月は{patternLabel(towerMonth(today))}。どの降臨を高難度専用にするかは、ここでまとめて選べます（専用にした子は、ふつうのクエストには出ません）。ボスの絵や名前・属性は、タップして登録画面から直せます。
       </p>
+      <LifespanCard />
       <div className="segmented" role="tablist" aria-label="高難度">
         {(['tower', 'kinkin', 'castle'] as const).map((t) => (
           <button key={t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>

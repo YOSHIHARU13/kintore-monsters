@@ -372,6 +372,15 @@ export const CONFIG = {
     ],
   },
 
+  // コンテンツの寿命の目安（開発者メニュー）：零の孤城の全階が、最強の6体で1日ぶんのメニューで倒せる（easyRatio 以上）まで、
+  // 激レアをあと何体足せばよいか。pool：1階あたりに見る候補の数（計算を軽くする）、maxAdds：数える上限、runs：「目安」を何通り試すか
+  lifespan: {
+    easyRatio: 1,
+    pool: 30,
+    maxAdds: 128,
+    runs: 3,
+  },
+
   // 降臨の宝箱：1周で base 個＋出撃した運極1体ごとに perLuckMax 個。1箱ごとに bossRate でボス（運1）、残りは均等に
   // amounts：ボス以外の1箱の中身（low＝究極以下、high＝超絶以上。high だけ筋肉玉も出る）
   // 神化素材のボスは、1箱で shinkaBodies 体・1体あたり運 shinkaLuck

@@ -1,4 +1,5 @@
 import type { Go, View } from '../nav'
+import { LifespanCard } from '../components/Lifespan'
 
 type Entry = { icon: string; label: string; hint: string; view: View }
 
@@ -43,6 +44,7 @@ export function More({ go }: { go: Go }) {
         <h2>🔧 つくる（開発者メニュー）</h2>
         {list(DEV_ENTRIES)}
       </section>
+      <LifespanCard go={go} />
     </div>
   )
 }

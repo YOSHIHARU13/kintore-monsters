@@ -3563,3 +3563,41 @@ details.tuning[open] > summary {
     opacity: 0;
   }
 }
+
+/* コンテンツの寿命 */
+.lifespan-floors {
+  display: grid;
+  grid-template-columns: repeat(11, 1fr);
+  gap: 3px;
+  align-items: end;
+  height: 64px;
+  margin: 6px 0;
+}
+.lifespan-floor {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--card2);
+  overflow: hidden;
+}
+.lifespan-floor i {
+  display: block;
+  background: var(--beat);
+}
+.lifespan-floor.easy i {
+  background: var(--keep);
+}
+.lifespan-floor span {
+  position: absolute;
+  bottom: 1px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: var(--text);
+  text-shadow: 0 1px 2px #000;
+}
