@@ -268,6 +268,12 @@ interface Store {
   /** 習慣をその場で記録する（分数。○×なら0）。もらえたゴールド（記録できなければ null） */
   recordHabit: (minutes: number) => number | null
   setHabitLabel: (label: string) => void
+  /** 2つ目の習慣を選ぶ（null でなし） */
+  setHabit2Kind: (kind: string | null) => void
+  /** 2つ目の習慣を記録する（良いことは text を書く）。もらえたオーブ（記録できなければ null） */
+  recordHabit2: (text?: string) => number | null
+  /** 「昨日あった良いこと」の日記（新しい順・最近の分） */
+  journal: { id: string; date: string; text: string; ts: number }[]
   setHabitMode: (mode: GameState['habitMode']) => void
   /** 種目の枠に相棒をセットする（null で外す）。同じモンスターは1つの枠にしか入れない */
   setPartner: (slotId: string, monsterId: string | null) => void
@@ -366,6 +372,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
   const [today, setToday] = useState(dateKey())
   const [weekSets, setWeekSets] = useState<SetRecord[]>([])
   const [yesterdayCheckin, setYesterdayCheckin] = useState<Checkin | null>(null)
+  const [journal, setJournal] = useState<{ id: string; date: string; text: string; ts: number }[]>([])
   const [error, setError] = useState<string | null>(null)
 
   const stateRef = useMemo(() => doc(db, base, 'meta', 'state'), [base])
@@ -414,6 +421,17 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         fail,
       ),
       onSnapshot(menuRef, (snap) => setMenu((snap.data() as Record<string, string>) ?? {}), fail),
+      onSnapshot(
+        // 日記は最近30日ぶん
+        query(collection(db, base, 'journal'), where('date', '>=', dateKey(new Date(Date.now() - 30 * 86400000)))),
+        (snap) =>
+          setJournal(
+            snap.docs
+              .map((d) => ({ ...(d.data() as { date: string; text: string; ts: number }), id: d.id }))
+              .sort((a, b) => b.ts - a.ts),
+          ),
+        fail,
+      ),
       onSnapshot(musicRef, (snap) => setSongs((snap.data()?.songs as Song[] | undefined) ?? []), fail),
       onSnapshot(seriesRef, (snap) => setSeriesPeriods((snap.data()?.periods as Periods | undefined) ?? {}), fail),
       onSnapshot(
@@ -648,6 +666,25 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     }
 
     const setHabitLabel: Store['setHabitLabel'] = (label) => updateState({ habitLabel: label.trim() || null })
+
+    const setHabit2Kind: Store['setHabit2Kind'] = (kind) =>
+      updateState({ habit2: { kind, date: state.habit2?.date ?? null, count: state.habit2?.count ?? 0 } })
+
+    const recordHabit2: Store['recordHabit2'] = (text) => {
+      const kind = state.habit2?.kind
+      const h = kind ? CONFIG.morning.habit2[kind] : undefined
+      if (!kind || !h) return null
+      const now = dateKey()
+      const count = state.habit2?.date === now ? state.habit2.count : 0
+      if (count >= h.max) return null
+      if (kind === 'goodThings' && !text?.trim()) return null
+      const batch = writeBatch(db)
+      batch.update(stateRef, { habit2: { kind, date: now, count: count + 1 }, gold: increment(h.gold) })
+      // 良いことは日記として残す
+      if (kind === 'goodThings') batch.set(doc(collection(db, base, 'journal')), { date: now, text: text!.trim().slice(0, 140), ts: Date.now() })
+      batch.commit().catch(fail)
+      return h.gold
+    }
 
     const setHabitMode: Store['setHabitMode'] = (mode) => updateState({ habitMode: mode })
 
@@ -1653,6 +1690,9 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       recordMorning,
       recordHabit,
       setHabitLabel,
+      setHabit2Kind,
+      recordHabit2,
+      journal,
       setHabitMode,
       setPartner,
       autoSetPartners,
@@ -1702,7 +1742,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       claimRanks,
       deleteGacha,
     }
-  }, [user, base, state, menu, defs, owned, songs, seriesPeriods, towerFixed, gachas, quests, tower, castle, kinkin, today, yesterday, yesterdayCheckin, week, weekSets, todaySets, stateRef, menuRef, musicRef, seriesRef, towerRef, fail])
+  }, [user, base, state, menu, journal, defs, owned, songs, seriesPeriods, towerFixed, gachas, quests, tower, castle, kinkin, today, yesterday, yesterdayCheckin, week, weekSets, todaySets, stateRef, menuRef, musicRef, seriesRef, towerRef, fail])
 
   if (!store) {
     return (

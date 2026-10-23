@@ -16,6 +16,7 @@ import { isWeekCleared, partProgress, slotDone } from '../lib/week'
 import { nearGoals } from '../lib/progress'
 import { BoosterPanel } from '../components/BoosterPanel'
 import { HabitCard } from '../components/HabitCard'
+import { Habit2Card } from '../components/Habit2Card'
 import { RankCard } from '../components/RankCard'
 
 export function Home({ go }: { go: Go }) {
@@ -71,6 +72,7 @@ export function Home({ go }: { go: Go }) {
       </section>
 
       <HabitCard />
+      <Habit2Card />
       <BoosterPanel compact />
 
       <section className="card">

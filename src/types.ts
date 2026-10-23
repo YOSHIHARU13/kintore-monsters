@@ -41,6 +41,7 @@ export interface GameState {
   bestHabitStreak: number
   habitLabel: string | null // 習慣の名前（null なら初期の名前）
   habitMode: 'check' | 'minutes' // 習慣の記録のしかた：○× か 分数
+  habit2?: { kind: string | null; date: string | null; count: number } // 2つ目の習慣（設定で選ぶ）：その日に記録した回数
   lastCheckinDate: string | null // 最後に朝の記録をつけた「前日」の日付
   dexFound: Record<string, string[]> // 合体・ジョグレスでいなくなった個体が見つけていた形態（defId → nodeId）
   dexShiny: Record<string, boolean> // 色違いを見つけたモンスター（defId）

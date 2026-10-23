@@ -69,15 +69,26 @@ export const CONFIG = {
 
   // 朝の記録（前日の歩数）と、習慣（その場で記録）
   morning: {
-    stepsPerGold: 1000, // この歩数ごとに1オーブ（段階なし。5000歩で5オーブ＝ガチャ1回）
+    stepsPerGold: 500, // この歩数ごとに1オーブ（5000歩で10オーブ＝ガチャ2回）
+    stepBonuses: [
+      { steps: 8000, gold: 5 },
+      { steps: 10000, gold: 10 },
+    ], // 届いた中でいちばん上のボーナス（1万歩なら 20 + 10 = 30オーブ）
     maxSteps: 100_000, // 入力できる歩数の上限
-    habitGold: 5, // 習慣ができた日のオーブ（○×で記録するとき）
-    // 習慣を分数で記録するときの、1分あたりのオーブ（端数は切り捨て）。1回に続けた分数が長いほど高い（5分で5オーブ＝ガチャ1回）
+    habitGold: 15, // 習慣ができた日のオーブ（○×で記録するとき）
+    // 習慣を分数で記録するときの、1分あたりのオーブ（端数は切り捨て）。1回に続けた分数が長いほど高い（5分で15オーブ＝ガチャ3回）
     habitRates: [
-      { from: 1, perMinute: 0.5 },
-      { from: 5, perMinute: 1 },
+      { from: 1, perMinute: 1.5 },
+      { from: 5, perMinute: 3 },
     ],
-    habitMaxMinutes: 30, // 分数で記録するとき、オーブが出るのは1日の合計でこの分数まで
+    habitMaxMinutes: 10, // 分数で記録するとき、オーブが出るのは1日の合計でこの分数まで（1日30オーブまで）
+    // 2つ目の習慣（設定で1つ選ぶ）。goodThings は「昨日あった良いこと」を1つ書くごとに、1日 max 個まで
+    habit2: {
+      goodThings: { icon: '📝', label: '昨日あった良いことを書く', gold: 3, max: 3 },
+      sunlight: { icon: '🌅', label: '朝、日の光を5分浴びる', gold: 10, max: 1 },
+      stretch: { icon: '🧘', label: 'ストレッチを5分する', gold: 10, max: 1 },
+      phone: { icon: '📵', label: '寝る1時間前にスマホを置く', gold: 10, max: 1 },
+    } as Record<string, { icon: string; label: string; gold: number; max: number }>,
     habitDefaultLabel: 'ベッドでスマホを見なかった', // 習慣の名前（設定で変えられる）
   },
 

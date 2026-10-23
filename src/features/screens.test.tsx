@@ -175,6 +175,8 @@ beforeEach(() => {
     claimQuest: vi.fn(() => ({ monsterId: 'o8', drops: [{ icon: '💠', label: '木の結晶', count: 1 }], gold: 50 })),
     exchangeMaterial: vi.fn(),
     attachCustom: vi.fn(),
+    recordHabit2: vi.fn(() => 3),
+    journal: [],
     bulkUpdateDefs: vi.fn(),
     toggleLock: vi.fn(),
     shinka: vi.fn(() => true),
@@ -279,21 +281,36 @@ describe('画面の表示', () => {
     expect(fake.store.recordSet).toHaveBeenCalledWith(expect.objectContaining({ exp: 21 }), true) // 15 × 1.37
   })
 
-  it('習慣：やった直後にその場で分数を記録してオーブをもらう（1日30分まで）', async () => {
+  it('習慣：やった直後にその場で分数を記録してオーブをもらう（1日10分まで）', async () => {
     const { HabitCard } = await import('../components/HabitCard')
-    fake.store.state = { ...state, habitMode: 'minutes', habitLabel: '瞑想', habitDate: TODAY, habitMinutesToday: 25 }
+    fake.store.state = { ...state, habitMode: 'minutes', habitLabel: '瞑想', habitDate: TODAY, habitMinutesToday: 5 }
     const el = await render(<HabitCard />)
-    expect(el.textContent).toContain('今日 25分（オーブは30分まで）')
-    expect(el.textContent).toContain('10分（+5オーブ）') // 残り5分ぶんだけ（10分続けた単価1オーブ）
-    await click('10分（+5オーブ）')
+    expect(el.textContent).toContain('今日 5分（オーブは10分まで）')
+    expect(el.textContent).toContain('10分（+15オーブ）') // 残り5分ぶんだけ（10分続けた単価3オーブ）
+    await click('10分（+15オーブ）')
     expect(fake.store.recordHabit).toHaveBeenCalledWith(10)
     expect(el.textContent).toContain('瞑想 10分 → +20オーブ')
+  })
+
+  it('2つ目の習慣：昨日あった良いことを1つ書くごとにオーブ（1日3つまで）', async () => {
+    const { Habit2Card } = await import('../components/Habit2Card')
+    fake.store.state = { ...state, habit2: { kind: 'goodThings', date: TODAY, count: 1 } }
+    const el = await render(<Habit2Card />)
+    expect(el.textContent).toContain('今日 1/3')
+    const input = el.querySelector<HTMLInputElement>('input[aria-label="昨日あった良いこと"]')!
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'スクワットが気持ちよかった')
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await click('書く')
+    expect(fake.store.recordHabit2).toHaveBeenCalledWith('スクワットが気持ちよかった')
+    expect(el.textContent).toContain('+3オーブ')
   })
 
   it('習慣：○×なら1日1回「できた」', async () => {
     const { HabitCard } = await import('../components/HabitCard')
     await render(<HabitCard />)
-    await click('今日できた（+5オーブ）')
+    await click('今日できた（+15オーブ）')
     expect(fake.store.recordHabit).toHaveBeenCalledWith(0)
     fake.store.state = { ...state, habitDate: TODAY }
     expect((await render(<HabitCard />)).textContent).toContain('今日はできた！')
@@ -370,9 +387,9 @@ describe('画面の表示', () => {
     expect(fake.store.setSlot).toHaveBeenCalledWith('mon1', 'pushupBar')
   })
 
-  it('朝の記録：前日の歩数を入れて記録（1000歩ごとに1オーブ）', async () => {
+  it('朝の記録：前日の歩数を入れて記録（500歩ごとに1オーブ）', async () => {
     fake.store.recordMorning = vi.fn((steps: number) => ({
-      date: '2026-10-04', steps, habit: false, habitLabel: '', streak: 0, stepsGold: Math.floor(steps / 1000), habitGold: 0, ts: 1,
+      date: '2026-10-04', steps, habit: false, habitLabel: '', streak: 0, stepsGold: Math.floor(steps / 500), habitGold: 0, ts: 1,
     }))
     const el = await render(<Morning go={go} />)
     expect(el.textContent).toContain('10/4の分')
@@ -381,9 +398,9 @@ describe('画面の表示', () => {
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, '6500')
       input.dispatchEvent(new Event('input', { bubbles: true }))
     })
-    await click('記録する（+6オーブ）')
+    await click('記録する（+13オーブ）')
     expect(fake.store.recordMorning).toHaveBeenCalledWith(6500)
-    expect(el.textContent).toContain('記録しました：+6オーブ')
+    expect(el.textContent).toContain('記録しました：+13オーブ')
   })
 
   it('朝の記録：記録済みなら結果だけ出る', async () => {
