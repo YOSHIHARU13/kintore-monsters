@@ -14,6 +14,7 @@ const DEV_ENTRIES: Entry[] = [
   { icon: '🎰', label: 'ガチャの管理', hint: 'ガチャを作る・編集する', view: { name: 'gachaAdmin' } },
   { icon: '⚔️', label: 'クエストの管理', hint: '作る・まとめて作る・条件の作り直し', view: { name: 'questAdmin' } },
   { icon: '🤝', label: 'コラボの管理', hint: 'コラボ名をまとめて変える・開催期間', view: { name: 'collabAdmin' } },
+  { icon: '🏯', label: '高難度のボス', hint: '試練の塔・禁筋の獄・零の孤城のボスの確認と編集', view: { name: 'bossAdmin' } },
 ]
 
 /** その他：毎日は使わないメニューと、作る側のメニューをまとめる */

@@ -2890,3 +2890,27 @@ details.tuning[open] > summary {
 .castle-battles {
   letter-spacing: 1px;
 }
+
+/* 出撃メンバーの候補：文字がはみ出さないように */
+.member-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-wrap: anywhere;
+}
+.member-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+.member-tags .tag {
+  font-size: 0.68rem;
+  white-space: normal;
+}
+
+.choice .monster-row {
+  flex: 1;
+  min-width: 0;
+}
