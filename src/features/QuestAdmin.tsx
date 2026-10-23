@@ -14,7 +14,7 @@ export function useQuestTools() {
   const { quests, defs, saveQuest } = useStore()
   // まだボスクエストがない降臨モンスター（塔限定・城主は塔と孤城でもらえるので除く）
   const pending = defs.filter(
-    (d) => d.questOnly && !d.tower && !d.castleLord && !d.castleOnly && !quests.some((q) => q.kind !== 'material' && q.bossDefId === d.id),
+    (d) => d.questOnly && !d.tower && !d.castleLord && !d.castleOnly && !d.kinkinLord && !quests.some((q) => q.kind !== 'material' && q.bossDefId === d.id),
   )
   const topQuests = quests.filter((q) => !q.builtin && q.kind !== 'material')
 
@@ -65,11 +65,9 @@ export function useQuestTools() {
 
 /** 開発者メニュー：クエストの管理（作る・まとめて作る・作り直す・編集・試練の塔の作り直し） */
 export function QuestAdmin({ go }: { go: Go }) {
-  const { fixTower } = useStore()
   const { pending, topQuests, makeAll, redoTop } = useQuestTools()
   const [made, setMade] = useState<string | null>(null)
   const [confirmRedo, setConfirmRedo] = useState(false)
-  const [confirmTower, setConfirmTower] = useState(false)
   return (
     <div className="page">
       <button className="back" onClick={() => go({ name: 'more' })}>
@@ -105,17 +103,6 @@ export function QuestAdmin({ go }: { go: Go }) {
               : '🎯 ボスクエストの条件を、おまかせ（弱点属性＋アビリティ）で作り直す'}
           </button>
         )}
-        <button
-          className={`btn wide${confirmTower ? ' primary' : ' ghost'}`}
-          onClick={() => {
-            if (!confirmTower) return setConfirmTower(true)
-            fixTower(null) // 保存を消すと、今の超絶ボスで作り直して、また保存される
-            setConfirmTower(false)
-            setMade('試練の塔を作り直しました')
-          }}
-        >
-          {confirmTower ? '本当に作り直す（今の超絶ボスで並べ直して、ギミックも新しくする）' : '🗼 試練の塔を作り直す'}
-        </button>
         {made && <div className="result keep">{made}</div>}
       </section>
 

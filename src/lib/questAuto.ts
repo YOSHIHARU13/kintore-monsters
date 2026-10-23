@@ -199,7 +199,7 @@ export function bossQuestSync(
   hpOf: (grade: QuestGrade) => number,
 ): { id: string | null; data: Partial<Quest> } | null {
   const grade = bossGradeOf(boss)
-  if (!grade || boss.tower || boss.castleLord || boss.castleOnly) return null
+  if (!grade || boss.tower || boss.castleLord || boss.castleOnly || boss.kinkinLord) return null
   const current = quests.find((q) => q.kind !== 'material' && q.bossDefId === boss.id)
   const attr = nodeAttr(boss, FIRST_NODE_ID)
   if (current && current.grade === grade && current.attr === attr) return null

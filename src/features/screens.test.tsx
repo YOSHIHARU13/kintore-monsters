@@ -933,7 +933,7 @@ describe('画面の表示', () => {
     const { castleFloors } = await import('../lib/castle')
     const king: MonsterDef = { id: 'king', name: 'ゼロキング', attr: 'legs', templateId: 'single', images: {}, questOnly: true, rarity: 'superRare', castleLord: true, createdAt: 9 }
     fake.store.defs = [...defs, king]
-    fake.store.castle = castleFloors([...defs, king], [])
+    fake.store.castle = castleFloors('2026-10', [...defs, king], [])
     fake.store.state = { ...state, castle: { month: '2026-10', cleared: 2 } }
     fake.store.today = '2026-10-25' // 孤城は21日〜月末
     const el = await render(<Castle go={go} />)

@@ -1,11 +1,12 @@
 import { CONFIG } from '../config/gameConfig'
-import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { elementInfo } from './element'
 import { gradeOf, standardSessionDamage } from './quest'
 import { autoQuestSetup } from './questAuto'
+import { PATTERN_PARTS, patternBoss, patternOf, patternPick, weakSlotsFor } from './pattern'
+import { partTag } from './formation'
 import { bossGradeOf, rarityOf } from './gacha'
 import { isOpenOn, type TowerFloor } from './tower'
-import { isHidden, nodeAttr, type GameState, type MonsterDef, type Quest } from '../types'
+import { isHidden, type GameState, type MonsterDef, type Quest } from '../types'
 
 export const CASTLE_PREFIX = 'castle-'
 export const isCastleQuest = (id: string) => id.startsWith(CASTLE_PREFIX)
@@ -18,9 +19,9 @@ export function castleCleared(state: Pick<GameState, 'castle'>, month: string): 
 /** 零の孤城は毎月16日〜月末 */
 export const castleOpen = (today: string) => isOpenOn(today, CONFIG.castle.openDays)
 
-/** 城主：激レアの降臨のうち「零の孤城の城主」にした子（図鑑の番号順で最初の子） */
-export function lastBossOf(defs: MonsterDef[]): MonsterDef | undefined {
-  return defs.find((d) => d.questOnly && d.castleLord)
+/** 城主：降臨のうち「零の孤城の城主」にした子。何体かいれば、月のパターンごとに入れ替わる */
+export function lastBossOf(defs: MonsterDef[], pattern = 0): MonsterDef | undefined {
+  return patternPick(defs.filter((d) => d.questOnly && d.castleLord), pattern)
 }
 
 /** 爆絶のボスになる降臨：格が爆絶の降臨（城主は除く） */
@@ -38,7 +39,8 @@ export function castleLineup(defs: MonsterDef[], quests: Pick<Quest, 'kind' | 'g
   const bossIds = (grade: string) =>
     new Set(quests.filter((q) => q.kind !== 'material' && !q.builtin && gradeOf(q) === grade).map((q) => q.bossDefId))
   const strongIds = bossIds('chokyukyoku')
-  const ok = (d: MonsterDef) => !d.series?.trim() && !strongIds.has(d.id) && bossGradeOf(d) !== 'chokyukyoku' && !d.tower && !d.castleLord
+  const ok = (d: MonsterDef) =>
+    !d.series?.trim() && !strongIds.has(d.id) && bossGradeOf(d) !== 'chokyukyoku' && !d.tower && !d.castleLord && !d.kinkinLord
   const top = castleMonsters(defs).filter(ok)
   const slots = c.elementOrder.length * 2
   const lineup: (MonsterDef | undefined)[] = Array.from({ length: slots }, (_, i) => {
@@ -62,10 +64,13 @@ export function castleLineup(defs: MonsterDef[], quests: Pick<Quest, 'kind' | 'g
 }
 
 /** 零の孤城の11階ぶん。どの階も爆絶。11階は零属性の城主（属性の種類を求める） */
-export function castleFloors(defs: MonsterDef[], gimmicks: string[], quests: Quest[] = []): TowerFloor[] {
+export function castleFloors(month: string, defs: MonsterDef[], gimmicks: string[], quests: Quest[] = []): TowerFloor[] {
   const c = CONFIG.castle
+  // 月ごとのパターン（胸腕・脚・背肩の月）：部位・弱点・条件と、城主が変わる
+  const pattern = patternOf(month)
+  const part = PATTERN_PARTS[pattern]
   const lineup = castleLineup(defs, quests)
-  const lastBoss = lastBossOf(defs)
+  const lastBoss = lastBossOf(defs, pattern)
   return Array.from({ length: c.floors }, (_, i) => {
     const floor = i + 1
     const top = floor === c.floors
@@ -73,9 +78,8 @@ export function castleFloors(defs: MonsterDef[], gimmicks: string[], quests: Que
     // 城主は零属性として戦う（弱点がない代わりに、属性の種類を求める）
     const asBoss = boss && top ? ({ ...boss, element: undefined, jogressElements: [] } as MonsterDef) : boss
     const element = top ? undefined : boss ? elementInfo(boss).elements[0] : undefined
-    const attr = boss ? nodeAttr(boss, FIRST_NODE_ID) : 'none'
     const setup = asBoss
-      ? autoQuestSetup(asBoss, 'bakuzetsu', 'boss', quests, gimmicks, `${CASTLE_PREFIX}${floor}`, defs, false)
+      ? autoQuestSetup(patternBoss(asBoss, pattern), 'bakuzetsu', 'boss', quests, gimmicks, `${CASTLE_PREFIX}${floor}`, defs, false)
       : { requirements: [], weakSlots: [] }
     const hp = Math.max(100, Math.round((standardSessionDamage() * c.hpRatio[i]) / 100) * 100)
     const quest: Quest = {
@@ -83,10 +87,10 @@ export function castleFloors(defs: MonsterDef[], gimmicks: string[], quests: Que
       name: top ? '零の孤城 最上階' : `零の孤城 ${floor}階`,
       kind: 'boss',
       bossDefId: boss?.id ?? '',
-      attr: attr === 'none' ? 'chestArms' : attr,
+      attr: part,
       element,
-      weakSlots: setup.weakSlots,
-      requirements: setup.requirements,
+      weakSlots: weakSlotsFor(part, `castle:${floor}:${pattern}`, 2),
+      requirements: [...setup.requirements, { tag: partTag(part), count: 4 }],
       hp: { easy: hp, normal: hp, hard: hp },
       grade: 'bakuzetsu',
       catchphrase: top ? '零の王が待つ' : '',

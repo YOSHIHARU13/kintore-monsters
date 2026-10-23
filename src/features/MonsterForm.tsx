@@ -52,6 +52,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
   const [tower, setTower] = useState(existing?.tower === true)
   const [castleLord, setCastleLord] = useState(existing?.castleLord === true)
   const [castleOnly, setCastleOnly] = useState(existing?.castleOnly === true)
+  const [kinkinLord, setKinkinLord] = useState(existing?.kinkinLord === true)
   const [element, setElement] = useState<Element | ''>(existing?.element ?? '')
   const [favoriteSlot, setFavoriteSlot] = useState(existing?.favoriteSlot ?? '')
   const [abilities, setAbilities] = useState<string[]>(existing?.abilities ?? [])
@@ -201,6 +202,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
         tower: recipe.length !== 2 && questOnly && tower,
         castleLord: recipe.length !== 2 && questOnly && bossGrade === 'bakuzetsu' && castleLord,
         castleOnly: recipe.length !== 2 && questOnly && castleOnly,
+        kinkinLord: recipe.length !== 2 && questOnly && kinkinLord,
         jogressPartner: !questOnly && rarity === 'superRare' ? jogressPartner : '',
         jogressBirthStars: birthStars,
         jogressPlus,
@@ -398,7 +400,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
           {questOnly && bossGrade === 'bakuzetsu' && (
             <label className="row">
               <input type="checkbox" checked={castleLord} onChange={(e) => setCastleLord(e.target.checked)} />
-              👑 零の孤城の城主にする（最上階の零属性のボスになり、倒すともらえる）
+              👑 零の孤城の城主にする（最上階の零属性のボス。何体かいれば毎月入れ替わる。倒すともらえる）
             </label>
           )}
           {questOnly && (
@@ -409,8 +411,14 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
           )}
           {questOnly && (
             <label className="row">
+              <input type="checkbox" checked={kinkinLord} onChange={(e) => setKinkinLord(e.target.checked)} />
+              ⛓ 禁筋の獄の最上階のボスにする（何体かいれば毎月入れ替わる。初回クリアで手に入る。ふつうのクエストは作らない）
+            </label>
+          )}
+          {questOnly && (
+            <label className="row">
               <input type="checkbox" checked={tower} onChange={(e) => setTower(e.target.checked)} />
-              🗼 試練の塔の報酬にする（11階のボスになり、倒すともらえる。複数いれば月替わり）
+              🗼 試練の塔の11階のボスにする（何体かいれば毎月入れ替わる。倒すともらえる）
             </label>
           )}
           {!questOnly && !CONFIG.gacha.rarities[rarity].everyGacha && (

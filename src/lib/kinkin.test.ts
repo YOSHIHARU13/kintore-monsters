@@ -12,7 +12,7 @@ describe('禁筋の獄', () => {
     def(`x${i}`, { element: e, bossGrade: 'chozetsu', series: '鬼' }), // コラボは入れない
   ])
   it('全20階。15階までは超絶、16階から爆絶。どの階も「ボスと同じ部位の子」を求め、ボスは落とさない', () => {
-    const floors = kinkinFloors(bosses, [])
+    const floors = kinkinFloors('2026-10', bosses, [])
     expect(floors).toHaveLength(20)
     expect(floors[14].quest.grade).toBe('chozetsu')
     expect(floors[15].quest.grade).toBe('bakuzetsu')
@@ -30,5 +30,19 @@ describe('禁筋の獄', () => {
     expect(kinkinOpen('2026-10-21')).toBe(false)
     expect(kinkinCleared({ kinkin: { month: '2026-10', cleared: 5 } }, '2026-10')).toBe(5)
     expect(kinkinCleared({ kinkin: { month: '2026-10', cleared: 5 } }, '2026-11')).toBe(0)
+  })
+})
+
+describe('月のパターン', () => {
+  it('最上階のボスは、登録した子が毎月入れ替わる（初回クリアで手に入る）。どの階もその月の部位', async () => {
+    const lords = ['L1', 'L2', 'L3'].map((id) => def(id, { element: 'dark', bossGrade: 'bakuzetsu', kinkinLord: true }))
+    const others = [def('b', { element: 'fire', bossGrade: 'bakuzetsu' })]
+    const top = (month: string) => kinkinFloors(month, [...others, ...lords], [])[19]
+    const ids = ['2026-10', '2026-11', '2026-12'].map((m) => top(m).quest.bossDefId)
+    expect(new Set(ids).size).toBe(3)
+    expect(top('2026-10').reward.monsterDefId).toBe(top('2026-10').quest.bossDefId)
+    expect(top('2027-01').quest.bossDefId).toBe(ids[0]) // 3か月で一回り
+    const { patternPart } = await import('./pattern')
+    expect(kinkinFloors('2026-10', others, [])[3].quest.attr).toBe(patternPart('2026-10'))
   })
 })

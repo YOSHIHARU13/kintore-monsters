@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useStore } from '../store'
 import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { CONFIG } from '../config/gameConfig'
@@ -7,9 +7,10 @@ import { bannerNodeOf } from '../components/GachaBanner'
 import { ELEMENT_COLOR, ELEMENT_LABEL } from '../lib/element'
 import { CORE_LABEL } from '../lib/cores'
 import { gradeOf } from '../lib/quest'
-import { snapshotTower, towerCleared, towerMonth, towerOpen, type TowerFloor } from '../lib/tower'
+import { towerCleared, towerMonth, towerOpen, type TowerFloor } from '../lib/tower'
 import { FloorReqs } from '../components/FloorReqs'
 import type { Go } from '../nav'
+import { patternLabel } from '../lib/pattern'
 import type { GameState, MonsterDef } from '../types'
 import { boosterName } from '../lib/boosters'
 import { itemLabel } from '../lib/custom'
@@ -41,16 +42,10 @@ function daysLeft(today: string): number {
 
 /** 試練の塔：毎月1〜10日。超絶の降臨10体ごとに1つの塔（1〜10階が超絶、11階は塔限定モンスター） */
 export function Tower({ go }: { go: Go }) {
-  const { state, tower: allFloors, defs, today, towerFixed, fixTower } = useStore()
+  const { state, tower: allFloors, defs, today } = useStore()
   const count = Math.max(1, ...allFloors.map((f) => (f.tower ?? 0) + 1))
   const [index, setIndex] = useState(0)
   const tower = allFloors.filter((f) => (f.tower ?? 0) === index)
-  // まだ保存していなければ、1つ目の塔を保存して、来月以降も同じにする
-  useEffect(() => {
-    const first = allFloors.filter((f) => (f.tower ?? 0) === 0)
-    if (!towerFixed && first.some((f) => f.quest.bossDefId)) fixTower(snapshotTower(first))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [towerFixed])
   const cleared = towerCleared(state, towerMonth(today), index)
   const [, m] = towerMonth(today).split('-').map(Number)
   const open = towerOpen(today)
@@ -62,6 +57,9 @@ export function Tower({ go }: { go: Go }) {
         ← クエストに戻る
       </button>
       <h1 className="title">🗼 試練の塔（{m}月）</h1>
+      <p className="pattern-badge">
+        今月は<strong>{patternLabel(towerMonth(today))}</strong>：どのボスもこの部位のボス。この部位の種目がよく効いて、この部位の子が求められます（毎月 胸腕→脚→背肩 の順に入れ替わり、最上階のボスも変わる）
+      </p>
       {count > 1 && (
         <div className="segmented" role="tablist" aria-label="塔">
           {Array.from({ length: count }, (_, i) => (

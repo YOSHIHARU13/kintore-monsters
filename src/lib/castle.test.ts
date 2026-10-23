@@ -40,16 +40,16 @@ describe('零の孤城', () => {
   it('1〜10階は孤城限定の子を炎・水・木・光・闇の順に2周。城主は入れない。各階のボスは毎月の初回クリアで手に入る', () => {
     expect(castleLineup(defs, []).map((d) => d?.id)).toEqual(['fire1', 'water1', 'wood1', 'light1', 'dark1', 'fire2', 'water2', 'wood2', 'light2', 'dark2'])
     expect(lastBossOf(defs)?.id).toBe('king')
-    const floors = castleFloors(defs, [])
+    const floors = castleFloors('2026-10', defs, [])
     expect(floors[0].reward.monsterDefId).toBe('fire1')
     // 孤城限定がいなくて、爆絶のボスで埋めた階は落とさない
-    const filled = castleFloors([def('bz', { element: 'fire', bossGrade: 'bakuzetsu' })], [])
+    const filled = castleFloors('2026-10', [def('bz', { element: 'fire', bossGrade: 'bakuzetsu' })], [])
     expect(filled[0].quest.bossDefId).toBe('bz')
     expect(filled[0].reward.monsterDefId).toBeNull()
   })
 
   it('全階爆絶。11階は零属性の城主で、属性の種類を求める', () => {
-    const floors = castleFloors(defs, ['バリア', 'シールド', 'リジェネ', 'ミラー'])
+    const floors = castleFloors('2026-10', defs, ['バリア', 'シールド', 'リジェネ', 'ミラー'])
     expect(floors).toHaveLength(11)
     expect(floors.every((f) => f.quest.grade === 'bakuzetsu')).toBe(true)
     expect(floors[0].quest.requirements![0]).toEqual({ tag: 'el:water', count: 5 }) // 炎には水が有利
@@ -65,7 +65,7 @@ describe('零の孤城', () => {
   })
 
   it('城主がいなければ、最上階はトク玉', () => {
-    const top = castleFloors([...bakus], [])[10]
+    const top = castleFloors('2026-10', [...bakus], [])[10]
     expect(top.reward.monsterDefId).toBeNull()
     expect(top.reward.eggs).toBeGreaterThan(12) // いつもの12個＋城主のかわり
   })

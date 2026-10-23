@@ -162,6 +162,7 @@ export interface MonsterDefInput {
   tower?: boolean // 試練の塔の報酬にする（降臨のときだけ）
   castleLord?: boolean // 零の孤城の城主にする（爆絶の降臨のときだけ）
   castleOnly?: boolean // 零の孤城の限定にする（降臨のときだけ）
+  kinkinLord?: boolean // 禁筋の獄の最上階のボスにする（降臨のときだけ）
   jogressPartner?: string // 金の獣神化（合体）の相手（激レアのときだけ）
   jogressBirthStars: number // 隠しモンスターが生まれるときの星
   jogressPlus: number // 隠しモンスターの素材に必要な＋
@@ -559,11 +560,11 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
   const yesterday = useMemo(() => prevDateKey(today), [today])
   const tower = useMemo(
     // 超絶10体ごとに1つの塔。ここでは全部の塔の階を1つの並びにする（floor.tower が何番目の塔か）
-    () => allTowers(towerMonth(today), defs, selectableGimmicks(quests), quests, towerFixed).flat(),
-    [today, defs, quests, towerFixed],
+    () => allTowers(towerMonth(today), defs, selectableGimmicks(quests), quests).flat(),
+    [today, defs, quests],
   )
-  const castle = useMemo(() => castleFloors(defs, selectableGimmicks(quests), quests), [defs, quests])
-  const kinkin = useMemo(() => kinkinFloors(defs, selectableGimmicks(quests), quests), [defs, quests])
+  const castle = useMemo(() => castleFloors(towerMonth(today), defs, selectableGimmicks(quests), quests), [today, defs, quests])
+  const kinkin = useMemo(() => kinkinFloors(towerMonth(today), defs, selectableGimmicks(quests), quests), [today, defs, quests])
 
 
   useEffect(() => {
@@ -1172,6 +1173,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         questTier: null, // 旧：降臨の格（今はレア度で決める）
         castleLord: input.questOnly && input.bossGrade === 'bakuzetsu' && input.castleLord === true,
         castleOnly: input.questOnly && input.castleOnly === true && input.castleLord !== true,
+        kinkinLord: input.questOnly && input.kinkinLord === true,
         jogressPartner: input.jogressPartner || null,
         fixedStars: input.fixedStars,
         abilities: input.abilities,
