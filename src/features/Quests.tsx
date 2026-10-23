@@ -137,6 +137,7 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
           ? '今月は踏破！'
           : `開催中 ${towerDone}／${CONFIG.tower.floors}階${towerTotal > 1 ? `（塔は${towerTotal}つ）` : ''}`,
       open: () => go({ name: 'tower' }),
+      hidden: !towerOpen(today),
     },
     {
       key: 'kinkin',
@@ -146,6 +147,7 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
         ? `毎月${CONFIG.kinkin.openDays[0]}〜${CONFIG.kinkin.openDays[1]}日に開催・全${CONFIG.kinkin.floors}階・オーブ多め`
         : `開催中 ${kinkinCleared(state, towerMonth(today))}／${CONFIG.kinkin.floors}階`,
       open: () => go({ name: 'kinkin' }),
+      hidden: !kinkinOpen(today),
     },
     {
       key: 'castle',
@@ -157,6 +159,7 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
           ? '今月は踏破！'
           : `開催中 ${castleDone}／${CONFIG.castle.floors}階・全階爆絶・最上階は零属性の城主`,
       open: () => go({ name: 'castle' }),
+      hidden: !castleOpen(today),
     },
     { key: 'material', icon: '💎', label: '素材クエスト', hint: '結晶・核・筋肉玉・進化コイン（初級・上級・究極）', open: () => go({ name: 'quests', category: 'material' }) },
     { key: 'temple', icon: '🏛', label: '神殿', hint: 'カスタマイズアイテム（時の間・修羅場）', open: () => go({ name: 'quests', category: 'temple' }) },
@@ -352,6 +355,18 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
         )
       )}
 
+      {/* 高難度は開催中のものだけ。ほかは次の開催日だけ出す */}
+      {(() => {
+        const d = Number(today.slice(8, 10))
+        const next = [
+          { name: '試練の塔', open: towerOpen(today), from: CONFIG.tower.openDays[0] },
+          { name: '禁筋の獄', open: kinkinOpen(today), from: CONFIG.kinkin.openDays[0] },
+          { name: '零の孤城', open: castleOpen(today), from: CONFIG.castle.openDays[0] },
+        ]
+          .filter((x) => !x.open)
+          .map((x) => `${x.name}は${x.from > d ? '' : '来月'}${x.from}日から`)
+        return next.length > 0 ? <p className="muted small">次の高難度：{next.join('・')}</p> : null
+      })()}
       {CATEGORY_MENU.map((c) =>
         c.hidden ? null : (
           <button key={c.key} className={`card tower-entry quest-entry entry-${c.key}`} onClick={c.open}>
