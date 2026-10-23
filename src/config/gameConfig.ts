@@ -410,7 +410,7 @@ export const CONFIG = {
     perLuckMax: 1, // 出撃した運極1体ごとに、落ちたボスの運がさらに＋1
     perLuckMaxCap: 4, // ↑はここまで
     maxReward: { quest: 10, gacha: 5 }, // 運極ができたときのトク玉（降臨の子・ガチャの子）
-    goldBonus: 0.2, // 運極1体につき報酬のオーブ +20%（素材のくじは materials.luckRolls）
+    goldBonus: 0.2, // 運極1体につき報酬のオーブ +20%（宝箱は boxes.perLuckMax 個増える）
   },
 
   // ジョグレス：レシピの2体を＋5（最終形態）まで育てて合わせると、隠しモンスターが生まれる
@@ -421,34 +421,34 @@ export const CONFIG = {
     superRareBonus: 1500, // 素材の激レア1体につき、攻撃力の上乗せ
   },
 
-  // 進化素材：素材クエストで落ちる。毎回の抽選なので、落ちる数はばらつく（0個のときも、たくさんのときもある）
-  // 抽選：rolls 回くじを引き、1回ごとに rate で当たり（当たり1回で amount 個）。運極が1体いるごとに、くじが luckRolls 回増える
+  // 進化素材：素材クエストは宝箱（降臨と同じ数：基本5個＋出撃した運極1体ごとに3個）。
+  // 1箱ごとに rate でその素材（amount 個）、はずれの箱にも進化コインかEXP（consolation）が入っている
   // 目安：★1→★3 に結晶8・核3・筋肉玉1。究極を回せれば4回くらい、運極がそろうと2回くらいで1体ぶん
   materials: {
     hpRatio: 0.5, // 素材クエストのHPは、ボスクエストのこの割合（× 難易度の hpRatio）
-    luckRolls: 1,
     drops: {
       stone: {
-        easy: { rolls: 3, rate: 0.5, amount: 1 },
-        normal: { rolls: 5, rate: 0.6, amount: 1 },
-        hard: { rolls: 7, rate: 0.7, amount: 1 },
+        easy: { rate: 0.3, amount: 1 },
+        normal: { rate: 0.6, amount: 1 },
+        hard: { rate: 0.5, amount: 2 },
       },
       muscle: {
-        easy: { rolls: 2, rate: 0.45, amount: 1 },
-        normal: { rolls: 3, rate: 0.55, amount: 1 },
-        hard: { rolls: 5, rate: 0.65, amount: 1 },
+        easy: { rate: 0.2, amount: 1 },
+        normal: { rate: 0.33, amount: 1 },
+        hard: { rate: 0.65, amount: 1 },
       },
       ball: {
-        easy: { rolls: 1, rate: 0.15, amount: 1 },
-        normal: { rolls: 1, rate: 0.35, amount: 1 },
-        hard: { rolls: 2, rate: 0.4, amount: 1 },
+        easy: { rate: 0.03, amount: 1 },
+        normal: { rate: 0.07, amount: 1 },
+        hard: { rate: 0.16, amount: 1 },
       },
       coins: {
-        easy: { rolls: 3, rate: 0.7, amount: 30 },
-        normal: { rolls: 4, rate: 0.7, amount: 60 },
-        hard: { rolls: 5, rate: 0.7, amount: 100 },
+        easy: { rate: 0.4, amount: 30 },
+        normal: { rate: 0.55, amount: 60 },
+        hard: { rate: 0.7, amount: 100 },
       },
     },
+    consolation: { coins: 20, exp: 10 }, // はずれの箱の中身（進化コインかEXP）
     ballPityMisses: 5, // 筋肉玉がこの回数続けて落ちなかったら、次は必ず1個
     // ボスクエストのおまけ：ボスの属性の結晶
     bossBonus: { rolls: 2, rate: 0.5, amount: 1 },

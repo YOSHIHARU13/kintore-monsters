@@ -245,7 +245,7 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
       </section>
 
       {/* 出撃中なら、確定ボタンのすぐ下で味方の攻撃が見える */}
-      <BattleScene go={go} compact />
+      <BattleScene go={go} compact paused={result?.judge === 'beat' || !!result?.weekCleared} />
 
       {todays.length > 0 && (
         <section className="card">

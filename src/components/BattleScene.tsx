@@ -8,20 +8,22 @@ import { bannerNodeOf } from './GachaBanner'
 import { useBattle } from './BattleBar'
 import type { Go } from '../nav'
 
-const STAGE_LABEL = ['道中', '中ボス', 'ボス']
+// 3バトルとも同じボス。バトルが進むほど背景が暗く・オーラが強くなって、ボスが本気になっていく
+const STAGE_LABEL = ['様子見', '本気', '最終局面']
 
 /**
  * 戦闘画面：今のバトルの敵とHP、出撃した6体。セットを記録すると、味方が順に攻撃して
- * 1体ずつのダメージと、効いた補正（部位一致・アビリティ・得意種目…）が飛ぶ。バトルを突破すると次の敵が出る
+ * 1体ずつのダメージと、効いた補正（部位一致・アビリティ・得意種目…）が飛ぶ。バトルを突破すると、同じボスが本気になる（背景とオーラが変わる）
  */
-export function BattleScene({ go, compact = false, battle: given }: { go?: Go; compact?: boolean; battle?: Battle | null }) {
+// paused：ほかの演出（前回超え・全消し）が上に出ている間は、攻撃の演出を待たせる（閉じてから見せる）
+export function BattleScene({ go, compact = false, battle: given, paused = false }: { go?: Go; compact?: boolean; battle?: Battle | null; paused?: boolean }) {
   const live = useBattle()
   const battle = given === undefined ? live : given
   const prevHits = useRef(battle?.hits.length ?? 0)
   const [anim, setAnim] = useState<{ key: number; hit: Hit; cleared: number | null } | null>(null)
 
   useEffect(() => {
-    if (!battle) return
+    if (!battle || paused) return
     const n = battle.hits.length
     if (n > prevHits.current) {
       const hit = battle.hits[n - 1]
@@ -31,12 +33,12 @@ export function BattleScene({ go, compact = false, battle: given }: { go?: Go; c
     }
     prevHits.current = n
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [battle?.hits.length])
+  }, [battle?.hits.length, paused])
 
   if (!battle) return null
   const total = CONFIG.quest.battles
   const shownStage = battle.defeated ? total : battle.stage
-  const enemy = battle.stages[shownStage - 1] ?? battle.boss
+  const enemy = battle.boss
   const stage = stageHp(battle.damage, battle.hp)
   const left = battle.defeated ? 0 : stage.left
   const size = compact ? 84 : 120
@@ -55,7 +57,7 @@ export function BattleScene({ go, compact = false, battle: given }: { go?: Go; c
         </span>
         <span className="small">{battle.quest.name}</span>
       </div>
-      <div className="bs-field">
+      <div className={`bs-field stage-${shownStage}`}>
         <div key={`${shownStage}-${anim?.key ?? 0}`} className={`bs-enemy${anim ? ' hit' : ''}${battle.defeated ? ' down' : ''}`}>
           {enemy && (
             <MonsterImage imageId={imageOf(enemy, bannerNodeOf(enemy))} awaken={awakenOf(enemy, bannerNodeOf(enemy))} glow={glowOf(enemy)} size={size} />
@@ -69,7 +71,7 @@ export function BattleScene({ go, compact = false, battle: given }: { go?: Go; c
         </div>
         <div className="bs-enemy-info">
           <span className="small">
-            {STAGE_LABEL[shownStage - 1]}：{enemy?.name ?? '？'}
+            {enemy?.name ?? '？'}・{STAGE_LABEL[shownStage - 1]}
           </span>
           <Gauge value={left} max={stage.max} color="#ef476f" />
           <span className="muted small">
@@ -80,6 +82,7 @@ export function BattleScene({ go, compact = false, battle: given }: { go?: Go; c
         {anim?.cleared && !battle.defeated && (
           <div key={anim.key} className="bs-clear">
             BATTLE {anim.cleared} CLEAR!
+            <span className="small">{enemy?.name ?? 'ボス'}が{STAGE_LABEL[anim.cleared]}に…！</span>
           </div>
         )}
       </div>

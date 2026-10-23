@@ -178,7 +178,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
             <MonsterImage {...monArt(def, mon)} size={180} shiny={mon.shiny} />
             <div className="beat-title">{plusName(def, mon)}</div>
             <div className="beat-sub">
-              クエストのオーブ＋{Math.round(CONFIG.luck.goldBonus * 100)}%・素材のくじ＋{CONFIG.materials.luckRolls}回
+              クエストのオーブ＋{Math.round(CONFIG.luck.goldBonus * 100)}%・宝箱＋{CONFIG.boxes.perLuckMax}個
             </div>
             {luckMaxNow > 0 && <div className="beat-sub">🟡 トク玉 ×{luckMaxNow} を手に入れた！</div>}
             <span className="luck-max">運極</span>
@@ -369,7 +369,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
         </div>
         <p className="muted small">
           同じモンスターを食べさせると運が上がります（タダ。食べさせた側の運もそのまま足されます）。運{CONFIG.luck.max}で「運極」。運極を出撃させると、1体につきクエスト報酬のG＋
-          {Math.round(CONFIG.luck.goldBonus * 100)}%、素材クエストのくじ＋{CONFIG.materials.luckRolls}回（たくさん落ちやすくなる）。
+          {Math.round(CONFIG.luck.goldBonus * 100)}%、宝箱＋{CONFIG.boxes.perLuckMax}個（たくさん落ちやすくなる）。
           クエストのボスは運{CONFIG.luck.questDrop}で落ち、出撃した運極1体ごとに＋{CONFIG.luck.perLuckMax}（最大＋
           {CONFIG.luck.perLuckMaxCap}）。運極になると🟡トク玉（降臨{CONFIG.luck.maxReward.quest}個・ガチャのモンスター
           {CONFIG.luck.maxReward.gacha}個）。

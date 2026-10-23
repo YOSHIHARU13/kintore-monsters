@@ -44,11 +44,6 @@ export const DROP_ICON: Record<MaterialDrop, string> = { stone: '💠', muscle: 
 /** くじで数が決まる素材（神殿のアイテムは別：lib/custom） */
 export type LotDrop = Exclude<MaterialDrop, 'custom'>
 
-export interface Drop {
-  count: number // 落ちた数（0なら落ちなかった）
-  pity: boolean // 天井で確定したか
-}
-
 /** くじを rolls 回引き、当たり1回で amount 個 */
 export function rollLots(
   lots: { rolls: number; rate: number; amount: number },
@@ -60,27 +55,10 @@ export function rollLots(
   return hits * lots.amount
 }
 
-/**
- * 素材クエストのドロップ。運極が1体いるごとに、くじが増える。
- * 筋肉玉だけは、続けて落ちないと（misses が天井の回数に届くと）次は必ず1個。
- */
-export function rollMaterialDrop(
-  kind: LotDrop,
-  difficulty: QuestDifficulty,
-  luckCount: number,
-  misses: number,
-  random: () => number,
-): Drop {
-  const m = CONFIG.materials
-  const count = rollLots(m.drops[kind][difficulty], luckCount * m.luckRolls, random)
-  if (kind === 'ball' && count === 0 && misses + 1 >= m.ballPityMisses) return { count: 1, pity: true }
-  return { count, pity: false }
-}
-
-/** くじの期待値（画面の目安） */
+/** 素材クエストの平均（画面の目安）：宝箱の数 × 1箱で出る確率 × 数 */
 export function expectedDrop(kind: LotDrop, difficulty: QuestDifficulty, luckCount: number): number {
   const d = CONFIG.materials.drops[kind][difficulty]
-  return (d.rolls + luckCount * CONFIG.materials.luckRolls) * d.rate * d.amount
+  return (CONFIG.boxes.base + CONFIG.boxes.perLuckMax * luckCount) * d.rate * d.amount
 }
 
 /** ボスクエストのおまけ：ボスの属性の結晶 */

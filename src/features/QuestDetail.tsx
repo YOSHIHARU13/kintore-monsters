@@ -149,7 +149,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
         {luck.count > 0 && (
           <p className="small luck-bonus">
             <span className="luck-max">運極</span> ×{luck.count}：報酬のオーブ ×{luck.goldRate.toFixed(1)}
-            {quest.kind === 'material' && `・素材のくじ +${luck.extraRolls}回`}
+            {quest.kind === 'material' && `・宝箱 +${luck.extraBoxes}個`}
           </p>
         )}
       </section>
@@ -346,7 +346,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
   )
 }
 
-/** 素材クエストのくじの説明：何回引けて、1回あたりどれくらいで当たるか */
+/** 素材クエストの宝箱の説明：何個開けられて、1箱あたりどれくらいで当たるか */
 function MaterialDropInfo({ kind, label, difficulty, luckCount, misses }: {
   kind: LotDrop
   label: string
@@ -355,12 +355,12 @@ function MaterialDropInfo({ kind, label, difficulty, luckCount, misses }: {
   misses: number
 }) {
   const d = CONFIG.materials.drops[kind][difficulty]
-  const extra = luckCount * CONFIG.materials.luckRolls
   const avg = expectedDrop(kind, difficulty, luckCount)
   return (
     <p className="small core-drop">
-      {DROP_ICON[kind]} {label}：くじ{d.rolls}回{extra > 0 && `＋運極${extra}回`}（1回{Math.round(d.rate * 100)}%で
-      {d.amount > 1 ? `${d.amount}枚` : '1個'}）・平均{kind === 'coins' ? Math.round(avg) : avg.toFixed(1)}
+      🎁 宝箱{boxCount(luckCount)}個{luckCount > 0 && `（運極${luckCount}体で+${luckCount * CONFIG.boxes.perLuckMax}）`}：1箱{Math.round(d.rate * 100)}%で
+      {DROP_ICON[kind]} {label}
+      {d.amount > 1 ? `×${d.amount}` : ''}（はずれの箱は進化コインかEXP）・平均{kind === 'coins' ? Math.round(avg) : avg.toFixed(1)}
       {kind === 'ball' && misses > 0 && `・いま${misses}回続けて落ちていない（${CONFIG.materials.ballPityMisses}回目は確定）`}
     </p>
   )

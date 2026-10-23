@@ -177,7 +177,7 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
           </h2>
           {got.byMember && <DamageShare byMember={got.byMember} mvpId={got.mvpId} />}
           {got.boosted && <p className="tag keep">⚔️ 討伐ブースターで中身2倍！</p>}
-          {got.boxes && <TreasureBoxes boxes={got.boxes} quest={got.quest ?? { attr: 'none' }} boss={got.boss} />}
+          {got.boxes && <TreasureBoxes boxes={got.boxes} quest={got.quest ?? { attr: 'none' }} boss={got.boss} main={got.mainBox} />}
           {got.eggs > 0 && <p>🟡 トク玉 ×{got.eggs} を手に入れた！</p>}
           {got.booster && (
             <p>{boosterName(state, got.booster)} を手に入れた！</p>

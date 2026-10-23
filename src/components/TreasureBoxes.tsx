@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { BOX_ICON, boxLabel, sumBoxes, type BoxItem } from '../lib/boxes'
+import { BOX_ICON, boxLabel, sumBoxes, type BoxItem, type BoxKind } from '../lib/boxes'
 import type { MonsterDef, Quest } from '../types'
 
-/** 宝箱を1つずつ開ける演出（モンスト式）。ボスの箱は金色。タップで全部開く */
-export function TreasureBoxes({ boxes, quest, boss }: { boxes: BoxItem[]; quest: Pick<Quest, 'element' | 'attr'>; boss: MonsterDef | undefined }) {
+/** 宝箱を1つずつ開ける演出（モンスト式）。当たり（降臨はボス、素材クエストはその素材）の箱は金色。タップで全部開く */
+export function TreasureBoxes({ boxes, quest, boss, main = 'boss' }: { boxes: BoxItem[]; quest: Pick<Quest, 'element' | 'attr'>; boss: MonsterDef | undefined; main?: BoxKind }) {
   const [open, setOpen] = useState(0)
   useEffect(() => {
     if (open >= boxes.length) return
@@ -17,7 +17,7 @@ export function TreasureBoxes({ boxes, quest, boss }: { boxes: BoxItem[]; quest:
     <div className="treasure" onClick={() => setOpen(boxes.length)}>
       <div className="chest-grid">
         {boxes.map((b, i) => (
-          <div key={i} className={`chest ${b.kind === 'boss' ? 'gold' : 'silver'}${i < open ? ' open' : ''}`}>
+          <div key={i} className={`chest ${b.kind === main ? 'gold' : 'silver'}${i < open ? ' open' : ''}`}>
             <span className="chest-lid" />
             <span className="chest-body" />
             {i < open && (

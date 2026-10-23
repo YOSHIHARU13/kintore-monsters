@@ -31,8 +31,8 @@ describe('運', () => {
   })
 
   it('運極ボーナス：1体につき報酬のオーブ+20%、素材のくじ+1回', () => {
-    expect(luckBonus([{ luck: 99 }, { luck: 99 }, { luck: 5 }])).toEqual({ count: 2, goldRate: 1.4, extraRolls: 2 })
-    expect(luckBonus([])).toEqual({ count: 0, goldRate: 1, extraRolls: 0 })
+    expect(luckBonus([{ luck: 99 }, { luck: 99 }, { luck: 5 }])).toEqual({ count: 2, goldRate: 1.4, extraBoxes: 6 })
+    expect(luckBonus([])).toEqual({ count: 0, goldRate: 1, extraBoxes: 0 })
   })
 })
 

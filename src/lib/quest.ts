@@ -192,7 +192,6 @@ export interface Battle {
   defeated: boolean
   byMember: Record<string, number> // 出撃した子ごとの、これまでのダメージ
   mvpId: string | null // いちばんダメージを与えた子
-  stages: (MonsterDef | undefined)[] // 3バトルの敵（道中・中ボス・ボス）
   stage: number // 今戦っているバトル（1〜3。倒しきったら3）
   reached: number // 突破したバトルの数（0〜3）
 }
@@ -209,28 +208,6 @@ export function stageHp(damage: number, hp: number): { max: number; left: number
   const max = hp / n
   const stage = Math.min(n - 1, battlesReached(damage, hp))
   return { max, left: Math.max(0, Math.min(max, (stage + 1) * max - damage)) }
-}
-
-function hashOf(s: string): number {
-  let h = 2166136261
-  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619)
-  return h >>> 0
-}
-
-/**
- * 3バトルの敵：1バトル目は道中（ボスと同じ属性のノーマル・レア）、2バトル目は中ボス（同じ属性のほかの降臨か、レア）、3バトル目がボス。
- * クエストのIDで決まる（塔は月ごとにIDが変わるので、道中と中ボスも入れ替わる）。いなければボスが3回出る
- */
-export function stageEnemies(quest: Pick<Quest, 'id' | 'element'>, boss: MonsterDef | undefined, defs: MonsterDef[]): (MonsterDef | undefined)[] {
-  const h = hashOf(quest.id)
-  const sameEl = (d: MonsterDef) => (quest.element ? elementInfo(d).elements[0] === quest.element : elementInfo(d).elements.length === 0)
-  const others = defs.filter((d) => d.id !== boss?.id && !d.recipe?.length && sameEl(d))
-  const mobs = others.filter((d) => !d.questOnly && rarityOf(d) !== 'superRare')
-  const mids = others.filter((d) => (d.questOnly && !d.castleLord && !d.kinkinLord) || (!d.questOnly && rarityOf(d) === 'rare'))
-  const pick = (list: MonsterDef[], salt: number) => (list.length > 0 ? list[(h + salt) % list.length] : boss)
-  const mob = pick(mobs, 0)
-  const mid = pick(mids.filter((d) => d.id !== mob?.id), 7)
-  return [mob, mid, boss]
 }
 
 /** 今日の戦いの状況。挑戦していない・日付が変わった・クエストが消えたときは null */
@@ -273,7 +250,6 @@ export function battleOf(
     defeated: damage >= hp,
     byMember,
     mvpId,
-    stages: stageEnemies(quest, boss, defs),
     stage: Math.min(CONFIG.quest.battles, reached + 1),
     reached,
   }

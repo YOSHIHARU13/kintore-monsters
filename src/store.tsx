@@ -37,14 +37,12 @@ import {
   DROP_ICON,
   ballsOf,
   coresOf,
-  dropLabel,
   dropOf,
-  rollMaterialDrop,
   stonesOf,
   type CoreKey,
 } from './lib/cores'
 import { pendingRanks, rankClaimKey, rankReward } from './lib/rank'
-import { isShinkaMaterial, rollBoxes, sumBoxes, type BoxItem } from './lib/boxes'
+import { isShinkaMaterial, materialBoxKind, rollBoxes, rollMaterialBoxes, sumBoxes, type BoxItem, type BoxKind } from './lib/boxes'
 import {
   bulkFeedTarget,
   canFeed,
@@ -200,7 +198,8 @@ export interface QuestReward {
   battles?: { from: number; to: number } // 孤城：今回突破したバトル（何番目から何番目まで）
   booster?: BoosterKey | null // 試練の塔でもらえたブースター
   boosted?: boolean // 討伐ブースターで2倍になったか
-  boxes?: BoxItem[] // 降臨の宝箱の中身（開ける順）
+  boxes?: BoxItem[] // 降臨・素材クエストの宝箱の中身（開ける順）
+  mainBox?: BoxKind // 金色の箱にする中身（降臨はボス、素材クエストはその素材）
   drops: ItemDrop[] // 落ちた素材（素材クエストで何も落ちなければ、0個の行が1つ）
   gold: number // オーブ
   coins?: number // もらえた進化コイン
@@ -1445,6 +1444,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       let monsterId: string | null = null
       let coins = 0
       let boxes: BoxItem[] | undefined
+      let mainBox: BoxKind = 'boss' // 金色の箱にする中身
       let bossLuck: number | undefined
       const drops: ItemDrop[] = []
       if (kind === 'custom') {
@@ -1460,19 +1460,21 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         }
         if (all.length === 0) drops.push({ icon: '🏛', label: 'カスタマイズアイテム', count: 0 })
       } else if (material) {
-        // 素材クエスト：くじを引いた数だけ落ちる（運極がいるとくじが増える）
+        // 素材クエスト：宝箱（運極がいると箱が増える）。当たりの箱にその素材、はずれの箱にも進化コインかEXP
         const misses = state.coreMisses[battle.quest.id] ?? 0
-        const drop = rollMaterialDrop(kind, c.difficulty, bonus.count, kind === 'ball' ? misses : 0, Math.random)
-        const count = drop.count * boost
-        if (kind === 'ball') update[`coreMisses.${battle.quest.id}`] = drop.count > 0 ? 0 : increment(1)
-        if (kind === 'coins') coins = count
-        else if (count > 0) {
-          if (kind === 'stone' && battle.quest.element) update[`stones.${battle.quest.element}`] = increment(count)
-          if (kind === 'muscle' && battle.quest.attr !== 'none') update[`cores.${battle.quest.attr}`] = increment(count)
-          const ball = kind === 'ball' || (kind === 'muscle' && battle.quest.attr === 'none')
-          if (ball) update[`cores.${BALL_KEY}`] = increment(count)
+        const rolled = rollMaterialBoxes(kind, battle.quest, c.difficulty, { luckMaxCount: bonus.count, boosted: boost > 1, misses }, Math.random)
+        boxes = rolled.boxes
+        mainBox = materialBoxKind(kind, battle.quest)
+        const sum = sumBoxes(boxes)
+        if (kind === 'ball') update[`coreMisses.${battle.quest.id}`] = sum.ball > 0 ? 0 : increment(1)
+        if (sum.stone > 0 && battle.quest.element) update[`stones.${battle.quest.element}`] = increment(sum.stone)
+        if (sum.core > 0 && battle.quest.attr !== 'none') update[`cores.${battle.quest.attr}`] = increment(sum.core)
+        if (sum.ball > 0) update[`cores.${BALL_KEY}`] = increment(sum.ball)
+        if (sum.exp > 0) {
+          if (battle.quest.attr === 'none') update.anyExp = increment(sum.exp)
+          else update[`exp.${battle.quest.attr}.trained`] = increment(sum.exp)
         }
-        drops.push({ icon: DROP_ICON[kind], label: dropLabel(battle.quest), count, pity: drop.pity })
+        coins += sum.coins
       } else {
         const boss = battle.boss
         if (!boss) return null
@@ -1519,6 +1521,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         towerFloor: null,
         luck: bossLuck,
         boxes,
+        mainBox,
         byMember: battle.byMember,
         mvpId: battle.mvpId,
         total: battle.damage,
