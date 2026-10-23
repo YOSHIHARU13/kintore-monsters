@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { CONFIG } from '../config/gameConfig'
 import { defaultBossHp, gradeOf } from '../lib/quest'
-import { autoGradeOf, autoQuestSetup } from '../lib/questAuto'
+import { QUEST_RULES, autoGradeOf, autoQuestSetup } from '../lib/questAuto'
 import { selectableGimmicks } from '../lib/gimmick'
 import { elementInfo } from '../lib/element'
 import type { Go } from '../nav'
@@ -123,4 +123,22 @@ export function QuestAdmin({ go }: { go: Go }) {
       </section>
     </div>
   )
+}
+
+/**
+ * アプリを開いたら（どの画面でも）、おまかせの作り方が変わっていれば、今あるボスクエストの条件を1回だけまとめて作り直す。
+ * クエストとモンスターの読み込みが終わってから動く
+ */
+export function QuestRulesUpdater() {
+  const { state, loaded, markQuestRules } = useStore()
+  const { topQuests, redoTop } = useQuestTools()
+  const redone = useRef(false)
+  useEffect(() => {
+    if (redone.current || !loaded || (state.questRules ?? 0) >= QUEST_RULES) return
+    redone.current = true
+    if (topQuests.length > 0) redoTop()
+    markQuestRules(QUEST_RULES)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded, state.questRules])
+  return null
 }

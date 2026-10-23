@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '../store'
 import { allSeries } from '../lib/series'
-import { ATTRS, DAYS, FORM_ATTRS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type FormAttr } from '../data/exercises'
+import { ATTRS, DAYS, FAVORITE_SLOTS, FORM_ATTRS, FORM_ATTR_LABEL, exerciseOfSlot, type FormAttr } from '../data/exercises'
 import { FIRST_NODE_ID, TEMPLATES, canChangeTemplate, getTemplate } from '../data/evolutionTemplates'
 import { nextCost } from '../lib/evolution'
 import { MonsterImage } from '../components/MonsterImage'
@@ -49,10 +49,10 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
   const [fixedStars] = useState(existing?.fixedStars ?? CONFIG.gacha.fixedStarsDefault)
   const [jogressPlus] = useState(existing?.jogressPlus ?? 0)
   const [questOnly, setQuestOnly] = useState(existing?.questOnly === true || questPreset)
-  const [tower, setTower] = useState(existing?.tower === true)
-  const [castleLord, setCastleLord] = useState(existing?.castleLord === true)
-  const [castleOnly, setCastleOnly] = useState(existing?.castleOnly === true)
-  const [kinkinLord, setKinkinLord] = useState(existing?.kinkinLord === true)
+  const [tower] = useState(existing?.tower === true)
+  const [castleLord] = useState(existing?.castleLord === true)
+  const [castleOnly] = useState(existing?.castleOnly === true)
+  const [kinkinLord] = useState(existing?.kinkinLord === true)
   const [element, setElement] = useState<Element | ''>(existing?.element ?? '')
   const [favoriteSlot, setFavoriteSlot] = useState(existing?.favoriteSlot ?? '')
   const [abilities, setAbilities] = useState<string[]>(existing?.abilities ?? [])
@@ -106,11 +106,9 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
       : {}),
   }
   const elSup = elementSupply(defs, quests, existing?.id)
-  // 得意種目は、このモンスターの部位（最終形態）の種目とローラーから選ぶ。部位が「無」なら全部から
+  // 得意種目は、このモンスターの部位（最終形態）の種目から選ぶ。部位が「無」なら全部から（全身枠は入らない）
   const parts = finalAttrs(draftFull)
-  const favoriteChoices = SLOTS.filter(
-    (slot) => slot.day === 'bonus' || parts.includes('none') || parts.includes(DAYS[slot.day].attr),
-  )
+  const favoriteChoices = FAVORITE_SLOTS.filter((slot) => parts.includes('none') || parts.includes(DAYS[slot.day as keyof typeof DAYS].attr))
   const validFavorite = favoriteChoices.some((slot) => slot.id === favoriteSlot) ? favoriteSlot : ''
   const attrSup = attrSupply(defs, quests, existing?.id)
   const fits = questFits(draftFull, quests, gimmickNames)
@@ -397,29 +395,11 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
               。爆絶は獣神化で★4）。
             </p>
           )}
-          {questOnly && bossGrade === 'bakuzetsu' && (
-            <label className="row">
-              <input type="checkbox" checked={castleLord} onChange={(e) => setCastleLord(e.target.checked)} />
-              👑 零の孤城の城主にする（最上階の零属性のボス。何体かいれば毎月入れ替わる。倒すともらえる）
-            </label>
-          )}
           {questOnly && (
-            <label className="row">
-              <input type="checkbox" checked={castleOnly} onChange={(e) => setCastleOnly(e.target.checked)} />
-              🏯 零の孤城の限定にする（1〜10階のボスになり、毎月の初回クリアで手に入る。ふつうのクエストは作らない）
-            </label>
-          )}
-          {questOnly && (
-            <label className="row">
-              <input type="checkbox" checked={kinkinLord} onChange={(e) => setKinkinLord(e.target.checked)} />
-              ⛓ 禁筋の獄の最上階のボスにする（何体かいれば毎月入れ替わる。初回クリアで手に入る。ふつうのクエストは作らない）
-            </label>
-          )}
-          {questOnly && (
-            <label className="row">
-              <input type="checkbox" checked={tower} onChange={(e) => setTower(e.target.checked)} />
-              🗼 試練の塔の11階のボスにする（何体かいれば毎月入れ替わる。倒すともらえる）
-            </label>
+            <p className="muted small">
+              🏯 高難度専用（塔の11階・禁筋の最上階・孤城の城主・孤城限定）にするかは、「その他 → つくる → 高難度のボス」でまとめて選べます
+              {(tower || kinkinLord || castleLord || castleOnly) && '（この子はいま高難度専用です）'}
+            </p>
           )}
           {!questOnly && !CONFIG.gacha.rarities[rarity].everyGacha && (
             <>
@@ -522,7 +502,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
             <option value="">なし</option>
             {favoriteChoices.map((slot) => (
               <option key={slot.id} value={slot.id}>
-                {slot.day === 'bonus' ? 'ボーナス：' : `${DAYS[slot.day].title}：`}
+                {DAYS[slot.day as keyof typeof DAYS].title}：
                 {exerciseOfSlot(slot, menu).name}（{supplyText(slotSupply(slot.id, defs, quests, existing?.id))}）
                 {isShort(slotSupply(slot.id, defs, quests, existing?.id)) ? ' 不足' : ''}
               </option>

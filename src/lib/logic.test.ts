@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { calcTarget, judgeSet, recentSessions, suggestProgression } from './target'
 import { calcSetReward, habitGoldNow, stepsGold } from './rewards'
+import { isFavorite } from './custom'
 import type { GameState } from '../types'
 import { boughtCap, evolutionCost, fusionCost, isExpFull, nextCost, planPour } from './evolution'
 import { CONFIG } from '../config/gameConfig'
@@ -50,15 +51,9 @@ describe('セット報酬', () => {
     expect(calcSetReward({ ...base, judge: 'keep' }).exp).toBe(12)
     expect(calcSetReward({ ...base, judge: 'beat' })).toEqual({ eligible: true, exp: 15, gold: 0, countsBeat: true })
   })
-  it('4〜6セット目は2周目でEXP半分、7セット目以降と30秒未満は対象外', () => {
-    expect(calcSetReward({ isBonus: false, setNo: 4, judge: 'normal', intervalOk: true }).exp).toBe(5)
-    expect(calcSetReward({ isBonus: false, setNo: 6, judge: 'beat', intervalOk: true }).exp).toBe(8)
-    expect(calcSetReward({ isBonus: false, setNo: 7, judge: 'beat', intervalOk: true })).toEqual({
-      eligible: false,
-      exp: 0,
-      gold: 0,
-      countsBeat: false,
-    })
+  it('4セット目以降も満額。30秒未満だけ対象外', () => {
+    expect(calcSetReward({ isBonus: false, setNo: 4, judge: 'normal', intervalOk: true }).exp).toBe(10)
+    expect(calcSetReward({ isBonus: false, setNo: 12, judge: 'beat', intervalOk: true })).toEqual({ eligible: true, exp: 15, gold: 0, countsBeat: true })
     expect(calcSetReward({ isBonus: false, setNo: 2, judge: 'beat', intervalOk: false }).exp).toBe(0)
   })
   it('腹筋ローラーは2オーブ＋万能EXP10', () => {
@@ -234,5 +229,18 @@ describe('初期データの整合性', () => {
         if (node.next.length > 0) expect(evolutionCost(node.stage)).not.toBeNull()
       }
     }
+  })
+})
+
+describe('全身枠', () => {
+  it('秒数の種目は目標が＋5秒、5秒以内でキープ', () => {
+    const h = [{ setNo: 1, weightKg: 0, reps: 40, ts: 1, date: '2026-10-01' }]
+    expect(calcTarget(h, 1, 0, CONFIG.target.secondsScale)).toBe(45)
+    expect(judgeSet(41, 45, CONFIG.target.secondsScale)).toBe('keep')
+    expect(judgeSet(39, 45, CONFIG.target.secondsScale)).toBe('normal')
+  })
+  it('全身枠は誰の得意種目にもならない', () => {
+    expect(isFavorite({ favoriteSlot: 'bonus' }, 'bonus')).toBe(false)
+    expect(isFavorite({ favoriteSlot: 'mon1' }, 'mon1')).toBe(true)
   })
 })

@@ -30,6 +30,7 @@ export interface Exercise {
   next?: string // 難易度を上げた上位バリエーション
   dumbbells?: 1 | 2 // 一度に持つダンベルの数（省略時は2個＝両手に1個ずつ）。重さは常に1個ぶんで記録する
   perSide?: boolean // 左右を片側ずつ行う種目か。回数は片側ぶんで数える
+  seconds?: boolean // 回数ではなく秒数で記録する種目（プランクなど）。記録の reps に秒数が入る
   how: string // やり方の簡単な説明
 }
 
@@ -251,7 +252,7 @@ const list: Exercise[] = [
     id: 'frontRaise', name: 'フロントレイズ', weighted: true,
     how: '立って両腕を体の前から肩の高さまで上げて下ろす。肩の前側。',
   },
-  // ボーナス：腹筋ローラー
+  // 全身枠：体幹（腹筋ローラー・プランク）
   {
     id: 'abKnee', name: '腹筋ローラー（膝つき）', weighted: false, next: 'abWall',
     how: 'ひざをついてローラーを前へ転がし、無理のない範囲で体を伸ばして戻る。腰は反らさない。',
@@ -268,6 +269,31 @@ const list: Exercise[] = [
   {
     id: 'abStanding', name: '腹筋ローラー（立ちコロ）', weighted: false,
     how: '立った状態からローラーを前へ転がして戻る。いちばん難しい形。',
+  },
+  {
+    id: 'plank', name: 'プランク', weighted: false, seconds: true, next: 'plankLegUp',
+    how: '前腕とつま先で体を支え、頭からかかとまで一直線に保つ。お尻を上げすぎない・落とさない。',
+  },
+  {
+    id: 'plankLegUp', name: 'プランク（片足上げ）', weighted: false, seconds: true,
+    how: 'プランクの姿勢から片足を床から浮かせて保つ。半分の時間で足を入れ替える。',
+  },
+  {
+    id: 'sidePlank', name: 'サイドプランク', weighted: false, seconds: true, perSide: true,
+    how: '横向きになり、片方の前腕と足の側面で体を支えて一直線に保つ。左右それぞれ同じ秒数。',
+  },
+  // 全身枠：全身（床を蹴らない、静かめの種目）
+  {
+    id: 'squatThrust', name: 'スクワットスラスト', weighted: false, next: 'burpee',
+    how: 'しゃがんで手を床につき、両足を後ろへ伸ばして腕立ての姿勢に。足を戻して立ち上がる。ジャンプはしない。',
+  },
+  {
+    id: 'burpee', name: 'バーピー（腕立てつき）', weighted: false,
+    how: 'スクワットスラストの腕立ての姿勢で腕立てを1回入れてから戻って立つ。ジャンプはしなくてよい。',
+  },
+  {
+    id: 'mountainClimber', name: 'マウンテンクライマー', weighted: false, perSide: true,
+    how: '腕立ての姿勢で、ひざを交互に胸へ引き寄せる。腰を上下させない。回数は片足ぶんで数える。',
   },
 ]
 
@@ -294,10 +320,17 @@ export const SLOTS: Slot[] = [
   { id: 'fri3', day: 'fri', candidates: ['seatedRearRaise', 'seatedRearRaisePause'] },
   { id: 'fri4', day: 'fri', candidates: ['shoulderPress', 'arnoldPress', 'shoulderPressOneArm'] },
   { id: 'fri5', day: 'fri', candidates: ['sideRaise', 'sideRaiseSlow', 'frontRaise'] },
-  { id: 'bonus', day: 'bonus', candidates: ['abKnee', 'abWall', 'abKneeFull'] },
+  // 全身枠（タスク外）。どの部位でもなく、誰の得意種目にもならない。EXPは万能EXP
+  { id: 'bonus', day: 'bonus', candidates: ['abKnee', 'abWall', 'abKneeFull', 'plank', 'plankLegUp', 'sidePlank'] },
+  { id: 'bonus2', day: 'bonus', candidates: ['squatThrust', 'burpee', 'mountainClimber'] },
 ]
 
 export const BONUS_SLOT = SLOTS.find((s) => s.day === 'bonus')!
+/** 全身枠の種目（タスク外） */
+export const BONUS_SLOTS = SLOTS.filter((s) => s.day === 'bonus')
+export const isBonusSlot = (slotId: string) => BONUS_SLOTS.some((s) => s.id === slotId)
+/** 得意種目にできる枠（全身枠は入らない） */
+export const FAVORITE_SLOTS = SLOTS.filter((s) => s.day !== 'bonus')
 
 /** 今週のタスクになる枠（ボーナス枠以外） */
 export const TASK_SLOTS = SLOTS.filter((s) => s.day !== 'bonus')
@@ -323,8 +356,12 @@ export function dumbbellText(ex: Exercise): string | null {
   return ex.dumbbells === 1 ? 'ダンベル1個' : 'ダンベル2個（両手に1個ずつ）'
 }
 
+/** 記録の単位（回か秒） */
+export const unitOf = (exerciseId: string) => (EXERCISES[exerciseId]?.seconds ? '秒' : '回')
+
 export function rangeText(exerciseId: string): string {
   const { min, max } = repRange(exerciseId)
-  const text = min === null ? `上限${max}回` : `${min}〜${max}回`
+  const u = unitOf(exerciseId)
+  const text = min === null ? `上限${max}${u}` : `${min}〜${max}${u}`
   return EXERCISES[exerciseId]?.perSide ? `左右各${text}` : text
 }

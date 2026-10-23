@@ -6,16 +6,17 @@ import { FORM_ATTR_LABEL, SLOTS, exerciseOfSlot } from '../data/exercises'
 import { MonsterImage } from '../components/MonsterImage'
 import { Stars } from '../components/Stars'
 import { QuestBanner } from '../components/QuestBanner'
-import { BOSS_DIFFICULTY, atDifficulty, difficultyLabel, levelsOf, fitsQuest, isStrict, attrOf, dropPlus, gradeOf, powerOf, questGold, questHp, type Member } from '../lib/quest'
+import { BOSS_DIFFICULTY, atDifficulty, difficultyLabel, levelsOf, fitsQuest, isStrict, attrOf, gradeOf, powerOf, questGold, questHp, type Member } from '../lib/quest'
 import { formationOf, requirementsOf, shortfallHelp, tagLabel, tagsOf } from '../lib/formation'
 import { FormationPanel } from '../components/FormationPanel'
-import { dropLuck, luckBonus } from '../lib/fusion'
+import { luckBonus } from '../lib/fusion'
+import { boxCount, boxLabel, boxPool, isShinkaMaterial } from '../lib/boxes'
 import { ELEMENT_COLOR, ELEMENT_LABEL, ZERO_LABEL, advantageElements, elementInfo, elementName } from '../lib/element'
 import { ATTR_COLOR, type Go, type View } from '../nav'
 import { questCategoryOf } from './Quests'
 import { attackOf } from '../lib/stats'
 import { allGimmicks } from '../lib/gimmick'
-import { DROP_ICON, STONE_LABEL, dropLabel, dropOf, expectedDrop } from '../lib/cores'
+import { DROP_ICON, dropLabel, dropOf, expectedDrop } from '../lib/cores'
 import { towerCleared, towerMonth, towerOpen } from '../lib/tower'
 import { castleAvailable, castleCleared, castleOpen } from '../lib/castle'
 import { kinkinCleared, kinkinOpen } from '../lib/kinkin'
@@ -238,9 +239,12 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
           </p>
         ) : (
           <p className="small">
-            ドロップ {boss?.name ?? '？'}
-            {dropPlus(quest) > 0 ? `＋${dropPlus(quest)}` : ''}（運{dropLuck(partyMons)}）・ときどき
-            {quest.element ? STONE_LABEL(quest.element) : '結晶'}
+            🎁 宝箱 {boxCount(luck.count)}個{luck.count > 0 ? `（運極${luck.count}体で+${luck.count * CONFIG.boxes.perLuckMax}）` : ''}：1箱ごとに
+            {Math.round(CONFIG.boxes.bossRate * 100)}%で{boss?.name ?? 'ボス'}（運1
+            {boss && isShinkaMaterial(boss, defs) ? `。神化素材なので1〜3体・運1〜3` : ''}）、ほかは
+            {boxPool(quest)
+              .map((k) => boxLabel(k, quest))
+              .join('・')}
           </p>
         )}
       </section>

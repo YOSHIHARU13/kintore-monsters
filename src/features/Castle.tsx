@@ -9,7 +9,7 @@ import { towerMonth } from '../lib/tower'
 import { FloorReqs } from '../components/FloorReqs'
 import { towerRewardText } from './Tower'
 import type { Go } from '../nav'
-import { patternLabel } from '../lib/pattern'
+import { patternLabel, patternTag } from '../lib/pattern'
 
 /** 零の孤城：全11階のエンドコンテンツ。毎月21日〜月末。1〜10階は孤城限定の子、11階は零属性の城主（どちらも毎月の初回クリアで手に入る） */
 export function Castle({ go }: { go: Go }) {
@@ -22,7 +22,7 @@ export function Castle({ go }: { go: Go }) {
       <button className="back" onClick={() => go({ name: 'quests' })}>
         ← クエストに戻る
       </button>
-      <h1 className="title">🏯 零の孤城</h1>
+      <h1 className="title">🏯 零の孤城{patternTag(towerMonth(today))}</h1>
       <p className="pattern-badge">
         今月は<strong>{patternLabel(towerMonth(today))}</strong>：どのボスもこの部位のボス。この部位の種目がよく効いて、この部位の子が求められます（毎月 胸腕→脚→背肩 の順に入れ替わり、最上階のボスも変わる）
       </p>
@@ -31,7 +31,7 @@ export function Castle({ go }: { go: Go }) {
           ? `開催は毎月${CONFIG.castle.openDays[0]}日〜月末です（今は試練の塔の期間）。条件は今から見られます。`
           : done
             ? '今月は踏破！ おめでとう！'
-            : `全部突破 ${cleared}／${CONFIG.castle.floors}階。各階は${CONFIG.castle.battles}バトル。出撃は1回で、その日に削れたぶんだけ突破します。${CONFIG.castle.battlesToNext}バトル突破で次の階、最上階は1〜10階を全部突破してから。`}
+            : `全部突破 ${cleared}／${CONFIG.castle.floors}階。各階は${CONFIG.quest.battles}バトル。出撃は1回で、その日に削れたぶんだけ突破します。${CONFIG.castle.battlesToNext}バトル突破で次の階、最上階は1〜10階を全部突破してから。`}
       </p>
       <p className="muted small">
         どの階も爆絶（属性が合わない子の攻撃は3分の1）。弱点属性とアビリティの持ち物検査がきびしく、2アビ・3アビの噛み合った子がいないと満たせません。
@@ -40,7 +40,7 @@ export function Castle({ go }: { go: Go }) {
       <ol className="tower castle">
         {[...castle].reverse().map((f) => {
           const best = castleBest(state, towerMonth(today), f.floor)
-          const clear = best >= CONFIG.castle.battles
+          const clear = best >= CONFIG.quest.battles
           const next = !clear && castleAvailable(state, towerMonth(today), f.floor)
           const boss = defs.find((d) => d.id === f.quest.bossDefId)
           const el = f.quest.element
@@ -65,7 +65,7 @@ export function Castle({ go }: { go: Go }) {
                   <FloorReqs quest={f.quest} />
                   <span className="small castle-battles">
                     {'⚔️'.repeat(best)}
-                    {'・'.repeat(CONFIG.castle.battles - best)} バトル {best}/{CONFIG.castle.battles}
+                    {'・'.repeat(CONFIG.quest.battles - best)} バトル {best}/{CONFIG.quest.battles}
                   </span>
                   <span className="small">{clear ? '受け取り済み' : towerRewardText(f, defs, state)}</span>
                 </span>

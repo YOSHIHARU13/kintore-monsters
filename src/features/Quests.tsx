@@ -1,12 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
-import { useQuestTools } from './QuestAdmin'
+import { useState } from 'react'
+import { patternTag } from '../lib/pattern'
 import { ATTRS, ATTR_LABEL, type Attr } from '../data/exercises'
 import { ATTR_COLOR } from '../nav'
 import { awakenOf, imageOf, glowOf, monArt } from '../lib/art'
 import { useStore } from '../store'
 import { SeriesChips } from '../components/SeriesChips'
 import { allSeries, inSeries, questSeries, seriesStatus, statusLabel, type SeriesFilter } from '../lib/series'
-import { Gauge } from '../components/Gauge'
 import { MonsterImage } from '../components/MonsterImage'
 import { QuestBanner } from '../components/QuestBanner'
 import { bannerNodeOf } from '../components/GachaBanner'
@@ -61,10 +60,11 @@ import { dropLabel } from '../lib/cores'
 import { towerCleared, towerMonth, towerOpen } from '../lib/tower'
 import { battlesReached, castleBest, castleCleared, castleOpen } from '../lib/castle'
 import { kinkinCleared, kinkinOpen } from '../lib/kinkin'
-import { QUEST_RULES } from '../lib/questAuto'
 import { towerRewardText } from './Tower'
 import { boosterName } from '../lib/boosters'
 import type { QuestReward } from '../store'
+import { TreasureBoxes } from '../components/TreasureBoxes'
+import { BattleScene } from '../components/BattleScene'
 import type { Go, QuestCategory } from '../nav'
 import type { Periods } from '../lib/series'
 import { BattleBar } from '../components/BattleBar'
@@ -74,20 +74,10 @@ import { plusName, type MonsterDef, type Quest } from '../types'
 
 /** クエストのタブ：入口（クエスト・零の孤城・試練の塔・素材・神殿・書庫）と、今日の戦い。入口を選ぶと一覧 */
 export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
-  const { state, quests, tower, castle, kinkin, defs, owned, today, seriesPeriods, quitChallenge, claimQuest, feedLuck, markQuestRules } = useStore()
+  const { state, quests, tower, castle, kinkin, defs, owned, today, seriesPeriods, quitChallenge, claimQuest, feedLuck } = useStore()
   const [fedLuck, setFedLuck] = useState<{ msg: string; keeperId: string } | null>(null) // 落ちた子を運に食べさせた
   const [series, setSeries] = useState<SeriesFilter>('all')
   const [part, setPart] = useState<Attr | 'all'>('all') // ボスの部位で絞り込む（「今日は胸」と決めてから選べる）
-  const { topQuests, redoTop } = useQuestTools()
-  // おまかせの作り方が変わったら、今あるボスクエストの条件を1回だけ作り直す
-  const redone = useRef(false)
-  useEffect(() => {
-    if (redone.current || (state.questRules ?? 0) >= QUEST_RULES || defs.length === 0) return
-    redone.current = true
-    if (topQuests.length > 0) redoTop()
-    markQuestRules(QUEST_RULES)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.questRules, defs.length])
   const towerDone = towerCleared(state, towerMonth(today))
   const towerTotal = Math.max(1, ...tower.map((f) => (f.tower ?? 0) + 1))
   const battle = useBattle()
@@ -119,7 +109,7 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
       // 保存できなくても切り替えはできる
     }
   }
-  const [got, setGot] = useState<(QuestReward & { boss: MonsterDef | undefined; plus: number }) | null>(null)
+  const [got, setGot] = useState<(QuestReward & { boss: MonsterDef | undefined; plus: number; quest?: Quest }) | null>(null)
   // 出撃した日のうちに倒せなかった戦い
   const expired =
     state.challenge && state.challenge.date !== today
@@ -136,7 +126,7 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
     {
       key: 'tower',
       icon: '🗼',
-      label: '試練の塔',
+      label: `試練の塔${patternTag(towerMonth(today))}`,
       hint: !towerOpen(today)
         ? `毎月${CONFIG.tower.openDays[0]}〜${CONFIG.tower.openDays[1]}日に開催`
         : towerDone >= CONFIG.tower.floors
@@ -148,7 +138,7 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
     {
       key: 'kinkin',
       icon: '⛓',
-      label: '禁筋の獄',
+      label: `禁筋の獄${patternTag(towerMonth(today))}`,
       hint: !kinkinOpen(today)
         ? `毎月${CONFIG.kinkin.openDays[0]}〜${CONFIG.kinkin.openDays[1]}日に開催・全${CONFIG.kinkin.floors}階・オーブ多め`
         : `開催中 ${kinkinCleared(state, towerMonth(today))}／${CONFIG.kinkin.floors}階`,
@@ -158,7 +148,7 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
     {
       key: 'castle',
       icon: '🏯',
-      label: '零の孤城',
+      label: `零の孤城${patternTag(towerMonth(today))}`,
       hint: !castleOpen(today)
         ? `毎月${CONFIG.castle.openDays[0]}日〜月末に開催・全階爆絶・最上階は零属性の城主`
         : castleDone >= CONFIG.castle.floors
@@ -186,7 +176,8 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
             {got.coins ?? 0}
           </h2>
           {got.byMember && <DamageShare byMember={got.byMember} mvpId={got.mvpId} />}
-          {got.boosted && <p className="tag keep">⚔️ 討伐ブースターで報酬2倍！</p>}
+          {got.boosted && <p className="tag keep">⚔️ 討伐ブースターで中身2倍！</p>}
+          {got.boxes && <TreasureBoxes boxes={got.boxes} quest={got.quest ?? { attr: 'none' }} boss={got.boss} />}
           {got.eggs > 0 && <p>🟡 トク玉 ×{got.eggs} を手に入れた！</p>}
           {got.booster && (
             <p>{boosterName(state, got.booster)} を手に入れた！</p>
@@ -267,31 +258,21 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
           <h2>
             戦闘中：{battle.quest.name}（{questLevelLabel(battle.quest, battle.challenge.difficulty)}）
           </h2>
-          <div className="monster-row">
-            {battle.boss && (
-              <MonsterImage imageId={imageOf(battle.boss, bannerNodeOf(battle.boss))} awaken={awakenOf(battle.boss, bannerNodeOf(battle.boss))} glow={glowOf(battle.boss)} size={72} silhouette={!battle.defeated} />
-            )}
-            <div className="goal-body">
-              <strong>
-                {battle.defeated ? '討伐できる！' : `のこりHP ${(battle.hp - battle.damage).toLocaleString()}`}
-              </strong>
-              <Gauge value={Math.max(0, battle.hp - battle.damage)} max={battle.hp} color="#ef476f" />
-              <span className="muted small">
-                与えたダメージ {battle.damage.toLocaleString()} ／ HP {battle.hp.toLocaleString()}・編成倍率 ×
-                {formationOf(
-                  battle.party.map((m) => m.def),
-                  requirementsOf(battle.quest),
-                ).rate.toFixed(2)}
-                {luckBonus(battle.party.map((m) => m.mon)).count > 0 &&
-                  `・運極ボーナス オーブ×${luckBonus(battle.party.map((m) => m.mon)).goldRate.toFixed(1)}`}
-                ・今日中に倒そう
-              </span>
-            </div>
-          </div>
+          <BattleScene battle={battle} />
+          <p className="muted small">
+            与えたダメージ {battle.damage.toLocaleString()} ／ HP {battle.hp.toLocaleString()}・編成倍率 ×
+            {formationOf(
+              battle.party.map((m) => m.def),
+              requirementsOf(battle.quest),
+            ).rate.toFixed(2)}
+            {luckBonus(battle.party.map((m) => m.mon)).count > 0 &&
+              `・運極ボーナス オーブ×${luckBonus(battle.party.map((m) => m.mon)).goldRate.toFixed(1)}・宝箱+${luckBonus(battle.party.map((m) => m.mon)).count * CONFIG.boxes.perLuckMax}`}
+            ・今日中に倒そう
+          </p>
           {castleInfo && (
             <p className="small castle-battles">
               {'⚔️'.repeat(castleInfo.reached)}
-              {'・'.repeat(CONFIG.castle.battles - castleInfo.reached)} バトル {castleInfo.reached}/{CONFIG.castle.battles} 突破
+              {'・'.repeat(CONFIG.quest.battles - castleInfo.reached)} バトル {castleInfo.reached}/{CONFIG.quest.battles} 突破
               （今月の最高 {castleInfo.best}）。出撃は1回なので、受け取るとこの挑戦は終わります
             </p>
           )}
@@ -306,6 +287,7 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
                   setGot({
                     ...reward,
                     boss: def,
+                    quest: battle.quest,
                     plus: reward.towerFloor ? 0 : dropPlus(battle.quest),
                   })
                 }
@@ -350,7 +332,7 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
             </ul>
           </details>
           <p className="muted small">
-            出撃してからの筋トレとローラーが、そのままダメージになります（報酬が出るセットだけ）。日付が変わると失敗です。
+            出撃してからの筋トレと全身枠のセットが、そのままダメージになります（休憩30秒未満のセットは除く）。日付が変わると失敗です。
           </p>
           <button
             className="btn ghost wide"

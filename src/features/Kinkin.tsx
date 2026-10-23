@@ -10,7 +10,7 @@ import { kinkinCleared, kinkinOpen } from '../lib/kinkin'
 import { towerMonth } from '../lib/tower'
 import { towerRewardText } from './Tower'
 import type { Go } from '../nav'
-import { patternLabel } from '../lib/pattern'
+import { patternLabel, patternTag } from '../lib/pattern'
 
 /** 禁筋の獄：塔と孤城のあいだの高難度。毎月11〜20日・全20階。報酬はオーブ多め＋ちょいレア（ボスは落とさない） */
 export function Kinkin({ go }: { go: Go }) {
@@ -23,7 +23,7 @@ export function Kinkin({ go }: { go: Go }) {
       <button className="back" onClick={() => go({ name: 'quests' })}>
         ← クエストに戻る
       </button>
-      <h1 className="title">⛓ 禁筋の獄</h1>
+      <h1 className="title">⛓ 禁筋の獄{patternTag(towerMonth(today))}</h1>
       <p className="pattern-badge">
         今月は<strong>{patternLabel(towerMonth(today))}</strong>：どのボスもこの部位のボス。この部位の種目がよく効いて、この部位の子が求められます（毎月 胸腕→脚→背肩 の順に入れ替わり、最上階のボスも変わる）
       </p>

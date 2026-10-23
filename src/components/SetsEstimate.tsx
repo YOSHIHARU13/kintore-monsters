@@ -1,10 +1,7 @@
 import { useStore } from '../store'
-import { CONFIG } from '../config/gameConfig'
 import { BONUS_SLOT, DAYS, SLOTS, TASK_SLOTS, exerciseOfSlot, type Slot } from '../data/exercises'
 import { formationOf, requirementsOf } from '../lib/formation'
 import { setHit, type Member } from '../lib/quest'
-import { maxRewardSet } from '../lib/rewards'
-import { weekCount } from '../lib/week'
 import type { Quest } from '../types'
 
 /**
@@ -12,7 +9,7 @@ import type { Quest } from '../types'
  * hpLeft は残りのHP（出撃前ならHPそのまま）
  */
 export function SetsEstimate({ quest, party, hpLeft }: { quest: Quest; party: Member[]; hpLeft: number }) {
-  const { menu, weekSets, todaySets } = useStore()
+  const { menu } = useStore()
   const { rate } = formationOf(
     party.map((m) => m.def),
     requirementsOf(quest),
@@ -28,12 +25,8 @@ export function SetsEstimate({ quest, party, hpLeft }: { quest: Quest; party: Me
     ...weak.map((s) => ({ label: `🎯 弱点種目（${name(s)}）`, d: per(s) })),
     ...(bossPart.length > 0 ? [{ label: `⚔️ ${DAYS[bossPart[0].day as keyof typeof DAYS].title}の種目（ボスの部位）`, d: top(bossPart)!.d }] : []),
     ...(others.length > 0 ? [{ label: 'ほかの部位の種目', d: top(others)!.d }] : []),
-    { label: `腹筋ローラー（${name(BONUS_SLOT)}）`, d: per(BONUS_SLOT) },
+    { label: `全身枠（${name(BONUS_SLOT)}など）`, d: per(BONUS_SLOT) },
   ].filter((r) => r.d > 0)
-  // 今週、報酬が出る（＝ダメージになる）セットの残り
-  const left =
-    TASK_SLOTS.reduce((sum, s) => sum + Math.max(0, maxRewardSet(false) - weekCount(weekSets, s.id)), 0) +
-    Math.max(0, maxRewardSet(true) - todaySets.filter((s) => s.slotId === BONUS_SLOT.id).length)
   return (
     <div className="sets-estimate">
       <table className="estimate-table">
@@ -57,8 +50,7 @@ export function SetsEstimate({ quest, party, hpLeft }: { quest: Quest; party: Me
         </tbody>
       </table>
       <p className="muted small">
-        残りHP {Math.max(0, hpLeft).toLocaleString()}・今週、ダメージになるセットはあと{left}セット（1種目{CONFIG.sets.perExercise}
-        セット×2周まで）。選んだメンバーと編成倍率 ×{rate.toFixed(2)} 込み。
+        残りHP {Math.max(0, hpLeft).toLocaleString()}・追加のセットもダメージになります。選んだメンバーと編成倍率 ×{rate.toFixed(2)} 込み。
       </p>
     </div>
   )

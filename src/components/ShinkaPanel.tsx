@@ -9,7 +9,7 @@ import { MonsterImage } from './MonsterImage'
 import type { MonsterDef, OwnedMonster } from '../types'
 
 /** 獣神化（★4）：レシピの降臨の運を集めて★4に。合体の相手がいれば、金の獣神化も */
-export function ShinkaPanel({ mon, def, onDone }: { mon: OwnedMonster; def: MonsterDef; onDone: () => void }) {
+export function ShinkaPanel({ mon, def, onDone }: { mon: OwnedMonster; def: MonsterDef; onDone: (gold: boolean) => void }) {
   const { state, owned, defs, today, shinka } = useStore()
   if (!canShinkaDef(def)) return null
   const tier = shinkaTierOf(mon, def)
@@ -30,8 +30,7 @@ export function ShinkaPanel({ mon, def, onDone }: { mon: OwnedMonster; def: Mons
   const ready = canShinka(mon, def)
   const run = (gold: boolean) => {
     if (shinka(mon.id, gold)) {
-      navigator.vibrate?.([80, 40, 80, 40, 300])
-      onDone()
+      onDone(gold)
     }
   }
   return (

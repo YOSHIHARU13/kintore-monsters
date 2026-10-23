@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { EvolveScene } from '../components/EvolveScene'
 import { awakenOf, imageOf, glowOf, monArt } from '../lib/art'
 import { useStore } from '../store'
 import { ATTRS, ATTR_LABEL, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type Attr } from '../data/exercises'
@@ -23,6 +24,14 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
   const { owned, defs, state, menu, pourExp, evolve, feedLuck, jogress, toggleLock } = useStore()
   const [shinkaNow, setShinkaNow] = useState(false)
   const [evolved, setEvolved] = useState(0)
+  // 進化の演出（進化する前の姿と、進化したあとの姿）
+  const [scene, setScene] = useState<{
+    before: ReturnType<typeof monArt>
+    after: ReturnType<typeof monArt>
+    name: string
+    label: string
+    then?: () => void
+  } | null>(null)
   const [confirmAllLuck, setConfirmAllLuck] = useState(false)
   const [partnerKey, setPartnerKey] = useState<string | null>(null)
   const [born, setBorn] = useState<{ def: MonsterDef; id: string } | null>(null)
@@ -125,13 +134,22 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
   const partnerSlot = Object.entries(state.partners).find(([, monId]) => monId === id)?.[0]
 
   const doEvolve = (toNodeId: string) => {
+    setScene({ before: monArt(def, mon), after: monArt(def, { ...mon, nodeId: toNodeId }), name: monsterName(def, toNodeId), label: '進化！' })
     evolve(id, toNodeId)
     setEvolved(Date.now())
-    navigator.vibrate?.([60, 40, 60, 40, 200])
   }
 
   return (
     <div className="page">
+      {scene && (
+        <EvolveScene
+          {...scene}
+          onClose={() => {
+            setScene(null)
+            scene.then?.()
+          }}
+        />
+      )}
       {shinkaNow && (
         <div className="beat-overlay clear-overlay" onClick={() => setShinkaNow(false)}>
           <div className="beat-burst" />
@@ -305,7 +323,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
                             >
                               {pour.trained > 0 ? `万能EXPを注ぐ（+${pour.trained}）` : '万能EXPがありません'}
                             </button>
-                            <span className="small muted">手持ち：万能 {state.anyExp}（腹筋ローラーで貯まる）</span>
+                            <span className="small muted">手持ち：万能 {state.anyExp}（全身枠で貯まる）</span>
                           </div>
                         )
                       })()}
@@ -324,7 +342,20 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
         </section>
       ) : null}
 
-      <ShinkaPanel mon={mon} def={def} onDone={() => setShinkaNow(true)} />
+      <ShinkaPanel
+        mon={mon}
+        def={def}
+        onDone={(gold) =>
+          // 獣神化も進化の演出から（終わったら、★4になったお祝い）
+          setScene({
+            before: monArt(def, mon),
+            after: monArt(def, { ...mon, shinka: true, shinkaGold: gold }),
+            name: def.names?.[gold ? 'gold' : 'shinka']?.trim() || plusName(def, mon),
+            label: '獣神化！！',
+            then: () => setShinkaNow(true),
+          })
+        }
+      />
 
       <details className="card fold" open={luckFoods.length > 0 && !isLuckMax(mon)}>
         <summary>

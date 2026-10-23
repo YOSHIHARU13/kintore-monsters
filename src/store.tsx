@@ -19,7 +19,7 @@ import {
 } from 'firebase/firestore'
 import { db } from './lib/firebase'
 import { CONFIG } from './config/gameConfig'
-import { ATTRS, DAYS, SLOTS, type Attr, type FormAttr } from './data/exercises'
+import { ATTRS, DAYS, FAVORITE_SLOTS, SLOTS, type Attr, type FormAttr } from './data/exercises'
 import { FIRST_NODE_ID, canChangeTemplate, getNode, getTemplate, pathTo } from './data/evolutionTemplates'
 import { dateKey, prevDateKey, weekStartKey } from './lib/date'
 import { fusionCost, isExpFull, jogressStones, materialKeys, missingMaterials, nextCost, planPour } from './lib/evolution'
@@ -29,27 +29,25 @@ import { compressImage } from './lib/imageCompress'
 import { bossGradeOf, drawSure, isPickupRarity, isReady, pickFrom, pullsAffordable, rarityOf, rateTable, starsOf, type Pay } from './lib/gacha'
 import { isJogressReady } from './lib/stats'
 import { battleOf, type Battle, defaultBossHp, dropPlus, isStrict, questGold } from './lib/quest'
-import { bossQuestSync } from './lib/questAuto'
+import { bossQuestSync, isHighEndOnly, type BossRole } from './lib/questAuto'
 import {
   BALL_KEY,
   CORE_KEYS,
   CORE_LABEL,
   DROP_ICON,
-  STONE_LABEL,
   ballsOf,
   coresOf,
   dropLabel,
   dropOf,
-  rollBonusStones,
   rollMaterialDrop,
   stonesOf,
   type CoreKey,
 } from './lib/cores'
 import { pendingRanks, rankClaimKey, rankReward } from './lib/rank'
+import { isShinkaMaterial, rollBoxes, sumBoxes, type BoxItem } from './lib/boxes'
 import {
   bulkFeedTarget,
   canFeed,
-  dropLuck,
   fusionGain,
   isLuckMax,
   luckAfter,
@@ -200,6 +198,7 @@ export interface QuestReward {
   battles?: { from: number; to: number } // 孤城：今回突破したバトル（何番目から何番目まで）
   booster?: BoosterKey | null // 試練の塔でもらえたブースター
   boosted?: boolean // 討伐ブースターで2倍になったか
+  boxes?: BoxItem[] // 降臨の宝箱の中身（開ける順）
   drops: ItemDrop[] // 落ちた素材（素材クエストで何も落ちなければ、0個の行が1つ）
   gold: number // オーブ
   coins?: number // もらえた進化コイン
@@ -243,6 +242,8 @@ function toGacha(id: string, data: DocumentData | undefined): Gacha {
 interface Store {
   user: User
   state: GameState
+  /** クエストとモンスターの最初の読み込みが終わったか（一括の作り直しは、これを待ってから） */
+  loaded: boolean
   menu: Record<string, string>
   defs: MonsterDef[]
   owned: OwnedMonster[]
@@ -302,6 +303,10 @@ interface Store {
   bulkUpdateDefs: (ids: string[], patch: { element?: Element | null; tier?: RarityKey; bossGrade?: QuestGrade; series?: string }) => void
   /** ロックする・外す（ロックした子は、まとめて合成・素材に使わない） */
   toggleLock: (monsterId: string) => void
+  /** 高難度の役割をまとめて付け外しする（塔の11階・禁筋の最上階・孤城の城主・孤城限定） */
+  setBossRole: (defIds: string[], role: BossRole, on: boolean) => void
+  /** まとめてロック・解除する */
+  setLocks: (monsterIds: string[], locked: boolean) => void
   /** ボスクエストの条件を、今の版のおまかせで作り直したことを記録する */
   markQuestRules: (version: number) => void
   /** たまっているランクアップ報酬をまとめて受け取る。受け取ったトク玉の数 */
@@ -309,7 +314,8 @@ interface Store {
   setSlot: (slotId: string, exerciseId: string) => void
   buyExp: (attr: Attr, amount: number) => void
 
-  buyBooster: (key: BoosterKey) => void
+  /** ブースターを買う。オーブか進化コイン（coinPrice があるものだけ） */
+  buyBooster: (key: BoosterKey, pay?: 'gold' | 'coins') => void
   useBooster: (key: BoosterKey) => void
   /** ガチャを1回引く。トク玉1個か、オーブ5個（pay）。選んだガチャから、確率どおりに1体（ダブりあり） */
   hatchEgg: (gachaId: string, pay?: Pay) => HatchResult | null
@@ -372,6 +378,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
   const [towerFixed, setTowerFixed] = useState<FixedFloor[] | null>(null)
   const [gachaDocs, setGachaDocs] = useState<Gacha[]>([])
   const [questDocs, setQuests] = useState<Quest[]>([])
+  const [loaded, setLoaded] = useState({ quests: false, defs: false }) // クエストとモンスターの最初の読み込みが終わったか
   const [today, setToday] = useState(dateKey())
   const [weekSets, setWeekSets] = useState<SetRecord[]>([])
   const [yesterdayCheckin, setYesterdayCheckin] = useState<Checkin | null>(null)
@@ -445,12 +452,14 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       ),
       onSnapshot(
         collection(db, base, 'quests'),
-        (snap) =>
+        (snap) => {
           setQuests(
             snap.docs
               .map((d) => ({ ...(d.data() as Omit<Quest, 'id'>), id: d.id }))
               .sort((a, b) => a.createdAt - b.createdAt),
-          ),
+          )
+          setLoaded((l) => (l.quests ? l : { ...l, quests: true }))
+        },
         fail,
       ),
       onSnapshot(
@@ -460,12 +469,14 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       ),
       onSnapshot(
         collection(db, base, 'monsterDefs'),
-        (snap) =>
+        (snap) => {
           setDefs(
             snap.docs
               .map((d) => ({ ...(d.data() as Omit<MonsterDef, 'id'>), id: d.id }))
               .sort((a, b) => a.createdAt - b.createdAt),
-          ),
+          )
+          setLoaded((l) => (l.defs ? l : { ...l, defs: true }))
+        },
         fail,
       ),
       onSnapshot(
@@ -552,7 +563,13 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         return boss
           ? { ...q, name, autoName, element: elementInfo(boss).elements[0], bossSeries: seriesOf(boss) }
           : { ...q, name, autoName }
-      }).concat([
+      })
+        // 高難度専用にしたボスのクエストは出さない（専用をやめれば、また出る）
+        .filter((q) => {
+          const boss = q.kind !== 'material' ? defs.find((d) => d.id === q.bossDefId) : undefined
+          return !boss || !isHighEndOnly(boss)
+        })
+        .concat([
         ...builtinMaterialQuests(defs, today, selectableGimmicks(questDocs)),
         ...builtinTempleQuests(defs, today, selectableGimmicks(questDocs)),
       ]),
@@ -762,10 +779,15 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       updateState({ coins: increment(-cost), [`exp.${attr}.bought`]: increment(amount) })
     }
 
-    const buyBooster: Store['buyBooster'] = (key) => {
-      const price = CONFIG.boosters[key].price
-      if (state.gold < price) return
-      updateState({ gold: increment(-price), [`boosters.${key}`]: increment(1) })
+    const buyBooster: Store['buyBooster'] = (key, pay = 'gold') => {
+      const b = CONFIG.boosters[key]
+      if (pay === 'coins') {
+        if (!b.coinPrice || state.coins < b.coinPrice) return
+        updateState({ coins: increment(-b.coinPrice), [`boosters.${key}`]: increment(1) })
+        return
+      }
+      if (state.gold < b.price) return
+      updateState({ gold: increment(-b.price), [`boosters.${key}`]: increment(1) })
     }
 
     /** ブースターを使う。同じ種類が使用中なら重ねない */
@@ -1217,7 +1239,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         const def = working.find((d) => d.id === id)
         if (!def || isHidden(def)) continue
         const parts = finalAttrs(def)
-        const slotIds = SLOTS.filter((s) => s.day === 'bonus' || parts.includes('none') || parts.includes(DAYS[s.day].attr)).map(
+        const slotIds = FAVORITE_SLOTS.filter((s) => parts.includes('none') || parts.includes(DAYS[s.day as keyof typeof DAYS].attr)).map(
           (s) => s.id,
         )
         // 決まっていないところだけ埋める（自分で決めたところは触らない）
@@ -1382,8 +1404,9 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const c = battle.challenge
       const material = battle.quest.kind === 'material'
       const bonus = luckBonus(battle.party.map((m) => m.mon))
+      // 討伐ブースターは、宝箱の中身（素材クエストは落ちる素材）だけ2倍。オーブは増えない
       const boost = state.boosts?.quest ? 2 : 1
-      const gold = Math.round(questGold(battle.quest, c.difficulty) * bonus.goldRate * boost)
+      const gold = Math.round(questGold(battle.quest, c.difficulty) * bonus.goldRate)
       const kind = dropOf(battle.quest)
       const batch = writeBatch(db)
       writeRecords(batch, battle)
@@ -1397,6 +1420,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       bumpStats(update, { quest: 1, strict: isStrict(battle.quest) ? 1 : 0 })
       let monsterId: string | null = null
       let coins = 0
+      let boxes: BoxItem[] | undefined
+      let bossLuck: number | undefined
       const drops: ItemDrop[] = []
       if (kind === 'custom') {
         // 神殿：カスタマイズアイテム（運極がいると、くじが増える）
@@ -1429,26 +1454,32 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         if (!boss) return null
         // ボスクエストは、オーブと同じだけ進化コインも
         coins = gold * CONFIG.coins.perOrb
-        const shiny = false // 色違いはなくなった
-        const ref = doc(collection(db, base, 'ownedMonsters'))
-        batch.set(ref, {
-          defId: boss.id,
-          nodeId: FIRST_NODE_ID,
-          investedBy: {},
-          investedFrom: {},
-          plus: dropPlus(battle.quest),
-          luck: dropLuck(battle.party.map((m) => m.mon)),
-          shiny,
-          obtainedAt: Date.now(),
-        })
-        if (shiny) update[`dexShiny.${boss.id}`] = true
-        monsterId = ref.id
-        // おまけ：ボスの属性の結晶
-        const stones = rollBonusStones(Math.random) * boost
-        if (stones > 0 && battle.quest.element) {
-          update[`stones.${battle.quest.element}`] = increment(stones)
-          drops.push({ icon: DROP_ICON.stone, label: STONE_LABEL(battle.quest.element), count: stones })
+        // 宝箱：ボス（運1。神化素材のボスは1〜3体）と、結晶・EXP・進化コイン・筋肉玉
+        boxes = rollBoxes(battle.quest, { luckMaxCount: bonus.count, shinkaMaterial: isShinkaMaterial(boss, defs), boosted: boost > 1 }, Math.random)
+        const sum = sumBoxes(boxes)
+        if (sum.boss > 0) {
+          // 落ちたボスは、まとめて1体に（運は合計。BOXが埋まらないように）
+          bossLuck = Math.min(CONFIG.luck.max, sum.luck)
+          const ref = doc(collection(db, base, 'ownedMonsters'))
+          batch.set(ref, {
+            defId: boss.id,
+            nodeId: FIRST_NODE_ID,
+            investedBy: {},
+            investedFrom: {},
+            plus: dropPlus(battle.quest),
+            luck: bossLuck,
+            shiny: false,
+            obtainedAt: Date.now(),
+          })
+          monsterId = ref.id
         }
+        if (sum.stone > 0 && battle.quest.element) update[`stones.${battle.quest.element}`] = increment(sum.stone)
+        if (sum.exp > 0) {
+          if (battle.quest.attr === 'none') update.anyExp = increment(sum.exp)
+          else update[`exp.${battle.quest.attr}.trained`] = increment(sum.exp)
+        }
+        if (sum.ball > 0) update[`cores.${BALL_KEY}`] = increment(sum.ball)
+        coins += sum.coins
       }
       if (coins > 0) update.coins = increment(coins)
       batch.update(stateRef, update)
@@ -1462,7 +1493,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         gold,
         eggs: 0,
         towerFloor: null,
-        luck: monsterId ? dropLuck(battle.party.map((m) => m.mon)) : undefined,
+        luck: bossLuck,
+        boxes,
         byMember: battle.byMember,
         mvpId: battle.mvpId,
         total: battle.damage,
@@ -1475,27 +1507,27 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const month = towerMonth(dateKey())
       // 孤城は3バトル：その日に突破したバトルのうち、まだ受け取っていないぶんの報酬（アイテムやボスは全部突破したとき）
       const best = kind === 'castle' ? castleBest(state, month, floor.floor) : 0
-      const reached = kind === 'castle' ? battlesReached(battle.damage, battle.hp) : CONFIG.castle.battles
+      const reached = kind === 'castle' ? battlesReached(battle.damage, battle.hp) : CONFIG.quest.battles
       if (kind === 'castle') {
         if (!castleAvailable(state, month, floor.floor) || reached <= best) return null
       } else {
         const cleared = kind === 'kinkin' ? kinkinCleared(state, month) : towerCleared(state, month, floor.tower ?? 0)
         if (floor.floor !== cleared + 1 || !battle.defeated) return null
       }
-      const full = kind !== 'castle' || (reached >= CONFIG.castle.battles && best < CONFIG.castle.battles)
-      const share = kind === 'castle' ? (reached - best) / CONFIG.castle.battles : 1
+      const full = kind !== 'castle' || (reached >= CONFIG.quest.battles && best < CONFIG.quest.battles)
+      const share = kind === 'castle' ? (reached - best) / CONFIG.quest.battles : 1
       const r: TowerReward = full
         ? { ...floor.reward, gold: Math.round(floor.reward.gold * share), eggs: Math.round(floor.reward.eggs * share) }
         : { gold: Math.round(floor.reward.gold * share), eggs: Math.round(floor.reward.eggs * share), cores: 0, booster: null, monsterDefId: null }
       const bonus = luckBonus(party)
-      const boost = state.boosts?.quest ? 2 : 1
+      // 高難度には宝箱がないので、討伐ブースターは使わない
+      const boost = 1
       const gold = Math.round(r.gold * bonus.goldRate * boost)
       const coins = gold * CONFIG.coins.perOrb
       const cores = r.cores * boost
       const batch = writeBatch(db)
       writeRecords(batch, battle)
       const update: DocumentData = {
-        ...(boost > 1 ? { 'boosts.quest': false } : {}),
         gold: increment(gold),
         questClears: increment(1),
         ...(kind === 'castle'
@@ -1645,6 +1677,35 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       batch.commit().catch(fail)
     }
 
+    const setBossRole: Store['setBossRole'] = (defIds, role, on) => {
+      const batch = writeBatch(db)
+      let working = [...defs]
+      for (const id of defIds) {
+        const def = working.find((d) => d.id === id)
+        if (!def || !def.questOnly || isHidden(def)) continue
+        // 役割は1つだけ（付けると、ほかの役割は外れる）
+        const change: Partial<MonsterDef> = on
+          ? { tower: false, kinkinLord: false, castleLord: false, castleOnly: false, [role]: true }
+          : { [role]: false }
+        batch.update(doc(db, base, 'monsterDefs', id), change)
+        const updated = { ...def, ...change }
+        working = working.map((d) => (d.id === id ? updated : d))
+        // 専用をやめた子は、ふつうのクエストがなければ作る
+        const sync = on ? null : bossQuestSync(updated, questDocs, selectableGimmicks(questDocs), working, defaultBossHp)
+        if (sync?.id) batch.update(doc(db, base, 'quests', sync.id), sync.data)
+        else if (sync) batch.set(doc(collection(db, base, 'quests')), { ...sync.data, createdAt: Date.now() })
+      }
+      batch.commit().catch(fail)
+    }
+
+    const setLocks: Store['setLocks'] = (monsterIds, locked) => {
+      const targets = owned.filter((o) => monsterIds.includes(o.id) && !!o.locked !== locked)
+      if (targets.length === 0) return
+      const batch = writeBatch(db)
+      for (const mon of targets) batch.update(doc(db, base, 'ownedMonsters', mon.id), { locked })
+      batch.commit().catch(fail)
+    }
+
     const markQuestRules: Store['markQuestRules'] = (version) => updateState({ questRules: version })
 
     const claimRanks: Store['claimRanks'] = () => {
@@ -1695,6 +1756,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     return {
       user,
       state,
+      loaded: loaded.quests && loaded.defs,
       menu,
       defs,
       owned,
@@ -1758,11 +1820,13 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       removeCustom,
       markQuestRules,
       toggleLock,
+      setLocks,
+      setBossRole,
       bulkUpdateDefs,
       claimRanks,
       deleteGacha,
     }
-  }, [user, base, state, menu, journal, defs, owned, songs, seriesPeriods, towerFixed, gachas, quests, tower, castle, kinkin, today, yesterday, yesterdayCheckin, week, weekSets, todaySets, stateRef, menuRef, musicRef, seriesRef, towerRef, fail])
+  }, [user, base, state, loaded, menu, journal, defs, owned, songs, seriesPeriods, towerFixed, gachas, quests, tower, castle, kinkin, today, yesterday, yesterdayCheckin, week, weekSets, todaySets, stateRef, menuRef, musicRef, seriesRef, towerRef, fail])
 
   if (!store) {
     return (

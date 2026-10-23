@@ -2,7 +2,7 @@ import { CONFIG } from '../config/gameConfig'
 import { elementInfo } from './element'
 import { gradeOf, standardSessionDamage } from './quest'
 import { autoQuestSetup } from './questAuto'
-import { PATTERN_PARTS, patternBoss, patternOf, patternPick, weakSlotsFor } from './pattern'
+import { PATTERN_PARTS, patternBoss, patternOf, patternPick, weakSlotsFor, patternTag } from './pattern'
 import { partTag } from './formation'
 import { bossGradeOf, rarityOf } from './gacha'
 import { isOpenOn, type TowerFloor } from './tower'
@@ -15,13 +15,13 @@ export const isCastleQuest = (id: string) => id.startsWith(CASTLE_PREFIX)
 export function castleBest(state: Pick<GameState, 'castle' | 'castleBattles'>, month: string, floor: number): number {
   const best = state.castleBattles?.month === month ? state.castleBattles.best[String(floor)] : undefined
   if (best !== undefined) return best
-  return state.castle?.month === month && floor <= state.castle.cleared ? CONFIG.castle.battles : 0
+  return state.castle?.month === month && floor <= state.castle.cleared ? CONFIG.quest.battles : 0
 }
 
 /** その月に全部突破した階の数 */
 export function castleCleared(state: Pick<GameState, 'castle' | 'castleBattles'>, month: string): number {
   let n = 0
-  for (let f = 1; f <= CONFIG.castle.floors; f++) if (castleBest(state, month, f) >= CONFIG.castle.battles) n++
+  for (let f = 1; f <= CONFIG.castle.floors; f++) if (castleBest(state, month, f) >= CONFIG.quest.battles) n++
   return n
 }
 
@@ -30,17 +30,13 @@ export function castleAvailable(state: Pick<GameState, 'castle' | 'castleBattles
   const c = CONFIG.castle
   if (floor <= 1) return true
   if (floor === c.floors) {
-    for (let f = 1; f < c.floors; f++) if (castleBest(state, month, f) < c.battles) return false
+    for (let f = 1; f < c.floors; f++) if (castleBest(state, month, f) < CONFIG.quest.battles) return false
     return true
   }
   return castleBest(state, month, floor - 1) >= c.battlesToNext
 }
 
-/** 与えたダメージで、何バトル目まで突破したか（HPを3等分） */
-export function battlesReached(damage: number, hp: number): number {
-  const n = CONFIG.castle.battles
-  return Math.max(0, Math.min(n, Math.floor((damage * n) / Math.max(1, hp) + 1e-9)))
-}
+export { battlesReached } from './quest'
 
 /** 零の孤城は毎月16日〜月末 */
 export const castleOpen = (today: string) => isOpenOn(today, CONFIG.castle.openDays)
@@ -97,6 +93,8 @@ export function castleFloors(month: string, defs: MonsterDef[], gimmicks: string
   const part = PATTERN_PARTS[pattern]
   const lineup = castleLineup(defs, quests)
   const lastBoss = lastBossOf(defs, pattern)
+  // 前の階の条件も数えて、階ごとにちがう子が主役になるように
+  const sofar: Pick<Quest, 'id' | 'requirements' | 'gimmicks'>[] = [...quests]
   return Array.from({ length: c.floors }, (_, i) => {
     const floor = i + 1
     const top = floor === c.floors
@@ -105,12 +103,12 @@ export function castleFloors(month: string, defs: MonsterDef[], gimmicks: string
     const asBoss = boss && top ? ({ ...boss, element: undefined, jogressElements: [] } as MonsterDef) : boss
     const element = top ? undefined : boss ? elementInfo(boss).elements[0] : undefined
     const setup = asBoss
-      ? autoQuestSetup(patternBoss(asBoss, pattern), 'bakuzetsu', 'boss', quests, gimmicks, `${CASTLE_PREFIX}${floor}`, defs, false)
+      ? autoQuestSetup(patternBoss(asBoss, pattern), 'bakuzetsu', 'boss', sofar, gimmicks, `${CASTLE_PREFIX}${floor}`, defs, false)
       : { requirements: [], weakSlots: [] }
     const hp = Math.max(100, Math.round((standardSessionDamage() * c.hpRatio[i]) / 100) * 100)
     const quest: Quest = {
       id: `${CASTLE_PREFIX}${floor}`,
-      name: top ? '零の孤城 最上階' : `零の孤城 ${floor}階`,
+      name: top ? `零の孤城${patternTag(month)} 最上階` : `零の孤城${patternTag(month)} ${floor}階`,
       kind: 'boss',
       bossDefId: boss?.id ?? '',
       attr: part,
@@ -123,6 +121,7 @@ export function castleFloors(month: string, defs: MonsterDef[], gimmicks: string
       theme: 'night',
       createdAt: 0,
     }
+    sofar.push(quest)
     return {
       floor,
       quest,

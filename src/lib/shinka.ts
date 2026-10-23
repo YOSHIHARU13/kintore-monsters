@@ -67,18 +67,37 @@ function seeded(seed: string): () => number {
 }
 
 /**
- * 獣神化のレシピ（モンストのアヴァロン型：超絶「イザナミ」×3体・運12以上 など）。モンスターごとに決まっていて変わらない。
+ * 獣神化のレシピ（モンストのアヴァロン型：超絶「イザナミ」×3体・運5以上 など）。モンスターごとに決まっていて変わらない。
  * - 爆絶の降臨：同じ属性の超絶の降臨から
- * - コラボの激レア：同じコラボの降臨から
+ * - コラボの激レア：同じコラボの降臨（超究極は除く）から。なければ、ふつうの激レアと同じ
  * - ふつうの激レア：図鑑の並びが近い、超絶以上の降臨から
- * 種類は2つ（たまに1つか3つ）、体数は1〜5体、運は1〜5（の4倍。ボスは運4で落ちるので）
+ * 超究極のボスは素材にしない。種類は2つ（たまに1つか3つ）。運は1種類あたり shinka.maxLuckPerItem まで、合計 shinka.maxLuckTotal まで
  */
 export function shinkaRecipe(def: MonsterDef, defs: MonsterDef[]): RecipeItem[] {
   const r = seeded(`shinka:${def.id}`)
-  const farmable = defs.filter((d) => d.questOnly && d.id !== def.id && !d.tower && !d.castleOnly && !d.castleLord && !d.kinkinLord && !isHidden(d))
-  const strong = (d: MonsterDef) => ['chozetsu', 'chokyukyoku', 'bakuzetsu'].includes(bossGradeOf(d) ?? '')
+  const farmable = defs.filter(
+    (d) =>
+      d.questOnly &&
+      d.id !== def.id &&
+      !d.tower &&
+      !d.castleOnly &&
+      !d.castleLord &&
+      !d.kinkinLord &&
+      !isHidden(d) &&
+      bossGradeOf(d) !== 'chokyukyoku',
+  )
+  const strong = (d: MonsterDef) => ['chozetsu', 'bakuzetsu'].includes(bossGradeOf(d) ?? '')
   const series = seriesOf(def)
   const els = elementInfo(def).elements
+  const near = () => {
+    // 図鑑の並び（グループごと）で近い子
+    const order = dexOrder(defs)
+    const at = order.indexOf(def)
+    return farmable
+      .filter((d) => strong(d) && seriesOf(d) === '')
+      .sort((a, b) => Math.abs(order.indexOf(a) - at) - Math.abs(order.indexOf(b) - at))
+      .slice(0, 6)
+  }
   let pool: MonsterDef[]
   if (def.questOnly) {
     const chozetsu = farmable.filter((d) => bossGradeOf(d) === 'chozetsu' && seriesOf(d) === '')
@@ -86,14 +105,9 @@ export function shinkaRecipe(def: MonsterDef, defs: MonsterDef[]): RecipeItem[] 
     pool = same.length > 0 ? same : chozetsu
   } else if (series) {
     pool = farmable.filter((d) => seriesOf(d) === series)
+    if (pool.length === 0) pool = near()
   } else {
-    // 図鑑の並び（グループごと）で近い子
-    const order = dexOrder(defs)
-    const at = order.indexOf(def)
-    pool = farmable
-      .filter((d) => strong(d) && seriesOf(d) === '')
-      .sort((a, b) => Math.abs(order.indexOf(a) - at) - Math.abs(order.indexOf(b) - at))
-      .slice(0, 6)
+    pool = near()
   }
   if (pool.length === 0) pool = farmable.filter(strong)
   if (pool.length === 0) return []
@@ -101,11 +115,16 @@ export function shinkaRecipe(def: MonsterDef, defs: MonsterDef[]): RecipeItem[] 
   const kinds = Math.min(pool.length, roll < 0.15 ? 1 : roll < 0.85 ? 2 : 3)
   // 決まった順で混ぜて、先頭から選ぶ
   const shuffled = pool.map((d) => ({ d, k: r() })).sort((a, b) => a.k - b.k).map((x) => x.d)
-  return shuffled.slice(0, kinds).map((d) => ({
-    defId: d.id,
-    count: 1 + Math.floor(r() * 5),
-    luck: (1 + Math.floor(r() * 5)) * CONFIG.shinka.luckScale,
-  }))
+  const c = CONFIG.shinka
+  // 1種類あたりの運：合計の上限を種類で割った分まで（1種類でも maxLuckPerItem まで）。半分〜上限のあいだで決める
+  const cap = Math.min(c.maxLuckPerItem, Math.floor(c.maxLuckTotal / kinds))
+  return shuffled.slice(0, kinds).map((d) => {
+    const total = Math.ceil(cap / 2) + Math.floor(r() * (cap - Math.ceil(cap / 2) + 1))
+    // 体数は1〜3体。運は体数で割り切れるように（3体×運5 など）
+    const count = [1, 2, 3].filter((n) => total % n === 0 && total / n >= 1)
+    const n = count[Math.floor(r() * count.length)]
+    return { defId: d.id, count: n, luck: total / n }
+  })
 }
 
 /** 素材の子の運の使い方：運の低い子から使い切り、最後の子は要るぶんだけ減らして残す（足りなければ null） */

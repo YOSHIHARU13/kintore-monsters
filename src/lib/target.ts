@@ -4,21 +4,21 @@ import type { Judge, SetRecord } from '../types'
 
 type HistoryItem = Pick<SetRecord, 'setNo' | 'weightKg' | 'reps' | 'ts' | 'date'>
 
-/** 目標回数 ＝ 同じセット番号・同じ重量の直近N回の平均（四捨五入）＋1。記録がなければ null */
-export function calcTarget(history: HistoryItem[], setNo: number, weightKg: number): number | null {
+/** 目標回数 ＝ 同じセット番号・同じ重量の直近N回の平均（四捨五入）＋1（秒数の種目は＋5秒）。記録がなければ null */
+export function calcTarget(history: HistoryItem[], setNo: number, weightKg: number, scale = 1): number | null {
   const recent = history
     .filter((h) => h.setNo === setNo && h.weightKg === weightKg)
     .sort((a, b) => b.ts - a.ts)
     .slice(0, CONFIG.target.recentCount)
   if (recent.length === 0) return null
   const avg = recent.reduce((sum, h) => sum + h.reps, 0) / recent.length
-  return Math.round(avg) + CONFIG.target.plus
+  return Math.round(avg) + CONFIG.target.plus * scale
 }
 
-export function judgeSet(reps: number, target: number | null): Judge {
+export function judgeSet(reps: number, target: number | null, scale = 1): Judge {
   if (target === null) return 'normal'
   if (reps >= target) return 'beat'
-  if (reps >= target - CONFIG.target.keepMargin) return 'keep'
+  if (reps >= target - CONFIG.target.keepMargin * scale) return 'keep'
   return 'normal'
 }
 

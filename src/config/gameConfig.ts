@@ -20,10 +20,7 @@ export const CONFIG = {
     perExercise: 3, // 1種目あたりの基本セット数
     minIntervalSec: 30, // 同じ種目でこの秒数より短い間隔のセットはEXP対象外
     restSec: 90, // 休憩タイマーの目安
-    // 2周目：基本セットを終えた種目は、同じ週にもう基本セット数まで追加でやれる（EXPはこの割合）
-    // 1部位あたり週10〜20セットまでは、セットを増やすほど筋肉が育ちやすい。それ以上は回復が追いつかないので2周まで
-    extraRounds: 1,
-    extraExpRatio: 0.5,
+    // 基本セットを終えても、追加のセットはEXP満額・ダメージも等倍（遊びのために追加でやれる）
   },
 
   // 今週のタスク（全種目×基本セット数）を全部消したときのボーナス
@@ -52,6 +49,7 @@ export const CONFIG = {
     recentCount: 3, // 直近何回の平均を使うか
     plus: 1, // 平均に足す回数
     keepMargin: 1, // 目標からこの回数以内なら「キープ」
+    secondsScale: 5, // 秒数の種目（プランクなど）は、足す数とキープの幅をこの倍に（＋5秒・5秒以内でキープ）
   },
 
   // 筋トレ1セットのEXP
@@ -61,7 +59,7 @@ export const CONFIG = {
     beat: 15,
   },
 
-  // 腹筋ローラー（ボーナス枠）。1日3セットまで（日付が変わるとまた3セットできる）
+  // 全身枠（腹筋ローラー・プランク・全身種目）。オーブは全身枠ぜんぶで1日3セットまで（EXPは何セットでも）
   bonus: {
     goldPerSet: 2, // オーブ
     anyExpPerSet: 10, // 万能EXP：どの属性の進化にも注げる
@@ -139,13 +137,13 @@ export const CONFIG = {
   },
 
   // クエスト：出撃したら、その日のうちに倒す勝負。出撃してからのセットがそのままダメージになる（何回でも挑戦できる）
-  // ダメージになるのは報酬が出るセットだけ（各種目は週に2周まで、ローラーは1日3セットまで）
+  // ダメージになるのは、前のセットから30秒以上あけたセット（何セット目でも）
   quest: {
     // 1回ぶんのダメージ = 基本値 × 攻撃するモンスターの攻撃力 ÷ attackUnit × 補正
     attackUnit: 3000,
     setDamage: 2.5, // 筋トレ1セット（全員が攻撃。セットの部位と一致するモンスターは × partMatch）
     partMatch: 2,
-    rollerDamage: 4, // 腹筋ローラー1セット（全員で攻撃）
+    rollerDamage: 4, // 全身枠1セット（全員で同じだけ攻撃）
     weakSlot: 2, // ボスの弱点種目のセット（ボスの部位の補正にさらに掛かる）
     bossPart: 1.3, // ボスの部位（胸腕・脚・背肩）の種目のセットは、どれでもこの倍率。中でも弱点種目がいちばん効く
     offElementChozetsu: 0.5, // 超絶では、ボスの属性に有利な属性を持たないモンスターの攻撃はこの倍率
@@ -191,6 +189,8 @@ export const CONFIG = {
       hard: { label: '究極', gold: 15, hpRatio: 2 },
     },
     partySize: 6, // 出撃できる数
+    // どのクエストも3バトル（HPを3等分。1バトル目が道中、2バトル目が中ボス、3バトル目がボス）
+    battles: 3,
   },
   // おまかせのクエスト：基本は「弱点属性＋アビリティの持ち物検査」。格が上がるほど、どちらも増える
   // element：ボスに有利な属性の数、kinds：零属性のボスのときに求める属性の種類（ジョグレスの2属性は2種類）
@@ -213,12 +213,13 @@ export const CONFIG = {
   },
   // 獣神化（★4）：格は金（激レア2体の合体）・銀（専用の絵）・銅（後光だけ）。素材はモンスターごとのレシピ（lib/shinka）
   // bonus：★が1つ増えるぶんとは別の攻撃力の上乗せ。爆絶の降臨の獣神化（銅）は questBonus（降臨なので少し弱い）
-  // luckScale：レシピの運（1〜5）に掛ける数（ボスは運4で落ちるので、モンストの「運3」は運12）
+  // レシピの運：1種類あたり maxLuckPerItem まで、合計 maxLuckTotal まで（宝箱から1周で運4くらい集まる）
   shinka: {
     coins: 300,
     bonus: { gold: 6000, silver: 3000, bronze: 1500 },
     questBonus: 0,
-    luckScale: 4,
+    maxLuckPerItem: 15,
+    maxLuckTotal: 30,
   },
   // 進化コイン：進化・ジョグレス・EXPの購入に使う（オーブはガチャとブースター用）。ボスクエストではオーブと同じだけもらえる
   coins: {
@@ -281,10 +282,11 @@ export const CONFIG = {
     ] as FreePullEvent[],
   },
   // ブースター：回数制の道具。使うと次の1回（EXPは次の数セット）だけ効く。期限なし
+  // coinPrice：進化コインでも買える値段（習慣のブースターはオーブが増えるので、オーブでだけ買える）
   boosters: {
-    habit: { icon: '🧘', label: 'ブースター', price: 15, text: '次の記録のオーブが2倍、その日の上限もなし' },
-    exp: { icon: '💪', label: '筋トレブースター', price: 30, text: '次の10セットのEXPが2倍', sets: 10 },
-    quest: { icon: '⚔️', label: '討伐ブースター', price: 25, text: '次のクエスト報酬（オーブ・コイン・素材）が2倍' },
+    habit: { icon: '🧘', label: 'ブースター', price: 15, coinPrice: 0, text: '次の記録のオーブが2倍、その日の上限もなし' },
+    exp: { icon: '💪', label: '筋トレブースター', price: 30, coinPrice: 150, text: '次の10セットのEXPが2倍', sets: 10 },
+    quest: { icon: '⚔️', label: '討伐ブースター', price: 25, coinPrice: 150, text: '次の降臨の宝箱の中身（素材クエストは落ちる素材）が2倍' },
   },
   // 試練の塔：毎月 openDays の日だけ開催。下から1階ずつ挑戦し、各階の報酬は月に1回だけ
   tower: {
@@ -300,6 +302,7 @@ export const CONFIG = {
     boosters: { 3: 'habit', 6: 'exp', 9: 'quest' } as Record<number, 'habit' | 'exp' | 'quest'>, // その階でブースター
     sticks: { 5: 1, 10: 1 } as Record<number, number>, // その階でワクワクステッキ
     monsterFloors: [11], // 塔限定モンスターがボスになり、倒すともらえる階
+    patternShift: 3, // 月のパターンが1つ進むごとに、1〜10階のボスの並びをこれだけずらす（属性もボスも入れ替わる）
     eggsInsteadOfMonster: 2, // 塔限定モンスターが登録されていないときはトク玉
     elementReqFrom: 3, // この階から「適正の属性」の編成条件
     abilityReqFrom: 6, // この階からアビリティの編成条件
@@ -313,8 +316,7 @@ export const CONFIG = {
   // 1〜10階：爆絶のボス（爆絶級の降臨）を炎・水・木・光・闇の順に2周。11階：城主級の降臨が零属性の城主になる
   castle: {
     openDays: [21, 31] as [number, number], // 毎月21日〜月末。各階の報酬は月に1回
-    // 各階は3バトル（HPを3等分）。出撃は1回で、その日に削った分だけ突破する。突破したバトルぶんの報酬をもらえる
-    battles: 3,
+    // 各階は3バトル（quest.battles）。出撃は1回で、その日に削った分だけ突破する。突破したバトルぶんの報酬をもらえる
     battlesToNext: 2, // この数のバトルを突破すると、次の階が開く（最上階は1〜10階を全部突破してから）
     floors: 11,
     elementOrder: ['fire', 'water', 'wood', 'light', 'dark'] as const,
@@ -368,6 +370,30 @@ export const CONFIG = {
       { exp: 400, coins: 400 },
       { exp: 500, coins: 500 }, // ＋4→＋5
     ],
+  },
+
+  // コンテンツの寿命の目安（開発者メニュー）：零の孤城の全階が、最強の6体で1日ぶんのメニューで倒せる（easyRatio 以上）まで、
+  // 激レアをあと何体足せばよいか。pool：1階あたりに見る候補の数（計算を軽くする）、maxAdds：数える上限、runs：「目安」を何通り試すか
+  lifespan: {
+    easyRatio: 1,
+    pool: 30,
+    maxAdds: 128,
+    runs: 3,
+  },
+
+  // 降臨の宝箱：1周で base 個＋出撃した運極1体ごとに perLuckMax 個。1箱ごとに bossRate でボス（運1）、残りは均等に
+  // amounts：ボス以外の1箱の中身（low＝究極以下、high＝超絶以上。high だけ筋肉玉も出る）
+  // 神化素材のボスは、1箱で shinkaBodies 体・1体あたり運 shinkaLuck
+  boxes: {
+    base: 5,
+    perLuckMax: 3,
+    bossRate: 0.8,
+    amounts: {
+      low: { stone: 2, exp: 30, coins: 100, ball: 0 },
+      high: { stone: 3, exp: 60, coins: 200, ball: 1 },
+    },
+    shinkaBodies: [1, 3] as [number, number],
+    shinkaLuck: [1, 3] as [number, number],
   },
 
   // 運：同じモンスターを食べさせると、食べさせた子の運がそのまま足される（タダ）。最大99で「運極」
@@ -466,6 +492,9 @@ export const CONFIG = {
 
   // ガチャ：いくつでも作れる。モンスターは最大3つのガチャに入れられる
   gacha: {
+    calendarDays: 35, // ショップの開催予定で見せる日数
+    minOpen: 2, // 開発側：いつでもこの数の期間限定ガチャが開いているように（足りない日をガチャの管理で知らせる）
+    planDays: 60, // ↑を確かめる日数
     maxPerMonster: 3,
     minPickups: 3,
     bannerMonsters: 5, // 自動バナーに出すモンスターの数（優先度の上位から）
@@ -568,10 +597,17 @@ export const CONFIG = {
     sideRaise: [12, 20],
     sideRaiseSlow: [12, 20],
     frontRaise: [12, 20],
-    // ボーナス：腹筋ローラー
+    // 全身枠：体幹（プランクは秒）
     abKnee: [null, 15],
     abWall: [null, 15],
     abKneeFull: [null, 15],
     abStanding: [null, 10],
+    plank: [30, 90],
+    plankLegUp: [30, 60],
+    sidePlank: [20, 60],
+    // 全身枠：全身
+    squatThrust: [null, 15],
+    burpee: [null, 12],
+    mountainClimber: [10, 20],
   } as Record<string, [number | null, number]>,
 }

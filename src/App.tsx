@@ -31,7 +31,7 @@ import { More } from './features/More'
 import { Items } from './features/Items'
 import { CustomItems } from './features/CustomItems'
 import { GachaAdmin } from './features/GachaAdmin'
-import { QuestAdmin } from './features/QuestAdmin'
+import { QuestAdmin, QuestRulesUpdater } from './features/QuestAdmin'
 import { CollabAdmin } from './features/CollabAdmin'
 import { BossAdmin } from './features/BossAdmin'
 
@@ -127,6 +127,7 @@ export function App() {
 
   return (
     <StoreProvider user={user}>
+      <QuestRulesUpdater />
       <MusicProvider>
         <TopBar go={go} />
         <main className="app">

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { defaultBossHp, dropPlus, gradeOf, questHp, defaultHp, questGold, questHits, sessionEstimate, setHit, standardSessionDamage } from './quest'
+import { battlesReached, stageEnemies, stageHp, defaultBossHp, dropPlus, gradeOf, questHp, defaultHp, questGold, questHits, sessionEstimate, setHit, standardSessionDamage } from './quest'
 import { isJogressReady, jogressNeed } from './stats'
 import type { MonsterDef, OwnedMonster, Quest, SetRecord } from '../types'
 
@@ -166,5 +166,23 @@ describe('活躍感', () => {
     const h = setHit(set('mon1', 'mon'), quest, [a, b], '')
     expect(h.byMember.a).toBeGreaterThan(h.byMember.b)
     expect(Math.round(h.byMember.a + h.byMember.b)).toBe(h.damage)
+  })
+})
+
+describe('3バトル', () => {
+  const d = (id: string, extra: Partial<MonsterDef> = {}): MonsterDef =>
+    ({ id, name: id, attr: 'legs', templateId: 'single', images: {}, createdAt: 0, ...extra }) as MonsterDef
+  it('HPを3等分して、削った分だけ突破。今のバトルの残りHP', () => {
+    expect(battlesReached(0, 300)).toBe(0)
+    expect(battlesReached(100, 300)).toBe(1)
+    expect(battlesReached(299, 300)).toBe(2)
+    expect(battlesReached(400, 300)).toBe(3)
+    expect(stageHp(150, 300)).toEqual({ max: 100, left: 50 })
+  })
+  it('敵は道中（同じ属性のノーマル・レア）→中ボス（同じ属性の降臨）→ボス。いなければボス', () => {
+    const boss = d('boss', { questOnly: true, element: 'fire' })
+    const defs = [boss, d('mob', { tier: 'normal', element: 'fire' }), d('mid', { questOnly: true, element: 'fire' }), d('water', { tier: 'normal', element: 'water' })]
+    expect(stageEnemies({ id: 'q1', element: 'fire' }, boss, defs).map((x) => x?.id)).toEqual(['mob', 'mid', 'boss'])
+    expect(stageEnemies({ id: 'q1', element: 'light' }, boss, defs).map((x) => x?.id)).toEqual(['boss', 'boss', 'boss'])
   })
 })

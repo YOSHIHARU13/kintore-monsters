@@ -37,3 +37,47 @@ export function gachaOpen(gacha: Pick<Gacha, 'schedule' | 'builtin'>, today: str
   if (d >= s.from && d <= s.to) return { open: true, label: `あと${s.to - d + 1}日（毎月${s.from}〜${s.to}日）` }
   return { open: false, label: `毎月${s.from}〜${s.to}日` }
 }
+
+/** n 日あとの日付（YYYY-MM-DD） */
+export function addDays(date: string, n: number): string {
+  const d = new Date(`${date}T12:00:00`)
+  d.setDate(d.getDate() + n)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/** 今日から days 日のあいだで、開いている期間（続いている日をまとめる） */
+export function openPeriods(isOpen: (day: string) => boolean, today: string, days: number): { start: string; end: string }[] {
+  const out: { start: string; end: string }[] = []
+  for (let i = 0; i < days; i++) {
+    const day = addDays(today, i)
+    if (!isOpen(day)) continue
+    const last = out[out.length - 1]
+    if (last && last.end === addDays(day, -1)) last.end = day
+    else out.push({ start: day, end: day })
+  }
+  return out
+}
+
+/** 期間の表示（例：11/10〜11/20、1日だけなら 11/10） */
+export const periodText = (p: { start: string; end: string }) => (p.start === p.end ? md(p.start) : `${md(p.start)}〜${md(p.end)}`)
+
+/** 開催しているガチャが minOpen 種類より少ない日（まとめた期間と、その間の種類の数の最小） */
+export function thinDays(
+  countOn: (day: string) => number,
+  today: string,
+  days: number,
+  minOpen: number,
+): { start: string; end: string; count: number }[] {
+  const out: { start: string; end: string; count: number }[] = []
+  for (let i = 0; i < days; i++) {
+    const day = addDays(today, i)
+    const n = countOn(day)
+    if (n >= minOpen) continue
+    const last = out[out.length - 1]
+    if (last && last.end === addDays(day, -1)) {
+      last.end = day
+      last.count = Math.min(last.count, n)
+    } else out.push({ start: day, end: day, count: n })
+  }
+  return out
+}

@@ -1,4 +1,4 @@
-import { ATTRS, SLOTS, type Attr, type FormAttr } from '../data/exercises'
+import { ATTRS, FAVORITE_SLOTS, type Attr, type FormAttr } from '../data/exercises'
 import { getTemplate } from '../data/evolutionTemplates'
 import { abilitySlots } from './gimmick'
 import { ELEMENTS, advantageElements, elementInfo } from './element'
@@ -104,7 +104,7 @@ export function recommend(
   gimmicks: string[],
   slots: number,
   selfId?: string,
-  slotIds: string[] = SLOTS.map((s) => s.id), // 得意種目にできる種目（モンスターの部位で決まる）
+  slotIds: string[] = FAVORITE_SLOTS.map((s) => s.id), // 得意種目にできる種目（モンスターの部位で決まる）
   fixedElement?: Element, // 属性が決まっているモンスターは、その属性のまま考える
 ): { element: Element; favoriteSlot: string; abilities: string[] } {
   const gap = (s: Supply) => s.need - s.have

@@ -1,5 +1,6 @@
 import { CONFIG } from '../config/gameConfig'
 import { abilityName } from './gimmick'
+import { isBonusSlot } from '../data/exercises'
 import { nodeAttr, type MonsterDef, type OwnedMonster } from '../types'
 
 /**
@@ -90,5 +91,7 @@ export function customized(def: MonsterDef, mon: Pick<OwnedMonster, 'custom' | '
 
 /** その種目が得意種目か（カスタマイズで足した分も） */
 export function isFavorite(def: Pick<MonsterDef, 'favoriteSlot' | 'extraFavorite'>, slotId: string): boolean {
+  // 全身枠は誰の得意種目にもならない（以前ローラーを得意にしていた子も効かない）
+  if (isBonusSlot(slotId)) return false
   return def.favoriteSlot === slotId || def.extraFavorite === slotId
 }
