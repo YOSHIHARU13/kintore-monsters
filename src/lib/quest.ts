@@ -47,7 +47,7 @@ export interface Hit {
 const HARD_GRADES: QuestGrade[] = ['chozetsu', 'chokyukyoku', 'bakuzetsu']
 
 /**
- * アビリティの倍率：究極以下は合う数×25%。超絶以上は、合わなければ×0.4・1つで×1・2つで×1.5・「2つ同時」の組を持てば×2.5
+ * アビリティの倍率：究極以下は合う数×25%。超絶以上は、合わなければ×0.4・1つで×1・2つで×1.2・「2つ同時」の組を持てば×2.5（数は config の hardAbility）
  */
 export function abilityRate(def: MonsterDef, quest: Quest): { rate: number; label: string } {
   const q = CONFIG.quest

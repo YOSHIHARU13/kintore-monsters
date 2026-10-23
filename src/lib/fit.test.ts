@@ -61,8 +61,15 @@ describe('適正度（理想の激レアを100%）', () => {
 })
 
 describe('超絶以上はド適正だけが活躍', () => {
-  it('「2つ同時」の組を持つ激レアが100%。アビリティ1つは7割未満、合わなければもっと下', () => {
-    const q = quest('q', { grade: 'bakuzetsu', requirements: [{ tag: 'el:wood', count: 5 }, { tag: 'ab2:バリア|シールド', count: 2 }, { tag: 'ab:バリア', count: 3 }, { tag: 'ab:シールド', count: 3 }, { tag: 'ab:ミラー', count: 3 }] })
+  it('「2つ同時」の組を持つ激レアが100%。アビリティ1つは6割未満、合わなければもっと下（高難度と同じアビリティ5種類で）', () => {
+    const q = quest('q', {
+      grade: 'bakuzetsu',
+      requirements: [
+        { tag: 'el:wood', count: 5 },
+        { tag: 'ab2:シールド|バリア', count: 2 }, // 2つの名前は並べ替えた順（comboTag と同じ）
+        ...['バリア', 'シールド', 'ミラー', 'リジェネ', 'ブロック'].map((g) => ({ tag: `ab:${g}`, count: 3 })),
+      ],
+    })
     const list = fitMembers(q, [
       def('combo', { element: 'wood', abilities: ['バリア', 'シールド'] }),
       def('one', { element: 'wood', abilities: ['バリア', 'ワープ'] }),
@@ -70,7 +77,7 @@ describe('超絶以上はド適正だけが活躍', () => {
     ])
     const pct = Object.fromEntries(list.map((x) => [x.def.id, x.percent]))
     expect(pct.combo).toBeGreaterThanOrEqual(95)
-    expect(pct.one).toBeLessThan(70)
+    expect(pct.one).toBeLessThan(60)
     expect(pct.none).toBeLessThan(pct.one - 15)
   })
 })

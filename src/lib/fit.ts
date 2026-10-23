@@ -89,7 +89,7 @@ export function hitWeight(def: MonsterDef, quest: Quest): number {
 
 /**
  * そのクエストの適正キャラ：入れたら編成全体のダメージがどれだけ増えるか（貢献）の順。持っていないモンスターも入る。
- * 貢献 ＝ 1撃の重さ ＋ 編成の条件を埋めるぶん（6体の編成のダメージ × そのモンスター1体で上がる編成倍率）。
+ * 貢献 ＝ 1撃の重さ ＋ 編成の条件を埋めるぶん（理想の激レア6体の編成のダメージ × そのモンスター1体で上がる編成倍率）。
  * 属性の種類（2属性なら2種類）・アビリティ・部位の条件を埋める役も、ここで評価される。
  * 並ぶのは、属性が合うモンスター（零属性のボスならどれでも）。降臨とガチャに分けて使う
  */
@@ -106,9 +106,8 @@ export function fitMembers(
   })
   const rows = defs.filter((def) => zeroBoss || fitsQuest(def, quest)).map((def) => ({ def, fit: fitOf(def, quest), ...measure(def) }))
   const ideal = measure(idealFor(quest))
-  // 編成のダメージの目安：1撃の重い6体ぶん（理想の激レアも入れて考える）
-  const top = [ideal.hit, ...rows.map((r) => r.hit)].sort((a, b) => b - a).slice(0, CONFIG.quest.partySize)
-  const party = (top.reduce((s, h) => s + h, 0) / Math.max(1, top.length)) * CONFIG.quest.partySize
+  // 編成のダメージの目安：理想の激レア6体ぶん（登録しているモンスターの顔ぶれで%が変わらないように）
+  const party = ideal.hit * CONFIG.quest.partySize
   const idealScore = ideal.hit + party * ideal.lift
   return rows
     .map((r) => {
