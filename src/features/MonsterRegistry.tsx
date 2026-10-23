@@ -40,7 +40,7 @@ export function todosOf(def: MonsterDef): string[] {
 
 /** 開発者用の画面：未入手でも絵と名前を出し、未設定のものを上にまとめる */
 export function MonsterRegistry({ go }: { go: Go }) {
-  const { defs, owned, state, autoTuneDefs, bulkUpdateDefs } = useStore()
+  const { defs, owned, state, autoTuneDefs, bulkUpdateDefs, replanAllAbilities } = useStore()
   const [selecting, setSelecting] = useState(false)
   const [picked, setPicked] = useState<string[]>([])
   const [done, setDone] = useState<string | null>(null)
@@ -49,6 +49,7 @@ export function MonsterRegistry({ go }: { go: Go }) {
   const [query, setQuery] = useState('')
   const [series, setSeries] = useState<SeriesFilter>('all')
   const [tuned, setTuned] = useState<number | null>(null)
+  const [replanned, setReplanned] = useState<number | null>(null)
   const hasMet = (defId: string) => owned.some((o) => o.defId === defId) || (state.dexFound[defId]?.length ?? 0) > 0
   const ownedCount = defs.filter((d) => hasMet(d.id)).length
   // おまかせで埋められるところ（属性・レア度・得意種目・アビリティ）が残っているもの
@@ -104,6 +105,16 @@ export function MonsterRegistry({ go }: { go: Go }) {
         </button>
       )}
       {tuned !== null && <div className="result keep">{tuned}体をおまかせで埋めました</div>}
+      <button
+        className="btn wide"
+        onClick={() => {
+          if (!window.confirm('全モンスターのアビリティを、枠の数ぴったりに配り直します（多すぎる・空いているのも直ります。1つ目はなるべく残します）。よろしいですか？')) return
+          setReplanned(replanAllAbilities())
+        }}
+      >
+        🎲 全モンスターのアビリティをおまかせでセットし直す
+      </button>
+      {replanned !== null && <div className="result keep">{replanned}体のアビリティをセットし直しました</div>}
 
 
       <div className="chips" role="group" aria-label="絞り込み">

@@ -32,6 +32,7 @@ import { Items } from './features/Items'
 import { CustomItems } from './features/CustomItems'
 import { GachaAdmin } from './features/GachaAdmin'
 import { QuestAdmin, QuestRulesUpdater } from './features/QuestAdmin'
+import { MonsterProfile } from './features/MonsterProfile'
 import { CollabAdmin } from './features/CollabAdmin'
 import { BossAdmin } from './features/BossAdmin'
 
@@ -39,7 +40,7 @@ const TABS: { label: string; icon: string; view: View; names: View['name'][] }[]
   { label: 'ホーム', icon: '🏠', view: { name: 'home' }, names: ['home', 'morning', 'missions'] },
   { label: 'トレーニング', icon: '💪', view: { name: 'training' }, names: ['training', 'set', 'menuEdit', 'partner'] },
   { label: 'モンスター', icon: '🐣', view: { name: 'box' }, names: ['box', 'monster', 'dex'] },
-  { label: 'ショップ', icon: '🛒', view: { name: 'shop' }, names: ['shop'] },
+  { label: 'ショップ', icon: '🛒', view: { name: 'shop' }, names: ['shop', 'profile'] },
   { label: 'クエスト', icon: '⚔️', view: { name: 'quests' }, names: ['quests', 'quest', 'tower', 'castle', 'kinkin'] },
   { label: 'その他', icon: '☰', view: { name: 'more' }, names: ['more', 'items', 'customItems', 'settings', 'registry', 'monsterForm', 'gachaAdmin', 'gachaForm', 'questAdmin', 'questForm', 'collabAdmin', 'bossAdmin'] },
 ]
@@ -60,6 +61,8 @@ function Screen({ view, go }: { view: View; go: (v: View) => void }) {
       return <Morning go={go} />
     case 'box':
       return <Box go={go} />
+    case 'profile':
+      return <MonsterProfile key={view.defId} defId={view.defId} go={go} />
     case 'monster':
       return <MonsterDetail key={view.id} id={view.id} go={go} />
     case 'shop':

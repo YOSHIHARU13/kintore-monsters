@@ -114,7 +114,9 @@ export function Shop({ go }: { go: Go }) {
           featured={featuredOf(gacha, table, defs)}
           pickups={pickupsOf(table)}
           selected
+          onPickup={(defId) => go({ name: 'profile', defId })}
         />
+        <p className="muted small center">ピックアップのモンスターをタップすると、活躍できるクエストが見られます</p>
         <div className="egg-bar">
           <span>
             🟡 トク玉 <strong className="num">{state.eggs}</strong>個・🔮 オーブ <strong className="num">{state.gold}</strong>

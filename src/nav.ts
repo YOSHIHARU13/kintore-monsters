@@ -9,6 +9,7 @@ export type View =
   | { name: 'morning' }
   | { name: 'box' }
   | { name: 'monster'; id: string }
+  | { name: 'profile'; defId: string }
   | { name: 'shop' }
   | { name: 'gachaForm'; id?: string }
   | { name: 'quests'; category?: QuestCategory }

@@ -350,6 +350,8 @@ interface Store {
   saveMonsterDef: (input: MonsterDefInput) => Promise<void>
   /** 属性・得意種目・アビリティを、足りないものでまとめて埋める（1体ずつ、前に埋めた分も数えて） */
   autoTuneDefs: (ids: string[]) => void
+  /** 全モンスターのアビリティを、枠の数ぴったりにおまかせで配り直す（前のは abilitiesBefore に残す）。変えた数を返す */
+  replanAllAbilities: () => number
   loadImage: (imageId: string) => Promise<string | null>
   saveSongs: (songs: Song[]) => void
   saveSeriesPeriod: (series: string, period: Period | null) => void
@@ -1287,6 +1289,20 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       batch.commit().catch(fail)
     }
 
+    const replanAllAbilities: Store['replanAllAbilities'] = () => {
+      const plan = planAbilities(defs, selectableGimmicks(questDocs))
+      const batch = writeBatch(db)
+      let changed = 0
+      for (const p of plan) {
+        const before = defs.find((d) => d.id === p.id)?.abilities ?? []
+        if (before.join('|') === p.abilities.join('|')) continue
+        batch.update(doc(db, base, 'monsterDefs', p.id), { abilities: p.abilities, abilitiesBefore: before })
+        changed++
+      }
+      batch.commit().catch(fail)
+      return changed
+    }
+
     const loadImage: Store['loadImage'] = (imageId) => {
       let cached = imageCache.get(imageId)
       if (!cached) {
@@ -1836,6 +1852,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       shinka,
       saveMonsterDef,
       autoTuneDefs,
+      replanAllAbilities,
       loadImage,
       saveSongs,
       saveSeriesPeriod,

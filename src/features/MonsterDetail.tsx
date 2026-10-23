@@ -8,6 +8,7 @@ import { CONFIG } from '../config/gameConfig'
 import { boughtCap, isExpFull, jogressStones, materialKeys, missingMaterials, nextCost, planPour, type EvoCost } from '../lib/evolution'
 import { Gauge } from '../components/Gauge'
 import { Stars } from '../components/Stars'
+import { customized } from '../lib/custom'
 import { Abilities } from '../components/Abilities'
 import { isLuckMax, luckOf } from '../lib/fusion'
 import { ElementBadge } from '../components/ElementBadge'
@@ -202,7 +203,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
           攻撃力 <strong>{attackOf(mon, def).toLocaleString()}</strong>　
           {isLuckMax(mon) ? <span className="luck-max">運極</span> : <span>運 {luckOf(mon)}</span>}
         </p>
-        <Abilities def={def} />
+        <Abilities def={customized(def, mon)} />
         <ElementBadge def={def} />
         <p style={{ color: ATTR_COLOR[attr] }}>
           {FORM_ATTR_LABEL[attr]}属性

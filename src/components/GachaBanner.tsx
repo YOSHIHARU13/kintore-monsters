@@ -85,6 +85,7 @@ interface Props {
   pickups?: MonsterDef[] // ピックアップ（レア以上）
   selected?: boolean
   onClick?: () => void
+  onPickup?: (defId: string) => void // ピックアップのモンスターをタップしたとき（プロフィールへ）
   preview?: string // まだ保存していないバナー画像（編集画面のプレビュー）
 }
 
@@ -94,7 +95,7 @@ const AUTO_MS = 3800
  * ガチャのバナー。スライドで3枚見られる：①主役をズーム ②ほかのピックアップ ③主役3体の集合。
  * 自動で切り替わり、指でスライドもできる。画像を選んでいれば①が画像になる。
  */
-export function GachaBanner({ gacha, count, featured = [], pickups = [], selected = false, onClick, preview }: Props) {
+export function GachaBanner({ gacha, count, featured = [], pickups = [], selected = false, onClick, onPickup, preview }: Props) {
   const { loadImage } = useStore()
   const [src, setSrc] = useState<string | null>(null)
   const [index, setIndex] = useState(0)
@@ -198,7 +199,18 @@ export function GachaBanner({ gacha, count, featured = [], pickups = [], selecte
         <strong className="slide-label">ピックアップ</strong>
         <span className="pickup-row">
           {pickups.slice(0, 6).map((d) => (
-            <span key={d.id} className="pickup">
+            <span
+              key={d.id}
+              className={`pickup${onPickup ? ' tappable' : ''}`}
+              onClick={
+                onPickup
+                  ? (ev) => {
+                      ev.stopPropagation()
+                      onPickup(d.id)
+                    }
+                  : undefined
+              }
+            >
               <MonsterImage imageId={imageOf(d, bannerNodeOf(d))} awaken={awakenOf(d, bannerNodeOf(d))} glow={glowOf(d)} size={pickups.length > 4 ? 54 : 64} />
               <span className="pickup-name">{d.name}</span>
               <Stars def={d} nodeId={bannerNodeOf(d)} />
