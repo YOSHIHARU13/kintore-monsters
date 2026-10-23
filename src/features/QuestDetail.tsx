@@ -280,21 +280,25 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
                 >
                   <span className="monster-row">
                     <MonsterImage {...monArt(m.def, m.mon)} size={44} plus={m.mon.plus} shiny={m.mon.shiny} />
-                    <span>
-                      {on ? '✓ ' : ''}
-                      {plusName(m.def, m.mon)} <Stars def={m.def} nodeId={m.mon.nodeId} mon={m.mon} />
-                      <br />
-                      <span className="small" style={{ color: ATTR_COLOR[attrOf(m)] }}>
-                        {FORM_ATTR_LABEL[attrOf(m)]}
+                    <span className="member-body">
+                      <span>
+                        {on ? '✓ ' : ''}
+                        {plusName(m.def, m.mon)} <Stars def={m.def} nodeId={m.mon.nodeId} mon={m.mon} />
                       </span>
-                      <span className="small"> {elementName(elementInfo(m.def))}</span>
-                      <span className="small"> 攻撃力 {attackOf(m.mon, m.def).toLocaleString()}</span>
-                      {m.tags.map((t) => (
-                        <span key={t} className={`tag ${t === '半減' ? 'warn' : 'keep'}`}>
-                          {' '}
-                          {t}
+                      <span className="small">
+                        <span style={{ color: ATTR_COLOR[attrOf(m)] }}>{FORM_ATTR_LABEL[attrOf(m)]}</span> {elementName(elementInfo(m.def))} 攻撃力{' '}
+                        {attackOf(m.mon, m.def).toLocaleString()}
+                      </span>
+                      {/* 効くところ（属性◎・アビリティ・倍率の上がり方）は、はみ出さないよう折り返して並べる */}
+                      {m.tags.length > 0 && (
+                        <span className="member-tags">
+                          {m.tags.map((t) => (
+                            <span key={t} className={`tag ${t === '半減' ? 'warn' : 'keep'}`}>
+                              {t}
+                            </span>
+                          ))}
                         </span>
-                      ))}
+                      )}
                     </span>
                   </span>
                 </button>

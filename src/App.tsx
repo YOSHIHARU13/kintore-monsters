@@ -33,6 +33,7 @@ import { CustomItems } from './features/CustomItems'
 import { GachaAdmin } from './features/GachaAdmin'
 import { QuestAdmin } from './features/QuestAdmin'
 import { CollabAdmin } from './features/CollabAdmin'
+import { BossAdmin } from './features/BossAdmin'
 
 const TABS: { label: string; icon: string; view: View; names: View['name'][] }[] = [
   { label: 'ホーム', icon: '🏠', view: { name: 'home' }, names: ['home', 'morning', 'missions'] },
@@ -40,7 +41,7 @@ const TABS: { label: string; icon: string; view: View; names: View['name'][] }[]
   { label: 'モンスター', icon: '🐣', view: { name: 'box' }, names: ['box', 'monster', 'dex'] },
   { label: 'ショップ', icon: '🛒', view: { name: 'shop' }, names: ['shop'] },
   { label: 'クエスト', icon: '⚔️', view: { name: 'quests' }, names: ['quests', 'quest', 'tower', 'castle', 'kinkin'] },
-  { label: 'その他', icon: '☰', view: { name: 'more' }, names: ['more', 'items', 'customItems', 'settings', 'registry', 'monsterForm', 'gachaAdmin', 'gachaForm', 'questAdmin', 'questForm', 'collabAdmin'] },
+  { label: 'その他', icon: '☰', view: { name: 'more' }, names: ['more', 'items', 'customItems', 'settings', 'registry', 'monsterForm', 'gachaAdmin', 'gachaForm', 'questAdmin', 'questForm', 'collabAdmin', 'bossAdmin'] },
 ]
 
 function Screen({ view, go }: { view: View; go: (v: View) => void }) {
@@ -99,6 +100,8 @@ function Screen({ view, go }: { view: View; go: (v: View) => void }) {
       return <QuestAdmin go={go} />
     case 'collabAdmin':
       return <CollabAdmin go={go} />
+    case 'bossAdmin':
+      return <BossAdmin go={go} />
   }
 }
 

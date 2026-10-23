@@ -1033,6 +1033,27 @@ describe('画面の表示', () => {
     expect(fake.store.toggleLock).toHaveBeenCalledWith('o1')
   })
 
+  it('適正キャラ：持っていない子も名前が見える（絵だけ黒い）', async () => {
+    const { FitMembers } = await import('../components/FitList')
+    const quest = { id: 'q', name: 'q', bossDefId: 'b', attr: 'legs' as const, element: 'water' as const, weakSlots: [], requirements: [{ tag: 'ab:バリア', count: 3 }], hp: { easy: 1, normal: 1, hard: 1 }, catchphrase: '', theme: '', createdAt: 0 }
+    fake.store.defs = [{ ...defs[0], name: 'モクドラ', element: 'wood', tier: 'superRare', abilities: ['バリア'] }]
+    fake.store.owned = []
+    const el = await render(<FitMembers quest={quest} />)
+    expect(el.textContent).toContain('モクドラ（未所持）')
+  })
+
+  it('高難度のボス：最上階の入れ替わるボスの数と、今月の各階のボスが見られて、編集に行ける', async () => {
+    const { BossAdmin } = await import('./BossAdmin')
+    const lord: MonsterDef = { id: 'L', name: 'ジョウシュ', attr: 'legs', templateId: 'single', images: {}, questOnly: true, bossGrade: 'bakuzetsu', castleLord: true, createdAt: 9 }
+    fake.store.defs = [...defs, lord]
+    const el = await render(<BossAdmin go={go} />)
+    await click('零の孤城')
+    expect(el.textContent).toContain('👑 城主（11階）（1／3体）')
+    expect(el.textContent).toContain('あと2体')
+    await click('ジョウシュ')
+    expect(go).toHaveBeenCalledWith({ name: 'monsterForm', id: 'L' })
+  })
+
   it('カスタマイズアイテムの一覧：持っているアイテムと、付けている子が見られる', async () => {
     const { CustomItems } = await import('./CustomItems')
     fake.store.state = { ...state, customItems: { atk1: 2, 'ab:シールド': 1, fav: 0 }, sticks: 3 }

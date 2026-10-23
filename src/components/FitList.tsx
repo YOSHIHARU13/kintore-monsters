@@ -47,10 +47,11 @@ export function FitHint({ def }: { def: MonsterDef }) {
 
 /** そのクエストの適正キャラ（上位5体。持っていない子はシルエット） */
 export function FitMembers({ quest }: { quest: Quest }) {
-  const { defs, owned, state } = useStore()
+  const { defs, owned } = useStore()
   const list = fitMembers(quest, defs).slice(0, 5)
   if (list.length === 0) return null
-  const met = (d: MonsterDef) => owned.some((o) => o.defId === d.id) || (state.dexFound[d.id]?.length ?? 0) > 0
+  // 持っていない子も名前は出す（ガチャで当てる目標になるように）。絵だけ黒くする
+  const has = (d: MonsterDef) => owned.some((o) => o.defId === d.id)
   return (
     <details className="card fold fit-list">
       <summary>
@@ -59,9 +60,10 @@ export function FitMembers({ quest }: { quest: Quest }) {
       <div className="fit-members">
         {list.map(({ def, fit }) => (
           <span key={def.id} className="fit-member">
-            <MonsterImage imageId={imageOf(def, bannerNodeOf(def))} awaken={awakenOf(def, bannerNodeOf(def))} glow={glowOf(def)} size={48} silhouette={!met(def)} />
+            <MonsterImage imageId={imageOf(def, bannerNodeOf(def))} awaken={awakenOf(def, bannerNodeOf(def))} glow={glowOf(def)} size={48} silhouette={!has(def)} />
             <span className="small">
-              {FIT_MARK[fit]} {met(def) ? def.name : '？？？'}
+              {FIT_MARK[fit]} {def.name}
+              {!has(def) && <span className="muted">（未所持）</span>}
             </span>
           </span>
         ))}
