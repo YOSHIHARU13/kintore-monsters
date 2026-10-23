@@ -51,3 +51,10 @@ describe('ミッション', () => {
     expect(activeToday(state({ lastCheckinDate: '2026-10-22' }), [], today, '2026-10-22')).toBe(true) // 朝の記録
   })
 })
+
+describe('素材セットの報酬', () => {
+  it('結晶・核・筋肉玉も報酬にできる', async () => {
+    const { rewardText } = await import('./missions')
+    expect(rewardText({ stones: 16, cores: 9, balls: 5, coins: 1000 })).toBe('🪙1000・💠5属性の結晶×16ずつ・💎3部位の核×9ずつ・🟣筋肉玉×5')
+  })
+})

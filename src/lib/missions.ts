@@ -2,12 +2,15 @@ import { CONFIG } from '../config/gameConfig'
 import { getTemplate, pathTo } from '../data/evolutionTemplates'
 import type { BoosterKey, GameState, MonsterDef, OwnedMonster, SetRecord } from '../types'
 
-/** 報酬（トク玉・オーブ・ブースター） */
+/** 報酬（トク玉・オーブ・コイン・ブースター・進化素材） */
 export interface Reward {
   eggs?: number
   gold?: number
   coins?: number
   booster?: BoosterKey
+  stones?: number // 5属性の結晶、それぞれこの数
+  cores?: number // 3部位の核、それぞれこの数
+  balls?: number // 筋肉玉
 }
 
 export function rewardText(r: Reward): string {
@@ -16,6 +19,9 @@ export function rewardText(r: Reward): string {
   if (r.gold) parts.push(`${r.gold}オーブ`)
   if (r.coins) parts.push(`🪙${r.coins}`)
   if (r.booster) parts.push(`${CONFIG.boosters[r.booster].icon}${CONFIG.boosters[r.booster].label}`)
+  if (r.stones) parts.push(`💠5属性の結晶×${r.stones}ずつ`)
+  if (r.cores) parts.push(`💎3部位の核×${r.cores}ずつ`)
+  if (r.balls) parts.push(`🟣筋肉玉×${r.balls}`)
   return parts.join('・')
 }
 

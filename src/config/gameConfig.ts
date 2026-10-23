@@ -216,6 +216,12 @@ export const CONFIG = {
         reward: { eggs: 30, gold: 50 },
         boosters: ['habit', 'exp', 'quest'],
       },
+      // 最初はどのクエストもきついので、★3まで何体か育てられるぶんの素材（結晶8・核3・筋肉玉1で★1→★3が1体）
+      {
+        id: 'startMaterials',
+        label: 'スタートダッシュ 素材セット',
+        reward: { stones: 16, cores: 9, balls: 5, coins: 1000 },
+      },
     ] as { id: string; label: string; reward: Reward; boosters?: BoosterKey[] }[],
   },
   // 無料ガチャのイベント：その日のうちに、好きなガチャで引ける（トク玉もオーブも減らない）

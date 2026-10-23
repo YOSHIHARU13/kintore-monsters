@@ -31,6 +31,7 @@ import { isJogressReady } from './lib/stats'
 import { battleOf, dropPlus, isStrict, questGold } from './lib/quest'
 import {
   BALL_KEY,
+  CORE_KEYS,
   CORE_LABEL,
   DROP_ICON,
   STONE_LABEL,
@@ -69,7 +70,7 @@ import { itemInfo, itemLabel, rollTempleItems } from './lib/custom'
 import { tagsOfDef } from './lib/tags'
 import type { Period, Periods } from './lib/series'
 import { TOWER_VERSION, towerCleared, towerFloors, towerMonth, type FixedFloor, type TowerFloor } from './lib/tower'
-import { elementInfo, jogressElementOf } from './lib/element'
+import { ELEMENTS, elementInfo, jogressElementOf } from './lib/element'
 import { investedFor, isHidden, nodeAttr, type AttrExp, type BannerSlide, type BoosterKey, type Checkin, type Element, type Gacha, type Quest, type QuestDifficulty, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
 
 const zeroExp = () => ({ trained: 0, bought: 0 })
@@ -622,6 +623,9 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       if (reward.eggs) update.eggs = increment(reward.eggs)
       if (reward.gold) update.gold = increment(reward.gold)
       if (reward.coins) update.coins = increment(reward.coins)
+      if (reward.stones) for (const e of ELEMENTS) update[`stones.${e}`] = increment(reward.stones)
+      if (reward.cores) for (const k of CORE_KEYS) update[`cores.${k}`] = increment(reward.cores)
+      if (reward.balls) update[`cores.${BALL_KEY}`] = increment(reward.balls)
       for (const b of [...(reward.booster ? [reward.booster] : []), ...boosters]) update[`boosters.${b}`] = increment(1)
     }
     const claimReward: Store['claimReward'] = (key, reward, boosters) => {
