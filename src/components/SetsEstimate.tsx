@@ -25,7 +25,7 @@ export function SetsEstimate({ quest, party, hpLeft }: { quest: Quest; party: Me
     ...weak.map((s) => ({ label: `🎯 弱点種目（${name(s)}）`, d: per(s) })),
     ...(bossPart.length > 0 ? [{ label: `⚔️ ${DAYS[bossPart[0].day as keyof typeof DAYS].title}の種目（ボスの部位）`, d: top(bossPart)!.d }] : []),
     ...(others.length > 0 ? [{ label: 'ほかの部位の種目', d: top(others)!.d }] : []),
-    { label: `腹筋ローラー（${name(BONUS_SLOT)}）`, d: per(BONUS_SLOT) },
+    { label: `全身枠（${name(BONUS_SLOT)}など）`, d: per(BONUS_SLOT) },
   ].filter((r) => r.d > 0)
   return (
     <div className="sets-estimate">

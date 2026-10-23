@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '../store'
 import { allSeries } from '../lib/series'
-import { ATTRS, DAYS, FORM_ATTRS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type FormAttr } from '../data/exercises'
+import { ATTRS, DAYS, FAVORITE_SLOTS, FORM_ATTRS, FORM_ATTR_LABEL, exerciseOfSlot, type FormAttr } from '../data/exercises'
 import { FIRST_NODE_ID, TEMPLATES, canChangeTemplate, getTemplate } from '../data/evolutionTemplates'
 import { nextCost } from '../lib/evolution'
 import { MonsterImage } from '../components/MonsterImage'
@@ -106,11 +106,9 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
       : {}),
   }
   const elSup = elementSupply(defs, quests, existing?.id)
-  // 得意種目は、このモンスターの部位（最終形態）の種目とローラーから選ぶ。部位が「無」なら全部から
+  // 得意種目は、このモンスターの部位（最終形態）の種目から選ぶ。部位が「無」なら全部から（全身枠は入らない）
   const parts = finalAttrs(draftFull)
-  const favoriteChoices = SLOTS.filter(
-    (slot) => slot.day === 'bonus' || parts.includes('none') || parts.includes(DAYS[slot.day].attr),
-  )
+  const favoriteChoices = FAVORITE_SLOTS.filter((slot) => parts.includes('none') || parts.includes(DAYS[slot.day as keyof typeof DAYS].attr))
   const validFavorite = favoriteChoices.some((slot) => slot.id === favoriteSlot) ? favoriteSlot : ''
   const attrSup = attrSupply(defs, quests, existing?.id)
   const fits = questFits(draftFull, quests, gimmickNames)
@@ -522,7 +520,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
             <option value="">なし</option>
             {favoriteChoices.map((slot) => (
               <option key={slot.id} value={slot.id}>
-                {slot.day === 'bonus' ? 'ボーナス：' : `${DAYS[slot.day].title}：`}
+                {DAYS[slot.day as keyof typeof DAYS].title}：
                 {exerciseOfSlot(slot, menu).name}（{supplyText(slotSupply(slot.id, defs, quests, existing?.id))}）
                 {isShort(slotSupply(slot.id, defs, quests, existing?.id)) ? ' 不足' : ''}
               </option>

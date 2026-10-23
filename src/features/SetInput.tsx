@@ -35,6 +35,9 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
   const ex = exerciseOfSlot(slot, store.menu)
   const isBonus = slot.day === 'bonus'
   const range = repRange(ex.id)
+  // 秒数で記録する種目（プランクなど）
+  const unit = ex.seconds ? '秒' : '回'
+  const scale = ex.seconds ? CONFIG.target.secondsScale : 1
 
   const [history, setHistory] = useState<SetRecord[] | null>(null)
   const [weight, setWeight] = useState(0)
@@ -74,8 +77,12 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
       .filter((s) => s.slotId === slotId)
       .map((s) => s.id),
   )
-  const rewardNo = isBonus ? setNo : weekIds.size + 1
-  const target = loaded ? calcTarget(history, setNo, weight) : null
+  // 全身枠のオーブは、全身枠ぜんぶで今日何セット目かで決める
+  const bonusToday = new Set(
+    [...store.todaySets, ...(history ?? []).filter((h) => h.date === store.today)].filter((s) => s.day === 'bonus').map((s) => s.id),
+  ).size
+  const rewardNo = isBonus ? bonusToday + 1 : weekIds.size + 1
+  const target = loaded ? calcTarget(history, setNo, weight, scale) : null
 
   // 目標回数（なければ回数範囲の下限）を最初から入れておく
   useEffect(() => {
@@ -100,7 +107,7 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
   const extra = !isBonus && baseDone
 
   const confirm = () => {
-    const judge = judgeSet(reps, target)
+    const judge = judgeSet(reps, target, scale)
     const base = calcSetReward({ isBonus, setNo: rewardNo, judge, intervalOk })
     // 相棒がいれば、その倍率でEXPが増える（ゴールドは増えない）
     const reward = partner ? { ...base, exp: Math.round(base.exp * partner.rate) } : base
@@ -152,7 +159,7 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
       <BattleBar go={go} />
       <h1 className="title">{ex.name}</h1>
       <p className="muted">
-        {isBonus ? `ボーナス枠・1セット +${CONFIG.bonus.goldPerSet}オーブ＆万能EXP +${CONFIG.bonus.anyExpPerSet}・` : ''}
+        {isBonus ? `全身枠・1セット 万能EXP +${CONFIG.bonus.anyExpPerSet}（オーブ +${CONFIG.bonus.goldPerSet}は1日${CONFIG.sets.perExercise}セットまで）・` : ''}
         {rangeText(ex.id)}
       </p>
       <p className="small how">{ex.how}</p>
@@ -171,7 +178,7 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
       </button>
       {ex.perSide && (
         <p className="small how">
-          ↔️ 左右の種目です。右と左を同じ回数ずつやって1セット。回数は<strong>片側ぶん</strong>を入れます（右10回＋左10回なら「10回」）。
+          ↔️ 左右の種目です。右と左を同じ{unit === '秒' ? '秒数' : '回数'}ずつやって1セット。<strong>片側ぶん</strong>を入れます（右10{unit}＋左10{unit}なら「10{unit}」）。
         </p>
       )}
 
@@ -203,7 +210,7 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
             {isBonus ? '' : '今週 '}
             {extra ? `追加 ${rewardNo - CONFIG.sets.perExercise}` : rewardNo}セット目
           </strong>
-          <span className="target">{target !== null ? `目標 ${target}回` : '目標なし（初回）'}</span>
+          <span className="target">{target !== null ? `目標 ${target}${unit}` : '目標なし（初回）'}</span>
         </div>
 
         {ex.weighted && (
@@ -219,19 +226,20 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
             unit="kg"
           />
         )}
-        <Stepper value={reps} onChange={setReps} min={0} max={99} unit="回" big />
+        <Stepper value={reps} onChange={setReps} min={0} max={ex.seconds ? 600 : 99} step={ex.seconds ? 5 : 1} unit={unit} big />
 
         <button className="btn primary wide confirm" onClick={confirm}>
           {ex.perSide ? '左右各' : ''}
-          {reps}回で確定
+          {reps}
+          {unit}で確定
         </button>
 
         {!intervalOk ? (
           <p className="warn small center">
             あと{Math.ceil(CONFIG.sets.minIntervalSec - elapsedSec)}秒 休むと報酬の対象になります
           </p>
-        ) : isBonus && dayDone ? (
-          <p className="muted small center">今日の{CONFIG.sets.perExercise}セットぶんのオーブは受け取り済み。ここからはEXPとダメージだけ入ります</p>
+        ) : isBonus && rewardNo > CONFIG.sets.perExercise ? (
+          <p className="muted small center">全身枠の今日の{CONFIG.sets.perExercise}セットぶんのオーブは受け取り済み。ここからはEXPとダメージだけ入ります</p>
         ) : extra ? (
           <p className="small center bonus-reward">追加のセット：EXPもダメージもそのまま入ります</p>
         ) : null}
@@ -263,7 +271,8 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
                 <span>
                   {s.setNo}セット目　{ex.weighted ? `${s.weightKg}kg × ` : ''}
                   {ex.perSide ? '左右各' : ''}
-                  {s.reps}回
+                  {s.reps}
+                  {unit}
                 </span>
                 <span className={`tag ${s.judge}`}>
                   {JUDGE_LABEL[s.judge]} {rewardText(s)}
@@ -289,7 +298,8 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
           <div className="beat-text">
             <div className="beat-title">前回超え！！</div>
             <div className="beat-sub">
-              {result.reps}回 {result.eligible ? `／ ${rewardText(result)}` : '（報酬対象外）'}
+              {result.reps}
+              {unit} {result.eligible ? `／ ${rewardText(result)}` : '（報酬対象外）'}
             </div>
             <div className="muted small">タップして続ける</div>
           </div>

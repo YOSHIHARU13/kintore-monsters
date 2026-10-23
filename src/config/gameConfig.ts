@@ -49,6 +49,7 @@ export const CONFIG = {
     recentCount: 3, // 直近何回の平均を使うか
     plus: 1, // 平均に足す回数
     keepMargin: 1, // 目標からこの回数以内なら「キープ」
+    secondsScale: 5, // 秒数の種目（プランクなど）は、足す数とキープの幅をこの倍に（＋5秒・5秒以内でキープ）
   },
 
   // 筋トレ1セットのEXP
@@ -58,7 +59,7 @@ export const CONFIG = {
     beat: 15,
   },
 
-  // 腹筋ローラー（ボーナス枠）。1日3セットまで（日付が変わるとまた3セットできる）
+  // 全身枠（腹筋ローラー・プランク・全身種目）。オーブは全身枠ぜんぶで1日3セットまで（EXPは何セットでも）
   bonus: {
     goldPerSet: 2, // オーブ
     anyExpPerSet: 10, // 万能EXP：どの属性の進化にも注げる
@@ -136,13 +137,13 @@ export const CONFIG = {
   },
 
   // クエスト：出撃したら、その日のうちに倒す勝負。出撃してからのセットがそのままダメージになる（何回でも挑戦できる）
-  // ダメージになるのは報酬が出るセットだけ（各種目は週に2周まで、ローラーは1日3セットまで）
+  // ダメージになるのは、前のセットから30秒以上あけたセット（何セット目でも）
   quest: {
     // 1回ぶんのダメージ = 基本値 × 攻撃するモンスターの攻撃力 ÷ attackUnit × 補正
     attackUnit: 3000,
     setDamage: 2.5, // 筋トレ1セット（全員が攻撃。セットの部位と一致するモンスターは × partMatch）
     partMatch: 2,
-    rollerDamage: 4, // 腹筋ローラー1セット（全員で攻撃）
+    rollerDamage: 4, // 全身枠1セット（全員で同じだけ攻撃）
     weakSlot: 2, // ボスの弱点種目のセット（ボスの部位の補正にさらに掛かる）
     bossPart: 1.3, // ボスの部位（胸腕・脚・背肩）の種目のセットは、どれでもこの倍率。中でも弱点種目がいちばん効く
     offElementChozetsu: 0.5, // 超絶では、ボスの属性に有利な属性を持たないモンスターの攻撃はこの倍率
@@ -565,10 +566,17 @@ export const CONFIG = {
     sideRaise: [12, 20],
     sideRaiseSlow: [12, 20],
     frontRaise: [12, 20],
-    // ボーナス：腹筋ローラー
+    // 全身枠：体幹（プランクは秒）
     abKnee: [null, 15],
     abWall: [null, 15],
     abKneeFull: [null, 15],
     abStanding: [null, 10],
+    plank: [30, 90],
+    plankLegUp: [30, 60],
+    sidePlank: [20, 60],
+    // 全身枠：全身
+    squatThrust: [null, 15],
+    burpee: [null, 12],
+    mountainClimber: [10, 20],
   } as Record<string, [number | null, number]>,
 }

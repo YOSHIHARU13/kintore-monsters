@@ -350,7 +350,7 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
             </ul>
           </details>
           <p className="muted small">
-            出撃してからの筋トレとローラーが、そのままダメージになります（報酬が出るセットだけ）。日付が変わると失敗です。
+            出撃してからの筋トレと全身枠のセットが、そのままダメージになります（休憩30秒未満のセットは除く）。日付が変わると失敗です。
           </p>
           <button
             className="btn ghost wide"

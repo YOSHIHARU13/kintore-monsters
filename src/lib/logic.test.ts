@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { calcTarget, judgeSet, recentSessions, suggestProgression } from './target'
 import { calcSetReward, habitGoldNow, stepsGold } from './rewards'
+import { isFavorite } from './custom'
 import type { GameState } from '../types'
 import { boughtCap, evolutionCost, fusionCost, isExpFull, nextCost, planPour } from './evolution'
 import { CONFIG } from '../config/gameConfig'
@@ -228,5 +229,18 @@ describe('初期データの整合性', () => {
         if (node.next.length > 0) expect(evolutionCost(node.stage)).not.toBeNull()
       }
     }
+  })
+})
+
+describe('全身枠', () => {
+  it('秒数の種目は目標が＋5秒、5秒以内でキープ', () => {
+    const h = [{ setNo: 1, weightKg: 0, reps: 40, ts: 1, date: '2026-10-01' }]
+    expect(calcTarget(h, 1, 0, CONFIG.target.secondsScale)).toBe(45)
+    expect(judgeSet(41, 45, CONFIG.target.secondsScale)).toBe('keep')
+    expect(judgeSet(39, 45, CONFIG.target.secondsScale)).toBe('normal')
+  })
+  it('全身枠は誰の得意種目にもならない', () => {
+    expect(isFavorite({ favoriteSlot: 'bonus' }, 'bonus')).toBe(false)
+    expect(isFavorite({ favoriteSlot: 'mon1' }, 'mon1')).toBe(true)
   })
 })

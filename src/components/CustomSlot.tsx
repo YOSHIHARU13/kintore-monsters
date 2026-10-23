@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../store'
-import { SLOTS, exerciseOfSlot } from '../data/exercises'
+import { FAVORITE_SLOTS, SLOTS, exerciseOfSlot } from '../data/exercises'
 import { allGimmicks } from '../lib/gimmick'
 import { itemInfo, itemLabel, itemOrder } from '../lib/custom'
 import type { MonsterDef, OwnedMonster } from '../types'
@@ -76,7 +76,7 @@ export function CustomSlot({ mon, def }: { mon: OwnedMonster; def: MonsterDef })
         <div className="field">
           得意種目にする種目
           <div className="chips" role="group" aria-label="得意種目にする種目">
-            {SLOTS.filter((s) => s.id !== def.favoriteSlot).map((s) => (
+            {FAVORITE_SLOTS.filter((s) => s.id !== def.favoriteSlot).map((s) => (
               <button key={s.id} type="button" className={`chip${slot === s.id ? ' on' : ''}`} onClick={() => setSlot(s.id)}>
                 {slotName(s.id)}
               </button>

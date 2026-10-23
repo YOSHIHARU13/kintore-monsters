@@ -19,7 +19,7 @@ import {
 } from 'firebase/firestore'
 import { db } from './lib/firebase'
 import { CONFIG } from './config/gameConfig'
-import { ATTRS, DAYS, SLOTS, type Attr, type FormAttr } from './data/exercises'
+import { ATTRS, DAYS, FAVORITE_SLOTS, SLOTS, type Attr, type FormAttr } from './data/exercises'
 import { FIRST_NODE_ID, canChangeTemplate, getNode, getTemplate, pathTo } from './data/evolutionTemplates'
 import { dateKey, prevDateKey, weekStartKey } from './lib/date'
 import { fusionCost, isExpFull, jogressStones, materialKeys, missingMaterials, nextCost, planPour } from './lib/evolution'
@@ -1217,7 +1217,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         const def = working.find((d) => d.id === id)
         if (!def || isHidden(def)) continue
         const parts = finalAttrs(def)
-        const slotIds = SLOTS.filter((s) => s.day === 'bonus' || parts.includes('none') || parts.includes(DAYS[s.day].attr)).map(
+        const slotIds = FAVORITE_SLOTS.filter((s) => parts.includes('none') || parts.includes(DAYS[s.day as keyof typeof DAYS].attr)).map(
           (s) => s.id,
         )
         // 決まっていないところだけ埋める（自分で決めたところは触らない）

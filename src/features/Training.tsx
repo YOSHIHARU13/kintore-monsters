@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { monArt } from '../lib/art'
 import { useStore } from '../store'
-import { BONUS_SLOT, DAYS, DAY_KEYS, dumbbellText, exerciseOfSlot, rangeText, slotsOfDay, type Slot } from '../data/exercises'
+import { BONUS_SLOTS, DAYS, DAY_KEYS, dumbbellText, exerciseOfSlot, rangeText, slotsOfDay, type Slot } from '../data/exercises'
 import { CONFIG } from '../config/gameConfig'
 import { partProgress, slotDone, weekCount } from '../lib/week'
 import { ATTR_COLOR, type Go } from '../nav'
@@ -115,20 +115,19 @@ export function Training({ go }: { go: Go }) {
 
       <section className="card">
         <div className="part-head">
-          <h2>ボーナス枠</h2>
-          <span className="muted small">タスク外・1日{CONFIG.sets.perExercise}セットまで</span>
+          <h2>全身枠</h2>
+          <span className="muted small">タスク外・どの部位でもない</span>
           <button className="btn small" onClick={() => go({ name: 'menuEdit', day: 'bonus' })}>
             種目を差し替える
           </button>
         </div>
-        <ul className="slot-list">{slotButton(BONUS_SLOT)}</ul>
+        <ul className="slot-list">{BONUS_SLOTS.map(slotButton)}</ul>
         <p className="bonus-reward">
-          1セットごとに +{CONFIG.bonus.goldPerSet}オーブ ＆ 万能EXP +{CONFIG.bonus.anyExpPerSet}
+          1セットごとに 万能EXP +{CONFIG.bonus.anyExpPerSet}（何セットでも）＋ オーブ +{CONFIG.bonus.goldPerSet}（全身枠ぜんぶで1日
+          {CONFIG.sets.perExercise}セットまで）
         </p>
         <p className="muted small">
-          万能EXPは、どの属性の進化にも注げます。報酬が出るのは1日{CONFIG.sets.perExercise}セットまでで、日付が変わるとまた
-          {CONFIG.sets.perExercise}セットできます（毎日やれば1日 +{CONFIG.bonus.goldPerSet * CONFIG.sets.perExercise}オーブ ＆ 万能EXP +
-          {CONFIG.bonus.anyExpPerSet * CONFIG.sets.perExercise}）。
+          万能EXPは、どの属性の進化にも注げます。全身枠は誰の得意種目にもならず、出撃中は全員で同じだけ攻撃します。
         </p>
         <p className="muted small">だるい日は1セットだけでもOK。それも出席1回に数えます。</p>
       </section>

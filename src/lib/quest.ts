@@ -1,5 +1,5 @@
 import { CONFIG } from '../config/gameConfig'
-import { DAYS, SLOTS, type FormAttr } from '../data/exercises'
+import { BONUS_SLOT, DAYS, SLOTS, type FormAttr } from '../data/exercises'
 import { attackOf } from './stats'
 import { rarityOf } from './gacha'
 import { customized, isFavorite } from './custom'
@@ -155,7 +155,8 @@ export function sessionEstimate(quest: Quest, party: Member[]): { day: keyof typ
     requirementsOf(quest),
   )
   return (Object.keys(DAYS) as (keyof typeof DAYS)[]).map((day) => {
-    const slots = SLOTS.filter((s) => s.day === day || s.day === 'bonus')
+    // 全身枠は1枠ぶん（基本セット）で見込む
+    const slots = SLOTS.filter((s) => s.day === day || s.id === BONUS_SLOT.id)
     const damage = slots.reduce(
       (sum, s) => sum + CONFIG.sets.perExercise * setHit({ slotId: s.id, day: s.day, eligible: true }, quest, party, '', rate).damage,
       0,

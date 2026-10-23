@@ -305,7 +305,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
                             >
                               {pour.trained > 0 ? `万能EXPを注ぐ（+${pour.trained}）` : '万能EXPがありません'}
                             </button>
-                            <span className="small muted">手持ち：万能 {state.anyExp}（腹筋ローラーで貯まる）</span>
+                            <span className="small muted">手持ち：万能 {state.anyExp}（全身枠で貯まる）</span>
                           </div>
                         )
                       })()}
