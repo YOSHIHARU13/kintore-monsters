@@ -141,7 +141,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
       <button className="back" onClick={() => go(backTo)}>
         {inCastle ? '← 零の孤城に戻る' : inKinkin ? '← 禁筋の獄に戻る' : towerFloor ? '← 試練の塔に戻る' : '← クエストに戻る'}
       </button>
-      <QuestBanner quest={quest} boss={boss} />
+      <QuestBanner quest={quest} boss={boss} reward={towerFloor ? towerRewardText(towerFloor, defs, state) : undefined} />
 
       <section className="card">
         <h2>求められる編成</h2>

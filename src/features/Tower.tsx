@@ -28,8 +28,11 @@ export function towerRewardText(floor: TowerFloor, defs: MonsterDef[], state: Ga
   if (r.boosters && r.boosters.length > 0) parts.push(`🎁ブースター詰め合わせ×${r.boosters.length}`)
   if (r.custom) parts.push(itemLabel(r.custom))
   const castle = isCastleQuest(floor.quest.id)
-  if (r.monsterDefId)
-    parts.push(`${castle ? '👑' : '🗼'}${defs.find((d) => d.id === r.monsterDefId)?.name ?? (castle ? '城主' : '塔限定モンスター')}`)
+  if (r.monsterDefId) {
+    const prize = defs.find((d) => d.id === r.monsterDefId)
+    const luck = prize?.castleOnly ? CONFIG.luck.monthlyDrop : CONFIG.luck.prizeDrop
+    parts.push(`${castle ? '👑' : '🗼'}${prize?.name ?? (castle ? '城主' : '塔限定モンスター')}（運${luck}）`)
+  }
   return parts.join('・')
 }
 

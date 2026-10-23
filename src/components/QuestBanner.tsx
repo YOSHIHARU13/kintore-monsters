@@ -17,11 +17,12 @@ function questTone(quest: Quest): string {
 }
 
 /** クエストのバナー：求める属性の色の背景に、ボスの最終形態と名前を出す */
-export function QuestBanner({ quest, boss, onClick, selected = false }: {
+export function QuestBanner({ quest, boss, onClick, selected = false, reward }: {
   quest: Quest
   boss: MonsterDef | undefined
   onClick?: () => void
   selected?: boolean
+  reward?: string // 高難度の階の報酬（ふつうのクエストの「ボスがドロップ・🔮」の代わりに出す）
 }) {
   const { quests } = useStore()
   const names = allGimmicks(quests)
@@ -52,7 +53,9 @@ export function QuestBanner({ quest, boss, onClick, selected = false }: {
           </span>
         )}
         <span className="small">
-          {quest.kind === 'material'
+          {reward
+            ? `報酬：${reward}`
+            : quest.kind === 'material'
             ? `${levelsOf(quest).map((d) => difficultyLabel(quest, d)).join('・')}・${dropLabel(quest)}が落ちる（数はくじで決まる）`
             : `ボス${dropPlus(quest) > 0 ? `＋${dropPlus(quest)}` : ''}がドロップ・🔮${CONFIG.quest.grades[gradeOf(quest)].gold}`}
         </span>
