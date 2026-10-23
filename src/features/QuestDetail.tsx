@@ -16,8 +16,8 @@ import { questCategoryOf } from './Quests'
 import { attackOf } from '../lib/stats'
 import { allGimmicks } from '../lib/gimmick'
 import { DROP_ICON, STONE_LABEL, dropLabel, dropOf, expectedDrop } from '../lib/cores'
-import { towerCleared, towerMonth } from '../lib/tower'
-import { castleCleared } from '../lib/castle'
+import { towerCleared, towerMonth, towerOpen } from '../lib/tower'
+import { castleCleared, castleOpen } from '../lib/castle'
 import { towerRewardText } from './Tower'
 import { plusName, type QuestDifficulty } from '../types'
 import { customized, isFavorite } from '../lib/custom'
@@ -38,8 +38,10 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
       : found
         ? { name: 'quests', category: questCategoryOf(found, defs, seriesPeriods, today) }
         : { name: 'quests' }
-  const cleared = inCastle ? castleCleared(state) : towerCleared(state, towerMonth(today))
-  const towerLocked = !!towerFloor && towerFloor.floor !== cleared + 1
+  const cleared = inCastle ? castleCleared(state, towerMonth(today)) : towerCleared(state, towerMonth(today))
+  // 塔・孤城は、開催中で、次の階だけ挑戦できる（条件はいつでも見られる）
+  const closed = !!towerFloor && !(inCastle ? castleOpen(today) : towerOpen(today))
+  const towerLocked = !!towerFloor && (closed || towerFloor.floor !== cleared + 1)
   const current = state.challenge?.date === today ? state.challenge : null
   const [difficulty, setDifficulty] = useState<QuestDifficulty>(
     current?.questId === id ? current.difficulty : BOSS_DIFFICULTY,
@@ -212,7 +214,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
           )
         ) : towerFloor ? (
           <p className="small">
-            報酬（{inCastle ? '1回きり' : '月に1回'}）：{towerRewardText(towerFloor, defs, state)}
+            報酬（月に1回）：{towerRewardText(towerFloor, defs, state)}
           </p>
         ) : (
           <p className="small">
@@ -305,7 +307,11 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
           go({ name: 'quests' })
         }}
       >
-        {towerLocked
+        {closed
+          ? inCastle
+            ? `零の孤城は毎月${CONFIG.castle.openDays[0]}日〜月末に挑戦できます`
+            : `試練の塔は毎月${CONFIG.tower.openDays[0]}〜${CONFIG.tower.openDays[1]}日に挑戦できます`
+          : towerLocked
           ? '下の階をクリアすると挑戦できます'
           : switching
             ? '今の戦いをやめて、これに出撃する'

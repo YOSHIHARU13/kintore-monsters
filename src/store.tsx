@@ -69,8 +69,8 @@ import { activeToday, currentStats, loginReady, loginReward, type Reward } from 
 import { builtinMaterialQuests, builtinTempleQuests } from './lib/materials'
 import { itemInfo, itemLabel, rollTempleItems } from './lib/custom'
 import { seriesOf, type Period, type Periods } from './lib/series'
-import { castleCleared, castleFloors } from './lib/castle'
-import { TOWER_VERSION, towerCleared, towerFloors, towerMonth, type FixedFloor, type TowerFloor } from './lib/tower'
+import { castleCleared, castleFloors, castleOpen } from './lib/castle'
+import { TOWER_VERSION, towerOpen, towerCleared, towerFloors, towerMonth, type FixedFloor, type TowerFloor } from './lib/tower'
 import { ELEMENTS, elementInfo, jogressElementOf } from './lib/element'
 import { investedFor, isHidden, nodeAttr, type AttrExp, type BannerSlide, type BoosterKey, type Checkin, type Element, type Gacha, type Quest, type QuestDifficulty, type QuestGrade, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
 
@@ -1257,8 +1257,9 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         // 試練の塔・零の孤城は、次の階だけ挑戦できる
         const floor = tower.find((f) => f.quest.id === questId)
         const castleFloor = castle.find((f) => f.quest.id === questId)
-        if (floor && floor.floor !== towerCleared(state, towerMonth(dateKey())) + 1) return
-        if (castleFloor && castleFloor.floor !== castleCleared(state) + 1) return
+        // 開催している日だけ（塔は1〜15日、孤城は16日〜月末）
+        if (floor && (!towerOpen(dateKey()) || floor.floor !== towerCleared(state, towerMonth(dateKey())) + 1)) return
+        if (castleFloor && (!castleOpen(dateKey()) || castleFloor.floor !== castleCleared(state, towerMonth(dateKey())) + 1)) return
         if (!floor && !castleFloor) return
       }
       const ids = party.filter((p) => owned.some((o) => o.id === p)).slice(0, CONFIG.quest.partySize)
@@ -1373,7 +1374,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     /** 試練の塔の報酬：オーブ・トク玉・核・塔限定モンスター。クリアした階を進める */
     const claimTower = (floor: TowerFloor, party: OwnedMonster[], kind: 'tower' | 'castle'): QuestReward | null => {
       const month = towerMonth(dateKey())
-      const cleared = kind === 'castle' ? castleCleared(state) : towerCleared(state, month)
+      const cleared = kind === 'castle' ? castleCleared(state, month) : towerCleared(state, month)
       if (floor.floor !== cleared + 1) return null
       const bonus = luckBonus(party)
       const boost = state.boosts?.quest ? 2 : 1
@@ -1385,7 +1386,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         ...(boost > 1 ? { 'boosts.quest': false } : {}),
         gold: increment(gold),
         questClears: increment(1),
-        ...(kind === 'castle' ? { castle: { cleared: floor.floor } } : { tower: { month, cleared: floor.floor } }),
+        ...(kind === 'castle' ? { castle: { month, cleared: floor.floor } } : { tower: { month, cleared: floor.floor } }),
         coins: increment(coins),
         challenge: null,
       }

@@ -58,8 +58,8 @@ import { isLuckMax, luckBonus, luckOf } from '../lib/fusion'
 import { ELEMENT_COLOR } from '../lib/element'
 import { CONFIG } from '../config/gameConfig'
 import { dropLabel } from '../lib/cores'
-import { towerCleared, towerMonth } from '../lib/tower'
-import { castleCleared } from '../lib/castle'
+import { towerCleared, towerMonth, towerOpen } from '../lib/tower'
+import { castleCleared, castleOpen } from '../lib/castle'
 import { QUEST_RULES } from '../lib/questAuto'
 import { towerRewardText } from './Tower'
 import { boosterName } from '../lib/boosters'
@@ -90,7 +90,7 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
   const towerFloor = battle
     ? (tower.find((f) => f.quest.id === battle.quest.id) ?? castle.find((f) => f.quest.id === battle.quest.id))
     : undefined
-  const castleDone = castleCleared(state)
+  const castleDone = castleCleared(state, towerMonth(today))
   const [confirmQuit, setConfirmQuit] = useState(false)
   const [view, setView] = useState<'icon' | 'banner'>(() => {
     try {
@@ -123,14 +123,22 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
       key: 'castle',
       icon: '🏯',
       label: '零の孤城',
-      hint: castleDone >= CONFIG.castle.floors ? '踏破！' : `${castleDone}／${CONFIG.castle.floors}階・全階爆絶・最上階は零属性の城主（報酬は1回きり）`,
+      hint: !castleOpen(today)
+        ? `毎月${CONFIG.castle.openDays[0]}日〜月末に開催・全階爆絶・最上階は零属性の城主`
+        : castleDone >= CONFIG.castle.floors
+          ? '今月は踏破！'
+          : `開催中 ${castleDone}／${CONFIG.castle.floors}階・全階爆絶・最上階は零属性の城主`,
       open: () => go({ name: 'castle' }),
     },
     {
       key: 'tower',
       icon: '🗼',
       label: '試練の塔',
-      hint: towerDone >= CONFIG.tower.floors ? '今月は踏破！来月また新しい塔が出ます' : `${towerDone}／${CONFIG.tower.floors}階・次は${towerDone + 1}階（毎月1日に新しく）`,
+      hint: !towerOpen(today)
+        ? `毎月${CONFIG.tower.openDays[0]}〜${CONFIG.tower.openDays[1]}日に開催`
+        : towerDone >= CONFIG.tower.floors
+          ? '今月は踏破！'
+          : `開催中 ${towerDone}／${CONFIG.tower.floors}階・次は${towerDone + 1}階`,
       open: () => go({ name: 'tower' }),
     },
     { key: 'material', icon: '💎', label: '素材クエスト', hint: '結晶・核・筋肉玉・進化コイン（初級・上級・究極）', open: () => go({ name: 'quests', category: 'material' }) },

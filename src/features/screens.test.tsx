@@ -890,20 +890,22 @@ describe('画面の表示', () => {
     expect(fake.store.removeCustom).toHaveBeenCalledWith('o1')
   })
 
-  it('零の孤城：下から1階ずつ。報酬は1回きりで、最上階は零属性の城主', async () => {
+  it('零の孤城：毎月16日〜月末、下から1階ずつ。全階の条件が見えて、最上階は零属性の城主', async () => {
     const { Castle } = await import('./Castle')
     const { castleFloors } = await import('../lib/castle')
     const king: MonsterDef = { id: 'king', name: 'ゼロキング', attr: 'legs', templateId: 'single', images: {}, questOnly: true, rarity: 'superRare', castleLord: true, createdAt: 9 }
     fake.store.defs = [...defs, king]
     fake.store.castle = castleFloors([...defs, king], [])
-    fake.store.state = { ...state, castle: { cleared: 2 } }
+    fake.store.state = { ...state, castle: { month: '2026-10', cleared: 2 } }
+    fake.store.today = '2026-10-20' // 孤城は16日〜月末
     const el = await render(<Castle go={go} />)
     expect(el.textContent).toContain('2／11階クリア・次は3階')
+    expect(el.textContent).toContain('求む：') // 全部の階の条件が見える
     expect(el.textContent).toContain('ブースター詰め合わせ×3')
     expect(el.textContent).toContain('👑ゼロキング')
     const floors = [...el.querySelectorAll<HTMLButtonElement>('.tower-floor')]
-    expect(floors.find((b) => b.textContent?.startsWith('3F'))!.disabled).toBe(false)
-    expect(floors.find((b) => b.textContent?.startsWith('4F'))!.disabled).toBe(true)
+    expect(floors.find((b) => b.textContent?.startsWith('3F'))!.textContent).toContain('挑戦')
+    expect(floors.find((b) => b.textContent?.startsWith('4F'))!.textContent).toContain('🔒') // 上の階も開いて条件は見られる
     await act(async () => floors.find((b) => b.textContent?.startsWith('3F'))!.click())
     expect(go).toHaveBeenCalledWith({ name: 'quest', id: 'castle-3' })
   })

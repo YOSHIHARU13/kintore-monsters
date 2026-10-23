@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { castleCleared, castleFloors, castleLineup, lastBossOf } from './castle'
+import { castleCleared, castleFloors, castleLineup, castleOpen, lastBossOf } from './castle'
+import { towerOpen } from './tower'
 import { abilitySlots } from './gimmick'
 import { attackOf } from './stats'
 import { autoGradeOf } from './questAuto'
@@ -60,8 +61,21 @@ describe('零の孤城', () => {
     expect(top.reward.eggs).toBeGreaterThan(30)
   })
 
-  it('クリアは1回きり（月で戻らない）', () => {
-    expect(castleCleared({})).toBe(0)
-    expect(castleCleared({ castle: { cleared: 4 } })).toBe(4)
+  it('毎月16日〜月末に開催。クリアは月ごと（月が変わると0から）', () => {
+    expect(castleCleared({}, '2026-10')).toBe(0)
+    expect(castleCleared({ castle: { month: '2026-10', cleared: 4 } }, '2026-10')).toBe(4)
+    expect(castleCleared({ castle: { month: '2026-10', cleared: 4 } }, '2026-11')).toBe(0)
+    expect(castleOpen('2026-10-15')).toBe(false)
+    expect(castleOpen('2026-10-16')).toBe(true)
+    expect(castleOpen('2026-10-31')).toBe(true)
+    expect(towerOpen('2026-10-15')).toBe(true)
+    expect(towerOpen('2026-10-16')).toBe(false)
+  })
+
+  it('コラボの子と超究極のボスは入れない', () => {
+    const collab = def('cb', { element: 'fire', bossGrade: 'bakuzetsu', series: '鬼' })
+    const ids = castleLineup([collab, ...defs], [{ kind: 'boss', grade: 'chokyukyoku', bossDefId: 'fire1' }]).map((d) => d?.id)
+    expect(ids).not.toContain('cb')
+    expect(ids).not.toContain('fire1')
   })
 })

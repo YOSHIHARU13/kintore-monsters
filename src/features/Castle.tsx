@@ -4,15 +4,18 @@ import { CONFIG } from '../config/gameConfig'
 import { MonsterImage } from '../components/MonsterImage'
 import { bannerNodeOf } from '../components/GachaBanner'
 import { ELEMENT_COLOR, ELEMENT_LABEL, ZERO_LABEL } from '../lib/element'
-import { castleCleared, isBakuzetsuBoss, lastBossOf } from '../lib/castle'
+import { castleCleared, castleOpen, isBakuzetsuBoss, lastBossOf } from '../lib/castle'
+import { towerMonth } from '../lib/tower'
+import { FloorReqs } from '../components/FloorReqs'
 import { towerRewardText } from './Tower'
 import type { Go } from '../nav'
 
-/** 零の孤城：全11階のエンドコンテンツ。1〜10階は爆絶のボス、11階は零属性の城主。報酬は各階1回だけ */
+/** 零の孤城：全11階のエンドコンテンツ。毎月16日〜月末。1〜10階は爆絶のボス、11階は零属性の城主。報酬は各階、月に1回 */
 export function Castle({ go }: { go: Go }) {
-  const { state, castle, defs } = useStore()
-  const cleared = castleCleared(state)
+  const { state, castle, defs, today } = useStore()
+  const cleared = castleCleared(state, towerMonth(today))
   const done = cleared >= CONFIG.castle.floors
+  const open = castleOpen(today)
   return (
     <div className="page">
       <button className="back" onClick={() => go({ name: 'quests' })}>
@@ -20,8 +23,11 @@ export function Castle({ go }: { go: Go }) {
       </button>
       <h1 className="title">🏯 零の孤城</h1>
       <p className="muted">
-        {done ? '踏破！ おめでとう！' : `${cleared}／${CONFIG.castle.floors}階クリア・次は${cleared + 1}階`}
-        。下から1階ずつ。報酬は各階1回きりです。
+        {!open
+          ? `開催は毎月${CONFIG.castle.openDays[0]}日〜月末です（今は試練の塔の期間）。条件は今から見られます。`
+          : done
+            ? '今月は踏破！ おめでとう！'
+            : `${cleared}／${CONFIG.castle.floors}階クリア・次は${cleared + 1}階。下から1階ずつ。報酬は各階、月に1回です。`}
       </p>
       <p className="muted small">
         どの階も爆絶（属性が合わない子の攻撃は3分の1）。弱点属性とアビリティの持ち物検査がきびしく、2アビ・3アビの噛み合った子がいないと満たせません。
@@ -36,8 +42,7 @@ export function Castle({ go }: { go: Go }) {
           return (
             <li key={f.floor}>
               <button
-                className={`tower-floor${clear ? ' done' : ''}${next ? ' next' : ''}`}
-                disabled={!clear && !next}
+                className={`tower-floor${clear ? ' done' : ''}${next && open ? ' next' : ''}`}
                 style={el ? { ['--el' as string]: ELEMENT_COLOR[el] } : undefined}
                 onClick={() => go({ name: 'quest', id: f.quest.id })}
               >
@@ -52,9 +57,10 @@ export function Castle({ go }: { go: Go }) {
                     {el ? <span style={{ color: ELEMENT_COLOR[el] }}>{ELEMENT_LABEL[el]}</span> : ZERO_LABEL}{' '}
                     <span className="grade-badge grade-bakuzetsu">{CONFIG.quest.grades.bakuzetsu.label}</span>
                   </strong>
+                  <FloorReqs quest={f.quest} />
                   <span className="small">{clear ? '受け取り済み' : towerRewardText(f, defs, state)}</span>
                 </span>
-                <span className="tower-state">{clear ? '✓' : next ? '挑戦' : '🔒'}</span>
+                <span className="tower-state">{clear ? '✓' : next && open ? '挑戦' : '🔒'}</span>
               </button>
             </li>
           )

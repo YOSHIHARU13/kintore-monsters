@@ -55,7 +55,7 @@ export interface GameState {
   questClears: number // クエストをクリアした回数
   clearedQuests: Record<string, number> // クエストごとのクリア回数（一覧の✓に使う）
   tower: { month: string; cleared: number } | null // 試練の塔：その月にクリアした階の数
-  castle?: { cleared: number } // 零の孤城：クリアした階の数（1回きり）
+  castle?: { month?: string; cleared: number } // 零の孤城：その月にクリアした階の数
   boosters: Partial<Record<BoosterKey, number>> // 持っているブースターの数
   boosts: { habit?: boolean; quest?: boolean; expSets?: number } // 使用中のブースター（EXPは残りセット数）
   freeClaims: Record<string, boolean> // 引いた無料ガチャ（'thursday:2026-10-22' のようなキー）
