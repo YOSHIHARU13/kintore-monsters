@@ -398,7 +398,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
           {questOnly && (
             <p className="muted small">
               🏯 高難度専用（塔の11階・禁筋の最上階・孤城の城主・孤城限定）にするかは、「その他 → つくる → 高難度のボス」でまとめて選べます
-              {(tower || kinkinLord || castleLord || castleOnly) && '（この子はいま高難度専用です）'}
+              {(tower || kinkinLord || castleLord || castleOnly) && '（このモンスターはいま高難度専用です）'}
             </p>
           )}
           {!questOnly && !CONFIG.gacha.rarities[rarity].everyGacha && (
@@ -570,7 +570,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
         <section className="card">
           <h2>獣神化（★4）</h2>
           <p className="muted small">
-            最終形態から、降臨の素材（この子だけのレシピ）で★4に獣神化します。絵を入れると🥈銀、入れなければ🥉銅（今の絵に後光）。
+            最終形態から、降臨の素材（このモンスターだけのレシピ）で★4に獣神化します。絵を入れると🥈銀、入れなければ🥉銅（今の絵に後光）。
             合体の相手を決めると、相手の激レアも素材にした🥇金の獣神化（このゲームで最強）ができます。
           </p>
           {(['shinka', 'gold'] as const).map((key) =>

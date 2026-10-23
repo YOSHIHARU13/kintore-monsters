@@ -70,6 +70,7 @@ import { itemInfo, itemLabel, rollTempleItems } from './lib/custom'
 import { seriesOf, type Period, type Periods } from './lib/series'
 import { battlesReached, castleAvailable, castleBest, castleFloors, castleOpen } from './lib/castle'
 import { kinkinCleared, kinkinFloors, kinkinOpen } from './lib/kinkin'
+import type { BossOrderKind } from './lib/pattern'
 import { TOWER_VERSION, allTowers, type TowerReward, towerOpen, towerCleared, towerMonth, type FixedFloor, type TowerFloor } from './lib/tower'
 import { ELEMENTS, elementInfo, jogressElementOf } from './lib/element'
 import { investedFor, isHidden, nodeAttr, type AttrExp, type BannerSlide, type BoosterKey, type Checkin, type Element, type Gacha, type Quest, type QuestDifficulty, type QuestGrade, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
@@ -305,6 +306,7 @@ interface Store {
   toggleLock: (monsterId: string) => void
   /** 高難度の役割をまとめて付け外しする（塔の11階・禁筋の最上階・孤城の城主・孤城限定） */
   setBossRole: (defIds: string[], role: BossRole, on: boolean) => void
+  setBossOrder: (kind: BossOrderKind, ids: string[] | null) => void // 高難度の各階のボスの順（null で自動の並びに戻す）
   /** まとめてロック・解除する */
   setLocks: (monsterIds: string[], locked: boolean) => void
   /** ボスクエストの条件を、今の版のおまかせで作り直したことを記録する */
@@ -314,8 +316,8 @@ interface Store {
   setSlot: (slotId: string, exerciseId: string) => void
   buyExp: (attr: Attr, amount: number) => void
 
-  /** ブースターを買う。オーブか進化コイン（coinPrice があるものだけ） */
-  buyBooster: (key: BoosterKey, pay?: 'gold' | 'coins') => void
+  /** ブースターを進化コインで買う */
+  buyBooster: (key: BoosterKey) => void
   useBooster: (key: BoosterKey) => void
   /** ガチャを1回引く。トク玉1個か、オーブ5個（pay）。選んだガチャから、確率どおりに1体（ダブりあり） */
   hatchEgg: (gachaId: string, pay?: Pay) => HatchResult | null
@@ -578,11 +580,17 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
   const yesterday = useMemo(() => prevDateKey(today), [today])
   const tower = useMemo(
     // 超絶10体ごとに1つの塔。ここでは全部の塔の階を1つの並びにする（floor.tower が何番目の塔か）
-    () => allTowers(towerMonth(today), defs, selectableGimmicks(quests), quests).flat(),
-    [today, defs, quests],
+    () => allTowers(towerMonth(today), defs, selectableGimmicks(quests), quests, state?.bossOrder?.tower).flat(),
+    [today, defs, quests, state?.bossOrder?.tower],
   )
-  const castle = useMemo(() => castleFloors(towerMonth(today), defs, selectableGimmicks(quests), quests), [today, defs, quests])
-  const kinkin = useMemo(() => kinkinFloors(towerMonth(today), defs, selectableGimmicks(quests), quests), [today, defs, quests])
+  const castle = useMemo(
+    () => castleFloors(towerMonth(today), defs, selectableGimmicks(quests), quests, state?.bossOrder?.castle),
+    [today, defs, quests, state?.bossOrder?.castle],
+  )
+  const kinkin = useMemo(
+    () => kinkinFloors(towerMonth(today), defs, selectableGimmicks(quests), quests, state?.bossOrder?.kinkin),
+    [today, defs, quests, state?.bossOrder?.kinkin],
+  )
 
 
   useEffect(() => {
@@ -779,15 +787,10 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       updateState({ coins: increment(-cost), [`exp.${attr}.bought`]: increment(amount) })
     }
 
-    const buyBooster: Store['buyBooster'] = (key, pay = 'gold') => {
+    const buyBooster: Store['buyBooster'] = (key) => {
       const b = CONFIG.boosters[key]
-      if (pay === 'coins') {
-        if (!b.coinPrice || state.coins < b.coinPrice) return
-        updateState({ coins: increment(-b.coinPrice), [`boosters.${key}`]: increment(1) })
-        return
-      }
-      if (state.gold < b.price) return
-      updateState({ gold: increment(-b.price), [`boosters.${key}`]: increment(1) })
+      if (state.coins < b.coinPrice) return
+      updateState({ coins: increment(-b.coinPrice), [`boosters.${key}`]: increment(1) })
     }
 
     /** ブースターを使う。同じ種類が使用中なら重ねない */
@@ -1677,6 +1680,10 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       batch.commit().catch(fail)
     }
 
+    const setBossOrder: Store['setBossOrder'] = (kind, ids) => {
+      updateState({ [`bossOrder.${kind}`]: ids ?? deleteField() })
+    }
+
     const setBossRole: Store['setBossRole'] = (defIds, role, on) => {
       const batch = writeBatch(db)
       let working = [...defs]
@@ -1822,6 +1829,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       toggleLock,
       setLocks,
       setBossRole,
+      setBossOrder,
       bulkUpdateDefs,
       claimRanks,
       deleteGacha,

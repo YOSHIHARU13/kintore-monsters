@@ -101,7 +101,7 @@ export function FitMembers({ quest }: { quest: Quest }) {
       <summary>
         <h2>🎯 適正キャラ（降臨{drops.length}体・ガチャ{gacha.length}体）</h2>
       </summary>
-      <p className="muted small">刺さる率：その子1体で、このクエストの条件（属性・アビリティ・部位）をどれだけ満たせるか</p>
+      <p className="muted small">刺さる率：そのモンスター1体で、このクエストの条件（属性・アビリティ・部位）をどれだけ満たせるか</p>
       {group('⚔️ 降臨（クエストで手に入る）', drops)}
       {group('🎰 ガチャ', gacha)}
     </details>

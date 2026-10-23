@@ -253,7 +253,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
           ✨ おまかせで決める{auto ? '（おまかせ中）' : ''}
         </button>
         <p className="muted small">
-          おまかせ：ボスに有利な属性（零属性のボスは属性の種類）と、アビリティの持ち物検査。格が上がるほど数も種類も増えます。コラボのボスは、同じコラボの子が活躍する条件になります。弱点種目はボスの部位から。手で変えるとおまかせは止まります。
+          おまかせ：ボスに有利な属性（零属性のボスは属性の種類）と、アビリティの持ち物検査。格が上がるほど数も種類も増えます。コラボのボスは、同じコラボのモンスターが活躍する条件になります。弱点種目はボスの部位から。手で変えるとおまかせは止まります。
         </p>
         {auto && heroId && (
           <p className="small">
@@ -284,7 +284,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
           </div>
           {basisKind === 'hero' && boss && collabMates(boss, defs).length > 0 && (
             <button type="button" className="btn small ghost" onClick={() => setStars(collabMates(boss, defs).slice(0, 3).map((d) => d.id))}>
-              🤝 同じコラボの子を選ぶ（{collabMates(boss, defs).slice(0, 3).map((d) => d.name).join('・')}）
+              🤝 同じコラボのモンスターを選ぶ（{collabMates(boss, defs).slice(0, 3).map((d) => d.name).join('・')}）
             </button>
           )}
           {basisKind === 'hero' && (

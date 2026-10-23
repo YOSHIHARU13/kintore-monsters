@@ -40,3 +40,25 @@ export const patternBoss = (boss: MonsterDef, pattern: number): MonsterDef => (p
 export function patternPick<T>(list: T[], pattern: number): T | undefined {
   return list.length > 0 ? list[pattern % list.length] : undefined
 }
+
+/** 高難度の、手で並べたボスの順（各階のボスのID。最後の階の入れ替わるボスは入れない） */
+export type BossOrderKind = 'tower' | 'kinkin' | 'castle'
+export type BossOrder = Partial<Record<BossOrderKind, string[]>>
+
+/**
+ * 手で並べた順を当てる：並べたボスのうち今も並びに入れるものは、その階に。
+ * あいた階には、残りのボスを自動の並びのまま入れる（新しく登録したボスもここに入る）
+ */
+export function applyOrder(auto: (MonsterDef | undefined)[], order: string[] | undefined): (MonsterDef | undefined)[] {
+  if (!order?.length) return auto
+  const byId = new Map(auto.filter((d): d is MonsterDef => !!d).map((d) => [d.id, d]))
+  const used = new Set<string>()
+  const placed = auto.map((_, i) => {
+    const d = byId.get(order[i])
+    if (!d || used.has(d.id)) return undefined
+    used.add(d.id)
+    return d
+  })
+  const rest = auto.filter((d) => d && !used.has(d.id))
+  return placed.map((d) => d ?? rest.shift())
+}

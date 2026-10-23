@@ -2,7 +2,7 @@ import { CONFIG } from '../config/gameConfig'
 import { elementInfo } from './element'
 import { gradeOf, standardSessionDamage } from './quest'
 import { autoQuestSetup, ownAbilities } from './questAuto'
-import { PATTERN_PARTS, patternBoss, patternOf, patternPick, weakSlotsFor, patternTag } from './pattern'
+import { PATTERN_PARTS, applyOrder, patternBoss, patternOf, patternPick, weakSlotsFor, patternTag } from './pattern'
 import { partTag } from './formation'
 import { bossGradeOf, rarityOf } from './gacha'
 import {
@@ -137,12 +137,14 @@ export function towerFloors(
   gimmicks: string[],
   quests: Quest[] = [],
   index = 0, // 何番目の塔か
+  order?: string[], // 1つ目の塔の、手で並べたボスの順（並べたら毎月その順のまま）
 ): TowerFloor[] {
   const t = CONFIG.tower
   // 月ごとのパターン（胸腕・脚・背肩の月）：どのボスもその月の部位のボスとして戦い、条件も変わる。11階のボスも入れ替わる
   const pattern = patternOf(month)
   const part = PATTERN_PARTS[pattern]
-  const lineup = towerLineup(defs, quests, index)
+  const manual = index === 0 && !!order?.length
+  const lineup = manual ? applyOrder(towerLineup(defs, quests, index), order) : towerLineup(defs, quests, index)
   const prizes = towerMonsters(defs)
 
   // 前の階の条件も数えて、階ごとにちがう子が主役になるように
@@ -152,8 +154,9 @@ export function towerFloors(
     const mi = t.monsterFloors.indexOf(floor)
     // 11階のボス：塔限定の子をパターンごとに入れ替える（塔ごとにずらす）
     const prize = mi >= 0 ? patternPick(prizes, pattern + index) : undefined
-    // 塔限定モンスターの階は、その子がボス。ほかは並び順のボスを、月のパターンごとにずらす（同じ階でもボスごと入れ替わる）
-    const boss = prize ?? lineup[(i + t.patternShift * pattern) % lineup.length]
+    // 塔限定モンスターの階は、そのモンスターがボス。ほかは並び順のボスを、月のパターンごとにずらす（同じ階でもボスごと入れ替わる）。
+    // 手で並べたときは、ずらさずにその順のまま
+    const boss = prize ?? lineup[(i + (manual ? 0 : t.patternShift * pattern)) % lineup.length]
     const grade: QuestGrade = floor >= t.chozetsuFrom ? 'chozetsu' : floor >= t.kyukyokuFrom ? 'kyukyoku' : 'kiwami'
     // 条件：ほかのクエストで使っているスキルをなるべく避ける（そのボスの超絶クエストとは別のギミックに）。パターンごとに変わる
     const setup = boss
@@ -192,8 +195,8 @@ export function towerFloors(
 }
 
 /** 今月の塔をぜんぶ（超絶10体ごとに1つ） */
-export function allTowers(month: string, defs: MonsterDef[], gimmicks: string[], quests: Quest[] = []): TowerFloor[][] {
-  return Array.from({ length: towerCount(defs, quests) }, (_, i) => towerFloors(month, defs, gimmicks, quests, i))
+export function allTowers(month: string, defs: MonsterDef[], gimmicks: string[], quests: Quest[] = [], order?: string[]): TowerFloor[][] {
+  return Array.from({ length: towerCount(defs, quests) }, (_, i) => towerFloors(month, defs, gimmicks, quests, i, order))
 }
 
 /** 保存した塔の作り方の版。作り方を変えたら上げる（古い保存は使わず、作り直して保存し直す） */

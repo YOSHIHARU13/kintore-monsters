@@ -282,11 +282,11 @@ export const CONFIG = {
     ] as FreePullEvent[],
   },
   // ブースター：回数制の道具。使うと次の1回（EXPは次の数セット）だけ効く。期限なし
-  // coinPrice：進化コインでも買える値段（習慣のブースターはオーブが増えるので、オーブでだけ買える）
+  // coinPrice：ショップで買う値段（進化コインだけ。オーブはガチャに回す）
   boosters: {
-    habit: { icon: '🧘', label: 'ブースター', price: 15, coinPrice: 0, text: '次の記録のオーブが2倍、その日の上限もなし' },
-    exp: { icon: '💪', label: '筋トレブースター', price: 30, coinPrice: 150, text: '次の10セットのEXPが2倍', sets: 10 },
-    quest: { icon: '⚔️', label: '討伐ブースター', price: 25, coinPrice: 150, text: '次の降臨の宝箱の中身（素材クエストは落ちる素材）が2倍' },
+    habit: { icon: '🧘', label: 'ブースター', coinPrice: 100, text: '次の記録のオーブが2倍、その日の上限もなし' },
+    exp: { icon: '💪', label: '筋トレブースター', coinPrice: 150, text: '次の10セットのEXPが2倍', sets: 10 },
+    quest: { icon: '⚔️', label: '討伐ブースター', coinPrice: 150, text: '次の降臨の宝箱の中身（素材クエストは落ちる素材）が2倍' },
   },
   // 試練の塔：毎月 openDays の日だけ開催。下から1階ずつ挑戦し、各階の報酬は月に1回だけ
   tower: {
@@ -333,17 +333,17 @@ export const CONFIG = {
     eggsInsteadOfBoss: 10, // 城主級の降臨が登録されていないときは、11階でトク玉
   },
 
-  // 禁筋の獄：塔と孤城のあいだの高難度。毎月11〜20日、全20階を下から1階ずつ、各階の報酬は月に1回。ボスは落とさない
+  // 禁筋の獄：塔と孤城のあいだの高難度。毎月11〜20日、全10階を下から1階ずつ、各階の報酬は月に1回。ボスは落とさない
   // 報酬はオーブ多め（月に約400）＋ちょいレア（筋肉玉・銀のカスタマイズアイテム・ステッキ）
   kinkin: {
     openDays: [11, 20] as [number, number],
-    floors: 20,
-    bakuzetsuFrom: 16, // この階から爆絶（それまでは超絶）
-    hpRatio: [2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.4, 3.6, 3.8, 4, 4.4],
-    gold: [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
-    balls: { 5: 1, 10: 2, 15: 2, 20: 3 } as Record<number, number>, // 筋肉玉
-    customs: { 4: 'atk2', 8: 'fav', 12: 'atk2', 16: 'fav', 20: 'atk2' } as Record<number, string>, // 銀のカスタマイズアイテム
-    sticks: { 10: 1, 20: 1 } as Record<number, number>,
+    floors: 10,
+    bakuzetsuFrom: 6, // この階から爆絶（それまでは超絶）
+    hpRatio: [2.4, 2.7, 3, 3.3, 3.6, 3.2, 3.5, 3.8, 4.1, 4.4],
+    gold: [24, 28, 32, 36, 40, 40, 44, 48, 52, 56],
+    balls: { 3: 1, 5: 2, 8: 2, 10: 3 } as Record<number, number>, // 筋肉玉
+    customs: { 2: 'atk2', 4: 'fav', 6: 'atk2', 8: 'fav', 10: 'atk2' } as Record<number, string>, // 銀のカスタマイズアイテム
+    sticks: { 5: 1, 10: 1 } as Record<number, number>,
   },
 
   // 編成：クエストの条件（炎が3、バリアブレイカーが3…）を出撃する6体の合計で満たす

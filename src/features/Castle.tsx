@@ -24,7 +24,7 @@ export function Castle({ go }: { go: Go }) {
       </button>
       <h1 className="title">🏯 零の孤城{patternTag(towerMonth(today))}</h1>
       <p className="pattern-badge">
-        今月は<strong>{patternLabel(towerMonth(today))}</strong>：どのボスもこの部位のボス。この部位の種目がよく効いて、この部位の子が求められます（毎月 胸腕→脚→背肩 の順に入れ替わり、最上階のボスも変わる）
+        今月は<strong>{patternLabel(towerMonth(today))}</strong>：どのボスもこの部位のボス。この部位の種目がよく効いて、この部位のモンスターが求められます（毎月 胸腕→脚→背肩 の順に入れ替わり、最上階のボスも変わる）
       </p>
       <p className="muted">
         {!open
@@ -34,8 +34,8 @@ export function Castle({ go }: { go: Go }) {
             : `全部突破 ${cleared}／${CONFIG.castle.floors}階。各階は${CONFIG.quest.battles}バトル。出撃は1回で、その日に削れたぶんだけ突破します。${CONFIG.castle.battlesToNext}バトル突破で次の階、最上階は1〜10階を全部突破してから。`}
       </p>
       <p className="muted small">
-        どの階も爆絶（属性が合わない子の攻撃は3分の1）。弱点属性とアビリティの持ち物検査がきびしく、2アビ・3アビの噛み合った子がいないと満たせません。
-        最上階の城主は{ZERO_LABEL}：弱点がない代わりに、いろんな属性の子をそろえるほど強くなれます。
+        どの階も爆絶（属性が合わないモンスターの攻撃は3分の1）。弱点属性とアビリティの持ち物検査がきびしく、2アビ・3アビの噛み合ったモンスターがいないと満たせません。
+        最上階の城主は{ZERO_LABEL}：弱点がない代わりに、いろんな属性のモンスターをそろえるほど強くなれます。
       </p>
       <ol className="tower castle">
         {[...castle].reverse().map((f) => {
@@ -82,7 +82,7 @@ export function Castle({ go }: { go: Go }) {
       )}
       {!defs.some((d) => d.questOnly && d.castleOnly) && (
         <p className="muted small">
-          孤城限定の子がまだいないので、1〜10階は爆絶のボスなどで埋めています（埋めた階のボスは落ちません）。降臨の登録で「🏯 零の孤城の限定にする」を選ぶと、ここに並んで、毎月の初回クリアで手に入ります。
+          孤城限定のモンスターがまだいないので、1〜10階は爆絶のボスなどで埋めています（埋めた階のボスは落ちません）。降臨の登録で「🏯 零の孤城の限定にする」を選ぶと、ここに並んで、毎月の初回クリアで手に入ります。
         </p>
       )}
     </div>

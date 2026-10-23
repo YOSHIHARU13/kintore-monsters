@@ -2,7 +2,7 @@ import { CONFIG } from '../config/gameConfig'
 import { elementInfo } from './element'
 import { gradeOf, standardSessionDamage } from './quest'
 import { autoQuestSetup } from './questAuto'
-import { PATTERN_PARTS, patternBoss, patternOf, patternPick, weakSlotsFor, patternTag } from './pattern'
+import { PATTERN_PARTS, applyOrder, patternBoss, patternOf, patternPick, weakSlotsFor, patternTag } from './pattern'
 import { partTag } from './formation'
 import { bossGradeOf, rarityOf } from './gacha'
 import { isOpenOn, type TowerFloor } from './tower'
@@ -86,12 +86,12 @@ export function castleLineup(defs: MonsterDef[], quests: Pick<Quest, 'kind' | 'g
 }
 
 /** 零の孤城の11階ぶん。どの階も爆絶。11階は零属性の城主（属性の種類を求める） */
-export function castleFloors(month: string, defs: MonsterDef[], gimmicks: string[], quests: Quest[] = []): TowerFloor[] {
+export function castleFloors(month: string, defs: MonsterDef[], gimmicks: string[], quests: Quest[] = [], order?: string[]): TowerFloor[] {
   const c = CONFIG.castle
   // 月ごとのパターン（胸腕・脚・背肩の月）：部位・弱点・条件と、城主が変わる
   const pattern = patternOf(month)
   const part = PATTERN_PARTS[pattern]
-  const lineup = castleLineup(defs, quests)
+  const lineup = applyOrder(castleLineup(defs, quests), order)
   const lastBoss = lastBossOf(defs, pattern)
   // 前の階の条件も数えて、階ごとにちがう子が主役になるように
   const sofar: Pick<Quest, 'id' | 'requirements' | 'gimmicks'>[] = [...quests]

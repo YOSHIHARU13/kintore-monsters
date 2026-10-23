@@ -58,7 +58,7 @@ export function Tower({ go }: { go: Go }) {
       </button>
       <h1 className="title">🗼 試練の塔{patternTag(towerMonth(today))}（{m}月）</h1>
       <p className="pattern-badge">
-        今月は<strong>{patternLabel(towerMonth(today))}</strong>：どのボスもこの部位のボス。この部位の種目がよく効いて、この部位の子が求められます（毎月 胸腕→脚→背肩 の順に入れ替わり、最上階のボスも変わる）
+        今月は<strong>{patternLabel(towerMonth(today))}</strong>：どのボスもこの部位のボス。この部位の種目がよく効いて、この部位のモンスターが求められます（毎月 胸腕→脚→背肩 の順に入れ替わり、最上階のボスも変わる）
       </p>
       {count > 1 && (
         <div className="segmented" role="tablist" aria-label="塔">
@@ -75,7 +75,7 @@ export function Tower({ go }: { go: Go }) {
           : `開催は毎月${CONFIG.tower.openDays[0]}〜${CONFIG.tower.openDays[1]}日です（今は零の孤城の期間・あと${daysLeft(today)}日で開催）。条件は今から見られます。`}
       </p>
       <p className="muted small">
-        超絶の降臨が10体そろうごとに、新しい塔が開きます。上の階では「ボスと同じ部位の子」も求められます（部位限定ガチャの子が活躍）。11階のボスは塔限定モンスター（倒すと運{CONFIG.luck.prizeDrop}で手に入る）。
+        超絶の降臨が10体そろうごとに、新しい塔が開きます。上の階では「ボスと同じ部位のモンスター」も求められます（部位限定ガチャのモンスターが活躍）。11階のボスは塔限定モンスター（倒すと運{CONFIG.luck.prizeDrop}で手に入る）。
       </p>
       <ol className="tower">
         {[...tower].reverse().map((f) => {
