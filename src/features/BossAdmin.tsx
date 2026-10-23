@@ -31,11 +31,11 @@ export function BossAdmin({ go }: { go: Go }) {
   const [swapFrom, setSwapFrom] = useState<string | null>(null)
   const floors: Record<Tab, TowerFloor[]> = { tower, kinkin, castle }
   const lords: Record<Tab, { role: BossRole; label: string; list: MonsterDef[]; need: number; hint: string }[]> = {
-    tower: [{ role: 'tower', label: '🗼 11階のボス（塔限定）', list: towerMonsters(defs), need: 3, hint: '毎月入れ替わり、倒すと運33で手に入る' }],
+    tower: [{ role: 'tower', label: '🗼 11階のボス（塔限定）', list: towerMonsters(defs), need: 3, hint: `毎月入れ替わり（3か月で一回り）、倒すと運${CONFIG.luck.prizeDrop}で手に入る` }],
     kinkin: [{ role: 'kinkinLord', label: `⛓ ${CONFIG.kinkin.floors}階のボス`, list: kinkinLords(defs), need: 3, hint: '毎月入れ替わり、初回クリアで手に入る' }],
     castle: [
       { role: 'castleLord', label: '👑 城主（11階）', list: defs.filter((d) => d.questOnly && d.castleLord), need: 3, hint: '爆絶の降臨だけ。毎月入れ替わり、倒すと手に入る' },
-      { role: 'castleOnly', label: '🏯 1〜10階のボス（孤城限定）', list: castleMonsters(defs), need: 10, hint: '属性の順に並び、その階を毎月はじめて突破すると運33で手に入る' },
+      { role: 'castleOnly', label: '🏯 1〜10階のボス（孤城限定）', list: castleMonsters(defs), need: 10, hint: `属性の順に並び、その階を毎月はじめて突破すると運${CONFIG.luck.monthlyDrop}で手に入る（10か月で運極）` },
     ],
   }
   // 役割を付けられる降臨（城主は爆絶だけ）

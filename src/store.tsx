@@ -1596,6 +1596,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       if (r.custom) update[`customItems.${r.custom}`] = increment(1)
       if (r.balls) update[`cores.${BALL_KEY}`] = increment(r.balls)
       let monsterId: string | null = null
+      // 毎月落ちる孤城限定のボスは運10、3か月に1回の最上階のボスは運33
+      const dropLuck = defs.find((d) => d.id === r.monsterDefId)?.castleOnly ? CONFIG.luck.monthlyDrop : CONFIG.luck.prizeDrop
       if (r.monsterDefId) {
         const shiny = false // 色違いはなくなった
         const ref = doc(collection(db, base, 'ownedMonsters'))
@@ -1605,7 +1607,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
           investedBy: {},
           investedFrom: {},
           plus: 0,
-          luck: CONFIG.luck.prizeDrop, // 月に1回しか落ちないので、運は多め
+          luck: dropLuck,
           shiny,
           obtainedAt: Date.now(),
         })
@@ -1633,7 +1635,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         gold,
         eggs: r.eggs,
         towerFloor: floor.floor,
-        luck: monsterId ? CONFIG.luck.prizeDrop : undefined,
+        luck: monsterId ? dropLuck : undefined,
         byMember: battle.byMember,
         mvpId: battle.mvpId,
         total: battle.damage,
