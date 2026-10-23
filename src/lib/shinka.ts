@@ -135,3 +135,38 @@ export function planLuckUse(
 export function recipeHave(item: RecipeItem, owned: OwnedMonster[], keep: Set<string>): number {
   return owned.filter((o) => o.defId === item.defId && !keep.has(o.id)).reduce((sum, o) => sum + (o.luck ?? 1), 0)
 }
+
+/**
+ * 以前のジョグレス（レシピ2体から生まれる別のモンスター）を、1体目の激レアの「金の獣神化」に引っ越す計画。
+ * - 1体目に、合体の相手（2体目）・金の獣神化の絵（生まれた子の最終形態の絵）・名前を入れる（決めてあれば上書きしない）
+ * - 生まれた子を持っていれば、IDはそのままで「1体目の最終形態・金の獣神化」に書き換える（相棒や出撃中もそのまま）
+ * - 生まれた子の登録は消す
+ */
+export function planJogressMove(
+  defs: MonsterDef[],
+  owned: OwnedMonster[],
+): { defs: { id: string; data: Record<string, unknown> }[]; owned: { id: string; data: Record<string, unknown> }[]; remove: string[] } {
+  const plan = { defs: [] as { id: string; data: Record<string, unknown> }[], owned: [] as { id: string; data: Record<string, unknown> }[], remove: [] as string[] }
+  for (const hidden of defs.filter((d) => isHidden(d))) {
+    const [aId, bId] = hidden.recipe!
+    const a = defs.find((d) => d.id === aId && !isHidden(d))
+    if (!a) continue
+    const hTemplate = getTemplate(hidden.templateId)
+    const hFinal = hTemplate.nodes.find((n) => n.next.length === 0) ?? hTemplate.nodes[0]
+    const art = hidden.images[hFinal.id] ?? hidden.images[hTemplate.nodes[0].id]
+    const data: Record<string, unknown> = {}
+    if (!a.jogressPartner) data.jogressPartner = bId
+    if (!a.images[GOLD_IMAGE] && art) data[`images.${GOLD_IMAGE}`] = art
+    if (!a.names?.[GOLD_IMAGE]) data[`names.${GOLD_IMAGE}`] = hidden.names?.[hFinal.id]?.trim() || hidden.name
+    if (Object.keys(data).length > 0) plan.defs.push({ id: a.id, data })
+    const aFinal = getTemplate(a.templateId).nodes.find((n) => n.next.length === 0)!
+    for (const mon of owned.filter((o) => o.defId === hidden.id)) {
+      plan.owned.push({
+        id: mon.id,
+        data: { defId: a.id, nodeId: aFinal.id, shinka: true, shinkaGold: true, investedBy: {}, investedFrom: {} },
+      })
+    }
+    plan.remove.push(hidden.id)
+  }
+  return plan
+}

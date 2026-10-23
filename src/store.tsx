@@ -63,7 +63,7 @@ import { autoPartners } from './lib/partner'
 import { finalAttrs, recommend } from './lib/coverage'
 import { abilitySlots, allGimmicks, jogressGradeOf, selectableGimmicks } from './lib/gimmick'
 import { boostActive } from './lib/boosters'
-import { canShinka, planLuckUse, shinkaRecipe } from './lib/shinka'
+import { canShinka, planJogressMove, planLuckUse, shinkaRecipe } from './lib/shinka'
 import { availableEvents, claimKey } from './lib/events'
 import { activeToday, currentStats, loginReady, loginReward, type Reward } from './lib/missions'
 import { builtinMaterialQuests, builtinTempleQuests } from './lib/materials'
@@ -116,7 +116,7 @@ function initialState(): GameState {
     stones: {},
     coreMisses: {},
     orbScale: 1,
-    redesign: 1,
+    redesign: 2,
   }
 }
 
@@ -460,7 +460,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
   // 格は、今あるボスクエストの格から（なければ以前のレア度から）。レア度は読むときに読み替えるので書き換えない
   const migrated = useRef(false)
   useEffect(() => {
-    if (!state || state.redesign === 1 || defs.length === 0 || migrated.current) return
+    if (!state || (state.redesign ?? 0) >= 1 || defs.length === 0 || migrated.current) return
     migrated.current = true
     const batch = writeBatch(db)
     for (const d of defs.filter((x) => x.questOnly && !isHidden(x) && !x.bossGrade)) {
@@ -476,6 +476,21 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     batch.update(stateRef, { redesign: 1 })
     batch.commit().catch(fail)
   }, [state, defs, questDocs, base, stateRef, fail])
+
+  // 以前のジョグレスの子を、1体目の激レアの「金の獣神化」に引っ越す（1回だけ）
+  const movedJogress = useRef(false)
+  useEffect(() => {
+    // 持っている子を読み込む前に動くと、生まれた子が行き場をなくすので、読み込んでから
+    if (!state || state.redesign !== 1 || defs.length === 0 || owned.length === 0 || movedJogress.current) return
+    movedJogress.current = true
+    const plan = planJogressMove(defs, owned)
+    const batch = writeBatch(db)
+    for (const d of plan.defs) batch.update(doc(db, base, 'monsterDefs', d.id), d.data)
+    for (const o of plan.owned) batch.update(doc(db, base, 'ownedMonsters', o.id), o.data)
+    for (const id of plan.remove) batch.delete(doc(db, base, 'monsterDefs', id))
+    batch.update(stateRef, { redesign: 2 })
+    batch.commit().catch(fail)
+  }, [state, defs, owned, base, stateRef, fail])
 
   // 「いつものガチャ」は、保存していなくても必ずある
   const gachas = useMemo(() => {

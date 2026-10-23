@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canShinka, planLuckUse, shinkaRecipe, shinkaTierOf } from './shinka'
+import { canShinka, planJogressMove, planLuckUse, shinkaRecipe, shinkaTierOf } from './shinka'
 import { attackOf } from './stats'
 import type { MonsterDef, OwnedMonster } from '../types'
 
@@ -60,5 +60,22 @@ describe('獣神化', () => {
     expect(planLuckUse(12, [{ id: 'a', luck: 4 }, { id: 'b', luck: 8 }, { id: 'c', luck: 5 }])).toEqual({ remove: ['a', 'c'], keep: { id: 'b', luck: 5 } })
     expect(planLuckUse(8, [{ id: 'a', luck: 4 }, { id: 'b', luck: 4 }])).toEqual({ remove: ['a', 'b'], keep: null })
     expect(planLuckUse(20, [{ id: 'a', luck: 4 }])).toBeNull() // 足りない
+  })
+})
+
+describe('以前のジョグレスの引っ越し', () => {
+  it('生まれた子は、1体目の激レアの金の獣神化に（IDはそのまま）。相手・絵・名前を1体目に入れて、生まれた子の登録は消す', () => {
+    const a = def('a', { tier: 'superRare' })
+    const b = def('b', { tier: 'superRare' })
+    const h = def('h', { recipe: ['a', 'b'], templateId: 'single', images: { n1: 'img-h' }, name: 'カイザー' })
+    const plan = planJogressMove([a, b, h], [mon({ id: 'm1', defId: 'h', nodeId: 'n1', luck: 30 })])
+    expect(plan.defs).toEqual([{ id: 'a', data: { jogressPartner: 'b', 'images.gold': 'img-h', 'names.gold': 'カイザー' } }])
+    expect(plan.owned).toEqual([
+      { id: 'm1', data: { defId: 'a', nodeId: 'n3', shinka: true, shinkaGold: true, investedBy: {}, investedFrom: {} } },
+    ])
+    expect(plan.remove).toEqual(['h'])
+    // 決めてある相手・絵は上書きしない
+    const set = planJogressMove([{ ...a, jogressPartner: 'x', images: { gold: 'mine' } }, b, h], [])
+    expect(set.defs[0].data).toEqual({ 'names.gold': 'カイザー' })
   })
 })
