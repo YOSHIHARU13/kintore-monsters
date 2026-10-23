@@ -39,7 +39,9 @@ export function featuredOf(gacha: Gacha, table: Rate[], defs: MonsterDef[]): Mon
     seen.add(el)
     return true
   })
-  return [...spread, ...rares.filter((d) => !spread.includes(d))].slice(0, max)
+  // 激レアで足りなければ、レア（中当たり）も
+  const mids = table.filter((t) => t.rarity === 'uncommon').map((t) => t.def)
+  return [...spread, ...rares.filter((d) => !spread.includes(d)), ...mids].slice(0, max)
 }
 
 export const SLIDE_LABEL: Record<BannerSlide, string> = {

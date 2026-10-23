@@ -644,7 +644,8 @@ details.fold[open] > summary {
 .hatch-overlay.glow-normal {
   --glow: #4c8dff;
 }
-.hatch-overlay.glow-rare {
+.hatch-overlay.glow-rare,
+.hatch-overlay.glow-uncommon {
   --glow: #ffd166;
 }
 .hatch-overlay.glow-superRare {
@@ -1643,7 +1644,8 @@ details.tuning[open] > summary {
   border: 2px solid rgba(255, 255, 255, 0.15);
   animation: pop 0.35s both;
 }
-.multi-cell.rarity-rare {
+.multi-cell.rarity-rare,
+.multi-cell.rarity-uncommon {
   border-color: #4cc9f0;
 }
 .multi-cell.rarity-superRare {
@@ -1704,7 +1706,8 @@ details.tuning[open] > summary {
 .rarity-normal {
   color: var(--text);
 }
-.rarity-rare {
+.rarity-rare,
+.rarity-uncommon {
   color: #4cc9f0;
   font-weight: 700;
 }

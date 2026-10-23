@@ -22,19 +22,19 @@ describe('ガチャ', () => {
     const table = rateTable('g1', defs)
     expect(table.map((r) => r.def.id)).toEqual(['h1', 'h2', 'n1', 'r1', 's1'])
     const rate = Object.fromEntries(table.map((r) => [r.def.id, r.rate]))
-    // ハズレ45%・ノーマル40%・激レア15%（そのガチャ限定）
-    expect(rate.h1).toBeCloseTo(0.225)
-    expect(rate.h2).toBeCloseTo(0.225)
-    expect(rate.n1).toBeCloseTo(0.4)
-    expect(rate.r1).toBeCloseTo(0.075)
-    expect(rate.s1).toBeCloseTo(0.075)
+    // ハズレ38%・ノーマル32%・レア18%・激レア12%。このガチャにはレアがいないので、残り82%で割り直す
+    expect(rate.h1).toBeCloseTo(0.38 / 0.82 / 2)
+    expect(rate.h2).toBeCloseTo(0.38 / 0.82 / 2)
+    expect(rate.n1).toBeCloseTo(0.32 / 0.82)
+    expect(rate.r1).toBeCloseTo(0.12 / 0.82 / 2)
+    expect(rate.s1).toBeCloseTo(0.12 / 0.82 / 2)
     expect(tierRates(table).map((t) => t.count)).toEqual([2, 1, 2])
   })
 
   it('いないレア度の確率は、いるレア度に比率のまま回す', () => {
     const table = rateTable('g3', defs) // 激レアがいないガチャ：ハズレとノーマルだけ
     expect(table.map((r) => r.def.id)).toEqual(['h1', 'h2', 'n1'])
-    expect(table.find((r) => r.def.id === 'n1')!.rate).toBeCloseTo(0.4 / 0.85)
+    expect(table.find((r) => r.def.id === 'n1')!.rate).toBeCloseTo(0.32 / 0.7)
     expect(table.reduce((sum, r) => sum + r.rate, 0)).toBeCloseTo(1)
   })
 
@@ -75,5 +75,18 @@ describe('ガチャ', () => {
     // 進化しない降臨モンスターは、登録画面で決めた星（決めていなければ★3）
     expect(starsOf(def('a', { questOnly: true, templateId: 'single' }), 'n1')).toBe(3)
     expect(starsOf(def('a', { questOnly: true, templateId: 'single', fixedStars: 2 }), 'n1')).toBe(2)
+  })
+})
+
+describe('レア（中当たり）', () => {
+  it('そのガチャ限定で、激レアより当たりやすい', async () => {
+    const { rateTable, isPickupRarity } = await import('./gacha')
+    const d = (id: string, rarity: string, gachas?: string[]) => ({ id, name: id, templateId: 'linear3', images: {}, createdAt: 0, rarity, gachas }) as never
+    const table = rateTable('g', [d('h', 'hazure'), d('n', 'normal'), d('u', 'uncommon', ['g']), d('s', 'superRare', ['g']), d('u2', 'uncommon', ['x'])])
+    const rate = Object.fromEntries(table.map((r) => [r.def.id, r.rate]))
+    expect(rate.u).toBeCloseTo(0.18)
+    expect(rate.s).toBeCloseTo(0.12)
+    expect(rate.u2).toBeUndefined() // 別のガチャのレアは出ない
+    expect(isPickupRarity('uncommon')).toBe(true)
   })
 })

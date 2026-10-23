@@ -138,7 +138,7 @@ export function plusName(def: MonsterDef, mon: OwnedMonster): string {
   return `${mon.shiny ? '✨' : ''}${monsterName(def, mon.nodeId)}`
 }
 
-export type RarityKey = 'hazure' | 'normal' | 'superRare'
+export type RarityKey = 'hazure' | 'normal' | 'uncommon' | 'superRare' // uncommon は画面では「レア」（以前の 'rare' は激レアのこと）
 
 /** 降臨の格：爆絶級（アビリティ2・攻撃力+4500）、城主級（アビリティ3・攻撃力+6000）。なければ通常 */
 export type QuestTier = 'bakuzetsu' | 'lastBoss'

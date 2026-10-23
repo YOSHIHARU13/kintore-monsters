@@ -122,7 +122,7 @@ export const CONFIG = {
       オーラ: 'オーライーター',
     } as Record<string, string>,
     // 持てるアビリティの数（レア度の格）。ジョグレスは jogress
-    slots: { hazure: 0, normal: 1, superRare: 2, jogress: 3 },
+    slots: { hazure: 0, normal: 1, uncommon: 1, superRare: 2, jogress: 3 },
     questOnlyMax: 1, // 降臨（クエスト限定）は激レアでもアビリティはここまで（ガチャより弱く）
     questTierSlots: { bakuzetsu: 2, lastBoss: 3 }, // 降臨の格ごとのアビリティの数（爆絶級・城主級）
   },
@@ -422,12 +422,20 @@ export const CONFIG = {
     defaultName: 'いつものガチャ',
     // レア度ごとの確率（合計1）。同じレア度のモンスターで山分けする
     // ハズレとノーマルはどのガチャからも出る。激レアはそのガチャ限定（ガチャの「顔」）
+    // uncommon（レア）：そのガチャの「中当たり」。当たりやすくて運極にしやすい、そこそこ強いやつ
     rarities: {
-      hazure: { label: 'ハズレ', rate: 0.45, attackBonus: 0, everyGacha: true, hint: 'どのガチャからも出る。2段階で終わるような軽いやつ' },
-      normal: { label: 'ノーマル', rate: 0.4, attackBonus: 1500, everyGacha: true, hint: 'どのガチャからも出る。3段階まで進化する普通のやつ' },
+      hazure: { label: 'ハズレ', rate: 0.38, attackBonus: 0, everyGacha: true, hint: 'どのガチャからも出る。2段階で終わるような軽いやつ' },
+      normal: { label: 'ノーマル', rate: 0.32, attackBonus: 1500, everyGacha: true, hint: 'どのガチャからも出る。3段階まで進化する普通のやつ' },
+      uncommon: {
+        label: 'レア',
+        rate: 0.18,
+        attackBonus: 3000,
+        everyGacha: false,
+        hint: 'そのガチャ限定の中当たり。当たりやすくて運極にしやすい、そこそこ強いやつ',
+      },
       superRare: {
         label: '激レア',
-        rate: 0.15,
+        rate: 0.12,
         attackBonus: 4500,
         everyGacha: false,
         hint: 'そのガチャ限定。ジョグレスの素材になる、いちばんかっこいいやつ',

@@ -564,9 +564,10 @@ describe('画面の表示', () => {
     expect(el.querySelector('.gacha-tab.on')!.textContent).toBe('脚まつり')
     expect(el.textContent).toContain('全5種')
     // 以前の「レア」は激レア（そのガチャ限定）として数える
-    expect(el.textContent).toContain('激レア 合計15%（3種）')
-    expect(el.textContent).toContain('ノーマル 合計40%（1種）')
-    expect(el.textContent).toContain('ハズレ 合計45%（1種）')
+    // レアがいないので、ほかのレア度で割り直す（激レア12・ノーマル32・ハズレ38 → 合計82%で割る）
+    expect(el.textContent).toContain('激レア 合計14.6%（3種）')
+    expect(el.textContent).toContain('ノーマル 合計39%（1種）')
+    expect(el.textContent).toContain('ハズレ 合計46.3%（1種）')
     expect(el.textContent).toContain('激レア確定まで あと3回')
     expect(el.textContent).toContain('？？？') // まだ会っていないモンスターは名前を伏せる
     // 作ったガチャがあれば「いつものガチャ」は出さない

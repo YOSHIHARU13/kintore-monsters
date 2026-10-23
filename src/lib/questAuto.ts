@@ -90,7 +90,7 @@ export function autoQuestSetup(
 export const QUEST_RULES = 2
 
 /** まとめて作るときの格：レア度から（激レア→超絶、ノーマル→究極、ハズレ→上級） */
-const GRADE_BY_RARITY: Record<RarityKey, QuestGrade> = { hazure: 'jokyu', normal: 'kyukyoku', superRare: 'chozetsu' }
+const GRADE_BY_RARITY: Record<RarityKey, QuestGrade> = { hazure: 'jokyu', normal: 'kyukyoku', uncommon: 'kyukyoku', superRare: 'chozetsu' }
 
 export function autoGradeOf(def: MonsterDef): QuestGrade {
   if (def.questOnly && def.questTier) return 'bakuzetsu' // 爆絶級（城主級は孤城の11階だけ）
