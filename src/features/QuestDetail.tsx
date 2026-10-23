@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { monArt } from '../lib/art'
 import { useStore } from '../store'
 import { CONFIG } from '../config/gameConfig'
-import { DAYS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot } from '../data/exercises'
+import { FORM_ATTR_LABEL, SLOTS, exerciseOfSlot } from '../data/exercises'
 import { MonsterImage } from '../components/MonsterImage'
 import { Stars } from '../components/Stars'
 import { QuestBanner } from '../components/QuestBanner'
-import { BOSS_DIFFICULTY, atDifficulty, difficultyLabel, levelsOf, fitsQuest, isStrict, sessionEstimate, attrOf, dropPlus, gradeOf, powerOf, questGold, questHp, type Member } from '../lib/quest'
+import { BOSS_DIFFICULTY, atDifficulty, difficultyLabel, levelsOf, fitsQuest, isStrict, attrOf, dropPlus, gradeOf, powerOf, questGold, questHp, type Member } from '../lib/quest'
 import { formationOf, requirementsOf, shortfallHelp, tagLabel, tagsOf } from '../lib/formation'
 import { FormationPanel } from '../components/FormationPanel'
 import { dropLuck, luckBonus } from '../lib/fusion'
@@ -21,6 +21,9 @@ import { castleCleared, castleOpen } from '../lib/castle'
 import { towerRewardText } from './Tower'
 import { plusName, type QuestDifficulty } from '../types'
 import { customized, isFavorite } from '../lib/custom'
+import { SetsEstimate } from '../components/SetsEstimate'
+import { FitMembers } from '../components/FitList'
+import { useBattle } from '../components/BattleBar'
 import { autoParty } from '../lib/autoParty'
 import type { LotDrop } from '../lib/cores'
 
@@ -92,6 +95,14 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
         .filter((r) => own[r.tag])
         .map((r) => `${tagLabel(r.tag, names)}${own[r.tag] > 1 ? `×${own[r.tag]}` : ''}`)
       if (quest.weakSlots.some((w) => isFavorite(def, w))) tags.push('得意種目が弱点')
+      // この子を入れると（選んでいれば、抜くと）編成倍率がどう変わるか
+      const at = party.indexOf(mon.id)
+      const without = at >= 0 ? partyDefs.filter((_, i) => i !== at) : partyDefs
+      if (at >= 0 || party.length < CONFIG.quest.partySize) {
+        const a = formationOf(without, requirements).rate
+        const b = formationOf([...without, def], requirements).rate
+        if (b > a) tags.push(`倍率×${a.toFixed(2)}→×${b.toFixed(2)}`)
+      }
       if (elementInfo(def).elements.length === 0) tags.unshift(`零×${CONFIG.quest.zeroBonus}`)
       else if (fitsQuest(def, quest)) tags.unshift('属性◎')
       else if (isStrict(quest)) tags.push('半減')
@@ -107,11 +118,8 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
   const max = CONFIG.quest.partySize
   // 選んだメンバーで、各部位の日に1回トレーニングしたときのダメージの見込み
   const partyMembers = party.flatMap((pid) => members.filter((m) => m.mon.id === pid))
-  const estimate = sessionEstimate(quest, partyMembers)
   const hp = questHp(quest, difficulty)
-  const bestEntry = estimate.reduce((a, b) => (b.damage > a.damage ? b : a), estimate[0])
-  const best = bestEntry.damage
-  const bestDay = bestEntry.day
+  const battle = useBattle()
   const switching = !!current && current.questId !== id
 
   const toggle = (monId: string) =>
@@ -134,6 +142,8 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
           </p>
         )}
       </section>
+
+      <FitMembers quest={quest} />
 
       <section className="card">
         <h2>ボスの情報</h2>
@@ -227,23 +237,8 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
 
       {party.length > 0 && (
         <section className="card">
-          <h2>倒せる見込み</h2>
-          <ul className="mini-list">
-            {estimate.map((e) => (
-              <li key={e.day}>
-                <span>{DAYS[e.day].title}メニュー1回分</span>
-                <span className={`tag ${e.damage >= hp ? 'keep' : 'warn'}`}>
-                  約{Math.round(e.damage).toLocaleString()}（{Math.round((e.damage / hp) * 100)}%）
-                </span>
-              </li>
-            ))}
-          </ul>
-          <p className="small">
-            {best >= hp
-              ? `${DAYS[bestDay].title}メニューを1回やれば、その日のうちに倒せそう（HP ${hp.toLocaleString()}）。`
-              : `今のメンバーだと、メニュー1回でHPの約${Math.round((best / hp) * 100)}%。出撃した日のうちに倒す必要があるので、2部位やる日に挑むか、編成をそろえるか、格の低いクエストがおすすめ。`}
-          </p>
-          <p className="muted small">基本セット（1種目3セット）とローラーを全部やったときの目安。弱点種目・得意種目・部位の一致・編成倍率込み。</p>
+          <h2>倒すまでの目安</h2>
+          <SetsEstimate quest={quest} party={partyMembers} hpLeft={current?.questId === id && battle ? battle.hp - battle.damage : hp} />
         </section>
       )}
 

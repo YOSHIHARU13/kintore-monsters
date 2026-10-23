@@ -15,6 +15,7 @@ import { attackOf, isJogressReady, jogressNeed } from '../lib/stats'
 import { MonsterImage } from '../components/MonsterImage'
 import { CustomSlot } from '../components/CustomSlot'
 import { ShinkaPanel } from '../components/ShinkaPanel'
+import { FitQuests } from '../components/FitList'
 import { ATTR_COLOR, type Go } from '../nav'
 import { investedFor, isHidden, monsterName, nodeAttr, plusName, type MonsterDef } from '../types'
 
@@ -193,6 +194,36 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
         </p>
         {partnerSlot && <span className="badge">「{slotName(partnerSlot)}」の相棒</span>}
       </section>
+
+      {mon.record && mon.record.quests > 0 && (
+        <section className="card">
+          <h2>📊 記録</h2>
+          <ul className="mini-list">
+            <li>
+              <span>倒したクエスト</span>
+              <strong className="num">{mon.record.quests}回</strong>
+            </li>
+            <li>
+              <span>👑 MVP</span>
+              <strong className="num">{mon.record.mvp}回</strong>
+            </li>
+            <li>
+              <span>1回の平均ダメージ</span>
+              <strong className="num">{Math.round(mon.record.damage / mon.record.quests).toLocaleString()}</strong>
+            </li>
+            <li>
+              <span>1回の最大ダメージ</span>
+              <strong className="num">{mon.record.best.toLocaleString()}</strong>
+            </li>
+            <li>
+              <span>通算ダメージ</span>
+              <strong className="num">{mon.record.damage.toLocaleString()}</strong>
+            </li>
+          </ul>
+        </section>
+      )}
+
+      <FitQuests def={def} go={go} />
 
       <CustomSlot mon={mon} def={def} />
 

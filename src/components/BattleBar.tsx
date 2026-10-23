@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { awakenOf, imageOf, glowOf } from '../lib/art'
+import { awakenOf, imageOf, glowOf, monArt } from '../lib/art'
 import { useStore } from '../store'
 import { SLOTS, exerciseOfSlot } from '../data/exercises'
 import { battleOf } from '../lib/quest'
@@ -21,15 +21,22 @@ export function useBattle() {
 export function BattleBar({ go }: { go: Go }) {
   const battle = useBattle()
   const prev = useRef(battle?.damage ?? 0)
-  const [pop, setPop] = useState<{ id: number; amount: number } | null>(null)
+  const [pop, setPop] = useState<{ id: number; amount: number; members: { id: string; d: number }[] } | null>(null)
 
   useEffect(() => {
     const damage = battle?.damage ?? 0
-    if (damage > prev.current) {
-      setPop({ id: Date.now(), amount: damage - prev.current })
+    if (damage > prev.current && battle) {
+      // 今のセットで、誰がどれだけ削ったか（多い順に3体）
+      const last = battle.hits[battle.hits.length - 1]
+      const members = Object.entries(last?.byMember ?? {})
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([id, d]) => ({ id, d }))
+      setPop({ id: Date.now(), amount: damage - prev.current, members })
       navigator.vibrate?.(40)
     }
     prev.current = damage
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [battle?.damage])
 
   if (!battle) return null
@@ -49,6 +56,15 @@ export function BattleBar({ go }: { go: Go }) {
       {pop && (
         <span key={pop.id} className="battle-pop">
           -{pop.amount.toLocaleString()}
+          {pop.members.map((m, i) => {
+            const member = battle.party.find((p) => p.mon.id === m.id)
+            return member ? (
+              <span key={m.id} className={`pop-member${i === 0 ? ' top' : ''}`}>
+                <MonsterImage {...monArt(member.def, member.mon)} size={i === 0 ? 36 : 26} />
+                {Math.round(m.d).toLocaleString()}
+              </span>
+            ) : null
+          })}
         </span>
       )}
     </button>

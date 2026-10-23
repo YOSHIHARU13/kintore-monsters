@@ -28,7 +28,7 @@ import { isWeekCleared } from './lib/week'
 import { compressImage } from './lib/imageCompress'
 import { bossGradeOf, drawSure, isPickupRarity, isReady, pickFrom, pullsAffordable, rarityOf, rateTable, starsOf, type Pay } from './lib/gacha'
 import { isJogressReady } from './lib/stats'
-import { battleOf, defaultBossHp, dropPlus, isStrict, questGold } from './lib/quest'
+import { battleOf, type Battle, defaultBossHp, dropPlus, isStrict, questGold } from './lib/quest'
 import { bossQuestSync } from './lib/questAuto'
 import {
   BALL_KEY,
@@ -198,6 +198,9 @@ export interface QuestReward {
   gold: number // オーブ
   coins?: number // もらえた進化コイン
   luck?: number // 手に入ったボスの運
+  byMember?: Record<string, number> // 出撃した子ごとのダメージ
+  mvpId?: string | null
+  total?: number // 与えたダメージの合計
 }
 
 export interface GachaInput {
@@ -1270,6 +1273,19 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       if (state.challenge) updateState({ challenge: null })
     }
 
+    /** 出撃した子の記録（通算ダメージ・出撃回数・MVP回数・1回の最大ダメージ）を batch に書く */
+    const writeRecords = (batch: ReturnType<typeof writeBatch>, battle: Battle) => {
+      for (const m of battle.party) {
+        const d = Math.round(battle.byMember[m.mon.id] ?? 0)
+        batch.update(doc(db, base, 'ownedMonsters', m.mon.id), {
+          'record.damage': increment(d),
+          'record.quests': increment(1),
+          'record.mvp': increment(battle.mvpId === m.mon.id ? 1 : 0),
+          'record.best': Math.max(m.mon.record?.best ?? 0, d),
+        })
+      }
+    }
+
     const claimQuest: Store['claimQuest'] = () => {
       const battle = battleOf(
         state.challenge,
@@ -1282,9 +1298,9 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       )
       if (!battle?.defeated) return null
       const towerFloor = tower.find((f) => f.quest.id === battle.quest.id)
-      if (towerFloor) return claimTower(towerFloor, battle.party.map((m) => m.mon), 'tower')
+      if (towerFloor) return claimTower(towerFloor, battle, 'tower')
       const castleFloor = castle.find((f) => f.quest.id === battle.quest.id)
-      if (castleFloor) return claimTower(castleFloor, battle.party.map((m) => m.mon), 'castle')
+      if (castleFloor) return claimTower(castleFloor, battle, 'castle')
       const c = battle.challenge
       const material = battle.quest.kind === 'material'
       const bonus = luckBonus(battle.party.map((m) => m.mon))
@@ -1292,6 +1308,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const gold = Math.round(questGold(battle.quest, c.difficulty) * bonus.goldRate * boost)
       const kind = dropOf(battle.quest)
       const batch = writeBatch(db)
+      writeRecords(batch, battle)
       const update: DocumentData = {
         ...(boost > 1 ? { 'boosts.quest': false } : {}),
         gold: increment(gold),
@@ -1368,11 +1385,15 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         eggs: 0,
         towerFloor: null,
         luck: monsterId ? dropLuck(battle.party.map((m) => m.mon)) : undefined,
+        byMember: battle.byMember,
+        mvpId: battle.mvpId,
+        total: battle.damage,
       }
     }
 
     /** 試練の塔の報酬：オーブ・トク玉・核・塔限定モンスター。クリアした階を進める */
-    const claimTower = (floor: TowerFloor, party: OwnedMonster[], kind: 'tower' | 'castle'): QuestReward | null => {
+    const claimTower = (floor: TowerFloor, battle: Battle, kind: 'tower' | 'castle'): QuestReward | null => {
+      const party = battle.party.map((m) => m.mon)
       const month = towerMonth(dateKey())
       const cleared = kind === 'castle' ? castleCleared(state, month) : towerCleared(state, month)
       if (floor.floor !== cleared + 1) return null
@@ -1382,6 +1403,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const coins = gold * CONFIG.coins.perOrb
       const cores = floor.reward.cores * boost
       const batch = writeBatch(db)
+      writeRecords(batch, battle)
       const update: DocumentData = {
         ...(boost > 1 ? { 'boosts.quest': false } : {}),
         gold: increment(gold),
@@ -1437,6 +1459,9 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         eggs: floor.reward.eggs,
         towerFloor: floor.floor,
         luck: monsterId ? dropLuck(party) : undefined,
+        byMember: battle.byMember,
+        mvpId: battle.mvpId,
+        total: battle.damage,
       }
     }
 

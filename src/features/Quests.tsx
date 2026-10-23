@@ -67,6 +67,8 @@ import type { QuestReward } from '../store'
 import type { Go, QuestCategory } from '../nav'
 import type { Periods } from '../lib/series'
 import { BattleBar } from '../components/BattleBar'
+import { DamageShare } from '../components/DamageShare'
+import { SetsEstimate } from '../components/SetsEstimate'
 import { plusName, type MonsterDef, type Quest } from '../types'
 
 /** クエストのタブ：入口（クエスト・零の孤城・試練の塔・素材・神殿・書庫）と、今日の戦い。入口を選ぶと一覧 */
@@ -157,6 +159,7 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
             {got.towerFloor ? `${got.castle ? '零の孤城' : '試練の塔'} ${got.towerFloor}階 突破！` : '討伐成功！'} 🔮+{got.gold}・🪙+
             {got.coins ?? 0}
           </h2>
+          {got.byMember && <DamageShare byMember={got.byMember} mvpId={got.mvpId} />}
           {got.boosted && <p className="tag keep">⚔️ 討伐ブースターで報酬2倍！</p>}
           {got.eggs > 0 && <p>🟡 トク玉 ×{got.eggs} を手に入れた！</p>}
           {got.booster && (
@@ -295,6 +298,8 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
               </span>
             ))}
           </div>
+          <DamageShare byMember={battle.byMember} mvpId={battle.mvpId} />
+          {!battle.defeated && <SetsEstimate quest={battle.quest} party={battle.party} hpLeft={battle.hp - battle.damage} />}
           <details>
             <summary className="small">攻撃の記録（{battle.hits.length}回）</summary>
             <ul className="mini-list">

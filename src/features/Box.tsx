@@ -15,8 +15,17 @@ import { attackOf, monStars } from '../lib/stats'
 import { isLuckMax, luckOf } from '../lib/fusion'
 import { isHidden, nodeAttr, plusName, type Element, type MonsterDef, type OwnedMonster } from '../types'
 
-type Sort = 'new' | 'stars' | 'attack' | 'rarity' | 'luck' | 'dex'
-const SORT_LABEL: Record<Sort, string> = { new: '入手順', stars: '星', attack: '攻撃力', rarity: 'レア度', luck: '運', dex: '図鑑順' }
+type Sort = 'new' | 'stars' | 'attack' | 'rarity' | 'luck' | 'damage' | 'mvp' | 'dex'
+const SORT_LABEL: Record<Sort, string> = {
+  new: '入手順',
+  stars: '星',
+  attack: '攻撃力',
+  rarity: 'レア度',
+  luck: '運',
+  damage: '通算ダメージ',
+  mvp: 'MVP回数',
+  dex: '図鑑順',
+}
 const SORT_KEY = 'boxSort'
 
 /** レア度の高さ（ジョグレスがいちばん上） */
@@ -60,6 +69,8 @@ export function Box({ go }: { go: Go }) {
     attack: (a, b) => attackOf(b.mon, b.def) - attackOf(a.mon, a.def),
     rarity: (a, b) => rarityRank(b.def) - rarityRank(a.def) || monStars(b.mon, b.def) - monStars(a.mon, a.def),
     luck: (a, b) => luckOf(b.mon) - luckOf(a.mon),
+    damage: (a, b) => (b.mon.record?.damage ?? 0) - (a.mon.record?.damage ?? 0),
+    mvp: (a, b) => (b.mon.record?.mvp ?? 0) - (a.mon.record?.mvp ?? 0) || (b.mon.record?.damage ?? 0) - (a.mon.record?.damage ?? 0),
     dex: (a, b) => a.index - b.index || a.mon.obtainedAt - b.mon.obtainedAt,
   }
   const list = rows

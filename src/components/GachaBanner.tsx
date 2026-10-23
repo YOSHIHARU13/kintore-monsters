@@ -6,6 +6,7 @@ import { CONFIG } from '../config/gameConfig'
 import { getTemplate } from '../data/evolutionTemplates'
 import { MonsterImage } from './MonsterImage'
 import { ElementBadge } from './ElementBadge'
+import { FitBadge } from './FitList'
 import { Stars } from './Stars'
 import { isPickupRarity, rarityOf, starsOf, type Rate } from '../lib/gacha'
 import { ELEMENT_COLOR, elementInfo } from '../lib/element'
@@ -202,6 +203,7 @@ export function GachaBanner({ gacha, count, featured = [], pickups = [], selecte
               <span className="pickup-name">{d.name}</span>
               <Stars def={d} nodeId={bannerNodeOf(d)} />
               <ElementBadge def={d} />
+              <FitBadge def={d} />
             </span>
           ))}
         </span>

@@ -3,6 +3,7 @@ import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { RARITY_KEYS, rarityOf } from '../lib/gacha'
 import { MonsterImage } from './MonsterImage'
+import { FitHint } from './FitList'
 import { monsterName } from '../types'
 import type { HatchResult } from '../store'
 
@@ -43,6 +44,15 @@ export function MultiReveal({ results, onClose, onMeet }: {
             )
           })}
         </div>
+        {results
+          .filter((r, i, all) => rarityOf(r.def) !== 'normal' && all.findIndex((x) => x.def.id === r.def.id) === i)
+          .slice(0, 3)
+          .map((r) => (
+            <div key={r.def.id}>
+              <strong className="small">{r.def.name}</strong>
+              <FitHint def={r.def} />
+            </div>
+          ))}
         <div className="muted small">タップで閉じる・モンスターを押すと会いに行く</div>
       </div>
     </div>

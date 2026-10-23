@@ -150,3 +150,21 @@ describe('コラボ', () => {
     expect(hit({ series: '桃', tier: 'rare' })).toBe(Math.round((base * 5500) / 3000))
   })
 })
+
+describe('活躍感', () => {
+  it('条件に合うアビリティを持っている子は、その子のダメージも1つにつき×1.25（2つなら×1.5）', () => {
+    const q = { ...quest, requirements: [{ tag: 'ab:バリア', count: 3 }, { tag: 'ab:シールド', count: 3 }] }
+    const hit = (abilities: string[]) =>
+      setHit(set('mon1', 'mon'), q, [{ mon: mon('a', 'a'), def: def('a', { tier: 'rare', abilities }) }], '', 100).damage
+    const none = hit([])
+    expect(hit(['バリア']) / none).toBeCloseTo(1.25, 2)
+    expect(hit(['バリア', 'シールド']) / none).toBeCloseTo(1.5, 2)
+  })
+  it('子ごとのダメージを出し、いちばん削った子がMVP', () => {
+    const a = { mon: mon('a', 'a'), def: def('a', { tier: 'superRare' }) }
+    const b = { mon: mon('b', 'b'), def: def('b') }
+    const h = setHit(set('mon1', 'mon'), quest, [a, b], '')
+    expect(h.byMember.a).toBeGreaterThan(h.byMember.b)
+    expect(Math.round(h.byMember.a + h.byMember.b)).toBe(h.damage)
+  })
+})

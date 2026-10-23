@@ -728,6 +728,22 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('💧水')
   })
 
+  it('クエスト詳細：倒すまでの目安はセット数（弱点種目・ボスの部位・ほかの部位・ローラー）', async () => {
+    const { QuestDetail } = await import('./QuestDetail')
+    fake.store.quests = [
+      { id: 'q1', name: '脚竜の巣', bossDefId: 'm2', attr: 'legs' as const, element: 'wood' as const, weakSlots: ['wed1'], hp: { easy: 1000, normal: 1000, hard: 1000 }, catchphrase: '', theme: 'flame', createdAt: 1 },
+    ]
+    fake.store.owned = [owned[0]]
+    fake.store.state = { ...state, challenge: null }
+    const el = await render(<QuestDetail id="q1" go={go} />)
+    await click('ムキドラゴ')
+    const table = el.querySelector('.estimate-table')!
+    expect(table.textContent).toContain('🎯 弱点種目')
+    expect(table.textContent).toContain('⚔️ 脚の種目（ボスの部位）')
+    expect(table.textContent).toContain('腹筋ローラー')
+    expect(table.textContent).toMatch(/あと\d+セット/)
+  })
+
   it('クエスト詳細：効きやすい順にメンバーが並び、選んで挑戦できる', async () => {
     const { QuestDetail } = await import('./QuestDetail')
     const quest = {
@@ -771,6 +787,7 @@ describe('画面の表示', () => {
     fake.store.weekSets = [past(1, 10, 5, TODAY), past(2, 10, 20, TODAY)]
     const el = await render(<Quests go={go} />)
     expect(el.textContent).toContain('与えたダメージ 28 ／ HP 25') // レアの★2（攻撃力8,500）：2.5 × 2.83 × 2 × 2
+    expect(el.querySelector('.damage-share')!.textContent).toContain('👑MVP') // 誰がどれだけ削ったか
     expect(el.textContent).toContain('討伐できる！')
     await click('報酬を受け取る')
     expect(fake.store.claimQuest).toHaveBeenCalled()
