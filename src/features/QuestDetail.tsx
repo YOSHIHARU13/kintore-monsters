@@ -41,7 +41,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
       : found
         ? { name: 'quests', category: questCategoryOf(found, defs, seriesPeriods, today) }
         : { name: 'quests' }
-  const cleared = inCastle ? castleCleared(state, towerMonth(today)) : towerCleared(state, towerMonth(today))
+  const cleared = inCastle ? castleCleared(state, towerMonth(today)) : towerCleared(state, towerMonth(today), towerFloor?.tower ?? 0)
   // 塔・孤城は、開催中で、次の階だけ挑戦できる（条件はいつでも見られる）
   const closed = !!towerFloor && !(inCastle ? castleOpen(today) : towerOpen(today))
   const towerLocked = !!towerFloor && (closed || towerFloor.floor !== cleared + 1)

@@ -88,6 +88,7 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.questRules, defs.length])
   const towerDone = towerCleared(state, towerMonth(today))
+  const towerTotal = Math.max(1, ...tower.map((f) => (f.tower ?? 0) + 1))
   const battle = useBattle()
   const towerFloor = battle
     ? (tower.find((f) => f.quest.id === battle.quest.id) ?? castle.find((f) => f.quest.id === battle.quest.id))
@@ -140,7 +141,7 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
         ? `毎月${CONFIG.tower.openDays[0]}〜${CONFIG.tower.openDays[1]}日に開催`
         : towerDone >= CONFIG.tower.floors
           ? '今月は踏破！'
-          : `開催中 ${towerDone}／${CONFIG.tower.floors}階・次は${towerDone + 1}階`,
+          : `開催中 ${towerDone}／${CONFIG.tower.floors}階${towerTotal > 1 ? `（塔は${towerTotal}つ）` : ''}`,
       open: () => go({ name: 'tower' }),
     },
     { key: 'material', icon: '💎', label: '素材クエスト', hint: '結晶・核・筋肉玉・進化コイン（初級・上級・究極）', open: () => go({ name: 'quests', category: 'material' }) },

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { snapshotTower, towerCleared, towerFloors, towerLineup } from './tower'
+import { allTowers, snapshotTower, towerCleared, towerCount, towerFloors, towerLineup } from './tower'
 import type { MonsterDef, Quest } from '../types'
 
 const def = (id: string, extra: Partial<MonsterDef> = {}): MonsterDef =>
@@ -88,5 +88,31 @@ describe('試練の塔', () => {
     expect(ids).not.toContain('c1')
     expect(ids).not.toContain('k1')
     expect(ids[0]).toBe('f1')
+  })
+})
+
+describe('塔は超絶10体ごと', () => {
+  const twenty = Array.from({ length: 20 }, (_, i) =>
+    def(`c${i}`, { questOnly: true, bossGrade: 'chozetsu', element: (['fire', 'water', 'wood', 'light', 'dark'] as const)[i % 5], attrs: { n1: 'legs' }, createdAt: i }),
+  )
+  it('超絶が20体なら塔は2つ。2つ目の塔は11〜20体目の超絶', () => {
+    expect(towerCount(twenty, [])).toBe(2)
+    expect(towerCount(twenty.slice(0, 19), [])).toBe(1)
+    const towers = allTowers('2026-10', twenty, [])
+    expect(towers).toHaveLength(2)
+    const second = towers[1].slice(0, 10).map((f) => f.quest.bossDefId)
+    expect(new Set(second)).toEqual(new Set(twenty.slice(10).map((d) => d.id)))
+    expect(towers[1][0].quest.name).toBe('第2の塔 1階')
+    expect(towers[1][0].quest.id).not.toBe(towers[0][0].quest.id)
+  })
+  it('上の階では「ボスと同じ部位の子」も求める', () => {
+    const top = allTowers('2026-10', twenty, [])[0][8]
+    expect(top.quest.requirements).toContainEqual({ tag: 'pt:legs', count: 3 })
+  })
+  it('クリアは塔ごと', () => {
+    const st = { tower: { month: '2026-10', cleared: 3 }, towerMore: { month: '2026-10', cleared: { '1': 7 } } }
+    expect(towerCleared(st, '2026-10', 0)).toBe(3)
+    expect(towerCleared(st, '2026-10', 1)).toBe(7)
+    expect(towerCleared(st, '2026-11', 1)).toBe(0)
   })
 })

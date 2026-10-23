@@ -279,6 +279,7 @@ export const CONFIG = {
     eggsInsteadOfMonster: 2, // 塔限定モンスターが登録されていないときはトク玉
     elementReqFrom: 3, // この階から「適正の属性」の編成条件
     abilityReqFrom: 6, // この階からアビリティの編成条件
+    partReqFrom: 6, // この階から「ボスと同じ部位の子」の編成条件
     twoWeakFrom: 6, // この階から弱点種目が2つ
     kyukyokuFrom: 4, // この階から究極
     chozetsuFrom: 8, // この階から超絶（適正の属性以外は半減）

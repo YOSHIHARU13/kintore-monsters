@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useStore } from '../store'
 import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { CONFIG } from '../config/gameConfig'
@@ -38,15 +38,19 @@ function daysLeft(today: string): number {
   return Math.round((end.getTime() - d.getTime()) / 86400000) + 1
 }
 
-/** 試練の塔：毎月1〜15日、11階。1〜10階は超絶ボスが属性順に2周、11階は塔限定モンスターがボス */
+/** 試練の塔：毎月1〜10日。超絶の降臨10体ごとに1つの塔（1〜10階が超絶、11階は塔限定モンスター） */
 export function Tower({ go }: { go: Go }) {
-  const { state, tower, defs, today, towerFixed, fixTower } = useStore()
-  // まだ保存していなければ、今の塔を保存して、来月以降も同じにする
+  const { state, tower: allFloors, defs, today, towerFixed, fixTower } = useStore()
+  const count = Math.max(1, ...allFloors.map((f) => (f.tower ?? 0) + 1))
+  const [index, setIndex] = useState(0)
+  const tower = allFloors.filter((f) => (f.tower ?? 0) === index)
+  // まだ保存していなければ、1つ目の塔を保存して、来月以降も同じにする
   useEffect(() => {
-    if (!towerFixed && tower.some((f) => f.quest.bossDefId)) fixTower(snapshotTower(tower))
+    const first = allFloors.filter((f) => (f.tower ?? 0) === 0)
+    if (!towerFixed && first.some((f) => f.quest.bossDefId)) fixTower(snapshotTower(first))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [towerFixed])
-  const cleared = towerCleared(state, towerMonth(today))
+  const cleared = towerCleared(state, towerMonth(today), index)
   const [, m] = towerMonth(today).split('-').map(Number)
   const open = towerOpen(today)
   const left = CONFIG.tower.openDays[1] - Number(today.slice(8, 10)) + 1
@@ -57,13 +61,22 @@ export function Tower({ go }: { go: Go }) {
         ← クエストに戻る
       </button>
       <h1 className="title">🗼 試練の塔（{m}月）</h1>
+      {count > 1 && (
+        <div className="segmented" role="tablist" aria-label="塔">
+          {Array.from({ length: count }, (_, i) => (
+            <button key={i} className={index === i ? 'on' : ''} onClick={() => setIndex(i)}>
+              第{i + 1}の塔{towerCleared(state, towerMonth(today), i) >= CONFIG.tower.floors ? ' ✓' : ''}
+            </button>
+          ))}
+        </div>
+      )}
       <p className="muted">
         {open
           ? `${cleared}／${CONFIG.tower.floors}階クリア・のこり${left}日（毎月${CONFIG.tower.openDays[0]}〜${CONFIG.tower.openDays[1]}日）。各階の報酬は月に1回です。`
           : `開催は毎月${CONFIG.tower.openDays[0]}〜${CONFIG.tower.openDays[1]}日です（今は零の孤城の期間・あと${daysLeft(today)}日で開催）。条件は今から見られます。`}
       </p>
       <p className="muted small">
-        塔は毎月同じです（ボス・条件・弱点を保存してあります）。ギミックはボスの超絶クエストとはなるべく別のスキルにしてあります。11階のボスは塔限定モンスター（複数いれば月替わり）。
+        超絶の降臨が10体そろうごとに、新しい塔が開きます。上の階では「ボスと同じ部位の子」も求められます（部位限定ガチャの子が活躍）。11階のボスは塔限定モンスター（倒すと運{CONFIG.luck.prizeDrop}で手に入る）。
       </p>
       <ol className="tower">
         {[...tower].reverse().map((f) => {

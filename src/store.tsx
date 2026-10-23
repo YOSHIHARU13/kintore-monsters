@@ -70,7 +70,7 @@ import { builtinMaterialQuests, builtinTempleQuests } from './lib/materials'
 import { itemInfo, itemLabel, rollTempleItems } from './lib/custom'
 import { seriesOf, type Period, type Periods } from './lib/series'
 import { castleCleared, castleFloors, castleOpen } from './lib/castle'
-import { TOWER_VERSION, towerOpen, towerCleared, towerFloors, towerMonth, type FixedFloor, type TowerFloor } from './lib/tower'
+import { TOWER_VERSION, allTowers, towerOpen, towerCleared, towerMonth, type FixedFloor, type TowerFloor } from './lib/tower'
 import { ELEMENTS, elementInfo, jogressElementOf } from './lib/element'
 import { investedFor, isHidden, nodeAttr, type AttrExp, type BannerSlide, type BoosterKey, type Checkin, type Element, type Gacha, type Quest, type QuestDifficulty, type QuestGrade, type RarityKey, type ExpSource, type GameState, type MonsterDef, type OwnedMonster, type SetRecord, type Song } from './types'
 
@@ -533,7 +533,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
   )
   const yesterday = useMemo(() => prevDateKey(today), [today])
   const tower = useMemo(
-    () => towerFloors(towerMonth(today), defs, selectableGimmicks(quests), quests, towerFixed),
+    // 超絶10体ごとに1つの塔。ここでは全部の塔の階を1つの並びにする（floor.tower が何番目の塔か）
+    () => allTowers(towerMonth(today), defs, selectableGimmicks(quests), quests, towerFixed).flat(),
     [today, defs, quests, towerFixed],
   )
   const castle = useMemo(() => castleFloors(defs, selectableGimmicks(quests), quests), [defs, quests])
@@ -1280,7 +1281,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         const floor = tower.find((f) => f.quest.id === questId)
         const castleFloor = castle.find((f) => f.quest.id === questId)
         // 開催している日だけ（塔は1〜15日、孤城は16日〜月末）
-        if (floor && (!towerOpen(dateKey()) || floor.floor !== towerCleared(state, towerMonth(dateKey())) + 1)) return
+        if (floor && (!towerOpen(dateKey()) || floor.floor !== towerCleared(state, towerMonth(dateKey()), floor.tower ?? 0) + 1)) return
         if (castleFloor && (!castleOpen(dateKey()) || castleFloor.floor !== castleCleared(state, towerMonth(dateKey())) + 1)) return
         if (!floor && !castleFloor) return
       }
@@ -1414,7 +1415,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
     const claimTower = (floor: TowerFloor, battle: Battle, kind: 'tower' | 'castle'): QuestReward | null => {
       const party = battle.party.map((m) => m.mon)
       const month = towerMonth(dateKey())
-      const cleared = kind === 'castle' ? castleCleared(state, month) : towerCleared(state, month)
+      const cleared = kind === 'castle' ? castleCleared(state, month) : towerCleared(state, month, floor.tower ?? 0)
       if (floor.floor !== cleared + 1) return null
       const bonus = luckBonus(party)
       const boost = state.boosts?.quest ? 2 : 1
@@ -1427,7 +1428,16 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         ...(boost > 1 ? { 'boosts.quest': false } : {}),
         gold: increment(gold),
         questClears: increment(1),
-        ...(kind === 'castle' ? { castle: { month, cleared: floor.floor } } : { tower: { month, cleared: floor.floor } }),
+        ...(kind === 'castle'
+          ? { castle: { month, cleared: floor.floor } }
+          : (floor.tower ?? 0) === 0
+            ? { tower: { month, cleared: floor.floor } }
+            : {
+                towerMore: {
+                  month,
+                  cleared: { ...(state.towerMore?.month === month ? state.towerMore.cleared : {}), [String(floor.tower)]: floor.floor },
+                },
+              }),
         coins: increment(coins),
         challenge: null,
       }
