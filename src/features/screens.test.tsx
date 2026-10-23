@@ -174,6 +174,7 @@ beforeEach(() => {
     claimQuest: vi.fn(() => ({ monsterId: 'o8', drops: [{ icon: '💠', label: '木の結晶', count: 1 }], gold: 50 })),
     exchangeMaterial: vi.fn(),
     attachCustom: vi.fn(),
+    renameSeries: vi.fn(),
     markQuestRules: vi.fn(),
     removeCustom: vi.fn(),
     claimRanks: vi.fn(() => 3),
@@ -900,6 +901,32 @@ describe('画面の表示', () => {
     expect(floors.find((b) => b.textContent?.startsWith('4F'))!.disabled).toBe(true)
     await act(async () => floors.find((b) => b.textContent?.startsWith('3F'))!.click())
     expect(go).toHaveBeenCalledWith({ name: 'quest', id: 'castle-3' })
+  })
+
+  it('コラボの管理：コラボ名をまとめて変えられる（表示の「コラボ」は二重にしない）', async () => {
+    const { CollabAdmin } = await import('./CollabAdmin')
+    fake.store.defs = [{ ...defs[0], series: '遊戯王コラボ' }, { ...defs[1], series: '遊戯王コラボ' }]
+    const el = await render(<CollabAdmin go={go} />)
+    expect(el.textContent).toContain('🤝 遊戯王コラボ 2体')
+    const input = el.querySelector<HTMLInputElement>('input[aria-label="遊戯王コラボの新しい名前"]')!
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, '遊戯王')
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await click('2体まとめて変える')
+    expect(fake.store.renameSeries).toHaveBeenCalledWith('遊戯王コラボ', '遊戯王')
+  })
+
+  it('その他：作る側のメニューは「つくる（開発者メニュー）」にまとまっている', async () => {
+    const { More } = await import('./More')
+    const el = await render(<More go={go} />)
+    expect(el.textContent).toContain('つくる（開発者メニュー）')
+    await click('ガチャの管理')
+    expect(go).toHaveBeenCalledWith({ name: 'gachaAdmin' })
+    await click('クエストの管理')
+    expect(go).toHaveBeenCalledWith({ name: 'questAdmin' })
+    await click('コラボの管理')
+    expect(go).toHaveBeenCalledWith({ name: 'collabAdmin' })
   })
 
   it('カスタマイズアイテムの一覧：持っているアイテムと、付けている子が見られる', async () => {

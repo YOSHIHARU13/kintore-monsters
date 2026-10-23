@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useQuestTools } from './QuestAdmin'
 import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { useStore } from '../store'
 import { SeriesChips } from '../components/SeriesChips'
@@ -8,7 +9,7 @@ import { MonsterImage } from '../components/MonsterImage'
 import { QuestBanner } from '../components/QuestBanner'
 import { bannerNodeOf } from '../components/GachaBanner'
 import { useBattle } from '../components/BattleBar'
-import { defaultBossHp, dropPlus, gradeOf, isTemple, questGold, questLevelLabel } from '../lib/quest'
+import { dropPlus, gradeOf, isTemple, questGold, questLevelLabel } from '../lib/quest'
 
 const VIEW_KEY = 'questListView'
 
@@ -52,76 +53,26 @@ export function questCategoryOf(q: Quest, defs: MonsterDef[], periods: Periods, 
 }
 import { formationOf, requirementsOf } from '../lib/formation'
 import { isLuckMax, luckBonus, luckOf } from '../lib/fusion'
-import { ELEMENT_COLOR, elementInfo } from '../lib/element'
+import { ELEMENT_COLOR } from '../lib/element'
 import { CONFIG } from '../config/gameConfig'
 import { dropLabel } from '../lib/cores'
 import { towerCleared, towerMonth } from '../lib/tower'
 import { castleCleared } from '../lib/castle'
-import { QUEST_RULES, autoGradeOf, autoQuestSetup } from '../lib/questAuto'
-import { selectableGimmicks } from '../lib/gimmick'
-import { FIRST_NODE_ID } from '../data/evolutionTemplates'
+import { QUEST_RULES } from '../lib/questAuto'
 import { towerRewardText } from './Tower'
 import { boosterName } from '../lib/boosters'
 import type { QuestReward } from '../store'
 import type { Go, QuestCategory } from '../nav'
 import type { Periods } from '../lib/series'
 import { BattleBar } from '../components/BattleBar'
-import { nodeAttr, plusName, type MonsterDef, type Quest } from '../types'
+import { plusName, type MonsterDef, type Quest } from '../types'
 
 /** クエストのタブ：入口（クエスト・零の孤城・試練の塔・素材・神殿・書庫）と、今日の戦い。入口を選ぶと一覧 */
 export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
-  const { state, quests, tower, castle, defs, owned, today, seriesPeriods, quitChallenge, claimQuest, saveQuest, feedLuck, markQuestRules } = useStore()
+  const { state, quests, tower, castle, defs, owned, today, seriesPeriods, quitChallenge, claimQuest, feedLuck, markQuestRules } = useStore()
   const [fedLuck, setFedLuck] = useState<{ msg: string; keeperId: string } | null>(null) // 落ちた子を運に食べさせた
-  const [made, setMade] = useState<number | null>(null)
   const [series, setSeries] = useState<SeriesFilter>('all')
-  // まだボスクエストがない降臨モンスター（塔限定は塔でもらえるので除く）
-  const pending = defs.filter(
-    (d) => d.questOnly && !d.tower && !d.castleLord && !quests.some((q) => q.kind !== 'material' && q.bossDefId === d.id),
-  )
-  /** 降臨モンスター1体につき1つ、おまかせでボスクエストを作る（名前はボスの名前・格はレア度から） */
-  const makeAll = () => {
-    const gimmicks = selectableGimmicks(quests)
-    const sofar: Pick<Quest, 'id' | 'requirements' | 'gimmicks'>[] = [...quests]
-    for (const d of pending) {
-      const grade = autoGradeOf(d)
-      const r = autoQuestSetup(d, grade, 'boss', sofar, gimmicks, undefined, defs)
-      const hp = defaultBossHp(grade)
-      saveQuest({
-        name: '',
-        kind: 'boss',
-        bossDefId: d.id,
-        attr: nodeAttr(d, FIRST_NODE_ID),
-        element: elementInfo(d).elements[0],
-        weakSlots: r.weakSlots,
-        requirements: r.requirements,
-        customGimmicks: {},
-        hp: { easy: hp, normal: hp, hard: hp },
-        rank: 1,
-        grade,
-        catchphrase: '',
-        theme: 'flame',
-      })
-      sofar.push({ id: `new-${d.id}`, requirements: r.requirements })
-    }
-    setMade(pending.length)
-  }
-  // ボスクエストの条件を、新しいおまかせ（タグの仲間・刺さるキャラ）で作り直す
-  const [confirmRedo, setConfirmRedo] = useState(false)
-  const topQuests = quests.filter((q) => !q.builtin && q.kind !== 'material')
-  const redoTop = () => {
-    const gimmicks = selectableGimmicks(quests)
-    const sofar: Pick<Quest, 'id' | 'requirements' | 'gimmicks'>[] = quests.filter((q) => !topQuests.includes(q))
-    for (const q of topQuests) {
-      const boss = defs.find((d) => d.id === q.bossDefId)
-      if (!boss) continue
-      const r = autoQuestSetup(boss, gradeOf(q), 'boss', sofar, gimmicks, q.id, defs)
-      const { id, createdAt: _c, autoName, builtin: _b, ...rest } = q
-      saveQuest({ ...rest, id, name: autoName ? '' : q.name, requirements: r.requirements, weakSlots: r.weakSlots })
-      sofar.push({ id, requirements: r.requirements })
-    }
-    setConfirmRedo(false)
-    setMade(topQuests.length)
-  }
+  const { topQuests, redoTop } = useQuestTools()
   // おまかせの作り方が変わったら、今あるボスクエストの条件を1回だけ作り直す
   const redone = useRef(false)
   useEffect(() => {
@@ -456,33 +407,6 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
             </div>
           )
         })}
-        {category === 'boss' && (
-        <>
-        <div className="row wrap">
-          <button className="btn small" onClick={() => go({ name: 'questForm' })}>
-            ＋ クエストを作る
-          </button>
-          {pending.length > 0 && (
-            <button className="btn small primary" onClick={makeAll}>
-              ✨ 降臨モンスター{pending.length}体ぶん、まとめて作る
-            </button>
-          )}
-        </div>
-        {pending.length > 0 && (
-          <p className="muted small">
-            クエストがまだない降臨モンスターごとに、ボスの名前・属性で作ります。格はレア度から（降臨の激レア→爆絶・レア→超絶（コラボは超究極）・ノーマル→究極・ハズレ→上級）、編成の条件と弱点はおまかせ。あとから1つずつ編集できます。
-          </p>
-        )}
-        {topQuests.length > 0 && (
-          <button className={`btn small${confirmRedo ? ' primary' : ' ghost'}`} onClick={() => (confirmRedo ? redoTop() : setConfirmRedo(true))}>
-            {confirmRedo
-              ? `本当にボスクエスト${topQuests.length}個の条件を作り直す（手で変えた条件は消えます）`
-              : '🎯 ボスクエストの条件を、おまかせ（弱点属性＋アビリティ）で作り直す'}
-          </button>
-        )}
-        </>
-        )}
-        {made !== null && <div className="result keep">{made}個のクエストを作りました・作り直しました</div>}
       </section>
     </div>
   )

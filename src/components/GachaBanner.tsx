@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { useStore } from '../store'
-import { seriesOf } from '../lib/series'
+import { collabLabel, seriesOf } from '../lib/series'
 import { CONFIG } from '../config/gameConfig'
 import { getTemplate } from '../data/evolutionTemplates'
 import { MonsterImage } from './MonsterImage'
@@ -148,7 +148,7 @@ export function GachaBanner({ gacha, count, featured = [], pickups = [], selecte
             </span>
           )}
           <span className="auto-text">
-            {collab && <span className="collab-ribbon">🤝 {collab} コラボ</span>}
+            {collab && <span className="collab-ribbon">🤝 {collabLabel(collab)}</span>}
             {badge}
             <strong className="auto-title">{gacha.name}</strong>
             {gacha.catchphrase && <span className="auto-catch">{gacha.catchphrase}</span>}

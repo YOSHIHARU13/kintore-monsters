@@ -305,11 +305,6 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
         <p className="warn small center">出撃し直すと、それまでのダメージは0に戻ります。</p>
       )}
       <p className="muted small center">出撃したら、その日のうちに倒そう。倒すまでのセットがダメージになります。</p>
-      {!towerFloor && !quest.builtin && (
-        <button className="btn small" onClick={() => go({ name: 'questForm', id: quest.id })}>
-          このクエストを編集
-        </button>
-      )}
     </div>
   )
 }

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { useStore } from '../store'
 import { PeriodInput } from '../components/PeriodInput'
-import { allSeries, gachaSeries, seriesOf } from '../lib/series'
+import { allSeries, collabLabel, gachaSeries, seriesOf } from '../lib/series'
 import { CONFIG } from '../config/gameConfig'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { MonsterImage } from '../components/MonsterImage'
@@ -58,8 +58,8 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
   const jogressIds = jogressOf(table, defs).map((d) => d.id)
   // 激レアのピックアップが全員同じシリーズなら、そのコラボのガチャ。名前とキャッチコピーは空なら自動で
   const collab = builtin ? '' : gachaSeries(table)
-  const autoName = collab ? `${collab}コラボガチャ` : ''
-  const autoCatch = collab ? `${collab}コラボ開催中！` : ''
+  const autoName = collab ? `${collabLabel(collab)}ガチャ` : ''
+  const autoCatch = collab ? `${collabLabel(collab)}開催中！` : ''
   const finalName = name.trim() || autoName
   const finalCatch = catchphrase.trim() || autoCatch
   // シリーズごとの、まだ選んでいない激レア（まとめて選ぶ用）
@@ -100,7 +100,7 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
         removeBanner,
         pickups: builtin ? undefined : pickups,
       })
-      go({ name: 'shop' })
+      go({ name: 'gachaAdmin' })
     } catch (e) {
       console.error(e)
       setError('保存できませんでした。画像を変えてもう一度試してください。')
@@ -110,8 +110,8 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
 
   return (
     <div className="page">
-      <button className="back" onClick={() => go({ name: 'shop' })}>
-        ← ショップに戻る
+      <button className="back" onClick={() => go({ name: 'gachaAdmin' })}>
+        ← ガチャの管理に戻る
       </button>
       <h1 className="title">{existing ? 'ガチャの編集' : 'ガチャを作る'}</h1>
 
@@ -311,7 +311,7 @@ export function GachaForm({ id, go }: { id?: string; go: Go }) {
           onClick={() => {
             if (!confirmDelete) return setConfirmDelete(true)
             deleteGacha(existing.id)
-            go({ name: 'shop' })
+            go({ name: 'gachaAdmin' })
           }}
         >
           {confirmDelete ? '本当に消す（モンスターはこのガチャから外れます）' : 'このガチャを消す'}

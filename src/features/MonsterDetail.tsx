@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { useStore } from '../store'
-import { seriesOf } from '../lib/series'
+import { collabLabel, seriesOf } from '../lib/series'
 import { canShinka, shinkaFoods } from '../lib/shinka'
 import { protectedIds } from '../lib/fusion'
 import { rarityOf } from '../lib/gacha'
@@ -310,7 +310,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
               </p>
               {shinkaChoices.length === 0 ? (
                 <p className="warn small">
-                  素材になる降臨モンスター（{seriesOf(def) ? `${seriesOf(def)}コラボ` : elementName(elementInfo(def))}）がいません。降臨クエストで手に入れよう。
+                  素材になる降臨モンスター（{seriesOf(def) ? collabLabel(seriesOf(def)) : elementName(elementInfo(def))}）がいません。降臨クエストで手に入れよう。
                 </p>
               ) : (
                 <>

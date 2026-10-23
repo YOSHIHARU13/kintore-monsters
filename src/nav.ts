@@ -24,6 +24,9 @@ export type View =
   | { name: 'more' }
   | { name: 'items' }
   | { name: 'customItems' }
+  | { name: 'gachaAdmin' }
+  | { name: 'questAdmin' }
+  | { name: 'collabAdmin' }
 
 /** クエストの入口（ボスのクエスト・素材・神殿・書庫。孤城と塔は別の画面） */
 export type QuestCategory = 'boss' | 'material' | 'temple' | 'archive'

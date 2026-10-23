@@ -101,9 +101,6 @@ export function Shop({ go }: { go: Go }) {
               {statusOf(g.id).kind === 'active' && <span className="tab-badge">⏳{statusLabel(statusOf(g.id))}</span>}
             </button>
           ))}
-          <button className="gacha-tab add" onClick={() => go({ name: 'gachaForm' })}>
-            ＋
-          </button>
         </div>
         <GachaBanner
           gacha={gacha}
@@ -116,9 +113,6 @@ export function Shop({ go }: { go: Go }) {
           <span>
             🟡 トク玉 <strong className="num">{state.eggs}</strong>個・🔮 オーブ <strong className="num">{state.gold}</strong>
           </span>
-          <button className="btn small ghost" onClick={() => go({ name: 'gachaForm', id: gacha.id })}>
-            編集
-          </button>
         </div>
         {!ready ? (
           <p className="warn small">

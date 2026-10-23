@@ -1,5 +1,5 @@
 import { useStore } from '../store'
-import { allSeries, seriesStatus } from '../lib/series'
+import { allSeries, collabLabel, seriesStatus } from '../lib/series'
 import type { Go } from '../nav'
 
 /** 開催中のコラボと、近日開催（予約済み）のコラボのお知らせ */
@@ -16,8 +16,8 @@ export function CollabNews({ go }: { go?: Go }) {
         return (
           <button key={name} className={`collab-now${st.kind === 'active' ? ' on' : ''}`} onClick={() => go?.({ name: 'shop' })}>
             {st.kind === 'active'
-              ? `🤝 ${name}コラボ 開催中！ あと${st.daysLeft}日`
-              : `📅 ${name}コラボ ${Number(start.slice(5, 7))}/${Number(start.slice(8))}から開催！ あと${st.kind === 'upcoming' ? st.daysUntil : 0}日`}
+              ? `🤝 ${collabLabel(name)} 開催中！ あと${st.daysLeft}日`
+              : `📅 ${collabLabel(name)} ${Number(start.slice(5, 7))}/${Number(start.slice(8))}から開催！ あと${st.kind === 'upcoming' ? st.daysUntil : 0}日`}
           </button>
         )
       })}

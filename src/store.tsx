@@ -316,6 +316,8 @@ interface Store {
   loadImage: (imageId: string) => Promise<string | null>
   saveSongs: (songs: Song[]) => void
   saveSeriesPeriod: (series: string, period: Period | null) => void
+  /** コラボ名をまとめて変える（そのコラボの子全員と、開催期間も） */
+  renameSeries: (from: string, to: string) => void
   towerFixed: FixedFloor[] | null // 保存した塔（毎月これを使う）
   fixTower: (floors: FixedFloor[] | null) => void
 }
@@ -1444,6 +1446,25 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       setDoc(towerRef, { floors: floors ?? null, version: TOWER_VERSION }).catch(fail)
     }
 
+    const renameSeries: Store['renameSeries'] = (from, to) => {
+      const name = to.trim()
+      if (!name || name === from) return
+      const batch = writeBatch(db)
+      for (const d of defs.filter((x) => (x.series?.trim() ?? '') === from)) {
+        batch.update(doc(db, base, 'monsterDefs', d.id), { series: name })
+      }
+      // 開催期間も新しい名前へ移す（新しい名前にもう期間があれば、そちらを残す）
+      const period = seriesPeriods[from]
+      if (period || from in seriesPeriods) {
+        batch.set(
+          seriesRef,
+          { periods: { [from]: deleteField(), ...(period && !seriesPeriods[name] ? { [name]: period } : {}) } },
+          { merge: true },
+        )
+      }
+      batch.commit().catch(fail)
+    }
+
     const saveSeriesPeriod: Store['saveSeriesPeriod'] = (series, period) => {
       setDoc(seriesRef, { periods: { [series]: period ?? deleteField() } }, { merge: true }).catch(fail)
     }
@@ -1491,6 +1512,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       loadImage,
       saveSongs,
       saveSeriesPeriod,
+      renameSeries,
       towerFixed,
       fixTower,
       gachas,

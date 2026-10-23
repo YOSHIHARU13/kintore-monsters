@@ -2,8 +2,7 @@ import { useState } from 'react'
 import { imageOf } from '../lib/art'
 import { useStore } from '../store'
 import { SeriesChips } from '../components/SeriesChips'
-import { allSeries, inSeries, seriesOf, type SeriesFilter } from '../lib/series'
-import { PeriodInput } from '../components/PeriodInput'
+import { inSeries, seriesOf, type SeriesFilter } from '../lib/series'
 import { CONFIG } from '../config/gameConfig'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { MonsterImage } from '../components/MonsterImage'
@@ -101,24 +100,6 @@ export function MonsterRegistry({ go }: { go: Go }) {
       )}
       {tuned !== null && <div className="result keep">{tuned}体をおまかせで埋めました</div>}
 
-      {allSeries(defs).length > 0 && (
-        <details className="card fold">
-          <summary>
-            <h2>📅 コラボの開催期間</h2>
-          </summary>
-          <p className="muted small">
-            期間を入れると、その間だけコラボガチャが引けて、クエストに「開催中」が出ます。終わったクエストは書庫に移り、いつでも遊べます。空ならずっと開催。
-          </p>
-          <ul className="mini-list">
-            {allSeries(defs).map((name) => (
-              <li key={name} className="period-row">
-                <strong>{name}</strong>
-                <PeriodInput series={name} />
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
 
       <div className="chips" role="group" aria-label="絞り込み">
         {(Object.keys(FILTER_LABEL) as Filter[]).map((f) => (

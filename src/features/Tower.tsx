@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useStore } from '../store'
 import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { CONFIG } from '../config/gameConfig'
@@ -40,7 +40,6 @@ function daysLeft(today: string): number {
 /** 試練の塔：毎月11階。1〜10階は超絶ボスが属性順に2周、11階は塔限定モンスターがボス */
 export function Tower({ go }: { go: Go }) {
   const { state, tower, defs, today, towerFixed, fixTower } = useStore()
-  const [confirmRemake, setConfirmRemake] = useState(false)
   // まだ保存していなければ、今の塔を保存して、来月以降も同じにする
   useEffect(() => {
     if (!towerFixed && tower.some((f) => f.quest.bossDefId)) fixTower(snapshotTower(tower))
@@ -62,16 +61,6 @@ export function Tower({ go }: { go: Go }) {
       <p className="muted small">
         塔は毎月同じです（ボス・条件・弱点を保存してあります）。ギミックはボスの超絶クエストとはなるべく別のスキルにしてあります。11階のボスは塔限定モンスター（複数いれば月替わり）。
       </p>
-      <button
-        className={`btn small${confirmRemake ? ' primary' : ' ghost'}`}
-        onClick={() => {
-          if (!confirmRemake) return setConfirmRemake(true)
-          fixTower(null) // 保存を消すと、今の超絶ボスで作り直して、また保存される
-          setConfirmRemake(false)
-        }}
-      >
-        {confirmRemake ? '本当に作り直す（今の超絶ボスで並べ直して、ギミックも新しくする）' : '🔄 塔を作り直す'}
-      </button>
       <ol className="tower">
         {[...tower].reverse().map((f) => {
           const done = f.floor <= cleared

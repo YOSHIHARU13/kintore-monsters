@@ -61,3 +61,9 @@ export function collabMates(boss: MonsterDef, defs: MonsterDef[]): MonsterDef[] 
   if (series === '') return []
   return defs.filter((d) => d.id !== boss.id && !d.questOnly && seriesOf(d) === series)
 }
+
+/** コラボの表示名（名前がもう「コラボ」で終わっていれば、そのまま。例：遊戯王 → 遊戯王コラボ、遊戯王コラボ → 遊戯王コラボ） */
+export function collabLabel(series: string): string {
+  const name = series.trim()
+  return name.endsWith('コラボ') ? name : `${name}コラボ`
+}

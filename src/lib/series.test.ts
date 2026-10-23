@@ -29,3 +29,11 @@ describe('シリーズ（コラボ）', () => {
     expect(gachaSeries([r('鬼', 'superRare'), r(undefined, 'superRare')])).toBe('')
   })
 })
+
+describe('コラボの表示名', () => {
+  it('名前がもう「コラボ」で終わっていれば、二重にしない', async () => {
+    const { collabLabel } = await import('./series')
+    expect(collabLabel('遊戯王')).toBe('遊戯王コラボ')
+    expect(collabLabel('遊戯王コラボ')).toBe('遊戯王コラボ')
+  })
+})
