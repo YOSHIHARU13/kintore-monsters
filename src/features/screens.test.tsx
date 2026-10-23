@@ -1173,16 +1173,25 @@ describe('画面の表示', () => {
     expect(shop.textContent).toContain('激レア！')
   })
 
-  it('ショップ：タマゴが揺れて、光の色と星が順に出てからモンスターが出る', async () => {
+  it('ショップ：タマゴが落ちて揺れ、光が青→金→虹に昇格して割れ、星が順に出てからモンスターが出る', async () => {
     vi.useFakeTimers()
     try {
       fake.store.hatchEgg = vi.fn(() => ({ def: { ...defs[1], rarity: 'superRare' }, monsterId: 'o2', shiny: false, pity: false }))
       const shop = await render(<Shop go={go} />)
       await click('1回引く')
+      expect(shop.querySelector('.hatch-egg.dropping')).not.toBeNull()
+      await act(async () => vi.advanceTimersByTime(550))
       expect(shop.querySelector('.hatch-egg.shaking')).not.toBeNull()
       await act(async () => vi.advanceTimersByTime(1100))
+      expect(shop.querySelector('.glow-normal .hatch-glow')).not.toBeNull() // まずは青
+      await act(async () => vi.advanceTimersByTime(650))
+      expect(shop.textContent).toContain('チャンス！')
+      await act(async () => vi.advanceTimersByTime(650))
       expect(shop.querySelector('.glow-superRare .hatch-glow')).not.toBeNull()
-      await act(async () => vi.advanceTimersByTime(800))
+      expect(shop.textContent).toContain('激アツ！！')
+      await act(async () => vi.advanceTimersByTime(650))
+      expect(shop.querySelector('.hatch-flash')).not.toBeNull()
+      await act(async () => vi.advanceTimersByTime(380))
       for (let i = 0; i < 4; i++) await act(async () => vi.advanceTimersByTime(280))
       expect(shop.querySelectorAll('.hatch-stars span.on')).toHaveLength(1) // 激レアでも生まれたときは★1
       await act(async () => vi.advanceTimersByTime(560))

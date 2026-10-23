@@ -3342,3 +3342,133 @@ details.tuning[open] > summary {
     opacity: 0;
   }
 }
+
+/* ガチャ演出（派手め）：落下 → 揺れ → 色の昇格 → 白い光で割れる */
+.hatch-egg.dropping {
+  animation: egg-drop 0.55s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+.hatch-egg.charging {
+  animation: egg-shake 0.18s ease-in-out infinite;
+  filter: drop-shadow(0 0 18px var(--glow)) drop-shadow(0 0 40px var(--glow));
+}
+.hatch-overlay .hatch-glow {
+  animation: fade-in 0.3s, glow-pulse 0.65s ease-in-out infinite alternate;
+}
+.hatch-overlay.glow-superRare .hatch-glow {
+  animation: spin 1.6s linear infinite;
+}
+.hatch-rays {
+  position: absolute;
+  width: 160vmax;
+  height: 160vmax;
+  background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--glow) 35%, transparent) 0 8deg, transparent 8deg 20deg);
+  animation: spin 4s linear infinite;
+  opacity: 0.8;
+  pointer-events: none;
+}
+.hatch-overlay.glow-superRare .hatch-rays {
+  background: repeating-conic-gradient(
+    rgba(239, 71, 111, 0.35) 0 8deg,
+    rgba(255, 209, 102, 0.35) 8deg 16deg,
+    rgba(6, 214, 160, 0.3) 16deg 24deg,
+    rgba(76, 201, 240, 0.3) 24deg 32deg,
+    transparent 32deg 40deg
+  );
+  animation-duration: 2s;
+}
+.hatch-cutin {
+  position: relative;
+  z-index: 2;
+  padding: 4px 18px;
+  font-size: 2rem;
+  font-weight: 900;
+  color: #fff;
+  background: linear-gradient(90deg, transparent, var(--glow) 20%, var(--glow) 80%, transparent);
+  text-shadow: 0 2px 0 #000, 0 0 12px #000;
+  animation: cutin 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+.hatch-cutin.step-2 {
+  background: linear-gradient(90deg, transparent, #ef476f 15%, #ffd166 35%, #06d6a0 55%, #4cc9f0 75%, transparent);
+  font-size: 2.4rem;
+}
+.hatch-flash {
+  position: fixed;
+  inset: 0;
+  background: #fff;
+  animation: flash 0.38s ease-out both;
+  pointer-events: none;
+  z-index: 3;
+}
+.hatch-ring {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  border: 6px solid var(--glow);
+  border-radius: 50%;
+  animation: ring 0.5s ease-out both;
+  pointer-events: none;
+}
+.hatch-done .hatch-monster {
+  animation: monster-in 0.6s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+  filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.5));
+}
+.confetti {
+  position: absolute;
+  top: -10px;
+  left: calc(var(--i) * 3.4%);
+  width: 8px;
+  height: 14px;
+  background: hsl(calc(var(--i) * 47), 90%, 60%);
+  animation: confetti 2.4s linear infinite;
+  animation-delay: calc(var(--i) * -0.13s);
+  pointer-events: none;
+}
+@keyframes egg-drop {
+  from {
+    transform: translateY(-70vh) scale(0.6);
+  }
+}
+@keyframes glow-pulse {
+  to {
+    opacity: 0.85;
+    transform: scale(1.1);
+  }
+}
+@keyframes cutin {
+  from {
+    transform: translateX(-120%) skewX(-20deg);
+    opacity: 0;
+  }
+}
+@keyframes flash {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes ring {
+  to {
+    transform: scale(14);
+    opacity: 0;
+  }
+}
+@keyframes monster-in {
+  from {
+    transform: scale(0.1) rotate(-12deg);
+    opacity: 0;
+    filter: brightness(4);
+  }
+}
+@keyframes confetti {
+  from {
+    transform: translateY(0) rotate(0);
+  }
+  to {
+    transform: translateY(110vh) rotate(720deg);
+  }
+}
