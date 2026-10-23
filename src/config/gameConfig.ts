@@ -151,7 +151,10 @@ export const CONFIG = {
     bossPart: 1.3, // ボスの部位（胸腕・脚・背肩）の種目のセットは、どれでもこの倍率。中でも弱点種目がいちばん効く
     offElementChozetsu: 0.5, // 超絶では、ボスの属性に有利な属性を持たないモンスターの攻撃はこの倍率
     offElementBakuzetsu: 1 / 3, // 爆絶ではこの倍率
-    abilityBonus: 0.25, // クエストの条件に合うアビリティ1つにつき、その子のダメージ +25%（2つなら×1.5）
+    abilityBonus: 0.25, // 究極以下：クエストの条件に合うアビリティ1つにつき、そのモンスターのダメージ +25%（2つなら×1.5）
+    // 超絶以上（高難度はぜんぶ）：ギミックに対応できているかでダメージが大きく変わる（ド適正だけが活躍する）
+    // 合うアビリティが0なら×0.4、1つなら×1、2つなら×1.5、「2つ同時に持つ」の組を持っていれば×2.5
+    hardAbility: { none: 0.4, one: 1, two: 1.5, combo: 2.5 },
     collabBonus: 1.5, // コラボの激レア・レアは、同じコラボのボスのクエストで攻撃がこの倍率（確定）
     zeroBonus: 1.2, // 零属性のモンスターは、どのクエストでも攻撃がこの倍率（弱点はつけないが、半減もされない）
     multiElementBonus: 1.5, // 零属性のボスには、2属性のモンスター（金の獣神化など）の攻撃がこの倍率
@@ -207,10 +210,10 @@ export const CONFIG = {
     jokyu: { element: 2, kinds: 3, abilities: 0, abilityCount: 0, combo: 0, weak: 1 },
     kiwami: { element: 3, kinds: 3, abilities: 1, abilityCount: 2, combo: 0, weak: 1 },
     kyukyoku: { element: 3, kinds: 4, abilities: 2, abilityCount: 2, combo: 0, weak: 1 },
-    chozetsu: { element: 4, kinds: 5, abilities: 3, abilityCount: 3, combo: 0, weak: 2 },
+    chozetsu: { element: 4, kinds: 5, abilities: 3, abilityCount: 3, combo: 2, weak: 2 },
     // 零属性の爆絶は、属性の種類ではなく「3属性×3体ずつ」（1属性のモンスター6体では届かない＝2属性のモンスターが必須級）
     bakuzetsu: { element: 5, kinds: 5, abilities: 4, abilityCount: 3, combo: 2, weak: 2, zeroSplit: 3 },
-    chokyukyoku: { element: 4, kinds: 5, abilities: 3, abilityCount: 3, combo: 0, weak: 2 },
+    chokyukyoku: { element: 4, kinds: 5, abilities: 3, abilityCount: 3, combo: 2, weak: 2 },
     // 素材クエストは難易度ごと（初級はほぼ縛りなし、究極でやっとアビリティ）
     material: {
       easy: { element: 0, kinds: 0, abilities: 0, abilityCount: 0, combo: 0, weak: 1 },

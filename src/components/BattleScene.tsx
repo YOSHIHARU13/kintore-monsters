@@ -104,7 +104,7 @@ export function BattleScene({ go, compact = false, battle: given, paused = false
               )}
               {anim &&
                 skills.slice(0, 2).map((s) => (
-                  <span key={s} className={`bs-skill${/×1\/|1\/3/.test(s) ? ' bad' : ''}`} style={{ animationDelay: `${i * 0.12 + 0.25}s` }}>
+                  <span key={s} className={`bs-skill${/×1\/|1\/3|未対応/.test(s) ? ' bad' : ''}`} style={{ animationDelay: `${i * 0.12 + 0.25}s` }}>
                     {s}
                   </span>
                 ))}

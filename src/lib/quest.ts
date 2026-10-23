@@ -44,7 +44,27 @@ export interface Hit {
   skills?: Record<string, string[]> // 出撃した子ごとに、効いた補正（戦闘画面の演出用。例：['部位一致', 'アビリティ×2']）
 }
 
-/** その子が持っている、クエストの条件に出てくるアビリティの数 */
+const HARD_GRADES: QuestGrade[] = ['chozetsu', 'chokyukyoku', 'bakuzetsu']
+
+/**
+ * アビリティの倍率：究極以下は合う数×25%。超絶以上は、合わなければ×0.4・1つで×1・2つで×1.5・「2つ同時」の組を持てば×2.5
+ */
+export function abilityRate(def: MonsterDef, quest: Quest): { rate: number; label: string } {
+  const q = CONFIG.quest
+  const n = matchedAbilities(def, quest)
+  const wanted = requirementsOf(quest).some((r) => tagAbilities(r.tag).length > 0)
+  if (!HARD_GRADES.includes(gradeOf(quest)) || !wanted) {
+    const rate = 1 + q.abilityBonus * n
+    return { rate, label: `アビリティ×${rate.toFixed(2).replace(/0$/, '')}` }
+  }
+  const h = q.hardAbility
+  const combo = requirementsOf(quest).find((r) => r.tag.startsWith('ab2:'))
+  if (combo && tagsOf(def)[combo.tag]) return { rate: h.combo, label: `ド適正×${h.combo}` }
+  if (n === 0) return { rate: h.none, label: `ギミック未対応×${h.none}` }
+  return n === 1 ? { rate: h.one, label: `アビリティ×${h.one}` } : { rate: h.two, label: `アビリティ×${h.two}` }
+}
+
+/** そのモンスターが持っている、クエストの条件に出てくるアビリティの数 */
 export function matchedAbilities(def: MonsterDef, quest: Pick<Quest, 'requirements' | 'gimmicks'>): number {
   const wanted = new Set(requirementsOf(quest).flatMap((r) => tagAbilities(r.tag)))
   const own = tagsOf(def)
@@ -77,11 +97,11 @@ export function setHit(set: SetInfo, quest: Quest, party: Member[], label: strin
   for (const m of party) {
     let d = base * powerOf(m)
     const own: string[] = []
-    // 条件に合うアビリティを持っている子は、その子自身も強い（1つにつき+25%）
-    const matched = matchedAbilities(m.def, quest)
-    if (matched > 0) {
-      d *= 1 + q.abilityBonus * matched
-      own.push(`アビリティ×${(1 + q.abilityBonus * matched).toFixed(2).replace(/0$/, '')}`)
+    // 条件に合うアビリティを持っているモンスターは、本人も強い（超絶以上は、合わないと大きく弱る）
+    const ab = abilityRate(m.def, quest)
+    if (ab.rate !== 1) {
+      d *= ab.rate
+      own.push(ab.label)
     }
     // 零属性：どこでも×1.2で、半減もされない
     const zero = elementInfo(m.def).elements.length === 0

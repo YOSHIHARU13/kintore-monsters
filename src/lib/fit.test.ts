@@ -59,3 +59,18 @@ describe('適正度（理想の激レアを100%）', () => {
     expect(list[1].percent).toBeLessThan(80)
   })
 })
+
+describe('超絶以上はド適正だけが活躍', () => {
+  it('「2つ同時」の組を持つ激レアが100%。アビリティ1つは7割未満、合わなければもっと下', () => {
+    const q = quest('q', { grade: 'bakuzetsu', requirements: [{ tag: 'el:wood', count: 5 }, { tag: 'ab2:バリア|シールド', count: 2 }, { tag: 'ab:バリア', count: 3 }, { tag: 'ab:シールド', count: 3 }, { tag: 'ab:ミラー', count: 3 }] })
+    const list = fitMembers(q, [
+      def('combo', { element: 'wood', abilities: ['バリア', 'シールド'] }),
+      def('one', { element: 'wood', abilities: ['バリア', 'ワープ'] }),
+      def('none', { element: 'wood', abilities: ['ワープ', 'ギア'] }),
+    ])
+    const pct = Object.fromEntries(list.map((x) => [x.def.id, x.percent]))
+    expect(pct.combo).toBeGreaterThanOrEqual(95)
+    expect(pct.one).toBeLessThan(70)
+    expect(pct.none).toBeLessThan(pct.one - 15)
+  })
+})

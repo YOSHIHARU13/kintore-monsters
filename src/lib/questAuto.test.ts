@@ -20,7 +20,7 @@ describe('おまかせのクエスト', () => {
     const chozetsu = at('chozetsu')
     expect(chozetsu[0]).toEqual({ tag: 'el:wood', count: 4 })
     expect(chozetsu.filter((r) => r.tag.startsWith('ab:'))).toHaveLength(3)
-    expect(chozetsu.some((r) => r.tag.startsWith('ab2:'))).toBe(false)
+    expect(chozetsu.some((r) => r.tag.startsWith('ab2:'))).toBe(true) // 超絶から「2つ同時に持つ」も
     // 爆絶：有利な属性5、アビリティ4種類、実際に誰かが2つ同時に持っている組み合わせ×2
     const bakuzetsu = at('bakuzetsu')
     expect(bakuzetsu[0]).toEqual({ tag: 'el:wood', count: 5 })
