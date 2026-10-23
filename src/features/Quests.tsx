@@ -24,6 +24,32 @@ const QUEST_GROUPS = [
   { key: 'material', label: '素材' },
   { key: 'archive', label: '📚 書庫（開催が終わったコラボ）' },
 ] as const
+
+/** 入口ごとに出す見出し */
+const CATEGORY_GROUPS: Record<QuestCategory, string[]> = {
+  boss: ['bakuzetsu', 'chokyukyoku', 'chozetsu', 'kyukyoku', 'kiwami', 'jokyu'],
+  material: ['material'],
+  temple: ['temple'],
+  archive: ['archive'],
+}
+const CATEGORY_TITLE: Record<QuestCategory, string> = {
+  boss: '⚔️ クエスト',
+  material: '💎 素材クエスト',
+  temple: '🏛 神殿',
+  archive: '📚 書庫',
+}
+
+/** そのクエストが入る見出し（書庫・神殿・素材・ボスの格） */
+export function questPlace(q: Quest, defs: MonsterDef[], periods: Periods, today: string): string {
+  const st = seriesStatus(questSeries(q, defs), periods, today).kind
+  return st === 'ended' ? 'archive' : isTemple(q) ? 'temple' : q.kind === 'material' ? 'material' : gradeOf(q)
+}
+
+/** そのクエストが入る入口（クエスト詳細の「戻る」に使う） */
+export function questCategoryOf(q: Quest, defs: MonsterDef[], periods: Periods, today: string): QuestCategory {
+  const place = questPlace(q, defs, periods, today)
+  return place === 'archive' || place === 'temple' || place === 'material' ? place : 'boss'
+}
 import { formationOf, requirementsOf } from '../lib/formation'
 import { isLuckMax, luckBonus, luckOf } from '../lib/fusion'
 import { ELEMENT_COLOR, elementInfo } from '../lib/element'
@@ -37,11 +63,13 @@ import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import { towerRewardText } from './Tower'
 import { boosterName } from '../lib/boosters'
 import type { QuestReward } from '../store'
-import type { Go } from '../nav'
+import type { Go, QuestCategory } from '../nav'
+import type { Periods } from '../lib/series'
+import { BattleBar } from '../components/BattleBar'
 import { nodeAttr, plusName, type MonsterDef, type Quest } from '../types'
 
-/** クエストのタブ：今日の戦いと、クエストの一覧 */
-export function Quests({ go }: { go: Go }) {
+/** クエストのタブ：入口（クエスト・零の孤城・試練の塔・素材・神殿・書庫）と、今日の戦い。入口を選ぶと一覧 */
+export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
   const { state, quests, tower, castle, defs, owned, today, seriesPeriods, quitChallenge, claimQuest, saveQuest, feedLuck, markQuestRules } = useStore()
   const [fedLuck, setFedLuck] = useState<{ msg: string; keeperId: string } | null>(null) // 落ちた子を運に食べさせた
   const [made, setMade] = useState<number | null>(null)
@@ -132,6 +160,31 @@ export function Quests({ go }: { go: Go }) {
       ? [...quests, ...tower.map((f) => f.quest), ...castle.map((f) => f.quest)].find((q) => q.id === state.challenge!.questId)
       : null
 
+  // 入口の一覧（クエスト・零の孤城・試練の塔・素材・神殿・書庫）
+  const count = (c: QuestCategory) => quests.filter((q) => questCategoryOf(q, defs, seriesPeriods, today) === c)
+  const clearedOf = (list: Quest[]) => list.filter((q) => (state.clearedQuests[q.id] ?? 0) > 0).length
+  const CATEGORY_MENU = [
+    { key: 'boss', icon: '⚔️', label: 'クエスト', hint: `爆絶〜上級・コラボ（${clearedOf(count('boss'))}/${count('boss').length}クリア）`, open: () => go({ name: 'quests', category: 'boss' }) },
+    {
+      key: 'castle',
+      icon: '🏯',
+      label: '零の孤城',
+      hint: castleDone >= CONFIG.castle.floors ? '踏破！' : `${castleDone}／${CONFIG.castle.floors}階・全階爆絶・最上階は零属性の城主（報酬は1回きり）`,
+      open: () => go({ name: 'castle' }),
+    },
+    {
+      key: 'tower',
+      icon: '🗼',
+      label: '試練の塔',
+      hint: towerDone >= CONFIG.tower.floors ? '今月は踏破！来月また新しい塔が出ます' : `${towerDone}／${CONFIG.tower.floors}階・次は${towerDone + 1}階（毎月1日に新しく）`,
+      open: () => go({ name: 'tower' }),
+    },
+    { key: 'material', icon: '💎', label: '素材クエスト', hint: '結晶・核・筋肉玉・進化コイン（初級・上級・究極）', open: () => go({ name: 'quests', category: 'material' }) },
+    { key: 'temple', icon: '🏛', label: '神殿', hint: 'カスタマイズアイテム（時の間・修羅場）', open: () => go({ name: 'quests', category: 'temple' }) },
+    { key: 'archive', icon: '📚', label: '書庫', hint: '開催が終わったコラボのクエスト', open: () => go({ name: 'quests', category: 'archive' }), hidden: count('archive').length === 0 },
+  ]
+
+  if (!category) {
   return (
     <div className="page">
       <h1 className="title">クエスト</h1>
@@ -302,32 +355,29 @@ export function Quests({ go }: { go: Go }) {
         )
       )}
 
-      <button className="card tower-entry" onClick={() => go({ name: 'tower' })}>
-        <span style={{ fontSize: '2rem' }}>🗼</span>
-        <span className="tower-body">
-          <strong>試練の塔</strong>
-          <span className="small muted">
-            {towerDone >= CONFIG.tower.floors
-              ? '今月は踏破！来月また新しい塔が出ます'
-              : `${towerDone}／${CONFIG.tower.floors}階・次は${towerDone + 1}階（11階のボスは塔限定モンスター）`}
-          </span>
-        </span>
-        <span>›</span>
-      </button>
+      {CATEGORY_MENU.map((c) =>
+        c.hidden ? null : (
+          <button key={c.key} className={`card tower-entry quest-entry entry-${c.key}`} onClick={c.open}>
+            <span style={{ fontSize: '2rem' }}>{c.icon}</span>
+            <span className="tower-body">
+              <strong>{c.label}</strong>
+              <span className="small muted">{c.hint}</span>
+            </span>
+            <span>›</span>
+          </button>
+        ),
+      )}
+    </div>
+  )
+  }
 
-      <button className="card tower-entry castle-entry" onClick={() => go({ name: 'castle' })}>
-        <span style={{ fontSize: '2rem' }}>🏯</span>
-        <span className="tower-body">
-          <strong>零の孤城</strong>
-          <span className="small muted">
-            {castleDone >= CONFIG.castle.floors
-              ? '踏破！'
-              : `${castleDone}／${CONFIG.castle.floors}階・全階爆絶・最上階は零属性のラスボス（報酬は1回きり）`}
-          </span>
-        </span>
-        <span>›</span>
+  return (
+    <div className="page">
+      <button className="back" onClick={() => go({ name: 'quests' })}>
+        ← クエストに戻る
       </button>
-
+      <h1 className="title">{CATEGORY_TITLE[category]}</h1>
+      <BattleBar go={go} />
       <section className="card">
         <div className="part-head">
           <h2>クエスト一覧</h2>
@@ -351,10 +401,10 @@ export function Quests({ go }: { go: Go }) {
           ))}
         {quests.length === 0 && <p className="muted small">まだクエストがありません。</p>}
         {QUEST_GROUPS.map(({ key, label }) => {
+          if (!category || !CATEGORY_GROUPS[category].includes(key)) return null
           const group = quests.filter((q) => {
             const st = seriesStatus(questSeries(q, defs), seriesPeriods, today).kind
-            const place = st === 'ended' ? 'archive' : isTemple(q) ? 'temple' : q.kind === 'material' ? 'material' : gradeOf(q)
-            return st !== 'upcoming' && place === key && inSeries(series, questSeries(q, defs))
+            return st !== 'upcoming' && questPlace(q, defs, seriesPeriods, today) === key && inSeries(series, questSeries(q, defs))
           })
           if (group.length === 0) return null
           return (
@@ -406,6 +456,8 @@ export function Quests({ go }: { go: Go }) {
             </div>
           )
         })}
+        {category === 'boss' && (
+        <>
         <div className="row wrap">
           <button className="btn small" onClick={() => go({ name: 'questForm' })}>
             ＋ クエストを作る
@@ -427,6 +479,8 @@ export function Quests({ go }: { go: Go }) {
               ? `本当にボスクエスト${topQuests.length}個の条件を作り直す（手で変えた条件は消えます）`
               : '🎯 ボスクエストの条件を、おまかせ（弱点属性＋アビリティ）で作り直す'}
           </button>
+        )}
+        </>
         )}
         {made !== null && <div className="result keep">{made}個のクエストを作りました・作り直しました</div>}
       </section>

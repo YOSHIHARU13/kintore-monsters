@@ -26,7 +26,9 @@ describe('クエスト', () => {
     // 胸腕のセット：胸腕 2.5×1.5×2 + 脚 2.5×1.5 + 無 2.5×1.5 = 15
     expect(setHit(set('mon2', 'mon'), quest, party, '').damage).toBe(15)
     expect(setHit(set('mon2', 'mon'), quest, [chest], '').damage).toBe(8) // 7.5
-    expect(setHit(set('wed1', 'wed'), quest, [chest], '').damage).toBe(4) // 部位が違うと 3.75
+    // 脚のセット：胸腕の子は部位が違うので 3.75。ただしボス（脚）の部位なので×1.3 = 4.875
+    expect(setHit(set('wed1', 'wed'), quest, [chest], '').damage).toBe(5)
+    expect(setHit(set('wed1', 'wed'), { ...quest, attr: 'chestArms' }, [chest], '').damage).toBe(4)
     // 出撃メンバーがいなければ素手
     expect(setHit(set('fri1', 'fri'), quest, [], '')).toMatchObject({ notes: ['素手'] })
   })
@@ -125,5 +127,16 @@ describe('零属性', () => {
     // 水の子は半減、零属性は半減しない
     const water = { mon: mon('w', 'w'), def: def('w', { element: 'water' }) }
     expect(hit(water)).toBe(4)
+  })
+})
+
+describe('ボスの部位', () => {
+  it('ボスと同じ部位の種目はどれでも×1.3、中でも弱点種目はさらに×2', () => {
+    const legs = { mon: mon('l', 'l'), def: def('l', { attr: 'legs' }) }
+    const q = { ...quest, attr: 'legs' as const, weakSlots: ['wed2'] }
+    // 脚の子が脚のセット：2.5 × 1.5 × 2（部位一致）= 7.5
+    expect(setHit(set('wed1', 'wed'), q, [legs], '')).toMatchObject({ damage: 10, notes: ['ボスの部位'] }) // ×1.3 = 9.75
+    expect(setHit(set('wed2', 'wed'), q, [legs], '')).toMatchObject({ damage: 20, notes: ['弱点種目'] }) // ×1.3×2 = 19.5
+    expect(setHit(set('mon1', 'mon'), q, [legs], '').damage).toBe(4) // 胸腕のセットは補正なし（3.75）
   })
 })

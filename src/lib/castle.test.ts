@@ -10,7 +10,7 @@ const def = (id: string, extra: Partial<MonsterDef>): MonsterDef =>
 const ELS = ['fire', 'water', 'wood', 'light', 'dark'] as const
 
 describe('降臨の格', () => {
-  it('爆絶級はアビリティ2・攻撃力+4500、ラスボス級はアビリティ3・+6000。通常の降臨は1・最大+3000', () => {
+  it('爆絶級はアビリティ2・攻撃力+4500、城主級はアビリティ3・+6000。通常の降臨は1・最大+3000', () => {
     const normal = def('n', { rarity: 'superRare' })
     const baku = def('b', { rarity: 'normal', questTier: 'bakuzetsu' })
     const last = def('l', { rarity: 'hazure', questTier: 'lastBoss' })
@@ -37,7 +37,7 @@ describe('零の孤城', () => {
     expect(lastBossOf(defs)?.id).toBe('king')
   })
 
-  it('全階爆絶。11階は零属性のラスボスで、属性の種類を求める', () => {
+  it('全階爆絶。11階は零属性の城主で、属性の種類を求める', () => {
     const floors = castleFloors(defs, ['バリア', 'シールド', 'リジェネ', 'ミラー'])
     expect(floors).toHaveLength(11)
     expect(floors.every((f) => f.quest.grade === 'bakuzetsu')).toBe(true)
@@ -53,7 +53,7 @@ describe('零の孤城', () => {
     expect(floors.some((f) => f.reward.custom)).toBe(true)
   })
 
-  it('ラスボス級がいなければ、最上階はトク玉', () => {
+  it('城主級がいなければ、最上階はトク玉', () => {
     const top = castleFloors([...bakus], [])[10]
     expect(top.reward.monsterDefId).toBeNull()
     expect(top.reward.eggs).toBeGreaterThan(30)

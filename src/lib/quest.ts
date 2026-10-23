@@ -49,12 +49,15 @@ export function setHit(set: SetInfo, quest: Quest, party: Member[], label: strin
   const roller = set.day === 'bonus'
   const partAttr = roller ? null : DAYS[set.day as keyof typeof DAYS].attr
   const weak = quest.weakSlots.includes(set.slotId)
+  // ボスと同じ部位の種目は、どれでも少し効く（弱点種目はさらに）
+  const bossPart = !!partAttr && quest.attr === partAttr
   const base = roller ? q.rollerDamage : q.setDamage
   const notes = new Set<string>()
+  if (bossPart && !weak) notes.add('ボスの部位')
   if (weak) notes.add('弱点種目')
   if (party.length === 0) {
     // 出撃メンバーがいなければ、自分で殴る
-    return { label, damage: Math.round(base * (weak ? q.weakSlot : 1)), notes: [...notes, '素手'] }
+    return { label, damage: Math.round(base * (bossPart ? q.bossPart : 1) * (weak ? q.weakSlot : 1)), notes: [...notes, '素手'] }
   }
   // 超絶では、ボスの属性に有利な属性を持たないモンスターの攻撃が半減
   const strict = isStrict(quest)
@@ -72,6 +75,7 @@ export function setHit(set: SetInfo, quest: Quest, party: Member[], label: strin
       notes.add(`${m.def.name}は属性が合わず${bakuzetsu ? '3分の1' : '半減'}`)
     }
     if (partAttr && attrOf(m) === partAttr) d *= q.partMatch
+    if (bossPart) d *= q.bossPart
     if (weak) d *= q.weakSlot
     if (isFavorite(m.def, set.slotId)) {
       d *= q.favorite

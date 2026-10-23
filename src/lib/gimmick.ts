@@ -23,7 +23,7 @@ export function abilitySlots(
 ): number {
   const slots = CONFIG.gimmicks.slots
   if (isHidden(def as MonsterDef)) return slots.jogress
-  // 爆絶級・ラスボス級の降臨は、レア度に関係なく格の数
+  // 爆絶級・城主級の降臨は、レア度に関係なく格の数
   if (def.questOnly && def.questTier) return CONFIG.gimmicks.questTierSlots[def.questTier]
   const n = slots[rarityOf(def as MonsterDef)]
   // 降臨は激レアでもガチャより弱く

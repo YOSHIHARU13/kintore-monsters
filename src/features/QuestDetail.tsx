@@ -11,7 +11,8 @@ import { formationOf, requirementsOf, shortfallHelp, tagLabel, tagsOf } from '..
 import { FormationPanel } from '../components/FormationPanel'
 import { dropLuck, luckBonus } from '../lib/fusion'
 import { ELEMENT_COLOR, ELEMENT_LABEL, ZERO_LABEL, advantageElements, elementInfo, elementName } from '../lib/element'
-import { ATTR_COLOR, type Go } from '../nav'
+import { ATTR_COLOR, type Go, type View } from '../nav'
+import { questCategoryOf } from './Quests'
 import { attackOf } from '../lib/stats'
 import { allGimmicks } from '../lib/gimmick'
 import { DROP_ICON, STONE_LABEL, dropLabel, dropOf, expectedDrop } from '../lib/cores'
@@ -24,12 +25,18 @@ import type { LotDrop } from '../lib/cores'
 
 /** クエストの詳細：ボスの弱点を見て、難易度と出撃メンバーを選んで挑戦する */
 export function QuestDetail({ id, go }: { id: string; go: Go }) {
-  const { state, quests, tower, castle, defs, owned, menu, today, startChallenge } = useStore()
+  const { state, quests, tower, castle, defs, owned, menu, today, seriesPeriods, startChallenge } = useStore()
   // 試練の塔か零の孤城の階（どちらも1階ずつ）
   const inCastle = castle.some((f) => f.quest.id === id)
   const towerFloor = tower.find((f) => f.quest.id === id) ?? castle.find((f) => f.quest.id === id)
   const found = quests.find((q) => q.id === id) ?? towerFloor?.quest
-  const backTo = inCastle ? ({ name: 'castle' } as const) : towerFloor ? ({ name: 'tower' } as const) : ({ name: 'quests' } as const)
+  const backTo: View = inCastle
+    ? { name: 'castle' }
+    : towerFloor
+      ? { name: 'tower' }
+      : found
+        ? { name: 'quests', category: questCategoryOf(found, defs, seriesPeriods, today) }
+        : { name: 'quests' }
   const cleared = inCastle ? castleCleared(state) : towerCleared(state, towerMonth(today))
   const towerLocked = !!towerFloor && towerFloor.floor !== cleared + 1
   const current = state.challenge?.date === today ? state.challenge : null
@@ -146,8 +153,17 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
               </span>
             </li>
           )}
+          {quest.attr !== 'none' && (
+            <li>
+              <span>ボスの部位（その部位の種目はどれでも×{CONFIG.quest.bossPart}）</span>
+              <span style={{ color: ATTR_COLOR[quest.attr] }}>{FORM_ATTR_LABEL[quest.attr]}</span>
+            </li>
+          )}
           <li>
-            <span>弱点種目（ダメージ×{CONFIG.quest.weakSlot}）</span>
+            <span>
+              弱点種目（さらに×{CONFIG.quest.weakSlot}
+              {quest.attr !== 'none' && `＝×${Math.round(CONFIG.quest.bossPart * CONFIG.quest.weakSlot * 10) / 10}`}）
+            </span>
             <span>{quest.weakSlots.map(exerciseName).join('・') || 'なし'}</span>
           </li>
         </ul>

@@ -124,7 +124,7 @@ export const CONFIG = {
     // 持てるアビリティの数（レア度の格）。ジョグレスは jogress
     slots: { hazure: 0, normal: 1, superRare: 2, jogress: 3 },
     questOnlyMax: 1, // 降臨（クエスト限定）は激レアでもアビリティはここまで（ガチャより弱く）
-    questTierSlots: { bakuzetsu: 2, lastBoss: 3 }, // 降臨の格ごとのアビリティの数（爆絶級・ラスボス級）
+    questTierSlots: { bakuzetsu: 2, lastBoss: 3 }, // 降臨の格ごとのアビリティの数（爆絶級・城主級）
   },
 
   // クエスト：出撃したら、その日のうちに倒す勝負。出撃してからのセットがそのままダメージになる（何回でも挑戦できる）
@@ -135,7 +135,8 @@ export const CONFIG = {
     setDamage: 2.5, // 筋トレ1セット（全員が攻撃。セットの部位と一致するモンスターは × partMatch）
     partMatch: 2,
     rollerDamage: 4, // 腹筋ローラー1セット（全員で攻撃）
-    weakSlot: 2, // ボスの弱点種目のセット
+    weakSlot: 2, // ボスの弱点種目のセット（ボスの部位の補正にさらに掛かる）
+    bossPart: 1.3, // ボスの部位（胸腕・脚・背肩）の種目のセットは、どれでもこの倍率。中でも弱点種目がいちばん効く
     offElementChozetsu: 0.5, // 超絶では、ボスの属性に有利な属性を持たないモンスターの攻撃はこの倍率
     offElementBakuzetsu: 1 / 3, // 爆絶ではこの倍率
     zeroBonus: 1.2, // 零属性の子は、どのクエストでも攻撃がこの倍率（弱点はつけないが、半減もされない）
@@ -269,7 +270,7 @@ export const CONFIG = {
   },
 
   // 零の孤城：エンドコンテンツ。全11階を下から1階ずつ、報酬は各階1回だけ（作り直しはしない）
-  // 1〜10階：爆絶のボス（爆絶級の降臨）を炎・水・木・光・闇の順に2周。11階：ラスボス級の降臨が零属性のラスボスになる
+  // 1〜10階：爆絶のボス（爆絶級の降臨）を炎・水・木・光・闇の順に2周。11階：城主級の降臨が零属性の城主になる
   castle: {
     floors: 11,
     elementOrder: ['fire', 'water', 'wood', 'light', 'dark'] as const,
@@ -282,7 +283,7 @@ export const CONFIG = {
     } as Record<number, BoosterKey[]>, // ブースター詰め合わせ
     sticks: { 3: 1, 7: 1, 11: 2 } as Record<number, number>, // ワクワクステッキ
     customs: { 4: 'atk2', 6: 'atk3', 8: 'fav', 10: 'atk3' } as Record<number, string>, // カスタマイズアイテム
-    eggsInsteadOfBoss: 10, // ラスボス級の降臨が登録されていないときは、11階でトク玉
+    eggsInsteadOfBoss: 10, // 城主級の降臨が登録されていないときは、11階でトク玉
   },
 
   // 編成：クエストの条件（炎が3、バリアブレイカーが3…）を出撃する6体の合計で満たす
@@ -433,7 +434,7 @@ export const CONFIG = {
       },
     },
     questOnlyAttackBonusMax: 3000, // 降臨（クエスト限定）の攻撃力の上乗せはここまで（ガチャの激レア4500より弱く）
-    questTierAttack: { bakuzetsu: 4500, lastBoss: 6000 }, // 爆絶級はガチャの激レアと同じ、ラスボス級はその上
+    questTierAttack: { bakuzetsu: 4500, lastBoss: 6000 }, // 爆絶級はガチャの激レアと同じ、城主級はその上
     // 星は進化形態だけで決まる（レア度は関係ない）：1段目が★1、進化するたびに1つ増える（最大 maxStars）
     // ジョグレスの隠しモンスターは、レシピで決めた「生まれるときの星」から（決めていなければ jogressDefaultBirth）
     // レア度は星には出さず、攻撃力の上乗せ（attackBonus）にだけ効く。ジョグレスは jogressAttackBonus

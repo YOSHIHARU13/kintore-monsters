@@ -8,7 +8,7 @@ import { castleCleared, lastBossOf } from '../lib/castle'
 import { towerRewardText } from './Tower'
 import type { Go } from '../nav'
 
-/** 零の孤城：全11階のエンドコンテンツ。1〜10階は爆絶のボス、11階は零属性のラスボス。報酬は各階1回だけ */
+/** 零の孤城：全11階のエンドコンテンツ。1〜10階は爆絶のボス、11階は零属性の城主。報酬は各階1回だけ */
 export function Castle({ go }: { go: Go }) {
   const { state, castle, defs } = useStore()
   const cleared = castleCleared(state)
@@ -25,7 +25,7 @@ export function Castle({ go }: { go: Go }) {
       </p>
       <p className="muted small">
         どの階も爆絶（属性が合わない子の攻撃は3分の1）。弱点属性とアビリティの持ち物検査がきびしく、2アビ・3アビの噛み合った子がいないと満たせません。
-        最上階のラスボスは{ZERO_LABEL}：弱点がない代わりに、いろんな属性の子をそろえるほど強くなれます。
+        最上階の城主は{ZERO_LABEL}：弱点がない代わりに、いろんな属性の子をそろえるほど強くなれます。
       </p>
       <ol className="tower castle">
         {[...castle].reverse().map((f) => {
@@ -62,7 +62,7 @@ export function Castle({ go }: { go: Go }) {
       </ol>
       {!lastBossOf(defs) && (
         <p className="muted small">
-          ラスボス級の降臨がまだいないので、最上階はトク玉になります。降臨モンスターの登録で「降臨の格：ラスボス級」を選ぶと、最上階のボスになり、倒すともらえます。
+          城主級の降臨がまだいないので、最上階はトク玉になります。降臨モンスターの登録で「降臨の格：城主級」を選ぶと、最上階のボスになり、倒すともらえます。
         </p>
       )}
       {!defs.some((d) => d.questOnly && d.questTier === 'bakuzetsu') && (

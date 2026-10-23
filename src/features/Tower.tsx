@@ -26,7 +26,7 @@ export function towerRewardText(floor: TowerFloor, defs: MonsterDef[], state: Ga
   if (r.custom) parts.push(itemLabel(r.custom))
   const castle = isCastleQuest(floor.quest.id)
   if (r.monsterDefId)
-    parts.push(`${castle ? '👑' : '🗼'}${defs.find((d) => d.id === r.monsterDefId)?.name ?? (castle ? 'ラスボス' : '塔限定モンスター')}`)
+    parts.push(`${castle ? '👑' : '🗼'}${defs.find((d) => d.id === r.monsterDefId)?.name ?? (castle ? '城主' : '塔限定モンスター')}`)
   return parts.join('・')
 }
 

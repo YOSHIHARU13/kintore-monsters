@@ -373,7 +373,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
                   [
                     [null, `通常（アビリティ${CONFIG.gimmicks.questOnlyMax}）`],
                     ['bakuzetsu', `爆絶級（アビリティ${CONFIG.gimmicks.questTierSlots.bakuzetsu}・攻撃力+${CONFIG.gacha.questTierAttack.bakuzetsu}）`],
-                    ['lastBoss', `ラスボス級（アビリティ${CONFIG.gimmicks.questTierSlots.lastBoss}・攻撃力+${CONFIG.gacha.questTierAttack.lastBoss}）`],
+                    ['lastBoss', `城主級（アビリティ${CONFIG.gimmicks.questTierSlots.lastBoss}・攻撃力+${CONFIG.gacha.questTierAttack.lastBoss}）`],
                   ] as const
                 ).map(([k, label]) => (
                   <button key={label} type="button" className={`chip${questTier === k ? ' on' : ''}`} onClick={() => setQuestTier(k)}>
@@ -382,7 +382,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
                 ))}
               </div>
               <span className="muted small">
-                爆絶級は爆絶のクエストと孤城の1〜10階のボスに、ラスボス級は孤城の11階（零属性のラスボス）になります。
+                爆絶級は爆絶のクエストと孤城の1〜10階のボスに、城主級は孤城の11階（零属性の城主）になります。
               </span>
             </div>
           )}

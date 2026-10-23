@@ -800,7 +800,7 @@ describe('画面の表示', () => {
     expect(go).toHaveBeenCalledWith({ name: 'monster', id: 'k' })
   })
 
-  it('クエスト一覧：超絶・究極・極・素材の見出しで分かれ、バナーに格のリボンが付く', async () => {
+  it('クエスト：入口から選んで一覧へ。一覧は格の見出しで分かれ、バナーに格のリボンが付く', async () => {
     const { Quests } = await import('./Quests')
     const base = { bossDefId: 'm2', attr: 'legs' as const, weakSlots: [], hp: { easy: 1, normal: 1, hard: 1 }, catchphrase: '', theme: '', createdAt: 1 }
     fake.store.quests = [
@@ -809,9 +809,19 @@ describe('画面の表示', () => {
       { ...base, id: 'c', name: '修練場', kind: 'material' as const },
     ]
     fake.store.state = { ...state, clearedQuests: { b: 2 } }
-    const el = await render(<Quests go={go} />)
+    // まずは入口の一覧（Monstのように、選ぶと中のクエストが出る）
+    const top = await render(<Quests go={go} />)
+    expect([...top.querySelectorAll('.quest-entry strong')].map((e) => e.textContent)).toEqual([
+      'クエスト', '零の孤城', '試練の塔', '素材クエスト', '神殿',
+    ]) // 書庫は終わったコラボがあるときだけ
+    expect(top.textContent).toContain('（1/2クリア）')
+    await click('素材クエスト')
+    expect(go).toHaveBeenCalledWith({ name: 'quests', category: 'material' })
+    const mat = await render(<Quests go={go} category="material" />)
+    expect([...mat.querySelectorAll('.quest-group-head')].map((h) => h.textContent)).toEqual(['素材 0/1'])
+    const el = await render(<Quests go={go} category="boss" />)
     const heads = [...el.querySelectorAll('.quest-group-head')].map((h) => h.textContent)
-    expect(heads).toEqual(['超絶 1/1', '極 0/1', '素材 0/1'])
+    expect(heads).toEqual(['超絶 1/1', '極 0/1'])
     // アイコン表示（最初はこれ）：格の色の枠と、クリア済みの✓
     expect(el.querySelector('.quest-icon.frame-chozetsu .quest-cleared')).not.toBeNull()
     expect(el.querySelector('.quest-icon.frame-kiwami .quest-cleared')).toBeNull()
@@ -843,8 +853,8 @@ describe('画面の表示', () => {
     fake.store.state = { ...state, challenge: { date: TODAY, questId: 'q2', difficulty: 'easy', party: ['o1'], startTs: 0 } }
     fake.store.weekSets = [past(1, 10, 5, TODAY)]
     fake.store.claimQuest = vi.fn(() => ({ monsterId: null, drops: [{ icon: '💎', label: '健脚の核', count: 0 }], gold: 25 }))
+    expect((await render(<Quests go={go} category="material" />)).textContent).toContain('💎 素材・健脚の核')
     const el = await render(<Quests go={go} />)
-    expect(el.textContent).toContain('💎 素材・健脚の核')
     await click('報酬を受け取る（健脚の核のくじ')
     expect(el.textContent).toContain('今回は健脚の核が落ちなかった')
     expect(el.textContent).not.toContain('会いに行く')
@@ -873,7 +883,7 @@ describe('画面の表示', () => {
     expect(fake.store.removeCustom).toHaveBeenCalledWith('o1')
   })
 
-  it('零の孤城：下から1階ずつ。報酬は1回きりで、最上階は零属性のラスボス', async () => {
+  it('零の孤城：下から1階ずつ。報酬は1回きりで、最上階は零属性の城主', async () => {
     const { Castle } = await import('./Castle')
     const { castleFloors } = await import('../lib/castle')
     const king: MonsterDef = { id: 'king', name: 'ゼロキング', attr: 'legs', templateId: 'single', images: {}, questOnly: true, questTier: 'lastBoss', createdAt: 9 }

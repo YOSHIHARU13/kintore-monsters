@@ -60,7 +60,7 @@ function Screen({ view, go }: { view: View; go: (v: View) => void }) {
     case 'shop':
       return <Shop go={go} />
     case 'quests':
-      return <Quests go={go} />
+      return <Quests key={view.category ?? 'top'} go={go} category={view.category} />
     case 'quest':
       return <QuestDetail key={view.id} id={view.id} go={go} />
     case 'tower':

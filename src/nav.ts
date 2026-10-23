@@ -11,7 +11,7 @@ export type View =
   | { name: 'monster'; id: string }
   | { name: 'shop' }
   | { name: 'gachaForm'; id?: string }
-  | { name: 'quests' }
+  | { name: 'quests'; category?: QuestCategory }
   | { name: 'quest'; id: string }
   | { name: 'tower' }
   | { name: 'castle' }
@@ -24,6 +24,9 @@ export type View =
   | { name: 'more' }
   | { name: 'items' }
   | { name: 'customItems' }
+
+/** クエストの入口（ボスのクエスト・素材・神殿・書庫。孤城と塔は別の画面） */
+export type QuestCategory = 'boss' | 'material' | 'temple' | 'archive'
 
 export type Go = (view: View) => void
 

@@ -15,7 +15,7 @@ export function castleCleared(state: Pick<GameState, 'castle'>): number {
   return state.castle?.cleared ?? 0
 }
 
-/** ラスボス：ラスボス級の降臨（図鑑の番号順で最初の子） */
+/** 城主：城主級の降臨（図鑑の番号順で最初の子） */
 export function lastBossOf(defs: MonsterDef[]): MonsterDef | undefined {
   return defs.find((d) => d.questOnly && d.questTier === 'lastBoss')
 }
@@ -51,7 +51,7 @@ export function castleLineup(defs: MonsterDef[], quests: Pick<Quest, 'kind' | 'g
   })
 }
 
-/** 零の孤城の11階ぶん。どの階も爆絶。11階は零属性のラスボス（属性の種類を求める） */
+/** 零の孤城の11階ぶん。どの階も爆絶。11階は零属性の城主（属性の種類を求める） */
 export function castleFloors(defs: MonsterDef[], gimmicks: string[], quests: Quest[] = []): TowerFloor[] {
   const c = CONFIG.castle
   const lineup = castleLineup(defs, quests)
@@ -60,7 +60,7 @@ export function castleFloors(defs: MonsterDef[], gimmicks: string[], quests: Que
     const floor = i + 1
     const top = floor === c.floors
     const boss = top ? (lastBoss ?? lineup[lineup.length - 1]) : lineup[i]
-    // ラスボスは零属性として戦う（弱点がない代わりに、属性の種類を求める）
+    // 城主は零属性として戦う（弱点がない代わりに、属性の種類を求める）
     const asBoss = boss && top ? ({ ...boss, element: undefined, jogressElements: [] } as MonsterDef) : boss
     const element = top ? undefined : boss ? elementInfo(boss).elements[0] : undefined
     const attr = boss ? nodeAttr(boss, FIRST_NODE_ID) : 'none'

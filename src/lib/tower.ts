@@ -30,7 +30,7 @@ export interface TowerReward {
   booster: BoosterKey | null // ブースター
   boosters?: BoosterKey[] // ブースター詰め合わせ（孤城）
   custom?: string // カスタマイズアイテム（孤城）
-  monsterDefId: string | null // 塔限定モンスター（孤城ではラスボス）
+  monsterDefId: string | null // 塔限定モンスター（孤城では城主）
 }
 
 export const TOWER_PREFIX = 'tower-'

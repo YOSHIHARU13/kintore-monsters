@@ -115,12 +115,12 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
     if (!boss) return setError('ボスにするモンスターを選んでください')
     if (DIFFICULTIES.some((d) => !(draft.hp[d] > 0))) return setError('HPは1以上にしてください')
     saveQuest({ id: existing?.id, name, kind, bossDefId, attr, element, weakSlots, requirements, customGimmicks, hp: draft.hp, rank, grade, catchphrase, theme })
-    go({ name: 'quests' })
+    go({ name: 'quests', category: 'boss' })
   }
 
   return (
     <div className="page">
-      <button className="back" onClick={() => go({ name: 'quests' })}>
+      <button className="back" onClick={() => go({ name: 'quests', category: 'boss' })}>
         ← クエストに戻る
       </button>
       <h1 className="title">{existing ? 'クエストの編集' : 'クエストを作る'}</h1>
@@ -511,7 +511,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
           onClick={() => {
             if (!confirmDelete) return setConfirmDelete(true)
             deleteQuest(existing.id)
-            go({ name: 'quests' })
+            go({ name: 'quests', category: 'boss' })
           }}
         >
           {confirmDelete ? '本当に消す' : 'このクエストを消す'}
