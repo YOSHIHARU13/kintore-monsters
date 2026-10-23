@@ -59,12 +59,13 @@ import {
 } from './lib/fusion'
 import { autoPartners } from './lib/partner'
 import { finalAttrs, recommend } from './lib/coverage'
-import { abilitySlots, jogressGradeOf, selectableGimmicks } from './lib/gimmick'
+import { abilitySlots, allGimmicks, jogressGradeOf, selectableGimmicks } from './lib/gimmick'
 import { boostActive } from './lib/boosters'
 import { canShinka, shinkaFoods } from './lib/shinka'
 import { availableEvents, claimKey } from './lib/events'
 import { activeToday, currentStats, loginReady, loginReward, type Reward } from './lib/missions'
-import { builtinMaterialQuests } from './lib/materials'
+import { builtinMaterialQuests, builtinTempleQuests } from './lib/materials'
+import { itemInfo, itemLabel, rollTempleItems } from './lib/custom'
 import { tagsOfDef } from './lib/tags'
 import type { Period, Periods } from './lib/series'
 import { TOWER_VERSION, towerCleared, towerFloors, towerMonth, type FixedFloor, type TowerFloor } from './lib/tower'
@@ -265,6 +266,13 @@ interface Store {
   claimQuest: () => QuestReward | null
   /** 余った結晶か核をトク玉1個と交換する */
   exchangeMaterial: (kind: 'stone' | 'muscle', key: string) => void
+  /**
+   * カスタマイズ枠にアイテムを付ける（favoriteSlot は「得意種目の追加」で選んだ種目）。
+   * 前に付けていたアイテムは消える。useStick なら、ワクワクステッキを1本使って前のアイテムを持ち物に戻す
+   */
+  attachCustom: (monsterId: string, itemKey: string, favoriteSlot?: string, useStick?: boolean) => void
+  /** ワクワクステッキを使って、付けているアイテムを外して持ち物に戻す */
+  removeCustom: (monsterId: string) => void
   /** たまっているランクアップ報酬をまとめて受け取る。受け取ったトク玉の数 */
   claimRanks: () => number
   setSlot: (slotId: string, exerciseId: string) => void
@@ -459,7 +467,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         return boss
           ? { ...q, name, autoName, element: elementInfo(boss).elements[0], bossTags: tagsOfDef(boss) }
           : { ...q, name, autoName }
-      }).concat(builtinMaterialQuests(defs, today, selectableGimmicks(questDocs)).map((q) => ({ ...q, bossTags: tagsOfDef(defs.find((d) => d.id === q.bossDefId)) }))),
+      }).concat([...builtinMaterialQuests(defs, today, selectableGimmicks(questDocs)), ...builtinTempleQuests(defs, today, selectableGimmicks(questDocs))].map((q) => ({ ...q, bossTags: tagsOfDef(defs.find((d) => d.id === q.bossDefId)) }))),
     [questDocs, defs, today],
   )
   const yesterday = useMemo(() => prevDateKey(today), [today])
@@ -1207,7 +1215,19 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       let monsterId: string | null = null
       let coins = 0
       const drops: ItemDrop[] = []
-      if (material) {
+      if (kind === 'custom') {
+        // 神殿：カスタマイズアイテム（運極がいると、くじが増える）
+        const level = c.difficulty === 'hard' ? 'hard' : 'normal'
+        const items = rollTempleItems(level, bonus.count, selectableGimmicks(questDocs), Math.random)
+        const all = boost > 1 ? [...items, ...items] : items
+        const counts: Record<string, number> = {}
+        for (const k of all) counts[k] = (counts[k] ?? 0) + 1
+        for (const [k, n] of Object.entries(counts)) {
+          update[`customItems.${k}`] = increment(n)
+          drops.push({ icon: '', label: itemLabel(k, allGimmicks(questDocs)), count: n })
+        }
+        if (all.length === 0) drops.push({ icon: '🏛', label: 'カスタマイズアイテム', count: 0 })
+      } else if (material) {
         // 素材クエスト：くじを引いた数だけ落ちる（運極がいるとくじが増える）
         const misses = state.coreMisses[battle.quest.id] ?? 0
         const drop = rollMaterialDrop(kind, c.difficulty, bonus.count, kind === 'ball' ? misses : 0, Math.random)
@@ -1286,6 +1306,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const coreKey = floor.quest.attr === 'none' ? null : (floor.quest.attr as CoreKey)
       if (cores > 0 && coreKey) update[`cores.${coreKey}`] = increment(cores)
       if (floor.reward.booster) update[`boosters.${floor.reward.booster}`] = increment(1)
+      if (floor.reward.sticks) update.sticks = increment(floor.reward.sticks)
       let monsterId: string | null = null
       if (floor.reward.monsterDefId) {
         const shiny = false // 色違いはなくなった
@@ -1308,7 +1329,10 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       return {
         monsterId,
         defId: floor.reward.monsterDefId,
-        drops: cores > 0 && coreKey ? [{ icon: DROP_ICON.muscle, label: CORE_LABEL[coreKey], count: cores }] : [],
+        drops: [
+          ...(cores > 0 && coreKey ? [{ icon: DROP_ICON.muscle, label: CORE_LABEL[coreKey], count: cores }] : []),
+          ...(floor.reward.sticks ? [{ icon: '🪄', label: 'ワクワクステッキ', count: floor.reward.sticks }] : []),
+        ],
         coins,
         booster: floor.reward.booster,
         boosted: boost > 1,
@@ -1324,6 +1348,35 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const have = kind === 'stone' ? stonesOf(state, key as Element) : coresOf(state, key as CoreKey)
       if (have < need) return
       updateState({ [`${kind === 'stone' ? 'stones' : 'cores'}.${key}`]: increment(-need), eggs: increment(1) })
+    }
+
+    const attachCustom: Store['attachCustom'] = (monsterId, itemKey, favoriteSlot, useStick) => {
+      const mon = owned.find((o) => o.id === monsterId)
+      if (!mon || (state.customItems?.[itemKey] ?? 0) < 1) return
+      if (itemInfo(itemKey).kind === 'favorite' && !favoriteSlot) return
+      const keep = !!useStick && !!mon.custom
+      if (keep && (state.sticks ?? 0) < 1) return
+      const update: DocumentData = { [`customItems.${itemKey}`]: increment(-1) }
+      if (keep) {
+        update.sticks = increment(-1)
+        update[`customItems.${mon.custom}`] = increment(1)
+      }
+      const batch = writeBatch(db)
+      batch.update(doc(db, base, 'ownedMonsters', monsterId), {
+        custom: itemKey,
+        customSlot: favoriteSlot ?? deleteField(),
+      })
+      batch.update(stateRef, update)
+      batch.commit().catch(fail)
+    }
+
+    const removeCustom: Store['removeCustom'] = (monsterId) => {
+      const mon = owned.find((o) => o.id === monsterId)
+      if (!mon?.custom || (state.sticks ?? 0) < 1) return
+      const batch = writeBatch(db)
+      batch.update(doc(db, base, 'ownedMonsters', monsterId), { custom: deleteField(), customSlot: deleteField() })
+      batch.update(stateRef, { sticks: increment(-1), [`customItems.${mon.custom}`]: increment(1) })
+      batch.commit().catch(fail)
     }
 
     const claimRanks: Store['claimRanks'] = () => {
@@ -1408,6 +1461,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       quitChallenge,
       claimQuest,
       exchangeMaterial,
+      attachCustom,
+      removeCustom,
       claimRanks,
       deleteGacha,
     }

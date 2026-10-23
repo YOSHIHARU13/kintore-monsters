@@ -1,6 +1,7 @@
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 import type { Attr } from '../data/exercises'
 import { BALL_LABEL, CORE_LABEL, STONE_LABEL } from './cores'
+import { ELEMENT_LABEL } from './element'
 import { ELEMENTS, elementInfo } from './element'
 import { rarityOf } from './gacha'
 import { DIFFICULTIES, defaultHp } from './quest'
@@ -110,6 +111,46 @@ export function builtinMaterialQuests(defs: MonsterDef[], today: string, gimmick
       rank: 1,
       catchphrase: slot.catchphrase,
       theme: 'flame',
+      createdAt: 0,
+    } as Quest
+  })
+}
+
+/**
+ * 神殿：5属性ぶん、最初から用意しておく。カスタマイズアイテムが落ちる。
+ * 敵はその属性のノーマル（いなければハズレ）から日替わり。難易度は「時の間」（上級なみ）と「修羅場」（究極なみ）
+ */
+export function builtinTempleQuests(defs: MonsterDef[], today: string, gimmicks: string[] = []): Quest[] {
+  const looks = defs.filter((d) => !isHidden(d) && !d.questOnly)
+  const day = Math.floor(Date.parse(`${today}T12:00:00Z`) / 86400000)
+  return ELEMENTS.map((e) => {
+    const sameEl = looks.filter((d) => elementInfo(d).elements.includes(e))
+    const pool = [sameEl.filter((d) => rarityOf(d) === 'normal'), sameEl, looks].find((p) => p.length > 0) ?? []
+    const enemy = pool.length > 0 ? pool[day % pool.length] : undefined
+    const requirementsBy: Partial<Record<QuestDifficulty, Requirement[]>> = {}
+    const weakSlotsBy: Partial<Record<QuestDifficulty, string[]>> = {}
+    for (const d of ['normal', 'hard'] as const) {
+      const setup = enemy ? autoQuestSetup(enemy, 'kiwami', 'material', [], gimmicks, undefined, defs, false, d) : null
+      requirementsBy[d] = setup?.requirements ?? []
+      weakSlotsBy[d] = setup?.weakSlots ?? []
+    }
+    return {
+      id: `${MATERIAL_PREFIX}temple-${e}`,
+      name: `🏛 ${ELEMENT_LABEL[e]}の神殿`,
+      kind: 'material',
+      builtin: true,
+      drop: 'custom',
+      bossDefId: enemy?.id ?? '',
+      attr: 'none',
+      element: e,
+      weakSlots: weakSlotsBy.normal ?? [],
+      requirements: requirementsBy.normal ?? [],
+      requirementsBy,
+      weakSlotsBy,
+      hp: defaultHp(1, 'material'),
+      rank: 1,
+      catchphrase: 'カスタマイズアイテムが眠る神殿',
+      theme: 'royal',
       createdAt: 0,
     } as Quest
   })

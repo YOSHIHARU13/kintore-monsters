@@ -1,4 +1,5 @@
 import { useStore } from '../store'
+import { customized, isFavorite } from '../lib/custom'
 import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { SLOTS, exerciseOfSlot } from '../data/exercises'
 import { CONFIG } from '../config/gameConfig'
@@ -63,7 +64,7 @@ export function PartnerPick({ slotId, go }: { slotId: string; go: Go }) {
                     <br />
                     <span className="small">攻撃力 {attackOf(mon, def).toLocaleString()}　</span>
                     <strong className="bonus-reward">EXP{rateText(rate)}</strong>
-                    {def.favoriteSlot === slotId && <span className="tag keep"> 得意種目！</span>}
+                    {isFavorite(customized(def, mon), slotId) && <span className="tag keep"> 得意種目！</span>}
                     {other && other !== slotId && (
                       <span className="muted small">（いまは「{slotName(other)}」の相棒。選ぶとこちらに移ります）</span>
                     )}

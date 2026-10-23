@@ -26,6 +26,7 @@ export interface TowerReward {
   gold: number
   eggs: number
   cores: number // ボスの部位の核
+  sticks?: number // ワクワクステッキ
   booster: BoosterKey | null // ブースター
   monsterDefId: string | null // 塔限定モンスター
 }
@@ -154,6 +155,7 @@ export function towerFloors(
       eggs: (t.eggs[floor] ?? 0) + (mi >= 0 && !prize ? t.eggsInsteadOfMonster : 0),
       cores: t.cores[floor] ?? 0,
       booster: t.boosters[floor] ?? null,
+      sticks: t.sticks[floor] ?? 0,
       monsterDefId: prize?.id ?? null,
     }
     return { floor, quest, reward }

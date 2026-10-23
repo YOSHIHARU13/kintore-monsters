@@ -18,6 +18,7 @@ import { ElementBadge } from '../components/ElementBadge'
 import { BALL_LABEL, CORE_LABEL, STONE_LABEL, ballsOf, coresOf, stonesOf } from '../lib/cores'
 import { attackOf, isJogressReady, jogressNeed } from '../lib/stats'
 import { MonsterImage } from '../components/MonsterImage'
+import { CustomSlot } from '../components/CustomSlot'
 import { ATTR_COLOR, type Go } from '../nav'
 import { investedFor, isHidden, monsterName, nodeAttr, plusName, type MonsterDef } from '../types'
 
@@ -193,10 +194,13 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
         <p className="muted small">{template.name}</p>
         <p className="small">
           得意種目：{favoriteName ?? '未設定'}
+          {mon.custom === 'fav' && mon.customSlot && mon.customSlot !== def.favoriteSlot && `・${slotName(mon.customSlot)}（カスタマイズ）`}
 
         </p>
         {partnerSlot && <span className="badge">「{slotName(partnerSlot)}」の相棒</span>}
       </section>
+
+      <CustomSlot mon={mon} def={def} />
 
       {cost ? (
         <section className="card">

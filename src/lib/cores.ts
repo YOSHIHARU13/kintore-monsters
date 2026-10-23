@@ -33,12 +33,16 @@ export function dropOf(quest: Pick<Quest, 'drop' | 'attr'>): MaterialDrop {
 export function dropLabel(quest: Pick<Quest, 'drop' | 'attr' | 'element'>): string {
   const kind = dropOf(quest)
   if (kind === 'coins') return '進化コイン'
+  if (kind === 'custom') return 'カスタマイズアイテム'
   if (kind === 'ball') return BALL_LABEL
   if (kind === 'stone') return quest.element ? STONE_LABEL(quest.element) : '結晶'
   return quest.attr === 'none' ? BALL_LABEL : CORE_LABEL[quest.attr]
 }
 
-export const DROP_ICON: Record<MaterialDrop, string> = { stone: '💠', muscle: '💎', ball: '🟣', coins: '🪙' }
+export const DROP_ICON: Record<MaterialDrop, string> = { stone: '💠', muscle: '💎', ball: '🟣', coins: '🪙', custom: '🏛' }
+
+/** くじで数が決まる素材（神殿のアイテムは別：lib/custom） */
+export type LotDrop = Exclude<MaterialDrop, 'custom'>
 
 export interface Drop {
   count: number // 落ちた数（0なら落ちなかった）
@@ -61,7 +65,7 @@ export function rollLots(
  * 筋肉玉だけは、続けて落ちないと（misses が天井の回数に届くと）次は必ず1個。
  */
 export function rollMaterialDrop(
-  kind: MaterialDrop,
+  kind: LotDrop,
   difficulty: QuestDifficulty,
   luckCount: number,
   misses: number,
@@ -74,7 +78,7 @@ export function rollMaterialDrop(
 }
 
 /** くじの期待値（画面の目安） */
-export function expectedDrop(kind: MaterialDrop, difficulty: QuestDifficulty, luckCount: number): number {
+export function expectedDrop(kind: LotDrop, difficulty: QuestDifficulty, luckCount: number): number {
   const d = CONFIG.materials.drops[kind][difficulty]
   return (d.rolls + luckCount * CONFIG.materials.luckRolls) * d.rate * d.amount
 }

@@ -42,6 +42,8 @@ export interface GameState {
   pity: Record<string, number> // ガチャごとの、激レアが出ないまま引いた回数（天井用）
   cores: Partial<Record<FormAttr, number>> // 進化素材：部位の核（胸腕・脚・背肩）。none は筋肉玉（以前の無垢の核）
   stones?: Partial<Record<Element, number>> // 進化素材：属性の結晶
+  customItems?: Record<string, number> // カスタマイズアイテムの所持数（itemKey → 個数）
+  sticks?: number // ワクワクステッキ（付け直すとき、前のアイテムを持ち物に戻せる）
   coreMisses: Record<string, number> // 素材クエストごとの、筋肉玉が続けて落ちなかった回数（天井用）
   activeMonsterId: string | null // 旧：育成中のモンスター（今は使っていない）
   partners: Record<string, string> // 種目の枠ID → 相棒のモンスター（OwnedMonster.id）
@@ -122,6 +124,8 @@ export interface MonsterDef {
   questOnly?: boolean // クエスト限定（ガチャには出ない。クエストのボスとして倒すと手に入る）
   tower?: boolean // 試練の塔の報酬（降臨のうち。5階・10階で月替わりにもらえる）
   abilities?: string[] // アビリティ：対応するギミック名で持つ（例：'バリア' ならアーク）
+  extraAbilities?: string[] // カスタマイズで足したアビリティ（読み込んだ個体に付くだけ。保存はしない）
+  extraFavorite?: string // カスタマイズで足した得意種目（同上）
   rarity?: RarityKey | 'rare' // レア度（なければノーマル。以前の「レア」は激レアとして扱う）
   common?: boolean // 旧形式：ハズレ枠（レア度ができる前のデータ）
   createdAt: number
@@ -153,7 +157,7 @@ export interface Gacha {
 export type QuestDifficulty = 'easy' | 'normal' | 'hard'
 
 /** 素材クエストで落ちるもの：属性の結晶・部位の核・筋肉玉・進化コイン */
-export type MaterialDrop = 'stone' | 'muscle' | 'ball' | 'coins'
+export type MaterialDrop = 'stone' | 'muscle' | 'ball' | 'coins' | 'custom' // custom：神殿のカスタマイズアイテム
 export type QuestGrade = 'jokyu' | 'kiwami' | 'kyukyoku' | 'chozetsu' | 'chokyukyoku'
 
 /** クエストが求める人材の条件（タグ：'el:fire' のような属性か、'ab:バリア' のようなアビリティ） */
@@ -218,6 +222,8 @@ export interface OwnedMonster {
   plusFrom?: Partial<Record<ExpSource, AttrExp>> // 次の＋に向けて、どの財布から注いだか（返却用）
   shiny?: boolean // 色違い
   shinka?: boolean // 神化：最終形態の激レアが、降臨を素材に★4になった
+  custom?: string // カスタマイズ枠に付けたアイテム（lib/custom の itemKey）
+  customSlot?: string // 「得意種目の追加」で選んだ種目の枠ID
   obtainedAt: number
 }
 

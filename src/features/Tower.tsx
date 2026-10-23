@@ -19,6 +19,7 @@ export function towerRewardText(floor: TowerFloor, defs: MonsterDef[], state: Ga
   if (r.eggs > 0) parts.push(`🟡トク玉×${r.eggs}`)
   if (r.cores > 0 && floor.quest.attr !== 'none') parts.push(`💎${CORE_LABEL[floor.quest.attr]}×${r.cores}`)
   if (r.booster) parts.push(boosterName(state, r.booster))
+  if (r.sticks) parts.push(`🪄ワクワクステッキ×${r.sticks}`)
   if (r.monsterDefId) parts.push(`🗼${defs.find((d) => d.id === r.monsterDefId)?.name ?? '塔限定モンスター'}`)
   return parts.join('・')
 }

@@ -24,7 +24,8 @@ export function tagsOf(def: MonsterDef): Record<Tag, number> {
   const tags: Record<Tag, number> = {}
   const el = elementInfo(def)
   for (const e of el.elements) tags[elementTag(e)] = (tags[elementTag(e)] ?? 0) + (el.super ? 2 : 1)
-  const abilities = (def.abilities ?? []).slice(0, abilitySlots(def))
+  // カスタマイズで足したアビリティは、持てる数とは別に数える
+  const abilities = [...new Set([...(def.abilities ?? []).slice(0, abilitySlots(def)), ...(def.extraAbilities ?? [])])]
   for (const g of abilities) tags[abilityTag(g)] = (tags[abilityTag(g)] ?? 0) + 1
   // 2つのアビリティを両方持っていれば「両方」の条件にも数える
   for (let i = 0; i < abilities.length; i++)

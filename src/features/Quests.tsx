@@ -8,7 +8,7 @@ import { MonsterImage } from '../components/MonsterImage'
 import { QuestBanner } from '../components/QuestBanner'
 import { bannerNodeOf } from '../components/GachaBanner'
 import { useBattle } from '../components/BattleBar'
-import { defaultBossHp, dropPlus, gradeOf, questGold, questLevelLabel } from '../lib/quest'
+import { defaultBossHp, dropPlus, gradeOf, isTemple, questGold, questLevelLabel } from '../lib/quest'
 
 const VIEW_KEY = 'questListView'
 
@@ -19,6 +19,7 @@ const QUEST_GROUPS = [
   { key: 'kyukyoku', label: '究極' },
   { key: 'kiwami', label: '極' },
   { key: 'jokyu', label: '上級' },
+  { key: 'temple', label: '🏛 神殿（カスタマイズアイテム）' },
   { key: 'material', label: '素材' },
   { key: 'archive', label: '📚 書庫（開催が終わったコラボ）' },
 ] as const
@@ -324,7 +325,7 @@ export function Quests({ go }: { go: Go }) {
         {QUEST_GROUPS.map(({ key, label }) => {
           const group = quests.filter((q) => {
             const st = seriesStatus(questSeries(q, defs), seriesPeriods, today).kind
-            const place = st === 'ended' ? 'archive' : q.kind === 'material' ? 'material' : gradeOf(q)
+            const place = st === 'ended' ? 'archive' : isTemple(q) ? 'temple' : q.kind === 'material' ? 'material' : gradeOf(q)
             return st !== 'upcoming' && place === key && inSeries(series, questSeries(q, defs))
           })
           if (group.length === 0) return null

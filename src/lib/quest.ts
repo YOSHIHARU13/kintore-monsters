@@ -1,11 +1,25 @@
 import { CONFIG } from '../config/gameConfig'
 import { DAYS, SLOTS, type FormAttr } from '../data/exercises'
 import { attackOf } from './stats'
+import { customized, isFavorite } from './custom'
 import { formationOf, requirementsOf } from './formation'
 import { elementInfo, hasAdvantage } from './element'
 import { nodeAttr, type Challenge, type MonsterDef, type OwnedMonster, type Quest, type QuestDifficulty, type QuestGrade, type SetRecord } from '../types'
 
 export const DIFFICULTIES: QuestDifficulty[] = ['easy', 'normal', 'hard']
+
+/** 神殿（カスタマイズアイテムが落ちる）か */
+export const isTemple = (quest: Pick<Quest, 'drop'>) => quest.drop === 'custom'
+
+/** そのクエストで選べる難易度（神殿は「時の間」「修羅場」の2つ） */
+export function levelsOf(quest: Pick<Quest, 'drop'>): QuestDifficulty[] {
+  return isTemple(quest) ? ['normal', 'hard'] : DIFFICULTIES
+}
+
+/** 難易度の名前（神殿は時の間・修羅場） */
+export function difficultyLabel(quest: Pick<Quest, 'drop'>, d: QuestDifficulty): string {
+  return isTemple(quest) && d !== 'easy' ? CONFIG.temple.labels[d] : CONFIG.quest.difficulties[d].label
+}
 
 export interface Member {
   mon: OwnedMonster
@@ -53,7 +67,7 @@ export function setHit(set: SetInfo, quest: Quest, party: Member[], label: strin
     }
     if (partAttr && attrOf(m) === partAttr) d *= q.partMatch
     if (weak) d *= q.weakSlot
-    if (m.def.favoriteSlot === set.slotId) {
+    if (isFavorite(m.def, set.slotId)) {
       d *= q.favorite
       notes.add(`${m.def.name}の得意種目`)
     }
@@ -143,7 +157,8 @@ export function battleOf(
   const party = challenge.party.flatMap((id) => {
     const mon = owned.find((o) => o.id === id)
     const def = mon && defs.find((d) => d.id === mon.defId)
-    return mon && def ? [{ mon, def }] : []
+    // カスタマイズ（得意種目・アビリティの追加）もそのまま効く
+    return mon && def ? [{ mon, def: customized(def, mon) }] : []
   })
   const sets = weekSets.filter((s) => s.ts >= challenge.startTs && s.date === today)
   const hits = questHits(quest, party, sets, exerciseName)
@@ -200,8 +215,8 @@ export function dropPlus(quest: Pick<Quest, 'grade' | 'rank'>): number {
 }
 
 /** クエストの格や難易度の表示（例：超絶、素材の上級） */
-export function questLevelLabel(quest: Pick<Quest, 'kind' | 'grade' | 'rank'>, difficulty: QuestDifficulty): string {
-  return quest.kind === 'material' ? CONFIG.quest.difficulties[difficulty].label : CONFIG.quest.grades[gradeOf(quest)].label
+export function questLevelLabel(quest: Pick<Quest, 'kind' | 'grade' | 'rank' | 'drop'>, difficulty: QuestDifficulty): string {
+  return quest.kind === 'material' ? difficultyLabel(quest, difficulty) : CONFIG.quest.grades[gradeOf(quest)].label
 }
 
 /** ボスクエストのHPの初期値：1回のトレーニングで与えるダメージの目安 × 格 */

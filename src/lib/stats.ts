@@ -1,6 +1,7 @@
 import { CONFIG } from '../config/gameConfig'
 import { getNode, getTemplate } from '../data/evolutionTemplates'
 import { rarityOf, starsOf } from './gacha'
+import { customAttack } from './custom'
 import { isHidden, type MonsterDef, type OwnedMonster } from '../types'
 
 /**
@@ -20,7 +21,7 @@ export function attackOf(mon: OwnedMonster, def: MonsterDef): number {
     : def.questOnly
       ? Math.min(CONFIG.gacha.rarities[rarityOf(def)].attackBonus, CONFIG.gacha.questOnlyAttackBonusMax)
       : CONFIG.gacha.rarities[rarityOf(def)].attackBonus
-  return level * perStar + bonus
+  return level * perStar + bonus + customAttack(mon)
 }
 
 /** ジョグレスの条件：素材は「生まれるときの星の1つ下」以上で、どちらも最終形態 */

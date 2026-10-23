@@ -1,0 +1,53 @@
+import { describe, expect, it } from 'vitest'
+import { customAttack, customized, isFavorite, itemInfo, itemLabel, rollItem, rollTempleItems } from './custom'
+import { tagsOf } from './formation'
+import { attackOf } from './stats'
+import { partnerRate } from './partner'
+import type { MonsterDef, OwnedMonster } from '../types'
+
+const seq = (...values: number[]) => () => values.shift() ?? 0.99
+const def = { id: 'd', name: 'd', attr: 'legs', templateId: 'linear3', images: {}, createdAt: 0, rarity: 'normal', abilities: ['バリア'], favoriteSlot: 'mon1' } as MonsterDef
+const mon = (extra: Partial<OwnedMonster> = {}): OwnedMonster => ({ id: 'o', defId: 'd', nodeId: 'n1', obtainedAt: 0, ...extra })
+
+describe('カスタマイズアイテム', () => {
+  it('アイテムの名前と格', () => {
+    expect(itemLabel('atk1')).toBe('🥉 攻撃力 +500')
+    expect(itemLabel('atk3')).toBe('🥇 攻撃力 +2,000')
+    expect(itemLabel('fav')).toBe('🥈 得意種目の追加')
+    expect(itemLabel('ab:ミラー')).toBe('🥇 アビリティ追加：ルーン')
+    expect(itemInfo('ab:ミラー').grade).toBe(3)
+  })
+
+  it('くじ：銅・銀・金を決めて、銀は一部が得意種目、金は一部がアビリティ', () => {
+    expect(rollItem('normal', ['バリア'], seq(0.1))).toBe('atk1')
+    expect(rollItem('normal', ['バリア'], seq(0.7, 0.1))).toBe('fav')
+    expect(rollItem('normal', ['バリア'], seq(0.7, 0.9))).toBe('atk2')
+    expect(rollItem('normal', ['バリア'], seq(0.99, 0.1, 0))).toBe('ab:バリア')
+    expect(rollItem('normal', ['バリア'], seq(0.99, 0.9))).toBe('atk3')
+    // 修羅場は金が出やすい（20%）
+    expect(rollItem('hard', [], seq(0.85, 0.9))).toBe('atk3')
+  })
+
+  it('神殿：時の間は1個確定、修羅場は2回のくじ。運極1体ごとにくじが増える', () => {
+    expect(rollTempleItems('normal', 0, [], seq(0.5, 0.1))).toEqual(['atk1'])
+    expect(rollTempleItems('hard', 0, [], seq(0.1, 0.1, 0.1, 0.1))).toHaveLength(2)
+    expect(rollTempleItems('hard', 0, [], seq(0.9, 0.9))).toHaveLength(0)
+    expect(rollTempleItems('normal', 2, [], seq(0.5, 0.1, 0.1, 0.1, 0.9))).toHaveLength(2)
+  })
+
+  it('付けると、攻撃力・得意種目・アビリティが増える', () => {
+    expect(customAttack(mon({ custom: 'atk2' }))).toBe(1000)
+    expect(attackOf(mon({ custom: 'atk2' }), def) - attackOf(mon(), def)).toBe(1000)
+    const fav = customized(def, mon({ custom: 'fav', customSlot: 'tue1' }))
+    expect(isFavorite(fav, 'mon1')).toBe(true)
+    expect(isFavorite(fav, 'tue1')).toBe(true)
+    expect(partnerRate(mon({ custom: 'fav', customSlot: 'tue1' }), def, 'tue1')).toBeGreaterThan(partnerRate(mon(), def, 'tue1'))
+    // ノーマル（アビリティ1つまで）でも、カスタマイズのアビリティは別に数える
+    const ab = customized(def, mon({ custom: 'ab:シールド' }))
+    expect(tagsOf(ab)['ab:シールド']).toBe(1)
+    expect(tagsOf(ab)['ab:バリア']).toBe(1)
+    expect(tagsOf(ab)['ab2:シールド|バリア']).toBe(1)
+    // もともと持っているアビリティは増えない
+    expect(customized(def, mon({ custom: 'ab:バリア' }))).toBe(def)
+  })
+})

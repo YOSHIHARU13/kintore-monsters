@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { builtinMaterialQuests } from './materials'
+import { builtinMaterialQuests, builtinTempleQuests } from './materials'
 import { atDifficulty } from './quest'
 import type { MonsterDef } from '../types'
 
@@ -56,5 +56,19 @@ describe('いつでもある素材クエスト', () => {
     expect(total('hard')).toBeGreaterThan(total('normal'))
     expect(atDifficulty(q, 'hard').requirements!.some((r) => r.tag.startsWith('ab:'))).toBe(true)
     expect(atDifficulty(q, 'hard').weakSlots.length).toBeGreaterThanOrEqual(atDifficulty(q, 'easy').weakSlots.length)
+  })
+})
+
+describe('神殿', () => {
+  it('5属性ぶん。敵はその属性のノーマル、難易度は時の間・修羅場', () => {
+    const defs = [
+      def('h', { rarity: 'hazure', element: 'fire' }),
+      def('n', { rarity: 'normal', element: 'fire', abilities: ['バリア'] }),
+    ]
+    const qs = builtinTempleQuests(defs, '2026-10-23', ['バリア'])
+    expect(qs).toHaveLength(5)
+    expect(qs.every((q) => q.drop === 'custom' && q.kind === 'material')).toBe(true)
+    expect(qs[0]).toMatchObject({ id: 'mat-temple-fire', element: 'fire', bossDefId: 'n' })
+    expect(Object.keys(qs[0].requirementsBy!)).toEqual(['normal', 'hard'])
   })
 })

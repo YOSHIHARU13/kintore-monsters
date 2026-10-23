@@ -1,12 +1,13 @@
 import { CONFIG } from '../config/gameConfig'
 import { attackOf } from './stats'
+import { customized, isFavorite } from './custom'
 import type { MonsterDef, OwnedMonster } from '../types'
 
 /** そのモンスターを、その種目の枠の相棒にしたときのEXP倍率 */
 export function partnerRate(mon: OwnedMonster, def: MonsterDef, slotId: string): number {
   const { perAttack, favorite } = CONFIG.partner
   const base = 1 + perAttack * attackOf(mon, def)
-  const rate = def.favoriteSlot === slotId ? base * favorite : base
+  const rate = isFavorite(customized(def, mon), slotId) ? base * favorite : base
   return Math.round(rate * 100) / 100
 }
 

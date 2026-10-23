@@ -243,6 +243,7 @@ export const CONFIG = {
     eggs: { 2: 1, 4: 1, 7: 1, 8: 1 } as Record<number, number>, // その階でトク玉
     cores: {} as Record<number, number>, // その階でボスの部位の核
     boosters: { 3: 'habit', 6: 'exp', 9: 'quest' } as Record<number, 'habit' | 'exp' | 'quest'>, // その階でブースター
+    sticks: { 5: 1, 10: 1 } as Record<number, number>, // その階でワクワクステッキ
     monsterFloors: [11], // 塔限定モンスターがボスになり、倒すともらえる階
     eggsInsteadOfMonster: 2, // 塔限定モンスターが登録されていないときはトク玉
     elementReqFrom: 3, // この階から「適正の属性」の編成条件
@@ -332,6 +333,26 @@ export const CONFIG = {
     bossBonus: { rolls: 2, rate: 0.5, amount: 1 },
     // 余った素材はトク玉と交換できる（筋肉玉はできない）
     eggExchange: { stone: 20, muscle: 10 }, // この数でトク玉1個
+  },
+
+  // 神殿：カスタマイズアイテムが落ちる。5属性ぶんあって、難易度は「時の間」と「修羅場」の2つ（修羅場ほど、よいアイテムが出やすい）
+  // アイテムは1体に1つだけ付けられる（カスタマイズ枠）。付け直すと前のは消える（ワクワクステッキを使うと持ち物に戻る）
+  temple: {
+    labels: { normal: '時の間', hard: '修羅場' } as Record<'normal' | 'hard', string>,
+    // くじ：rolls 回、1回ごとに rate で1個。運極1体ごとに luckRate のくじが1回増える
+    drops: {
+      normal: { rolls: 1, rate: 1, amount: 1 },
+      hard: { rolls: 2, rate: 0.75, amount: 1 },
+    },
+    luckRate: 0.3,
+    // 銅・銀・金の出やすさ
+    rarity: {
+      normal: [0.6, 0.35, 0.05],
+      hard: [0.3, 0.5, 0.2],
+    },
+    attack: [500, 1000, 2000], // 攻撃力アップ（銅・銀・金）
+    silverFavorite: 0.3, // 銀のうち「得意種目の追加」の割合（残りは攻撃力）
+    goldAbility: 0.5, // 金のうち「アビリティの追加」の割合（残りは攻撃力）
   },
 
   // 進化コスト（上から 1→2, 2→3, 3→4, 4→5）

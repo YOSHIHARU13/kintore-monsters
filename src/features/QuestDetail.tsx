@@ -6,7 +6,7 @@ import { DAYS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot } from '../data/exercises'
 import { MonsterImage } from '../components/MonsterImage'
 import { Stars } from '../components/Stars'
 import { QuestBanner } from '../components/QuestBanner'
-import { BOSS_DIFFICULTY, DIFFICULTIES, atDifficulty, fitsQuest, isStrict, sessionEstimate, attrOf, dropPlus, gradeOf, powerOf, questGold, questHp, type Member } from '../lib/quest'
+import { BOSS_DIFFICULTY, atDifficulty, difficultyLabel, levelsOf, fitsQuest, isStrict, sessionEstimate, attrOf, dropPlus, gradeOf, powerOf, questGold, questHp, type Member } from '../lib/quest'
 import { formationOf, requirementsOf, shortfallHelp, tagLabel, tagsOf } from '../lib/formation'
 import { FormationPanel } from '../components/FormationPanel'
 import { dropLuck, luckBonus } from '../lib/fusion'
@@ -17,7 +17,9 @@ import { allGimmicks } from '../lib/gimmick'
 import { DROP_ICON, STONE_LABEL, dropLabel, dropOf, expectedDrop } from '../lib/cores'
 import { towerCleared, towerMonth } from '../lib/tower'
 import { towerRewardText } from './Tower'
-import { plusName, type MaterialDrop, type QuestDifficulty } from '../types'
+import { plusName, type QuestDifficulty } from '../types'
+import { customized, isFavorite } from '../lib/custom'
+import type { LotDrop } from '../lib/cores'
 
 /** クエストの詳細：ボスの弱点を見て、難易度と出撃メンバーを選んで挑戦する */
 export function QuestDetail({ id, go }: { id: string; go: Go }) {
@@ -60,7 +62,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
   const partyDefs = party.flatMap((id) => {
     const mon = owned.find((o) => o.id === id)
     const def = mon && defs.find((d) => d.id === mon.defId)
-    return def ? [def] : []
+    return mon && def ? [customized(def, mon)] : []
   })
   const formation = formationOf(partyDefs, requirements)
   const partyMons = party.flatMap((pid) => owned.filter((o) => o.id === pid))
@@ -68,13 +70,14 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
   // 候補は「まだ足りていない条件にいくつ貢献できるか」の順。同じなら攻撃力の順
   const members = owned
     .flatMap((mon): (Member & { help: number; tags: string[] })[] => {
-      const def = defs.find((d) => d.id === mon.defId)
-      if (!def) return []
+      const base = defs.find((d) => d.id === mon.defId)
+      if (!base) return []
+      const def = customized(base, mon)
       const own = tagsOf(def)
       const tags = requirements
         .filter((r) => own[r.tag])
         .map((r) => `${tagLabel(r.tag, names)}${own[r.tag] > 1 ? `×${own[r.tag]}` : ''}`)
-      if (def.favoriteSlot && quest.weakSlots.includes(def.favoriteSlot)) tags.push('得意種目が弱点')
+      if (quest.weakSlots.some((w) => isFavorite(def, w))) tags.push('得意種目が弱点')
       if (fitsQuest(def, quest)) tags.unshift('属性◎')
       else if (isStrict(quest)) tags.push('半減')
       return [{ mon, def, help: shortfallHelp(def, formation.rows), tags }]
@@ -158,9 +161,9 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
           <>
             <h2>難易度</h2>
             <div className="chips" role="group" aria-label="難易度">
-              {DIFFICULTIES.map((d) => (
+              {levelsOf(quest).map((d) => (
                 <button key={d} type="button" className={`chip${difficulty === d ? ' on' : ''}`} onClick={() => setDifficulty(d)}>
-                  {CONFIG.quest.difficulties[d].label}
+                  {difficultyLabel(quest, d)}
                 </button>
               ))}
             </div>
@@ -180,7 +183,11 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
           </>
         )}
         {quest.kind === 'material' ? (
-          <MaterialDropInfo kind={kind} label={dropLabel(quest)} difficulty={difficulty} luckCount={luck.count} misses={misses} />
+          kind === 'custom' ? (
+            <TempleDropInfo difficulty={difficulty} luckCount={luck.count} />
+          ) : (
+            <MaterialDropInfo kind={kind} label={dropLabel(quest)} difficulty={difficulty} luckCount={luck.count} misses={misses} />
+          )
         ) : towerFloor ? (
           <p className="small">報酬（月に1回）：{towerRewardText(towerFloor, defs, state)}</p>
         ) : (
@@ -286,7 +293,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
 
 /** 素材クエストのくじの説明：何回引けて、1回あたりどれくらいで当たるか */
 function MaterialDropInfo({ kind, label, difficulty, luckCount, misses }: {
-  kind: MaterialDrop
+  kind: LotDrop
   label: string
   difficulty: QuestDifficulty
   luckCount: number
@@ -300,6 +307,20 @@ function MaterialDropInfo({ kind, label, difficulty, luckCount, misses }: {
       {DROP_ICON[kind]} {label}：くじ{d.rolls}回{extra > 0 && `＋運極${extra}回`}（1回{Math.round(d.rate * 100)}%で
       {d.amount > 1 ? `${d.amount}枚` : '1個'}）・平均{kind === 'coins' ? Math.round(avg) : avg.toFixed(1)}
       {kind === 'ball' && misses > 0 && `・いま${misses}回続けて落ちていない（${CONFIG.materials.ballPityMisses}回目は確定）`}
+    </p>
+  )
+}
+
+/** 神殿のくじの説明：何個くらい落ちて、銅・銀・金がどれくらいの割合か */
+function TempleDropInfo({ difficulty, luckCount }: { difficulty: QuestDifficulty; luckCount: number }) {
+  const t = CONFIG.temple
+  const level = difficulty === 'hard' ? 'hard' : 'normal'
+  const d = t.drops[level]
+  const [b, s, g] = t.rarity[level].map((r) => Math.round(r * 100))
+  return (
+    <p className="small core-drop">
+      🏛 カスタマイズアイテム：くじ{d.rolls}回（1回{Math.round(d.rate * 100)}%）
+      {luckCount > 0 && `＋運極${luckCount}回（1回${Math.round(t.luckRate * 100)}%）`}・🥉{b}% 🥈{s}% 🥇{g}%
     </p>
   )
 }

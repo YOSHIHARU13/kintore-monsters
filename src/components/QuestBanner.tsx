@@ -4,7 +4,7 @@ import { MonsterImage } from './MonsterImage'
 import { bannerNodeOf } from './GachaBanner'
 import { DROP_ICON, dropLabel, dropOf } from '../lib/cores'
 import { requirementsOf, tagLabel } from '../lib/formation'
-import { dropPlus, gradeOf } from '../lib/quest'
+import { difficultyLabel, dropPlus, gradeOf, levelsOf } from '../lib/quest'
 import { allGimmicks } from '../lib/gimmick'
 import { useStore } from '../store'
 import type { MonsterDef, Quest } from '../types'
@@ -53,7 +53,7 @@ export function QuestBanner({ quest, boss, onClick, selected = false }: {
         )}
         <span className="small">
           {quest.kind === 'material'
-            ? `${CONFIG.quest.difficulties.easy.label}・${CONFIG.quest.difficulties.normal.label}・${CONFIG.quest.difficulties.hard.label}・${dropLabel(quest)}が落ちる（数はくじで決まる）`
+            ? `${levelsOf(quest).map((d) => difficultyLabel(quest, d)).join('・')}・${dropLabel(quest)}が落ちる（数はくじで決まる）`
             : `ボス${dropPlus(quest) > 0 ? `＋${dropPlus(quest)}` : ''}がドロップ・🔮${CONFIG.quest.grades[gradeOf(quest)].gold}`}
         </span>
       </span>

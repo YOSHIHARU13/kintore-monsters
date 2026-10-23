@@ -171,6 +171,8 @@ beforeEach(() => {
     quitChallenge: vi.fn(),
     claimQuest: vi.fn(() => ({ monsterId: 'o8', drops: [{ icon: '💠', label: '木の結晶', count: 1 }], gold: 50 })),
     exchangeMaterial: vi.fn(),
+    attachCustom: vi.fn(),
+    removeCustom: vi.fn(),
     claimRanks: vi.fn(() => 3),
     setSlot: vi.fn(),
     buyExp: vi.fn(),
@@ -842,6 +844,29 @@ describe('画面の表示', () => {
     await click('報酬を受け取る（健脚の核のくじ')
     expect(el.textContent).toContain('今回は健脚の核が落ちなかった')
     expect(el.textContent).not.toContain('会いに行く')
+  })
+
+  it('カスタマイズ枠：神殿のアイテムを付ける。付け直すと前のは消える（ステッキなら戻せる）', async () => {
+    fake.store.state = { ...state, customItems: { atk1: 2, fav: 1, 'ab:シールド': 1 }, sticks: 1 }
+    const el = await render(<MonsterDetail id="o1" go={go} />)
+    expect(el.textContent).toContain('🛠 カスタマイズ枠')
+    expect(el.textContent).toContain('空き')
+    const row = (name: string) => [...el.querySelectorAll('.mini-list li')].find((li) => li.textContent?.includes(name))!
+    // 得意種目の追加は、種目を選んでから付ける
+    await act(async () => row('得意種目の追加').querySelector('button')!.click())
+    await act(async () => el.querySelector<HTMLButtonElement>('[aria-label="得意種目にする種目"] button')!.click())
+    await click('🥈 得意種目の追加 を付ける')
+    expect(fake.store.attachCustom).toHaveBeenCalledWith('o1', 'fav', expect.any(String), false)
+    // もう付いていれば、消すか、ステッキで戻すかを選ぶ
+    fake.store.owned = [{ ...owned[0], custom: 'atk1' }]
+    const el2 = await render(<MonsterDetail id="o1" go={go} />)
+    expect(el2.textContent).toContain('🥉 攻撃力 +500')
+    const row2 = [...el2.querySelectorAll('.mini-list li')].find((li) => li.textContent?.includes('アビリティ追加：ノヴァ'))!
+    await act(async () => row2.querySelector('button')!.click())
+    await click('前のを持ち物に戻して付ける')
+    expect(fake.store.attachCustom).toHaveBeenCalledWith('o1', 'ab:シールド', undefined, true)
+    await click('外して持ち物に戻す')
+    expect(fake.store.removeCustom).toHaveBeenCalledWith('o1')
   })
 
   it('所持アイテム：素材の数を見て、余った結晶・核はトク玉と交換できる', async () => {
