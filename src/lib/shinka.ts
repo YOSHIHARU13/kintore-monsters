@@ -75,7 +75,7 @@ function seeded(seed: string): () => number {
  */
 export function shinkaRecipe(def: MonsterDef, defs: MonsterDef[]): RecipeItem[] {
   const r = seeded(`shinka:${def.id}`)
-  const farmable = defs.filter((d) => d.questOnly && d.id !== def.id && !d.tower && !d.castleOnly && !d.castleLord && !isHidden(d))
+  const farmable = defs.filter((d) => d.questOnly && d.id !== def.id && !d.tower && !d.castleOnly && !d.castleLord && !d.kinkinLord && !isHidden(d))
   const strong = (d: MonsterDef) => ['chozetsu', 'chokyukyoku', 'bakuzetsu'].includes(bossGradeOf(d) ?? '')
   const series = seriesOf(def)
   const els = elementInfo(def).elements

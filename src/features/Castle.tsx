@@ -4,11 +4,12 @@ import { CONFIG } from '../config/gameConfig'
 import { MonsterImage } from '../components/MonsterImage'
 import { bannerNodeOf } from '../components/GachaBanner'
 import { ELEMENT_COLOR, ELEMENT_LABEL, ZERO_LABEL } from '../lib/element'
-import { castleCleared, castleOpen, lastBossOf } from '../lib/castle'
+import { castleAvailable, castleBest, castleCleared, castleOpen, lastBossOf } from '../lib/castle'
 import { towerMonth } from '../lib/tower'
 import { FloorReqs } from '../components/FloorReqs'
 import { towerRewardText } from './Tower'
 import type { Go } from '../nav'
+import { patternLabel } from '../lib/pattern'
 
 /** 零の孤城：全11階のエンドコンテンツ。毎月21日〜月末。1〜10階は孤城限定の子、11階は零属性の城主（どちらも毎月の初回クリアで手に入る） */
 export function Castle({ go }: { go: Go }) {
@@ -22,12 +23,15 @@ export function Castle({ go }: { go: Go }) {
         ← クエストに戻る
       </button>
       <h1 className="title">🏯 零の孤城</h1>
+      <p className="pattern-badge">
+        今月は<strong>{patternLabel(towerMonth(today))}</strong>：どのボスもこの部位のボス。この部位の種目がよく効いて、この部位の子が求められます（毎月 胸腕→脚→背肩 の順に入れ替わり、最上階のボスも変わる）
+      </p>
       <p className="muted">
         {!open
           ? `開催は毎月${CONFIG.castle.openDays[0]}日〜月末です（今は試練の塔の期間）。条件は今から見られます。`
           : done
             ? '今月は踏破！ おめでとう！'
-            : `${cleared}／${CONFIG.castle.floors}階クリア・次は${cleared + 1}階。下から1階ずつ。報酬は各階、月に1回です。`}
+            : `全部突破 ${cleared}／${CONFIG.castle.floors}階。各階は${CONFIG.castle.battles}バトル。出撃は1回で、その日に削れたぶんだけ突破します。${CONFIG.castle.battlesToNext}バトル突破で次の階、最上階は1〜10階を全部突破してから。`}
       </p>
       <p className="muted small">
         どの階も爆絶（属性が合わない子の攻撃は3分の1）。弱点属性とアビリティの持ち物検査がきびしく、2アビ・3アビの噛み合った子がいないと満たせません。
@@ -35,8 +39,9 @@ export function Castle({ go }: { go: Go }) {
       </p>
       <ol className="tower castle">
         {[...castle].reverse().map((f) => {
-          const clear = f.floor <= cleared
-          const next = f.floor === cleared + 1
+          const best = castleBest(state, towerMonth(today), f.floor)
+          const clear = best >= CONFIG.castle.battles
+          const next = !clear && castleAvailable(state, towerMonth(today), f.floor)
           const boss = defs.find((d) => d.id === f.quest.bossDefId)
           const el = f.quest.element
           return (
@@ -58,6 +63,10 @@ export function Castle({ go }: { go: Go }) {
                     <span className="grade-badge grade-bakuzetsu">{CONFIG.quest.grades.bakuzetsu.label}</span>
                   </strong>
                   <FloorReqs quest={f.quest} />
+                  <span className="small castle-battles">
+                    {'⚔️'.repeat(best)}
+                    {'・'.repeat(CONFIG.castle.battles - best)} バトル {best}/{CONFIG.castle.battles}
+                  </span>
                   <span className="small">{clear ? '受け取り済み' : towerRewardText(f, defs, state)}</span>
                 </span>
                 <span className="tower-state">{clear ? '✓' : next && open ? '挑戦' : '🔒'}</span>

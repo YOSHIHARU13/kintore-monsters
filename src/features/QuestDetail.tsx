@@ -17,7 +17,7 @@ import { attackOf } from '../lib/stats'
 import { allGimmicks } from '../lib/gimmick'
 import { DROP_ICON, STONE_LABEL, dropLabel, dropOf, expectedDrop } from '../lib/cores'
 import { towerCleared, towerMonth, towerOpen } from '../lib/tower'
-import { castleCleared, castleOpen } from '../lib/castle'
+import { castleAvailable, castleCleared, castleOpen } from '../lib/castle'
 import { kinkinCleared, kinkinOpen } from '../lib/kinkin'
 import { towerRewardText } from './Tower'
 import { plusName, type QuestDifficulty } from '../types'
@@ -52,7 +52,9 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
       : towerCleared(state, towerMonth(today), towerFloor?.tower ?? 0)
   // 塔・孤城は、開催中で、次の階だけ挑戦できる（条件はいつでも見られる）
   const closed = !!towerFloor && !(inCastle ? castleOpen(today) : inKinkin ? kinkinOpen(today) : towerOpen(today))
-  const towerLocked = !!towerFloor && (closed || towerFloor.floor !== cleared + 1)
+  const towerLocked =
+    !!towerFloor &&
+    (closed || (inCastle ? !castleAvailable(state, towerMonth(today), towerFloor.floor) : towerFloor.floor !== cleared + 1))
   const current = state.challenge?.date === today ? state.challenge : null
   const [difficulty, setDifficulty] = useState<QuestDifficulty>(
     current?.questId === id ? current.difficulty : BOSS_DIFFICULTY,
@@ -317,7 +319,11 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
             ? `零の孤城は毎月${CONFIG.castle.openDays[0]}日〜月末に挑戦できます`
             : `試練の塔は毎月${CONFIG.tower.openDays[0]}〜${CONFIG.tower.openDays[1]}日に挑戦できます`
           : towerLocked
-          ? '下の階をクリアすると挑戦できます'
+          ? inCastle && towerFloor?.floor === CONFIG.castle.floors
+            ? '1〜10階を全部突破すると挑戦できます'
+            : inCastle
+              ? `下の階を${CONFIG.castle.battlesToNext}バトル突破すると挑戦できます`
+              : '下の階をクリアすると挑戦できます'
           : switching
             ? '今の戦いをやめて、これに出撃する'
             : current?.questId === id

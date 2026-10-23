@@ -59,7 +59,7 @@ import { ELEMENT_COLOR } from '../lib/element'
 import { CONFIG } from '../config/gameConfig'
 import { dropLabel } from '../lib/cores'
 import { towerCleared, towerMonth, towerOpen } from '../lib/tower'
-import { castleCleared, castleOpen } from '../lib/castle'
+import { battlesReached, castleBest, castleCleared, castleOpen } from '../lib/castle'
 import { kinkinCleared, kinkinOpen } from '../lib/kinkin'
 import { QUEST_RULES } from '../lib/questAuto'
 import { towerRewardText } from './Tower'
@@ -97,6 +97,12 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
       kinkin.find((f) => f.quest.id === battle.quest.id))
     : undefined
   const castleDone = castleCleared(state, towerMonth(today))
+  // 孤城の挑戦中なら、何バトル目まで突破したか
+  const castleNow = battle ? castle.find((f) => f.quest.id === battle.quest.id) : undefined
+  const castleInfo =
+    battle && castleNow
+      ? { reached: battlesReached(battle.damage, battle.hp), best: castleBest(state, towerMonth(today), castleNow.floor) }
+      : null
   const [confirmQuit, setConfirmQuit] = useState(false)
   const [view, setView] = useState<'icon' | 'banner'>(() => {
     try {
@@ -174,7 +180,9 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
       {got && (
         <section className="card center">
           <h2>
-            {got.towerFloor ? `${got.castle ? '零の孤城' : got.kinkin ? '禁筋の獄' : '試練の塔'} ${got.towerFloor}階 突破！` : '討伐成功！'} 🔮+{got.gold}・🪙+
+            {got.towerFloor
+              ? `${got.castle ? '零の孤城' : got.kinkin ? '禁筋の獄' : '試練の塔'} ${got.towerFloor}階 ${got.battles ? `バトル${got.battles.to}まで突破！` : '突破！'}`
+              : '討伐成功！'} 🔮+{got.gold}・🪙+
             {got.coins ?? 0}
           </h2>
           {got.byMember && <DamageShare byMember={got.byMember} mvpId={got.mvpId} />}
@@ -280,7 +288,14 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
               </span>
             </div>
           </div>
-          {battle.defeated ? (
+          {castleInfo && (
+            <p className="small castle-battles">
+              {'⚔️'.repeat(castleInfo.reached)}
+              {'・'.repeat(CONFIG.castle.battles - castleInfo.reached)} バトル {castleInfo.reached}/{CONFIG.castle.battles} 突破
+              （今月の最高 {castleInfo.best}）。出撃は1回なので、受け取るとこの挑戦は終わります
+            </p>
+          )}
+          {battle.defeated || (castleInfo && castleInfo.reached > castleInfo.best) ? (
             <button
               className="btn primary wide"
               onClick={() => {
@@ -297,7 +312,9 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
               }}
             >
               報酬を受け取る（
-              {towerFloor
+              {castleInfo
+                ? `バトル${castleInfo.best + 1}〜${castleInfo.reached}突破のぶん`
+                : towerFloor
                 ? towerRewardText(towerFloor, defs, state)
                 : battle.quest.kind === 'material'
                   ? `${dropLabel(battle.quest)}のくじ`

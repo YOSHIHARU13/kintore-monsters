@@ -58,7 +58,8 @@ export interface GameState {
   clearedQuests: Record<string, number> // クエストごとのクリア回数（一覧の✓に使う）
   tower: { month: string; cleared: number } | null // 試練の塔（1つ目）：その月にクリアした階の数
   towerMore?: { month: string; cleared: Record<string, number> } // 2つ目からの塔（塔の番号 → クリアした階の数）
-  castle?: { month?: string; cleared: number } // 零の孤城：その月にクリアした階の数
+  castle?: { month?: string; cleared: number } // 旧：零の孤城でその月にクリアした階の数（今は castleBattles）
+  castleBattles?: { month: string; best: Record<string, number> } // 零の孤城：その月、階ごとに突破したバトルの数（0〜3）
   kinkin?: { month: string; cleared: number } // 禁筋の獄：その月にクリアした階の数
   boosters: Partial<Record<BoosterKey, number>> // 持っているブースターの数
   boosts: { habit?: boolean; quest?: boolean; expSets?: number } // 使用中のブースター（EXPは残りセット数）
@@ -132,6 +133,7 @@ export interface MonsterDef {
   questOnly?: boolean // クエスト限定（ガチャには出ない。クエストのボスとして倒すと手に入る）
   questTier?: 'bakuzetsu' | 'lastBoss' | null // 旧：降臨の格（今はレア度で決める。読み込んだときに直す）
   jogressPartner?: string // 金の獣神化（合体）の相手の激レア（defId）。絵は images.gold、名前は names.gold
+  kinkinLord?: boolean // 禁筋の獄の最上階のボス（毎月入れ替わる3体のうち。初回クリアで手に入る）
   castleOnly?: boolean // 零の孤城の限定（1〜10階のボス。毎月の初回クリアで手に入る）
   castleLord?: boolean // 零の孤城の城主（激レアの降臨のうち。最上階のボスになり、倒すともらえる）
   tower?: boolean // 試練の塔の報酬（降臨のうち。5階・10階で月替わりにもらえる）

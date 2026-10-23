@@ -12,7 +12,7 @@ const ENTRIES: Entry[] = [
 const DEV_ENTRIES: Entry[] = [
   { icon: '✏️', label: 'モンスターの登録・編集', hint: '新しいモンスターを作る・直す・まとめておまかせ', view: { name: 'registry' } },
   { icon: '🎰', label: 'ガチャの管理', hint: 'ガチャを作る・編集する', view: { name: 'gachaAdmin' } },
-  { icon: '⚔️', label: 'クエストの管理', hint: '作る・まとめて作る・条件の作り直し・試練の塔の作り直し', view: { name: 'questAdmin' } },
+  { icon: '⚔️', label: 'クエストの管理', hint: '作る・まとめて作る・条件の作り直し', view: { name: 'questAdmin' } },
   { icon: '🤝', label: 'コラボの管理', hint: 'コラボ名をまとめて変える・開催期間', view: { name: 'collabAdmin' } },
 ]
 

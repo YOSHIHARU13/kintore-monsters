@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { castleCleared, castleFloors, castleLineup, castleOpen, lastBossOf } from './castle'
+import { battlesReached, castleAvailable, castleBest, castleCleared, castleFloors, castleLineup, castleOpen, lastBossOf } from './castle'
 import { towerOpen } from './tower'
 import { abilitySlots } from './gimmick'
 import { attackOf } from './stats'
@@ -40,16 +40,16 @@ describe('零の孤城', () => {
   it('1〜10階は孤城限定の子を炎・水・木・光・闇の順に2周。城主は入れない。各階のボスは毎月の初回クリアで手に入る', () => {
     expect(castleLineup(defs, []).map((d) => d?.id)).toEqual(['fire1', 'water1', 'wood1', 'light1', 'dark1', 'fire2', 'water2', 'wood2', 'light2', 'dark2'])
     expect(lastBossOf(defs)?.id).toBe('king')
-    const floors = castleFloors(defs, [])
+    const floors = castleFloors('2026-10', defs, [])
     expect(floors[0].reward.monsterDefId).toBe('fire1')
     // 孤城限定がいなくて、爆絶のボスで埋めた階は落とさない
-    const filled = castleFloors([def('bz', { element: 'fire', bossGrade: 'bakuzetsu' })], [])
+    const filled = castleFloors('2026-10', [def('bz', { element: 'fire', bossGrade: 'bakuzetsu' })], [])
     expect(filled[0].quest.bossDefId).toBe('bz')
     expect(filled[0].reward.monsterDefId).toBeNull()
   })
 
   it('全階爆絶。11階は零属性の城主で、属性の種類を求める', () => {
-    const floors = castleFloors(defs, ['バリア', 'シールド', 'リジェネ', 'ミラー'])
+    const floors = castleFloors('2026-10', defs, ['バリア', 'シールド', 'リジェネ', 'ミラー'])
     expect(floors).toHaveLength(11)
     expect(floors.every((f) => f.quest.grade === 'bakuzetsu')).toBe(true)
     expect(floors[0].quest.requirements![0]).toEqual({ tag: 'el:water', count: 5 }) // 炎には水が有利
@@ -65,7 +65,7 @@ describe('零の孤城', () => {
   })
 
   it('城主がいなければ、最上階はトク玉', () => {
-    const top = castleFloors([...bakus], [])[10]
+    const top = castleFloors('2026-10', [...bakus], [])[10]
     expect(top.reward.monsterDefId).toBeNull()
     expect(top.reward.eggs).toBeGreaterThan(12) // いつもの12個＋城主のかわり
   })
@@ -86,5 +86,26 @@ describe('零の孤城', () => {
     const ids = castleLineup([collab, ...defs], [{ kind: 'boss', grade: 'chokyukyoku', bossDefId: 'fire1' }]).map((d) => d?.id)
     expect(ids).not.toContain('cb')
     expect(ids).not.toContain('fire1')
+  })
+})
+
+describe('零の孤城のバトル', () => {
+  it('HPを3等分して、削った分だけ突破（出撃は1回）', () => {
+    expect(battlesReached(0, 900)).toBe(0)
+    expect(battlesReached(299, 900)).toBe(0)
+    expect(battlesReached(300, 900)).toBe(1)
+    expect(battlesReached(650, 900)).toBe(2)
+    expect(battlesReached(2000, 900)).toBe(3)
+  })
+  it('2バトル突破で次の階。最上階は1〜10階を全部突破してから。以前の記録は全部突破として読む', () => {
+    const st = { castleBattles: { month: '2026-10', best: { '1': 2, '2': 1 } } }
+    expect(castleAvailable(st, '2026-10', 1)).toBe(true)
+    expect(castleAvailable(st, '2026-10', 2)).toBe(true)
+    expect(castleAvailable(st, '2026-10', 3)).toBe(false)
+    const all = { castleBattles: { month: '2026-10', best: Object.fromEntries(Array.from({ length: 10 }, (_, i) => [String(i + 1), 3])) } }
+    expect(castleAvailable(all, '2026-10', 11)).toBe(true)
+    expect(castleAvailable({ castleBattles: { month: '2026-10', best: { ...all.castleBattles.best, '7': 2 } } }, '2026-10', 11)).toBe(false)
+    expect(castleBest({ castle: { month: '2026-10', cleared: 2 } }, '2026-10', 2)).toBe(3)
+    expect(castleCleared(all, '2026-10')).toBe(10)
   })
 })
