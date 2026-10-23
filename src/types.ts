@@ -135,6 +135,9 @@ export interface MonsterDef {
   questOnly?: boolean // クエスト限定（ガチャには出ない。クエストのボスとして倒すと手に入る）
   questTier?: 'bakuzetsu' | 'lastBoss' | null // 旧：降臨の格（今はレア度で決める。読み込んだときに直す）
   jogressPartner?: string // 金の獣神化（合体）の相手の激レア（defId）。絵は images.gold、名前は names.gold
+  partnerElement?: Element // 合体の相手の属性（読み込むときに付ける。保存はしない）
+  goldElements?: Element[] // 金の獣神化した個体の属性：自分と相手の2属性（同じ属性なら超属性）。customized で付く
+  goldSuper?: boolean
   kinkinLord?: boolean // 禁筋の獄の最上階のボス（毎月入れ替わる3体のうち。初回クリアで手に入る）
   castleOnly?: boolean // 零の孤城の限定（1〜10階のボス。毎月の初回クリアで手に入る）
   castleLord?: boolean // 零の孤城の城主（激レアの降臨のうち。最上階のボスになり、倒すともらえる）

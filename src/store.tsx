@@ -472,9 +472,15 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       onSnapshot(
         collection(db, base, 'monsterDefs'),
         (snap) => {
+          const list = snap.docs.map((d) => ({ ...(d.data() as Omit<MonsterDef, 'id'>), id: d.id }))
+          // 金の獣神化の相手の属性を付けておく（金の獣神化した個体が2属性になる）
+          const byId = new Map(list.map((d) => [d.id, d]))
           setDefs(
-            snap.docs
-              .map((d) => ({ ...(d.data() as Omit<MonsterDef, 'id'>), id: d.id }))
+            list
+              .map((d) => {
+                const partner = d.jogressPartner ? byId.get(d.jogressPartner)?.element : undefined
+                return partner ? { ...d, partnerElement: partner } : d
+              })
               .sort((a, b) => a.createdAt - b.createdAt),
           )
           setLoaded((l) => (l.defs ? l : { ...l, defs: true }))

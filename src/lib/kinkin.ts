@@ -55,13 +55,14 @@ export function kinkinFloors(month: string, defs: MonsterDef[], gimmicks: string
   // 前の階の条件も数えて、階ごとにちがう子が主役になるように
   // taken：ほかの高難度の階（そこで求めたアビリティも避ける）
   const sofar: Pick<Quest, 'id' | 'requirements' | 'gimmicks'>[] = [...quests, ...taken]
+  const stars = new Set<string>()
   return Array.from({ length: k.floors }, (_, i) => {
     const floor = i + 1
     const top = floor === k.floors
     const boss = top && lord ? lord : lineup[i]
     const grade: QuestGrade = floor >= k.bakuzetsuFrom ? 'bakuzetsu' : 'chozetsu'
     const setup = boss
-      ? autoQuestSetup(patternBoss(boss, pattern), grade, 'boss', sofar, gimmicks, `${KINKIN_PREFIX}${floor}`, defs, false, 'normal', ownAbilities(quests, boss.id))
+      ? autoQuestSetup(patternBoss(boss, pattern), grade, 'boss', sofar, gimmicks, `${KINKIN_PREFIX}${floor}`, defs, false, 'normal', ownAbilities(quests, boss.id), stars)
       : { requirements: [], weakSlots: [] }
     const hp = Math.max(100, Math.round((standardSessionDamage() * k.hpRatio[i]) / 100) * 100)
     const quest: Quest = {

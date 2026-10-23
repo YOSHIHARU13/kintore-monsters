@@ -2,16 +2,23 @@ import { useStore } from '../store'
 import { CONFIG } from '../config/gameConfig'
 import { FIT_MARK, fitForms, fitMembers, fitQuests } from '../lib/fit'
 import { gradeOf } from '../lib/quest'
+import type { TowerFloor } from '../lib/tower'
 import { awakenOf, glowOf, imageOf } from '../lib/art'
 import { bannerNodeOf } from './GachaBanner'
 import { MonsterImage } from './MonsterImage'
 import type { Go } from '../nav'
 import type { MonsterDef, Quest } from '../types'
 
-/** その子が適正のクエスト（閉じた欄。タップで開く） */
+/** 適正を見るクエスト：超絶・超究極・爆絶と、高難度（試練の塔・禁筋の獄・零の孤城）。究極以下は余裕なので出さない */
+const HARD_GRADES = ['chozetsu', 'chokyukyoku', 'bakuzetsu']
+function fitTargets(quests: Quest[], highEnd: TowerFloor[][]): Quest[] {
+  return [...quests.filter((q) => HARD_GRADES.includes(gradeOf(q))), ...highEnd.flat().map((f) => f.quest)]
+}
+
+/** そのモンスターが適正のクエスト（閉じた欄。タップで開く） */
 export function FitQuests({ def, go, limit }: { def: MonsterDef; go?: Go; limit?: number }) {
-  const { quests, castle } = useStore()
-  const list = fitQuests(def, [...quests, ...castle.map((f) => f.quest)]).slice(0, limit ?? 99)
+  const { quests, tower, kinkin, castle } = useStore()
+  const list = fitQuests(def, fitTargets(quests, [tower, kinkin, castle])).slice(0, limit ?? 99)
   if (list.length === 0) return null
   return (
     <details className="card fold fit-list">
@@ -43,8 +50,8 @@ export function FitQuests({ def, go, limit }: { def: MonsterDef; go?: Go; limit?
 
 /** 引いた直後などに出す、刺さるクエストの短い一覧（上位3つ） */
 export function FitHint({ def }: { def: MonsterDef }) {
-  const { quests, castle } = useStore()
-  const list = fitQuests(def, [...quests, ...castle.map((f) => f.quest)]).slice(0, 3)
+  const { quests, tower, kinkin, castle } = useStore()
+  const list = fitQuests(def, fitTargets(quests, [tower, kinkin, castle])).slice(0, 3)
   if (list.length === 0) return null
   return (
     <div className="fit-hint small">
@@ -116,7 +123,7 @@ export function FitMembers({ quest }: { quest: Quest }) {
 
 /** ガチャのピックアップに付ける、適正の数のバッジ */
 export function FitBadge({ def }: { def: MonsterDef }) {
-  const { quests, castle } = useStore()
-  const n = fitQuests(def, [...quests, ...castle.map((f) => f.quest)]).filter((x) => x.fit === 'best').length
+  const { quests, tower, kinkin, castle } = useStore()
+  const n = fitQuests(def, fitTargets(quests, [tower, kinkin, castle])).filter((x) => x.fit === 'best').length
   return n > 0 ? <span className="fit-badge">適正{n}</span> : null
 }

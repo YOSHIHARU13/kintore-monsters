@@ -21,7 +21,7 @@ import { isHidden, nodeAttr, type MonsterDef, type OwnedMonster, type Quest } fr
 export function grown(def: MonsterDef, part: string): Member {
   const finals = getTemplate(def.templateId).nodes.filter((n) => n.next.length === 0)
   const node = finals.find((n) => nodeAttr(def, n.id) === part) ?? finals[0]
-  const mon: OwnedMonster = { id: `v-${def.id}`, defId: def.id, nodeId: node.id, obtainedAt: 0, luck: 1, shinka: canShinkaDef(def) }
+  const mon: OwnedMonster = { id: `v-${def.id}`, defId: def.id, nodeId: node.id, obtainedAt: 0, luck: 1, shinka: canShinkaDef(def), shinkaGold: canShinkaDef(def) && !!def.jogressPartner }
   return { mon, def: customized(def, mon) }
 }
 

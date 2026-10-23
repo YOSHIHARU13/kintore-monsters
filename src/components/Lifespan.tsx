@@ -10,8 +10,11 @@ import type { MonsterDef, OwnedMonster } from '../types'
 const CACHE_KEY = 'lifespan2'
 
 /** 登録の中身が変わったときだけ計算し直すための目印 */
-function signature(month: string, defs: MonsterDef[], owned: OwnedMonster[], quests: number, order: string[] = []): string {
+function signature(month: string, defs: MonsterDef[], owned: OwnedMonster[], quests: number, order: string[] = [], taken: string[] = []): string {
   const body = [
+    // ゲームの数値（HP・攻撃力・条件）が変わったときも計算し直す
+    JSON.stringify(CONFIG),
+    taken.join(','),
     ...defs.map((d) => `${d.id}:${d.element ?? ''}:${d.tier ?? ''}:${(d.abilities ?? []).join(',')}:${d.bossGrade ?? ''}:${d.castleOnly ? 1 : 0}${d.castleLord ? 1 : 0}`),
     ...owned.map((o) => `${o.id}:${o.nodeId}:${o.shinka ? 1 : 0}${o.shinkaGold ? 1 : 0}:${o.custom ?? ''}:${o.customSlot ?? ''}`),
     order.join(','),
@@ -27,7 +30,8 @@ export function useLifespan(): { result: Lifespans | null; busy: boolean } {
   const month = towerMonth(today)
   const boss = quests.filter((q) => q.kind !== 'material' && !q.builtin)
   const order = state.bossOrder?.castle
-  const sig = signature(month, defs, owned, boss.length, order)
+  const taken = [...tower, ...kinkin].map((f) => f.quest)
+  const sig = signature(month, defs, owned, boss.length, order, taken.map((q) => `${q.id}:${q.bossDefId}:${(q.requirements ?? []).map((r) => r.tag + r.count).join(',')}`))
   const [result, setResult] = useState<Lifespans | null>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(CACHE_KEY) ?? 'null') as { sig: string; result: Lifespans } | null
@@ -65,7 +69,7 @@ export function useLifespan(): { result: Lifespans | null; busy: boolean } {
       setBusy(false)
       worker.terminate()
     }
-    worker.postMessage({ month, defs, owned, gimmicks: selectableGimmicks(quests), quests: boss, order, taken: [...tower, ...kinkin].map((f) => f.quest) })
+    worker.postMessage({ month, defs, owned, gimmicks: selectableGimmicks(quests), quests: boss, order, taken })
     return () => worker.terminate()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sig, loaded])

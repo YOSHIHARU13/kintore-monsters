@@ -11,12 +11,12 @@ const def = (id: string, extra: Partial<MonsterDef>): MonsterDef =>
 const ELS = ['fire', 'water', 'wood', 'light', 'dark'] as const
 
 describe('降臨のレア度＝ボスの格', () => {
-  it('アビリティはハズレ0・ノーマル1・レア2・激レア3、攻撃力の上乗せは0・1500・4500・6000', () => {
+  it('アビリティはハズレ0・ノーマル1・レア2・激レア3、攻撃力は爆絶が激レア★3より少し下、超絶がレア★3より下', () => {
     const at = (rarity: MonsterDef['rarity']) => def('x', { rarity })
     expect((['hazure', 'normal', 'uncommon', 'superRare'] as const).map((r) => abilitySlots(at(r)))).toEqual([0, 1, 2, 3])
     const mon = { id: 'o', defId: 'x', nodeId: 'n1', obtainedAt: 0 }
-    expect(attackOf(mon, at('superRare')) - attackOf(mon, at('normal'))).toBe(4500)
-    expect(attackOf(mon, at('uncommon')) - attackOf(mon, at('normal'))).toBe(3000)
+    expect(attackOf(mon, at('superRare')) - attackOf(mon, at('normal'))).toBe(5000)
+    expect(attackOf(mon, at('uncommon')) - attackOf(mon, at('normal'))).toBe(1500)
     // まとめて作るときの格：激レア→爆絶、レア→超絶（コラボは超究極）
     expect(autoGradeOf(at('superRare'))).toBe('bakuzetsu')
     expect(autoGradeOf(at('uncommon'))).toBe('chozetsu')
@@ -52,7 +52,8 @@ describe('零の孤城', () => {
     const floors = castleFloors('2026-10', defs, ['バリア', 'シールド', 'リジェネ', 'ミラー'])
     expect(floors).toHaveLength(11)
     expect(floors.every((f) => f.quest.grade === 'bakuzetsu')).toBe(true)
-    expect(floors[0].quest.requirements![0]).toEqual({ tag: 'el:water', count: 5 }) // 炎には水が有利
+    expect(floors[0].quest.requirements![0]).toEqual({ tag: 'el:water', count: 4 }) // 炎には水が有利。1〜10階は属性の種類も
+    expect(floors[0].quest.requirements).toContainEqual({ tag: 'kinds', count: 3 })
     const top = floors[10]
     expect(top.quest.element).toBeUndefined()
     expect(top.quest.requirements![0]).toEqual({ tag: 'kinds', count: 5 })

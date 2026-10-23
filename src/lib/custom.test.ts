@@ -51,3 +51,17 @@ describe('カスタマイズアイテム', () => {
     expect(customized(def, mon({ custom: 'ab:バリア' }))).toBe(def)
   })
 })
+
+describe('金の獣神化は2属性', () => {
+  it('相手の属性も持つ（同じ属性なら超属性）。金でない個体は1属性のまま', async () => {
+    const { customized } = await import('./custom')
+    const { elementInfo } = await import('./element')
+    const { kindsOf } = await import('./formation')
+    const def = { id: 'a', name: 'a', attr: 'legs', templateId: 'linear3', images: {}, createdAt: 0, element: 'fire', jogressPartner: 'b', partnerElement: 'wood' } as MonsterDef
+    const gold = customized(def, { nodeId: 'n3', shinkaGold: true })
+    expect(elementInfo(gold).elements).toEqual(['fire', 'wood'])
+    expect(kindsOf([gold])).toBe(2)
+    expect(elementInfo(customized(def, { nodeId: 'n3' })).elements).toEqual(['fire'])
+    expect(elementInfo(customized({ ...def, partnerElement: 'fire' }, { nodeId: 'n3', shinkaGold: true }))).toEqual({ elements: ['fire'], super: true })
+  })
+})

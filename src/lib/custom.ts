@@ -74,10 +74,14 @@ export function customAttack(mon: Pick<OwnedMonster, 'custom'>): number {
 }
 
 /** その個体のカスタマイズを反映したモンスター（得意種目・アビリティが増える） */
-export function customized(def: MonsterDef, mon: Pick<OwnedMonster, 'custom' | 'customSlot'> & { nodeId?: string }): MonsterDef {
+export function customized(def: MonsterDef, mon: Pick<OwnedMonster, 'custom' | 'customSlot'> & { nodeId?: string; shinkaGold?: boolean }): MonsterDef {
   // 部位の条件は、今の形態の部位で数える
   const part = mon.nodeId ? nodeAttr(def, mon.nodeId) : undefined
   if (part && part !== nodeAttr(def, 'n1')) def = { ...def, partNow: part }
+  // 金の獣神化（激レア2体の合体）は、相手の属性も持つ（同じ属性なら超属性）
+  if (mon.shinkaGold && def.element && def.partnerElement) {
+    def = def.partnerElement === def.element ? { ...def, goldElements: [def.element], goldSuper: true } : { ...def, goldElements: [def.element, def.partnerElement] }
+  }
   if (!mon.custom) return def
   const info = itemInfo(mon.custom)
   if (info.kind === 'ability' && info.ability && !(def.abilities ?? []).includes(info.ability)) {

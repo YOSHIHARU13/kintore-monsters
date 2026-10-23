@@ -179,10 +179,12 @@ export const CONFIG = {
     bossGrades: {
       jokyu: { stars: 1, abilities: 0, attack: 0 },
       kiwami: { stars: 2, abilities: 1, attack: 0 },
-      kyukyoku: { stars: 3, abilities: 1, attack: 1500 },
-      chozetsu: { stars: 3, abilities: 2, attack: 4500 }, // 同じ★3でも、究極より強い
-      chokyukyoku: { stars: 3, abilities: 2, attack: 4500 },
-      bakuzetsu: { stars: 3, abilities: 3, attack: 6000 },
+      // 降臨は「ギミックを埋める代役。殴る力はちょっと心許ない」。攻撃力（★×3000＋attack）は
+      // 究極8,000・超絶9,500（レア★3の11,500より下）・爆絶13,000（激レア★3の15,000より少し下）。★4の爆絶は16,000
+      kyukyoku: { stars: 3, abilities: 1, attack: -1000 },
+      chozetsu: { stars: 3, abilities: 2, attack: 500 },
+      chokyukyoku: { stars: 3, abilities: 2, attack: 500 },
+      bakuzetsu: { stars: 3, abilities: 3, attack: 4000 },
     } as Record<QuestGrade, { stars: number; abilities: number; attack: number }>,
     // 素材クエストの難易度：HPは「1回のトレーニングで与えるダメージの目安 × materials.hpRatio × hpRatio」
     // 上の難易度ほど編成の条件がきつくなるが、セットあたりのドロップは多くなる（そろえられるなら上を回るほうが得）
@@ -336,6 +338,8 @@ export const CONFIG = {
     sticks: { 3: 1, 7: 1, 11: 2 } as Record<number, number>, // ワクワクステッキ
     customs: { 4: 'atk2', 6: 'atk3', 8: 'fav', 10: 'atk3' } as Record<number, string>, // カスタマイズアイテム
     eggsInsteadOfBoss: 10, // 城主級の降臨が登録されていないときは、11階でトク玉
+    elementNeed: 4, // 1〜10階の有利な属性の数（爆絶のふつうは5）
+    kindsNeed: 3, // 1〜10階の「属性の種類」（有利な属性だけでは1種類。2属性のモンスターで増える）
   },
 
   // 禁筋の獄：塔と孤城のあいだの高難度。毎月11〜20日、全10階を下から1階ずつ、各階の報酬は月に1回。ボスは落とさない

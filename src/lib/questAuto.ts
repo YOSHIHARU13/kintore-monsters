@@ -43,6 +43,7 @@ export function spotlightOf(
   quests: Pick<Quest, 'requirements' | 'gimmicks' | 'id'>[],
   defs: MonsterDef[],
   selfId?: string,
+  skip?: Set<string>, // もう主役にしたモンスター（高難度で、同じモンスターが何階も主役にならないように。コラボも主役にしない）
 ): MonsterDef | undefined {
   const bossEl = elementInfo(boss).elements[0]
   const adv = advantageElements(bossEl)[0]
@@ -50,6 +51,7 @@ export function spotlightOf(
   const seed = hash(boss.id)
   return defs
     .filter((d) => !d.questOnly && !d.recipe?.length && d.id !== boss.id && slotted(d).length > 0)
+    .filter((d) => !skip || (!skip.has(d.id) && seriesOf(d) === ''))
     .filter((d) => (bossEl ? !!adv && elementInfo(d).elements.includes(adv) : elementInfo(d).elements.length > 0))
     .map((d) => ({ d, n: coverageOf(d, quests, selfId), r: rank[rarityOf(d)], tie: hash(d.id + seed) }))
     .sort((x, y) => x.n - y.n || x.r - y.r || x.tie - y.tie)[0]?.d
@@ -74,6 +76,7 @@ export function autoQuestSetup(
   useCollab = true, // false なら、コラボの子も見ない（試練の塔）
   difficulty: QuestDifficulty = 'normal', // 素材クエストの難易度
   avoid: string[] = [], // 使わないアビリティ（塔などで、そのボスのふつうのクエストと同じにしないため）
+  stars?: Set<string>, // 高難度：もう主役にしたモンスター（選んだ主役をここに足す）
 ): { requirements: Requirement[]; weakSlots: string[]; heroId?: string } {
   const a = kind === 'material' ? CONFIG.questAuto.material[difficulty] : CONFIG.questAuto[grade]
   const seed = hash(boss.id + grade + (kind ?? 'boss'))
@@ -115,7 +118,8 @@ export function autoQuestSetup(
     if (bossEl ? adv && a.element > 0 : a.kinds > 0)
       requirements.push(bossEl ? { tag: elementTag(adv), count: a.element } : { tag: KINDS_TAG, count: a.kinds })
     // 主役のアビリティを先に（ほかのクエストであまり使われていない順）
-    const star = kind === 'material' || a.abilities === 0 ? undefined : spotlightOf(boss, quests, defs, selfId)
+    const star = kind === 'material' || a.abilities === 0 ? undefined : spotlightOf(boss, quests, defs, selfId, stars)
+    if (star) stars?.add(star.id)
     const starAbilities = star ? ranked.filter((g) => slotted(star).includes(g)) : []
     // 2つ同時に持つ子：主役が2つ持っていればその2つ。なければ、実際にその2つを持っている子がいる組み合わせから
     let picked: string[] = []

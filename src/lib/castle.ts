@@ -3,7 +3,7 @@ import { elementInfo } from './element'
 import { gradeOf, standardSessionDamage } from './quest'
 import { autoQuestSetup } from './questAuto'
 import { PATTERN_PARTS, applyOrder, patternBoss, patternOf, patternPick, weakSlotsFor, patternTag } from './pattern'
-import { partTag } from './formation'
+import { KINDS_TAG, partTag } from './formation'
 import { bossGradeOf, rarityOf } from './gacha'
 import { isOpenOn, type TowerFloor } from './tower'
 import { isHidden, type GameState, type MonsterDef, type Quest } from '../types'
@@ -96,6 +96,7 @@ export function castleFloors(month: string, defs: MonsterDef[], gimmicks: string
   // 前の階の条件も数えて、階ごとにちがう子が主役になるように
   // taken：ほかの高難度の階（そこで求めたアビリティも避ける）
   const sofar: Pick<Quest, 'id' | 'requirements' | 'gimmicks'>[] = [...quests, ...taken]
+  const stars = new Set<string>()
   return Array.from({ length: c.floors }, (_, i) => {
     const floor = i + 1
     const top = floor === c.floors
@@ -104,7 +105,7 @@ export function castleFloors(month: string, defs: MonsterDef[], gimmicks: string
     const asBoss = boss && top ? ({ ...boss, element: undefined, jogressElements: [] } as MonsterDef) : boss
     const element = top ? undefined : boss ? elementInfo(boss).elements[0] : undefined
     const setup = asBoss
-      ? autoQuestSetup(patternBoss(asBoss, pattern), 'bakuzetsu', 'boss', sofar, gimmicks, `${CASTLE_PREFIX}${floor}`, defs, false)
+      ? autoQuestSetup(patternBoss(asBoss, pattern), 'bakuzetsu', 'boss', sofar, gimmicks, `${CASTLE_PREFIX}${floor}`, defs, false, 'normal', [], stars)
       : { requirements: [], weakSlots: [] }
     const hp = Math.max(100, Math.round((standardSessionDamage() * c.hpRatio[i]) / 100) * 100)
     const quest: Quest = {
@@ -115,7 +116,14 @@ export function castleFloors(month: string, defs: MonsterDef[], gimmicks: string
       attr: part,
       element,
       weakSlots: weakSlotsFor(part, `castle:${floor}:${pattern}`, 2),
-      requirements: [...setup.requirements, { tag: partTag(part), count: 4 }],
+      // 1〜10階は、有利な属性を少し減らす代わりに「属性の種類」も求める（2属性のモンスター・金の獣神化が活躍する）
+      requirements: [
+        ...(top
+          ? setup.requirements
+          : setup.requirements.map((r) => (r.tag.startsWith('el:') ? { ...r, count: c.elementNeed } : r))),
+        ...(top ? [] : [{ tag: KINDS_TAG, count: c.kindsNeed }]),
+        { tag: partTag(part), count: 4 },
+      ],
       hp: { easy: hp, normal: hp, hard: hp },
       grade: 'bakuzetsu',
       catchphrase: top ? '零の王が待つ' : '',

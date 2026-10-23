@@ -23,6 +23,7 @@ export interface ElementInfo {
 
 export function elementInfo(def: MonsterDef): ElementInfo {
   if (isHidden(def)) return { elements: def.jogressElements ?? [], super: def.jogressSuper === true }
+  if (def.goldElements) return { elements: def.goldElements, super: def.goldSuper === true }
   return { elements: def.element ? [def.element] : [], super: false }
 }
 
