@@ -58,18 +58,18 @@ describe('零の孤城', () => {
   it('城主がいなければ、最上階はトク玉', () => {
     const top = castleFloors([...bakus], [])[10]
     expect(top.reward.monsterDefId).toBeNull()
-    expect(top.reward.eggs).toBeGreaterThan(30)
+    expect(top.reward.eggs).toBeGreaterThan(12) // いつもの12個＋城主のかわり
   })
 
-  it('毎月16日〜月末に開催。クリアは月ごと（月が変わると0から）', () => {
+  it('塔は毎月1〜10日、孤城は21日〜月末。クリアは月ごと（月が変わると0から）', () => {
     expect(castleCleared({}, '2026-10')).toBe(0)
     expect(castleCleared({ castle: { month: '2026-10', cleared: 4 } }, '2026-10')).toBe(4)
     expect(castleCleared({ castle: { month: '2026-10', cleared: 4 } }, '2026-11')).toBe(0)
-    expect(castleOpen('2026-10-15')).toBe(false)
-    expect(castleOpen('2026-10-16')).toBe(true)
+    expect(castleOpen('2026-10-20')).toBe(false)
+    expect(castleOpen('2026-10-21')).toBe(true)
     expect(castleOpen('2026-10-31')).toBe(true)
-    expect(towerOpen('2026-10-15')).toBe(true)
-    expect(towerOpen('2026-10-16')).toBe(false)
+    expect(towerOpen('2026-10-10')).toBe(true)
+    expect(towerOpen('2026-10-11')).toBe(false)
   })
 
   it('コラボの子と超究極のボスは入れない', () => {

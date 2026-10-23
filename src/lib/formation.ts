@@ -1,7 +1,9 @@
 import { CONFIG } from '../config/gameConfig'
 import { ELEMENT_LABEL, elementInfo } from './element'
 import { abilityName, abilitySlots } from './gimmick'
-import type { Element, MonsterDef, Quest, Requirement } from '../types'
+import { nodeAttr, type Element, type MonsterDef, type Quest, type Requirement } from '../types'
+import { ATTR_LABEL, type Attr } from '../data/exercises'
+import { FIRST_NODE_ID } from '../data/evolutionTemplates'
 
 /**
  * 編成：クエストは「求められる人材の条件」（炎が3、アークが3…）を持ち、
@@ -13,6 +15,8 @@ export type Tag = string
 export const elementTag = (e: Element): Tag => `el:${e}`
 /** 零属性のボスで求める「属性の種類」：パーティにいる属性の種類の数（2属性のジョグレスは1体で2種類、零属性の子は「零」で1種類） */
 export const KINDS_TAG: Tag = 'kinds'
+/** 部位の条件：その部位（胸腕・脚・背肩）の子◯体。部位限定ガチャの子が活躍する */
+export const partTag = (part: Attr): Tag => `pt:${part}`
 
 /** そのモンスターの属性の種類（零属性は 'none'） */
 const kindsOfDef = (def: MonsterDef): string[] => {
@@ -40,6 +44,9 @@ export function tagsOf(def: MonsterDef): Record<Tag, number> {
   // カスタマイズで足したアビリティは、持てる数とは別に数える
   const abilities = [...new Set([...(def.abilities ?? []).slice(0, abilitySlots(def)), ...(def.extraAbilities ?? [])])]
   for (const g of abilities) tags[abilityTag(g)] = (tags[abilityTag(g)] ?? 0) + 1
+  // 部位：持っている個体なら今の形態の部位、そうでなければ第1段階の部位
+  const part = def.partNow ?? nodeAttr(def, FIRST_NODE_ID)
+  if (part !== 'none') tags[partTag(part)] = 1
   // 2つのアビリティを両方持っていれば「両方」の条件にも数える
   for (let i = 0; i < abilities.length; i++)
     for (let j = i + 1; j < abilities.length; j++) tags[comboTag(abilities[i], abilities[j])] = 1
@@ -55,6 +62,7 @@ export function requirementsOf(quest: Pick<Quest, 'requirements' | 'gimmicks'>):
 /** タグの表示名（🔥炎、アーク など） */
 export function tagLabel(tag: Tag, names: Record<string, string>): string {
   if (tag === KINDS_TAG) return '🎨属性の種類'
+  if (tag.startsWith('pt:')) return `💪${ATTR_LABEL[tag.slice(3) as Attr]}の子`
   if (tag.startsWith('el:')) {
     const e = tag.slice(3) as Element
     return `${CONFIG.formation.elementIcon[e]}${ELEMENT_LABEL[e]}`

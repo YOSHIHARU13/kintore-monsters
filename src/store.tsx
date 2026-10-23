@@ -1452,7 +1452,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
           investedBy: {},
           investedFrom: {},
           plus: 0,
-          luck: dropLuck(party),
+          luck: CONFIG.luck.prizeDrop, // 月に1回しか落ちないので、運は多め
           shiny,
           obtainedAt: Date.now(),
         })
@@ -1477,7 +1477,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         gold,
         eggs: floor.reward.eggs,
         towerFloor: floor.floor,
-        luck: monsterId ? dropLuck(party) : undefined,
+        luck: monsterId ? CONFIG.luck.prizeDrop : undefined,
         byMember: battle.byMember,
         mvpId: battle.mvpId,
         total: battle.damage,

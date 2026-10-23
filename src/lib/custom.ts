@@ -1,6 +1,6 @@
 import { CONFIG } from '../config/gameConfig'
 import { abilityName } from './gimmick'
-import type { MonsterDef, OwnedMonster } from '../types'
+import { nodeAttr, type MonsterDef, type OwnedMonster } from '../types'
 
 /**
  * カスタマイズアイテム（神殿で落ちる）。1体に1つ付けられる。
@@ -73,7 +73,10 @@ export function customAttack(mon: Pick<OwnedMonster, 'custom'>): number {
 }
 
 /** その個体のカスタマイズを反映したモンスター（得意種目・アビリティが増える） */
-export function customized(def: MonsterDef, mon: Pick<OwnedMonster, 'custom' | 'customSlot'>): MonsterDef {
+export function customized(def: MonsterDef, mon: Pick<OwnedMonster, 'custom' | 'customSlot'> & { nodeId?: string }): MonsterDef {
+  // 部位の条件は、今の形態の部位で数える
+  const part = mon.nodeId ? nodeAttr(def, mon.nodeId) : undefined
+  if (part && part !== nodeAttr(def, 'n1')) def = { ...def, partNow: part }
   if (!mon.custom) return def
   const info = itemInfo(mon.custom)
   if (info.kind === 'ability' && info.ability && !(def.abilities ?? []).includes(info.ability)) {

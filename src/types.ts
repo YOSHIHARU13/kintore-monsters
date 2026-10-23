@@ -133,6 +133,7 @@ export interface MonsterDef {
   abilities?: string[] // アビリティ：対応するギミック名で持つ（例：'バリア' ならアーク）
   extraAbilities?: string[] // カスタマイズで足したアビリティ（読み込んだ個体に付くだけ。保存はしない）
   extraFavorite?: string // カスタマイズで足した得意種目（同上）
+  partNow?: FormAttr // 持っている個体の今の部位（読み込んだ個体に付くだけ。保存はしない）
   tier?: RarityKey // レア度（ノーマル・レア・激レア）。なければ、以前の rarity から読み替える
   rarity?: string // 旧：以前のレア度（hazure・normal・uncommon・superRare・rare）。読むだけ
   bossGrade?: QuestGrade // 降臨の格（上級〜爆絶）。星・アビリティの数・攻撃力と、そのボスのクエストの格が決まる
