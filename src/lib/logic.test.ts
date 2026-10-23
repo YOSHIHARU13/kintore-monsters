@@ -61,24 +61,24 @@ describe('セット報酬', () => {
     })
     expect(calcSetReward({ isBonus: false, setNo: 2, judge: 'beat', intervalOk: false }).exp).toBe(0)
   })
-  it('腹筋ローラーは15G＋万能EXP10', () => {
+  it('腹筋ローラーは2オーブ＋万能EXP10', () => {
     expect(calcSetReward({ isBonus: true, setNo: 3, judge: 'normal', intervalOk: true })).toMatchObject({
       exp: 10,
-      gold: 15,
+      gold: 2,
     })
     expect(calcSetReward({ isBonus: true, setNo: 4, judge: 'normal', intervalOk: true }).gold).toBe(0)
   })
-  it('習慣：分数は1日の合計30分まで。1回に続けた分数が長いほど単価が高い。○×は1日1回50G', () => {
+  it('習慣：分数は1日の合計30分まで。1回に続けた分数が長いほど単価が高い。○×は1日1回5オーブ', () => {
     const st = (extra: Partial<GameState>) => ({ habitMode: 'minutes', habitDate: '2026-10-05', habitMinutesToday: 25, ...extra }) as GameState
-    expect(habitGoldNow(st({}), '2026-10-05', 10)).toBe(50) // 残り5分ぶん × 10分続けた単価10G
-    expect(habitGoldNow(st({}), '2026-10-06', 3)).toBe(15) // 4分までは1分5G
-    expect(habitGoldNow(st({}), '2026-10-06', 5)).toBe(50) // 5分続けると1分10G＝卵1個
+    expect(habitGoldNow(st({}), '2026-10-05', 10)).toBe(5) // 残り5分ぶん × 10分続けた単価1オーブ
+    expect(habitGoldNow(st({}), '2026-10-06', 3)).toBe(1) // 4分までは1分0.5オーブ（端数は切り捨て）
+    expect(habitGoldNow(st({}), '2026-10-06', 5)).toBe(5) // 5分続けると1分1オーブ＝ガチャ1回
     expect(habitGoldNow(st({ habitMode: 'check' }), '2026-10-05', 0)).toBe(0)
-    expect(habitGoldNow(st({ habitMode: 'check' }), '2026-10-06', 0)).toBe(50)
+    expect(habitGoldNow(st({ habitMode: 'check' }), '2026-10-06', 0)).toBe(5)
   })
-  it('歩数は100歩ごとに1G（段階なし。5000歩で卵1個ぶん）', () => {
-    expect(stepsGold(5000)).toBe(50)
-    expect(stepsGold(7050)).toBe(70)
+  it('歩数は1000歩ごとに1オーブ（段階なし。5000歩でガチャ1回ぶん）', () => {
+    expect(stepsGold(5000)).toBe(5)
+    expect(stepsGold(7050)).toBe(7)
     expect(stepsGold(-1)).toBe(0)
   })
 })

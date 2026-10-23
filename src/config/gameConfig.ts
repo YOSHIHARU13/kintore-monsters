@@ -28,7 +28,7 @@ export const CONFIG = {
 
   // 今週のタスク（全種目×基本セット数）を全部消したときのボーナス
   weekly: {
-    clearGold: 150,
+    clearGold: 15, // オーブ
   },
 
   // プレイヤーランク：筋トレで稼いだEXP（ローラーの万能EXPも。買ったEXPは数えない）の積み上げで上がる
@@ -63,21 +63,21 @@ export const CONFIG = {
 
   // 腹筋ローラー（ボーナス枠）。1日3セットまで（日付が変わるとまた3セットできる）
   bonus: {
-    goldPerSet: 15,
+    goldPerSet: 2, // オーブ
     anyExpPerSet: 10, // 万能EXP：どの属性の進化にも注げる
   },
 
   // 朝の記録（前日の歩数）と、習慣（その場で記録）
   morning: {
-    stepsPerGold: 100, // この歩数ごとに1G（段階なし。5000歩で50G＝卵1個）
+    stepsPerGold: 1000, // この歩数ごとに1オーブ（段階なし。5000歩で5オーブ＝ガチャ1回）
     maxSteps: 100_000, // 入力できる歩数の上限
-    habitGold: 50, // 習慣ができた日のゴールド（○×で記録するとき）
-    // 習慣を分数で記録するときの、1分あたりのゴールド。1回に続けた分数が長いほど高い（5分で50G＝卵1個）
+    habitGold: 5, // 習慣ができた日のオーブ（○×で記録するとき）
+    // 習慣を分数で記録するときの、1分あたりのオーブ（端数は切り捨て）。1回に続けた分数が長いほど高い（5分で5オーブ＝ガチャ1回）
     habitRates: [
-      { from: 1, perMinute: 5 },
-      { from: 5, perMinute: 10 },
+      { from: 1, perMinute: 0.5 },
+      { from: 5, perMinute: 1 },
     ],
-    habitMaxMinutes: 30, // 分数で記録するとき、ゴールドが出るのは1日の合計でこの分数まで
+    habitMaxMinutes: 30, // 分数で記録するとき、オーブが出るのは1日の合計でこの分数まで
     habitDefaultLabel: 'ベッドでスマホを見なかった', // 習慣の名前（設定で変えられる）
   },
 
@@ -86,9 +86,9 @@ export const CONFIG = {
     coinsPerExp: 5, // 1EXPを買うのに必要な進化コイン
     expBuyStep: 10, // EXP購入の±ボタン1回分
     boughtExpMaxRatio: 0.5, // 購入EXPで埋められるのは進化必要EXPのこの割合まで
-    eggPrice: 50, // 歩数5000歩・瞑想5分でちょうど1個
-    shinyRate: 1 / 20, // タマゴから色違いが生まれる確率
-    starterEggs: 1, // 開始時にもらえるタマゴ
+    pullPrice: 5, // ガチャ1回のオーブ（トク玉なら1個で1回）。歩数5000歩・瞑想5分でちょうど1回
+    shinyRate: 1 / 20, // ガチャから色違いが生まれる確率
+    starterEggs: 1, // 開始時にもらえるトク玉
   },
 
   // 攻撃力 = 星の数 × perStar ＋ レア度の上乗せ
@@ -149,18 +149,19 @@ export const CONFIG = {
     // ボスクエストの格：難易度は1つだけで、クエストそのものに格がある（素材クエストは初級〜上級のまま）
     // hpRatio：1回のトレーニングで与えるダメージの目安に対するHPの倍率
     grades: {
-      jokyu: { label: '上級', hpRatio: 0.45, gold: 50, plus: 0 }, // 育ちきっていなくても倒せる入門
-      kiwami: { label: '極', hpRatio: 0.9, gold: 80, plus: 0 },
-      kyukyoku: { label: '究極', hpRatio: 1.5, gold: 150, plus: 0 },
-      chozetsu: { label: '超絶', hpRatio: 2.5, gold: 300, plus: 1 },
-      chokyukyoku: { label: '超究極', hpRatio: 2.5, gold: 300, plus: 1 }, // 主にコラボ用（因縁の強敵など、たまの例外にも）。強さと報酬は超絶と同じ
+      // gold はオーブ（進化コインはその coins.perOrb 倍）
+      jokyu: { label: '上級', hpRatio: 0.45, gold: 5, plus: 0 }, // 育ちきっていなくても倒せる入門
+      kiwami: { label: '極', hpRatio: 0.9, gold: 8, plus: 0 },
+      kyukyoku: { label: '究極', hpRatio: 1.5, gold: 15, plus: 0 },
+      chozetsu: { label: '超絶', hpRatio: 2.5, gold: 30, plus: 1 },
+      chokyukyoku: { label: '超究極', hpRatio: 2.5, gold: 30, plus: 1 }, // 主にコラボ用（因縁の強敵など、たまの例外にも）。強さと報酬は超絶と同じ
     },
     // 素材クエストの難易度：HPは「1回のトレーニングで与えるダメージの目安 × materials.hpRatio × hpRatio」
     // 上の難易度ほど編成の条件がきつくなるが、セットあたりのドロップは多くなる（そろえられるなら上を回るほうが得）
     difficulties: {
-      easy: { label: '初級', plus: 0, gold: 30, hpRatio: 0.8 },
-      normal: { label: '上級', plus: 1, gold: 60, hpRatio: 1.4 },
-      hard: { label: '究極', plus: 2, gold: 100, hpRatio: 2 },
+      easy: { label: '初級', plus: 0, gold: 3, hpRatio: 0.8 },
+      normal: { label: '上級', plus: 1, gold: 6, hpRatio: 1.4 },
+      hard: { label: '究極', plus: 2, gold: 10, hpRatio: 2 },
     },
     partySize: 6, // 出撃できる数
   },
@@ -183,19 +184,21 @@ export const CONFIG = {
     coins: 300,
   },
   // 進化コイン：進化・ジョグレス・EXPの購入に使う（オーブはガチャとブースター用）。ボスクエストではオーブと同じだけもらえる
-  coins: {},
+  coins: {
+    perOrb: 10, // ボスクエスト・試練の塔では、もらえるオーブ1につき進化コインがこれだけ
+  },
   // ミッション・ログインボーナス・図鑑の達成報酬・一度きりのプレゼント
   missions: {
-    daily: { reward: { gold: 20 }, allReward: { eggs: 1 }, habitMinutes: 5 },
+    daily: { reward: { gold: 2 }, allReward: { eggs: 1 }, habitMinutes: 5 },
     weekly: { reward: { eggs: 1 }, days: 3, sets: 30, habitMinutes: 60 },
     // ログインした日数で7日周期（休んでもリセットされない）
     login: [
-      { gold: 50 },
-      { gold: 50 },
+      { gold: 5 },
+      { gold: 5 },
       { eggs: 1 },
-      { gold: 50 },
+      { gold: 5 },
       { booster: 'exp' },
-      { gold: 50 },
+      { gold: 5 },
       { eggs: 2 },
     ] as Reward[],
     dex: [
@@ -210,12 +213,12 @@ export const CONFIG = {
       {
         id: 'startDash',
         label: 'スタートダッシュ記念',
-        reward: { eggs: 30, gold: 500 },
+        reward: { eggs: 30, gold: 50 },
         boosters: ['habit', 'exp', 'quest'],
       },
     ] as { id: string; label: string; reward: Reward; boosters?: BoosterKey[] }[],
   },
-  // 無料ガチャのイベント：その日のうちに、好きなガチャで引ける（卵は減らない）
+  // 無料ガチャのイベント：その日のうちに、好きなガチャで引ける（トク玉もオーブも減らない）
   events: {
     freePulls: [
       { id: 'thursday', label: '木曜の無料5連', pulls: 5, weekday: 4 },
@@ -225,9 +228,9 @@ export const CONFIG = {
   },
   // ブースター：回数制の道具。使うと次の1回（EXPは次の数セット）だけ効く。期限なし
   boosters: {
-    habit: { icon: '🧘', label: 'ブースター', price: 150, text: '次の記録のオーブが2倍、その日の上限もなし' },
-    exp: { icon: '💪', label: '筋トレブースター', price: 300, text: '次の10セットのEXPが2倍', sets: 10 },
-    quest: { icon: '⚔️', label: '討伐ブースター', price: 250, text: '次のクエスト報酬（オーブ・コイン・素材）が2倍' },
+    habit: { icon: '🧘', label: 'ブースター', price: 15, text: '次の記録のオーブが2倍、その日の上限もなし' },
+    exp: { icon: '💪', label: '筋トレブースター', price: 30, text: '次の10セットのEXPが2倍', sets: 10 },
+    quest: { icon: '⚔️', label: '討伐ブースター', price: 25, text: '次のクエスト報酬（オーブ・コイン・素材）が2倍' },
   },
   // 試練の塔：毎月10階を自動で作る。下から1階ずつ挑戦し、各階の報酬は月に1回だけ
   tower: {
@@ -236,12 +239,12 @@ export const CONFIG = {
     elementOrder: ['fire', 'water', 'wood', 'light', 'dark'] as const,
     // HP：1回のトレーニングで与えるダメージの目安に対する倍率
     hpRatio: [0.6, 0.8, 1.0, 1.2, 1.4, 1.7, 2.0, 2.3, 2.7, 3.2, 3.6],
-    gold: [100, 120, 150, 180, 220, 260, 300, 350, 400, 500, 600],
-    eggs: { 2: 1, 4: 1, 7: 1, 8: 1 } as Record<number, number>, // その階で卵
+    gold: [10, 12, 15, 18, 22, 26, 30, 35, 40, 50, 60], // オーブ（進化コインはこの coins.perOrb 倍）
+    eggs: { 2: 1, 4: 1, 7: 1, 8: 1 } as Record<number, number>, // その階でトク玉
     cores: {} as Record<number, number>, // その階でボスの部位の核
     boosters: { 3: 'habit', 6: 'exp', 9: 'quest' } as Record<number, 'habit' | 'exp' | 'quest'>, // その階でブースター
     monsterFloors: [11], // 塔限定モンスターがボスになり、倒すともらえる階
-    eggsInsteadOfMonster: 2, // 塔限定モンスターが登録されていないときは卵
+    eggsInsteadOfMonster: 2, // 塔限定モンスターが登録されていないときはトク玉
     elementReqFrom: 3, // この階から「適正の属性」の編成条件
     abilityReqFrom: 6, // この階からアビリティの編成条件
     twoWeakFrom: 6, // この階から弱点種目が2つ
@@ -322,8 +325,8 @@ export const CONFIG = {
     ballPityMisses: 5, // 筋肉玉がこの回数続けて落ちなかったら、次は必ず1個
     // ボスクエストのおまけ：ボスの属性の結晶
     bossBonus: { rolls: 2, rate: 0.5, amount: 1 },
-    // 余った素材はタマゴと交換できる（筋肉玉はできない）
-    eggExchange: { stone: 20, muscle: 10 },
+    // 余った素材はトク玉と交換できる（筋肉玉はできない）
+    eggExchange: { stone: 20, muscle: 10 }, // この数でトク玉1個
   },
 
   // 進化コスト（上から 1→2, 2→3, 3→4, 4→5）

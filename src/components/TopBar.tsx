@@ -14,7 +14,7 @@ interface Pop {
 
 const POP_MS = 1600
 
-/** どの画面でも上に出す：ランク・EXP・タマゴ・オーブ・コイン。増えると「+N」が浮かぶ（素材の数は「その他」の所持アイテムで見る） */
+/** どの画面でも上に出す：ランク・EXP・トク玉・オーブ・コイン。増えると「+N」が浮かぶ（素材の数は「その他」の所持アイテムで見る） */
 export function TopBar({ go }: { go: Go }) {
   const { state } = useStore()
   const values: Record<Key, number> = {
@@ -67,7 +67,7 @@ export function TopBar({ go }: { go: Go }) {
           <span key={a}>{item(a, ATTR_LABEL[a].slice(0, 1), values[a], ATTR_COLOR[a])}</span>
         ))}
         {item('any', '万', values.any, '#c9cbd6')}
-        {item('eggs', '🥚', values.eggs)}
+        {item('eggs', '🟡', values.eggs)}
         {item('gold', '🔮', values.gold, 'var(--gold)')}
         {item('coins', '🪙', values.coins, '#ffd166')}
       </button>
@@ -85,7 +85,7 @@ export function TopBar({ go }: { go: Go }) {
           ))}
           <div>万能EXP {values.any}（どの属性の進化にも使える）</div>
           <div>
-            オーブ {values.gold.toLocaleString()}・進化コイン {values.coins.toLocaleString()}・タマゴ {values.eggs}個
+            オーブ {values.gold.toLocaleString()}・進化コイン {values.coins.toLocaleString()}・トク玉 {values.eggs}個
           </div>
           <button className="btn small" onClick={() => go({ name: 'items' })}>
             📦 所持アイテム（結晶・核・筋肉玉）を見る

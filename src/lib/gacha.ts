@@ -1,6 +1,6 @@
 import { CONFIG } from '../config/gameConfig'
 import { getNode, getTemplate } from '../data/evolutionTemplates'
-import { isHidden, type MonsterDef, type RarityKey } from '../types'
+import { isHidden, type GameState, type MonsterDef, type RarityKey } from '../types'
 
 export const RARITY_KEYS = Object.keys(CONFIG.gacha.rarities) as RarityKey[]
 
@@ -115,4 +115,12 @@ export function starsOf(def: MonsterDef, nodeId: string): number {
 export function formLabel(def: MonsterDef, nodeId: string): string {
   const branch = /[a-c]$/.exec(nodeId)?.[0]
   return `★${starsOf(def, nodeId)}${branch ? `-${branch.toUpperCase()}` : ''}`
+}
+
+/** ガチャの払い方：トク玉1個か、オーブ（CONFIG.shop.pullPrice 個） */
+export type Pay = 'eggs' | 'orbs'
+
+/** 今の手持ちで引ける回数 */
+export function pullsAffordable(state: Pick<GameState, 'eggs' | 'gold'>, pay: Pay): number {
+  return pay === 'orbs' ? Math.floor(state.gold / CONFIG.shop.pullPrice) : state.eggs
 }

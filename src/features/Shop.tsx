@@ -20,11 +20,11 @@ const MULTI_MAX = 10
 import { Stars } from '../components/Stars'
 import { BoosterPanel } from '../components/BoosterPanel'
 import { GachaBanner, featuredOf, pickupsOf } from '../components/GachaBanner'
-import { isReady, percent, pickupCount, rarityOf, rateTable, tierRates } from '../lib/gacha'
+import { isReady, percent, pickupCount, pullsAffordable, rarityOf, rateTable, tierRates, type Pay } from '../lib/gacha'
 
 
 export function Shop({ go }: { go: Go }) {
-  const { state, defs, owned, gachas, today, yesterday, todaySets, seriesPeriods, buyEgg, hatchEgg, hatchMany, freePull, buyExp } = useStore()
+  const { state, defs, owned, gachas, today, yesterday, todaySets, seriesPeriods, hatchEgg, hatchMany, freePull, buyExp } = useStore()
   const freeEvents = availableEvents(state, today)
   const active = activeToday(state, todaySets, today, yesterday)
   const upcoming = upcomingEvents(today).slice(0, 3)
@@ -47,18 +47,33 @@ export function Shop({ go }: { go: Go }) {
   const hasPityTier = table.some((t) => t.rarity === CONFIG.gacha.pity.rarity)
   const pityLeft = CONFIG.gacha.pity.pulls - (state.pity[gacha.id] ?? 0)
   const met = (defId: string) => owned.some((o) => o.defId === defId) || (state.dexFound[defId]?.length ?? 0) > 0
-  const anyEggDefs = gachas.some((g) => rateTable(g.id, defs).length > 0)
-  const canBuyEgg = state.gold >= CONFIG.shop.eggPrice && anyEggDefs
   const ready = isReady(gacha, table)
-  const canHatch = state.eggs > 0 && ready
-  const hatch = () => {
-    const result = hatchEgg(gacha.id)
+  const hatch = (pay: Pay) => {
+    const result = hatchEgg(gacha.id, pay)
     if (result) setHatched({ ...result, rarity: rarityOf(result.def) })
   }
-  const multiCount = Math.min(state.eggs, MULTI_MAX)
-  const hatchMulti = () => {
-    const results = hatchMany(gacha.id, multiCount)
+  // トク玉は持っているぶん（最大10連）、オーブは10連（足りなければ引けるぶん）
+  const multiCount = (pay: Pay) => Math.min(pullsAffordable(state, pay), MULTI_MAX)
+  const hatchMulti = (pay: Pay) => {
+    const results = hatchMany(gacha.id, multiCount(pay), pay)
     if (results.length > 0) setMulti(results)
+  }
+  const price = CONFIG.shop.pullPrice
+  const pullRow = (pay: Pay) => {
+    const n = multiCount(pay)
+    const cost = (k: number) => (pay === 'orbs' ? `🔮${k * price}` : `🟡トク玉×${k}`)
+    return (
+      <div className="pull-buttons" key={pay}>
+        <button className="btn primary pull-1" disabled={!ready || n < 1} onClick={() => hatch(pay)}>
+          1回引く
+          <span className="small">{cost(1)}</span>
+        </button>
+        <button className="btn primary pull-many" disabled={!ready || n < 2} onClick={() => hatchMulti(pay)}>
+          {n >= 2 ? `${n}連で引く` : 'まとめて引く'}
+          <span className="small">{cost(Math.max(2, pay === 'orbs' ? (n >= 2 ? n : MULTI_MAX) : n))}</span>
+        </button>
+      </div>
+    )
   }
   const expCost = amount * CONFIG.shop.coinsPerExp
   const maxAmount = Math.max(
@@ -69,7 +84,7 @@ export function Shop({ go }: { go: Go }) {
   return (
     <div className="page">
       <h1 className="title">ショップ</h1>
-      <p className="gold">所持 {state.gold}オーブ・🪙{state.coins ?? 0}</p>
+      <p className="gold">所持 🔮{state.gold}・🟡{state.eggs}・🪙{state.coins ?? 0}</p>
 
       <CollabNews />
       <section className="card gacha-stage">
@@ -99,11 +114,8 @@ export function Shop({ go }: { go: Go }) {
         />
         <div className="egg-bar">
           <span>
-            🥚 タマゴ <strong className="num">{state.eggs}</strong>個
+            🟡 トク玉 <strong className="num">{state.eggs}</strong>個・🔮 オーブ <strong className="num">{state.gold}</strong>
           </span>
-          <button className="btn small" disabled={!canBuyEgg} onClick={buyEgg}>
-            タマゴを買う（{CONFIG.shop.eggPrice}オーブ）
-          </button>
           <button className="btn small ghost" onClick={() => go({ name: 'gachaForm', id: gacha.id })}>
             編集
           </button>
@@ -130,16 +142,9 @@ export function Shop({ go }: { go: Go }) {
               </button>
             ))}
             {freeEvents.length > 0 && !active && <p className="muted small">{ACTIVE_HINT}</p>}
-            <div className="pull-buttons">
-              <button className="btn primary pull-1" disabled={!canHatch} onClick={hatch}>
-                1回引く
-                <span className="small">🥚×1</span>
-              </button>
-              <button className="btn primary pull-many" disabled={!canHatch || multiCount < 2} onClick={hatchMulti}>
-                {multiCount >= 2 ? `${multiCount}連で引く` : 'まとめて引く'}
-                <span className="small">🥚×{Math.max(2, multiCount)}</span>
-              </button>
-            </div>
+            {state.eggs > 0 && pullRow('eggs')}
+            {pullRow('orbs')}
+            <p className="muted small center">1回：トク玉1個 か オーブ{price}個</p>
             {hasPityTier && (
               <p className="small center bonus-reward">
                 {CONFIG.gacha.rarities[CONFIG.gacha.pity.rarity].label}確定まで あと{pityLeft}回
@@ -195,7 +200,7 @@ export function Shop({ go }: { go: Go }) {
             </li>
           ))}
         </ul>
-        <p className="muted small">その日のうちに、好きなガチャで引けます（卵は減りません）。</p>
+        <p className="muted small">その日のうちに、好きなガチャで引けます（トク玉もオーブも減りません）。</p>
       </section>
 
       <BoosterPanel />

@@ -136,7 +136,7 @@ export function Box({ go }: { go: Go }) {
         ))}
       </div>
       {owned.length === 0 && (
-        <p className="muted">まだモンスターがいません。図鑑でモンスターを登録して、ショップでタマゴを孵しましょう。</p>
+        <p className="muted">まだモンスターがいません。図鑑でモンスターを登録して、ショップでガチャを引きましょう。</p>
       )}
       <div className="dex-grid">
         {list.map(({ mon, def }) => {

@@ -11,6 +11,7 @@ import {
   increment,
   onSnapshot,
   query,
+  runTransaction,
   setDoc,
   where,
   writeBatch,
@@ -25,7 +26,7 @@ import { fusionCost, isExpFull, jogressStones, materialKeys, missingMaterials, n
 import { habitGoldNow, stepsGold } from './lib/rewards'
 import { isWeekCleared } from './lib/week'
 import { compressImage } from './lib/imageCompress'
-import { draw, isPickupRarity, isPity, isReady, rarityOf, rateTable, starsOf } from './lib/gacha'
+import { draw, isPickupRarity, isPity, isReady, pullsAffordable, rarityOf, rateTable, starsOf, type Pay } from './lib/gacha'
 import { isJogressReady } from './lib/stats'
 import { battleOf, dropPlus, isStrict, questGold } from './lib/quest'
 import {
@@ -99,6 +100,7 @@ function initialState(): GameState {
     cores: {},
     stones: {},
     coreMisses: {},
+    orbScale: 1,
   }
 }
 
@@ -169,7 +171,7 @@ export interface ItemDrop {
 export interface QuestReward {
   monsterId: string | null // 手に入ったボス（素材クエストでは null）
   defId: string | null // 手に入ったモンスターの種類（塔では塔限定モンスター）
-  eggs: number // 試練の塔でもらえた卵
+  eggs: number // 試練の塔でもらえたトク玉
   towerFloor: number | null // 試練の塔の何階をクリアしたか
   booster?: BoosterKey | null // 試練の塔でもらえたブースター
   boosted?: boolean // 討伐ブースターで2倍になったか
@@ -248,19 +250,19 @@ interface Store {
   quitChallenge: () => void
   /** 討伐の報酬を受け取る */
   claimQuest: () => QuestReward | null
-  /** 余った結晶か核をタマゴ1個と交換する */
+  /** 余った結晶か核をトク玉1個と交換する */
   exchangeMaterial: (kind: 'stone' | 'muscle', key: string) => void
-  /** たまっているランクアップ報酬をまとめて受け取る。受け取った卵の数 */
+  /** たまっているランクアップ報酬をまとめて受け取る。受け取ったトク玉の数 */
   claimRanks: () => number
   setSlot: (slotId: string, exerciseId: string) => void
   buyExp: (attr: Attr, amount: number) => void
-  buyEgg: () => void
+
   buyBooster: (key: BoosterKey) => void
   useBooster: (key: BoosterKey) => void
-  /** タマゴを孵す。選んだガチャから、確率どおりに1体（ダブりあり） */
-  hatchEgg: (gachaId: string) => HatchResult | null
-  /** まとめて引く（タマゴの数まで）。引けた分だけ返す */
-  hatchMany: (gachaId: string, count: number) => HatchResult[]
+  /** ガチャを1回引く。トク玉1個か、オーブ5個（pay）。選んだガチャから、確率どおりに1体（ダブりあり） */
+  hatchEgg: (gachaId: string, pay?: Pay) => HatchResult | null
+  /** まとめて引く（持っているぶんまで）。引けた分だけ返す */
+  hatchMany: (gachaId: string, count: number, pay?: Pay) => HatchResult[]
   freePull: (eventId: string, gachaId: string) => HatchResult[]
   claimReward: (key: string, reward: Reward, boosters?: BoosterKey[]) => boolean
   claimLogin: () => Reward | null
@@ -346,6 +348,14 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         (snap) => {
           if (snap.exists()) {
             setState(toState(snap.data()))
+            // ゴールドをオーブにしたとき、単位を10分の1にした（ガチャ1回 50G → 5オーブ）。前のデータは1回だけ割る
+            if (snap.data().orbScale !== 1 && !snap.metadata.fromCache) {
+              runTransaction(db, async (tx) => {
+                const cur = await tx.get(stateRef)
+                if (!cur.exists() || cur.data().orbScale === 1) return
+                tx.update(stateRef, { gold: Math.floor((cur.data().gold ?? 0) / 10), orbScale: 1 })
+              }).catch(fail)
+            }
           } else if (!snap.metadata.fromCache) {
             // サーバーにも存在しないと確認できたときだけ初期データを作る（別端末のデータを上書きしないため）
             setDoc(stateRef, initialState()).catch(fail)
@@ -632,15 +642,11 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       })
     }
 
-    const buyEgg: Store['buyEgg'] = () => {
-      if (state.gold < CONFIG.shop.eggPrice || !defs.some((d) => !isHidden(d))) return
-      updateState({ gold: increment(-CONFIG.shop.eggPrice), eggs: increment(1) })
-    }
+    // count 回まとめて引く（トク玉かオーブで、持っているぶんまで）。1回ずつ天井の回数を数え直し、1つの書き込みにまとめる
+    const hatchMany: Store['hatchMany'] = (gachaId, count, pay = 'eggs') =>
+      pull(gachaId, Math.min(count, pullsAffordable(state, pay)), { pay })
 
-    // count 回まとめて引く。1回ずつ天井の回数を数え直し、1つの書き込みにまとめる
-    const hatchMany: Store['hatchMany'] = (gachaId, count) => pull(gachaId, Math.min(count, state.eggs), {})
-
-    /** 無料ガチャのイベント：卵を使わずに引く（その日1回だけ） */
+    /** 無料ガチャのイベント：トク玉もオーブも使わずに引く（その日1回だけ） */
     const freePull: Store['freePull'] = (eventId, gachaId) => {
       const today = dateKey()
       const ev = availableEvents(state, today).find((e) => e.id === eventId)
@@ -648,7 +654,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       return pull(gachaId, ev.pulls, { free: true, guaranteed: ev.guaranteed, claim: claimKey(ev, today) })
     }
 
-    const pull = (gachaId: string, times: number, opts: { free?: boolean; guaranteed?: boolean; claim?: string }) => {
+    const pull = (gachaId: string, times: number, opts: { free?: boolean; guaranteed?: boolean; claim?: string; pay?: Pay }) => {
       const gacha = gachas.find((g) => g.id === gachaId)
       if (!gacha || times <= 0) return []
       // 隠しモンスターはタマゴからは生まれない（rateTable が外す）
@@ -679,7 +685,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         pulls = rarityOf(def) === CONFIG.gacha.pity.rarity ? 0 : pulls + 1
         results.push({ def, monsterId: ref.id, shiny, pity })
       }
-      if (!opts.free) update.eggs = increment(-results.length)
+      if (!opts.free && opts.pay === 'orbs') update.gold = increment(-results.length * CONFIG.shop.pullPrice)
+      else if (!opts.free) update.eggs = increment(-results.length)
       if (opts.claim) update[`freeClaims.${opts.claim}`] = true
       update[`pity.${gacha.id}`] = pulls
       batch.update(stateRef, update)
@@ -687,7 +694,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       return results
     }
 
-    const hatchEgg: Store['hatchEgg'] = (gachaId) => hatchMany(gachaId, 1)[0] ?? null
+    const hatchEgg: Store['hatchEgg'] = (gachaId, pay) => hatchMany(gachaId, 1, pay)[0] ?? null
 
     const findMonster = (monsterId: string) => {
       const mon = owned.find((o) => o.id === monsterId)
@@ -1185,7 +1192,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         const boss = battle.boss
         if (!boss) return null
         // ボスクエストは、オーブと同じだけ進化コインも
-        coins = gold
+        coins = gold * CONFIG.coins.perOrb
         const shiny = false // 色違いはなくなった
         const ref = doc(collection(db, base, 'ownedMonsters'))
         batch.set(ref, {
@@ -1221,14 +1228,14 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       }
     }
 
-    /** 試練の塔の報酬：G・卵・核・塔限定モンスター。クリアした階を進める */
+    /** 試練の塔の報酬：オーブ・トク玉・核・塔限定モンスター。クリアした階を進める */
     const claimTower = (floor: TowerFloor, party: OwnedMonster[]): QuestReward | null => {
       const month = towerMonth(dateKey())
       if (floor.floor !== towerCleared(state, month) + 1) return null
       const bonus = luckBonus(party)
       const boost = state.boosts?.quest ? 2 : 1
       const gold = Math.round(floor.reward.gold * bonus.goldRate * boost)
-      const coins = gold // 進化コインもオーブと同じだけ
+      const coins = gold * CONFIG.coins.perOrb
       const cores = floor.reward.cores * boost
       const batch = writeBatch(db)
       const update: DocumentData = {
@@ -1331,7 +1338,6 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       autoSetPartners,
       setSlot,
       buyExp,
-      buyEgg,
       buyBooster,
       useBooster,
       hatchEgg,

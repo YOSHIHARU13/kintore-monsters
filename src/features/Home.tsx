@@ -110,7 +110,7 @@ export function Home({ go }: { go: Go }) {
         {goals.length === 0 ? (
           <p className="muted">
             {owned.length === 0
-              ? 'まだモンスターがいません。図鑑でモンスターを登録してから、ショップでタマゴを孵しましょう。'
+              ? 'まだモンスターがいません。図鑑でモンスターを登録してから、ショップでガチャを引きましょう。'
               : 'みんな育ちきっています！ ショップで新しい仲間を探そう。'}
           </p>
         ) : (
@@ -129,7 +129,7 @@ export function Home({ go }: { go: Go }) {
         )}
         {state.eggs > 0 && (
           <button className="btn wide" onClick={() => go({ name: 'shop' })}>
-            タマゴを孵す（{state.eggs}個）
+            ガチャを引く（🟡{state.eggs}・🔮{state.gold}）
           </button>
         )}
       </section>

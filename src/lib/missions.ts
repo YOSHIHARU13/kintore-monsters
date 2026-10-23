@@ -2,7 +2,7 @@ import { CONFIG } from '../config/gameConfig'
 import { getTemplate, pathTo } from '../data/evolutionTemplates'
 import type { BoosterKey, GameState, MonsterDef, OwnedMonster, SetRecord } from '../types'
 
-/** 報酬（卵・G・ブースター） */
+/** 報酬（トク玉・オーブ・ブースター） */
 export interface Reward {
   eggs?: number
   gold?: number
@@ -12,7 +12,7 @@ export interface Reward {
 
 export function rewardText(r: Reward): string {
   const parts: string[] = []
-  if (r.eggs) parts.push(`🥚卵×${r.eggs}`)
+  if (r.eggs) parts.push(`🟡トク玉×${r.eggs}`)
   if (r.gold) parts.push(`${r.gold}オーブ`)
   if (r.coins) parts.push(`🪙${r.coins}`)
   if (r.booster) parts.push(`${CONFIG.boosters[r.booster].icon}${CONFIG.boosters[r.booster].label}`)

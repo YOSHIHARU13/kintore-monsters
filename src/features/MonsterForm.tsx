@@ -594,7 +594,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
           隠しモンスターにする
         </label>
         <p className="muted small">
-          隠しモンスターはタマゴからは生まれません。レシピの2体がどちらも条件を満たしたら、ジョグレスで生まれます（
+          隠しモンスターはガチャからは生まれません。レシピの2体がどちらも条件を満たしたら、ジョグレスで生まれます（
           🪙{CONFIG.jogress.coins}＋筋肉玉×{CONFIG.jogress.balls}＋2体それぞれの属性の結晶×{CONFIG.jogress.stones}、2体はいなくなります）。同じモンスター2体でもOK。
           素材に激レアが入ると、攻撃力が上がります（激レア1体につき +
           {CONFIG.jogress.superRareBonus.toLocaleString()}）。

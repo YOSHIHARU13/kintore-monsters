@@ -12,11 +12,11 @@ import type { Go } from '../nav'
 import type { GameState, MonsterDef } from '../types'
 import { boosterName } from '../lib/boosters'
 
-/** 報酬の説明（例：🔮300・卵1・剛腕の核×3・🗼アシリュウ） */
+/** 報酬の説明（例：🔮300・トク玉1・剛腕の核×3・🗼アシリュウ） */
 export function towerRewardText(floor: TowerFloor, defs: MonsterDef[], state: GameState): string {
   const r = floor.reward
   const parts = [`🔮${r.gold}`]
-  if (r.eggs > 0) parts.push(`🥚卵×${r.eggs}`)
+  if (r.eggs > 0) parts.push(`🟡トク玉×${r.eggs}`)
   if (r.cores > 0 && floor.quest.attr !== 'none') parts.push(`💎${CORE_LABEL[floor.quest.attr]}×${r.cores}`)
   if (r.booster) parts.push(boosterName(state, r.booster))
   if (r.monsterDefId) parts.push(`🗼${defs.find((d) => d.id === r.monsterDefId)?.name ?? '塔限定モンスター'}`)
@@ -104,7 +104,7 @@ export function Tower({ go }: { go: Go }) {
       </ol>
       {!tower.some((f) => f.reward.monsterDefId) && (
         <p className="muted small">
-          塔限定モンスターがまだいないので、11階は卵になります。降臨モンスターの登録で「🗼
+          塔限定モンスターがまだいないので、11階はトク玉になります。降臨モンスターの登録で「🗼
           試練の塔の報酬にする」を選ぶと、11階のボスになり、倒すともらえます。
         </p>
       )}

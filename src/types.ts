@@ -16,9 +16,10 @@ export interface AttrExp {
 export type BoosterKey = 'habit' | 'exp' | 'quest'
 
 export interface GameState {
-  gold: number
+  gold: number // オーブ（ガチャ・ブースター）。中の名前は gold のまま
+  orbScale?: number // 1 ならオーブの単位（以前のゴールドの10分の1）に直してある
   coins: number // 進化コイン（進化・ジョグレス・EXPの購入）
-  eggs: number
+  eggs: number // トク玉（1個でガチャ1回）。中の名前は eggs のまま
   exp: Record<Attr, AttrExp>
   lifetimeExp: Record<Attr, number>
   anyExp: number // 万能EXP（腹筋ローラーで稼ぐ。どの属性の進化にも注げる）

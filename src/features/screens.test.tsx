@@ -174,7 +174,6 @@ beforeEach(() => {
     claimRanks: vi.fn(() => 3),
     setSlot: vi.fn(),
     buyExp: vi.fn(),
-    buyEgg: vi.fn(),
     hatchEgg: vi.fn(() => ({ def: defs[1], monsterId: 'o2', shiny: false, pity: false })),
     pourExp: vi.fn(),
     evolve: vi.fn(),
@@ -220,7 +219,7 @@ describe('画面の表示', () => {
     expect(el.textContent).not.toContain('前日の歩数を記録する')
   })
 
-  it('上の所持：ランク・EXP・タマゴ・オーブ・コインがいつも見えて、増えると +N が浮かぶ', async () => {
+  it('上の所持：ランク・EXP・トク玉・オーブ・コインがいつも見えて、増えると +N が浮かぶ', async () => {
     const { TopBar } = await import('../components/TopBar')
     let rerender = () => {}
     function Harness() {
@@ -248,7 +247,7 @@ describe('画面の表示', () => {
     fake.store.state = { ...state, claims: { 'rank:2': true } }
     const el = await render(<RankCard />)
     expect(el.textContent).toContain('ランク 4')
-    await click('ランクアップ報酬（ランク3〜4）🥚卵×2 を受け取る')
+    await click('ランクアップ報酬（ランク3〜4）🟡トク玉×2 を受け取る')
     expect(fake.store.claimRanks).toHaveBeenCalled()
   })
 
@@ -275,8 +274,8 @@ describe('画面の表示', () => {
     fake.store.state = { ...state, habitMode: 'minutes', habitLabel: '瞑想', habitDate: TODAY, habitMinutesToday: 25 }
     const el = await render(<HabitCard />)
     expect(el.textContent).toContain('今日 25分（オーブは30分まで）')
-    expect(el.textContent).toContain('10分（+50オーブ）') // 残り5分ぶんだけ（10分続けた単価10オーブ）
-    await click('10分（+50オーブ）')
+    expect(el.textContent).toContain('10分（+5オーブ）') // 残り5分ぶんだけ（10分続けた単価1オーブ）
+    await click('10分（+5オーブ）')
     expect(fake.store.recordHabit).toHaveBeenCalledWith(10)
     expect(el.textContent).toContain('瞑想 10分 → +20オーブ')
   })
@@ -284,7 +283,7 @@ describe('画面の表示', () => {
   it('習慣：○×なら1日1回「できた」', async () => {
     const { HabitCard } = await import('../components/HabitCard')
     await render(<HabitCard />)
-    await click('今日できた（+50オーブ）')
+    await click('今日できた（+5オーブ）')
     expect(fake.store.recordHabit).toHaveBeenCalledWith(0)
     fake.store.state = { ...state, habitDate: TODAY }
     expect((await render(<HabitCard />)).textContent).toContain('今日はできた！')
@@ -351,7 +350,7 @@ describe('画面の表示', () => {
     const el = await render(<SetInput slotId="mon2" go={go} />)
     await click('回で確定')
     expect(el.textContent).toContain('今週 全消し！！')
-    expect(el.textContent).toContain('+150オーブ')
+    expect(el.textContent).toContain('+15オーブ')
     expect(el.textContent).toContain('累計 3週目')
   })
 
@@ -361,9 +360,9 @@ describe('画面の表示', () => {
     expect(fake.store.setSlot).toHaveBeenCalledWith('mon1', 'pushupBar')
   })
 
-  it('朝の記録：前日の歩数を入れて記録（100歩ごとに1オーブ）', async () => {
+  it('朝の記録：前日の歩数を入れて記録（1000歩ごとに1オーブ）', async () => {
     fake.store.recordMorning = vi.fn((steps: number) => ({
-      date: '2026-10-04', steps, habit: false, habitLabel: '', streak: 0, stepsGold: Math.floor(steps / 100), habitGold: 0, ts: 1,
+      date: '2026-10-04', steps, habit: false, habitLabel: '', streak: 0, stepsGold: Math.floor(steps / 1000), habitGold: 0, ts: 1,
     }))
     const el = await render(<Morning go={go} />)
     expect(el.textContent).toContain('10/4の分')
@@ -372,9 +371,9 @@ describe('画面の表示', () => {
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, '6500')
       input.dispatchEvent(new Event('input', { bubbles: true }))
     })
-    await click('記録する（+65オーブ）')
+    await click('記録する（+6オーブ）')
     expect(fake.store.recordMorning).toHaveBeenCalledWith(6500)
-    expect(el.textContent).toContain('記録しました：+65オーブ')
+    expect(el.textContent).toContain('記録しました：+6オーブ')
   })
 
   it('朝の記録：記録済みなら結果だけ出る', async () => {
@@ -419,7 +418,7 @@ describe('画面の表示', () => {
     expect((await render(<Box go={go} />)).textContent).toContain('所持 2体')
     const shop = await render(<Shop go={go} />)
     await click('1回引く')
-    expect(fake.store.hatchEgg).toHaveBeenCalledWith('default')
+    expect(fake.store.hatchEgg).toHaveBeenCalledWith('default', 'eggs')
     expect(shop.textContent).not.toContain('が生まれた！') // まずはタマゴが揺れる
     await click('スキップ')
     expect(shop.querySelectorAll('.hatch-stars span')).toHaveLength(1) // 生まれたときは、レア度に関係なく★1
@@ -568,7 +567,7 @@ describe('画面の表示', () => {
     // 作ったガチャがあれば「いつものガチャ」は出さない
     expect([...el.querySelectorAll('.gacha-tab')].map((t) => t.textContent)).not.toContain('いつものガチャ')
     await click('1回引く')
-    expect(fake.store.hatchEgg).toHaveBeenCalledWith('g1')
+    expect(fake.store.hatchEgg).toHaveBeenCalledWith('g1', 'eggs')
   })
 
   it('ショップ：ピックアップが3体そろっていないガチャは準備中', async () => {
@@ -742,7 +741,7 @@ describe('画面の表示', () => {
     expect(names[1]).not.toContain('アーク')
     // ボスクエストは難易度を選ばない。格（決めていなければ極）でHPと報酬が決まる
     expect(el.querySelector('[aria-label="難易度"]')).toBeNull()
-    expect(el.textContent).toContain('HP 3,000・🔮80ドロップ アシガメ・ときどき木の結晶')
+    expect(el.textContent).toContain('HP 3,000・🔮8ドロップ アシガメ・ときどき木の結晶')
     await click('ムキドラゴ')
     expect(el.textContent).toContain('アーク1/2') // 選ぶとメーターが埋まる
     await click('出撃する')
@@ -823,7 +822,7 @@ describe('画面の表示', () => {
     expect(el.textContent).not.toContain('会いに行く')
   })
 
-  it('所持アイテム：素材の数を見て、余った結晶・核はタマゴと交換できる', async () => {
+  it('所持アイテム：素材の数を見て、余った結晶・核はトク玉と交換できる', async () => {
     const { Items } = await import('./Items')
     fake.store.state = { ...state, stones: { fire: 20, water: 3 }, cores: { legs: 10, chestArms: 1, none: 4 } }
     const el = await render(<Items go={go} />)
@@ -864,6 +863,22 @@ describe('画面の表示', () => {
     expect(container.textContent).toContain('タイマーではじめる')
   })
 
+  it('ショップ：オーブなら1回5個・10連50個で引ける（トク玉がなければオーブだけ）', async () => {
+    fake.store.state = { ...state, eggs: 0, gold: 52 }
+    fake.store.hatchMany = vi.fn(() => [])
+    const el = await render(<Shop go={go} />)
+    expect(el.textContent).not.toContain('🟡トク玉×1')
+    expect(el.textContent).toContain('🔮5')
+    expect(el.textContent).toContain('🔮50')
+    await click('10連で引く')
+    expect(fake.store.hatchMany).toHaveBeenCalledWith('default', 10, 'orbs')
+    // 足りなければ、引けるぶんだけ
+    fake.store.state = { ...state, eggs: 0, gold: 23 }
+    await render(<Shop go={go} />)
+    await click('4連で引く')
+    expect(fake.store.hatchMany).toHaveBeenCalledWith('default', 4, 'orbs')
+  })
+
   it('ショップ：まとめて引くと、結果が一覧で出る', async () => {
     fake.store.state = { ...state, eggs: 4 }
     fake.store.hatchMany = vi.fn(() => [
@@ -872,7 +887,7 @@ describe('画面の表示', () => {
     ])
     const el = await render(<Shop go={go} />)
     await click('4連で引く')
-    expect(fake.store.hatchMany).toHaveBeenCalledWith('default', 4)
+    expect(fake.store.hatchMany).toHaveBeenCalledWith('default', 4, 'eggs')
     expect(el.textContent).toContain('2連の結果')
     expect(el.querySelector('.multi-cell.rarity-superRare')!.textContent).toContain('激レア・確定')
     await act(async () => (el.querySelector('.multi-cell.rarity-superRare') as HTMLButtonElement).click())

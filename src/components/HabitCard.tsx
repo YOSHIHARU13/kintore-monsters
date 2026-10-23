@@ -49,10 +49,11 @@ export function HabitCard() {
     navigator.vibrate?.(60)
   }
 
+  const top = CONFIG.morning.habitRates[CONFIG.morning.habitRates.length - 1]
   return (
     <section className="card">
       <h2>🧘 {label}</h2>
-      {state.boosts?.habit && <p className="tag keep small">⚡ブースター使用中：次の記録はG2倍・上限なし</p>}
+      {state.boosts?.habit && <p className="tag keep small">⚡ブースター使用中：次の記録はオーブ2倍・上限なし</p>}
       <p className="muted small">
         {state.habitStreak}日連続（自己ベスト {state.bestHabitStreak}日）
         {byMinutes && `・今日 ${todayMinutes}分（オーブは${max}分まで）`}
@@ -60,7 +61,7 @@ export function HabitCard() {
       {byMinutes && (
         <p className="small">
           {CONFIG.morning.habitRates.map((t) => `${t.from}分〜 1分${t.perMinute}オーブ`).join('・')}
-          （1回で続けた分数で決まる。{CONFIG.morning.habitRates[CONFIG.morning.habitRates.length - 1].from}分で卵{Math.floor((CONFIG.morning.habitRates[CONFIG.morning.habitRates.length - 1].from * CONFIG.morning.habitRates[CONFIG.morning.habitRates.length - 1].perMinute) / CONFIG.shop.eggPrice)}個ぶん）
+          （1回で続けた分数で決まる・端数は切り捨て。{top.from}分でガチャ{Math.floor((top.from * top.perMinute) / CONFIG.shop.pullPrice)}回ぶん）
         </p>
       )}
       {flash && <div className="result keep">{flash}</div>}

@@ -80,10 +80,10 @@ describe('クエスト', () => {
   })
 
 
-  it('ボスクエストは格（極・究極・超絶）でHP・G・ドロップの＋が決まる', () => {
+  it('ボスクエストは格（極・究極・超絶）でHP・オーブ・ドロップの＋が決まる', () => {
     expect(defaultBossHp('chozetsu')).toBeGreaterThan(defaultBossHp('kyukyoku'))
     expect(defaultBossHp('kyukyoku')).toBeGreaterThan(defaultBossHp('kiwami'))
-    expect(questGold({ grade: 'chozetsu' }, 'normal')).toBe(300)
+    expect(questGold({ grade: 'chozetsu' }, 'normal')).toBe(30)
     expect(dropPlus({ grade: 'chozetsu' })).toBe(1)
     expect(dropPlus({ grade: 'kyukyoku' })).toBe(0)
     // 格を決める前のクエストは、以前の「雑魚〜極」から読み替える

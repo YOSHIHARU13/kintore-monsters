@@ -36,7 +36,6 @@ export function calcSetReward(p: { isBonus: boolean; setNo: number; judge: Judge
   }
 }
 
-/** 歩数のゴールド。500歩ごとに1G＋届いた段の歩数ボーナス */
 /** 習慣の名前（未設定なら初期の名前） */
 export function habitLabelOf(state: GameState): string {
   return state.habitLabel?.trim() || CONFIG.morning.habitDefaultLabel
@@ -52,20 +51,20 @@ export function habitRate(minutes: number): number {
 export function habitGoldNow(state: GameState, today: string, minutes: number): number {
   const sameDay = state.habitDate === today
   const mins = Math.max(0, Math.floor(minutes))
-  // ブースター使用中：Gが2倍で、その日の上限もなし
+  // ブースター使用中：オーブが2倍で、その日の上限もなし
   if (state.boosts?.habit) {
-    if (state.habitMode === 'minutes') return mins * habitRate(mins) * 2
+    if (state.habitMode === 'minutes') return Math.floor(mins * habitRate(mins) * 2)
     return sameDay ? 0 : CONFIG.morning.habitGold * 2
   }
   if (state.habitMode === 'minutes') {
     const before = sameDay ? state.habitMinutesToday : 0
     const room = Math.max(0, CONFIG.morning.habitMaxMinutes - before)
-    return Math.min(mins, room) * habitRate(mins)
+    return Math.floor(Math.min(mins, room) * habitRate(mins))
   }
   return sameDay ? 0 : CONFIG.morning.habitGold
 }
 
-/** 歩数のゴールド：150歩ごとに1G（段階なし） */
+/** 歩数のオーブ：stepsPerGold 歩ごとに1オーブ（段階なし） */
 export function stepsGold(steps: number): number {
   return Math.floor(Math.max(0, steps) / CONFIG.morning.stepsPerGold)
 }

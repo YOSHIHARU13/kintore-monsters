@@ -1,8 +1,7 @@
 import type { Go, View } from '../nav'
 
 const ENTRIES: { icon: string; label: string; hint: string; view: View }[] = [
-  { icon: '📦', label: '所持アイテム', hint: '結晶・核・筋肉玉の数と、タマゴへの交換', view: { name: 'items' } },
-  { icon: '📖', label: '図鑑', hint: '見つけたモンスター', view: { name: 'dex' } },
+  { icon: '📦', label: '所持アイテム', hint: '結晶・核・筋肉玉の数と、トク玉への交換', view: { name: 'items' } },
   { icon: '✏️', label: 'モンスターの登録・編集', hint: '新しいモンスターを作る・直す', view: { name: 'registry' } },
   { icon: '⚙️', label: '設定', hint: '習慣の名前・曲・ログアウト', view: { name: 'settings' } },
 ]

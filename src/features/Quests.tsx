@@ -126,7 +126,7 @@ export function Quests({ go }: { go: Go }) {
             {got.towerFloor ? `試練の塔 ${got.towerFloor}階 突破！` : '討伐成功！'} 🔮+{got.gold}・🪙+{got.coins ?? 0}
           </h2>
           {got.boosted && <p className="tag keep">⚔️ 討伐ブースターで報酬2倍！</p>}
-          {got.eggs > 0 && <p>🥚 卵 ×{got.eggs} を手に入れた！</p>}
+          {got.eggs > 0 && <p>🟡 トク玉 ×{got.eggs} を手に入れた！</p>}
           {got.booster && (
             <p>{boosterName(state, got.booster)} を手に入れた！</p>
           )}

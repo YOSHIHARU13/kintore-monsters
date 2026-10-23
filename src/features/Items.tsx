@@ -4,7 +4,7 @@ import { BALL_LABEL, CORE_KEYS, CORE_LABEL, STONE_LABEL, ballsOf, coresOf, stone
 import { ELEMENTS, ELEMENT_COLOR } from '../lib/element'
 import { ATTR_COLOR, type Go } from '../nav'
 
-/** 所持アイテム：進化素材の数。余った結晶・核はタマゴと交換できる */
+/** 所持アイテム：進化素材の数。余った結晶・核はトク玉と交換できる */
 export function Items({ go }: { go: Go }) {
   const { state, exchangeMaterial } = useStore()
   const ex = CONFIG.materials.eggExchange
@@ -26,7 +26,7 @@ export function Items({ go }: { go: Go }) {
             <strong className="num">{(state.coins ?? 0).toLocaleString()}</strong>
           </li>
           <li>
-            <span>🥚 タマゴ</span>
+            <span>🟡 トク玉</span>
             <strong className="num">{state.eggs}</strong>
           </li>
           <li>
@@ -39,7 +39,7 @@ export function Items({ go }: { go: Go }) {
 
       <section className="card">
         <h2>💠 属性の結晶</h2>
-        <p className="muted small">進化に使います（そのモンスターの属性の結晶）。{ex.stone}個でタマゴ1個と交換できます。</p>
+        <p className="muted small">進化に使います（そのモンスターの属性の結晶）。{ex.stone}個でトク玉1個と交換できます。</p>
         <ul className="mini-list">
           {ELEMENTS.map((e) => (
             <li key={e}>
@@ -47,7 +47,7 @@ export function Items({ go }: { go: Go }) {
                 {STONE_LABEL(e)} <strong className="num">{stonesOf(state, e)}</strong>
               </span>
               <button className="btn small" disabled={stonesOf(state, e) < ex.stone} onClick={() => exchangeMaterial('stone', e)}>
-                ×{ex.stone} → タマゴ
+                ×{ex.stone} → トク玉
               </button>
             </li>
           ))}
@@ -56,7 +56,7 @@ export function Items({ go }: { go: Go }) {
 
       <section className="card">
         <h2>💎 部位の核</h2>
-        <p className="muted small">★2→★3からの進化に使います（進化先の部位の核）。{ex.muscle}個でタマゴ1個と交換できます。</p>
+        <p className="muted small">★2→★3からの進化に使います（進化先の部位の核）。{ex.muscle}個でトク玉1個と交換できます。</p>
         <ul className="mini-list">
           {CORE_KEYS.map((k) => (
             <li key={k}>
@@ -64,7 +64,7 @@ export function Items({ go }: { go: Go }) {
                 {CORE_LABEL[k]} <strong className="num">{coresOf(state, k)}</strong>
               </span>
               <button className="btn small" disabled={coresOf(state, k) < ex.muscle} onClick={() => exchangeMaterial('muscle', k)}>
-                ×{ex.muscle} → タマゴ
+                ×{ex.muscle} → トク玉
               </button>
             </li>
           ))}
