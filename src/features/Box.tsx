@@ -118,7 +118,7 @@ export function Box({ go }: { go: Go }) {
         >
           {confirmFeed
             ? `本当に${feedCount}体を合成する（激レア・相棒・出撃中は残します）`
-            : `🍖 ノーマル以下のダブり${feedCount}体を、いちばん育っている子にまとめて合成`}
+            : `🍖 ノーマル以下のダブり${feedCount}体を、いちばん育っている1体にまとめて合成`}
         </button>
       )}
       {fedMsg && <div className="result keep">{fedMsg}</div>}

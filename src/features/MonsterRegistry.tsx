@@ -208,14 +208,14 @@ function BulkBar({ count, onSelectAll, onApply }: {
         </div>
       </div>
       <div className="field">
-        レア度（ガチャの子）
+        レア度（ガチャのモンスター）
         <div className="chips" role="group" aria-label="まとめて変えるレア度">
           {chip(tier === undefined, '変えない', () => setTier(undefined))}
           {RARITY_KEYS.map((r) => chip(tier === r, CONFIG.gacha.rarities[r].label, () => setTier(r)))}
         </div>
       </div>
       <div className="field">
-        降臨の格（降臨の子）
+        降臨の格（降臨のモンスター）
         <div className="chips" role="group" aria-label="まとめて変える降臨の格">
           {chip(grade === undefined, '変えない', () => setGrade(undefined))}
           {(['jokyu', 'kiwami', 'kyukyoku', 'chozetsu', 'chokyukyoku', 'bakuzetsu'] as const).map((g) =>

@@ -62,7 +62,7 @@ export function requirementsOf(quest: Pick<Quest, 'requirements' | 'gimmicks'>):
 /** タグの表示名（🔥炎、アーク など） */
 export function tagLabel(tag: Tag, names: Record<string, string>): string {
   if (tag === KINDS_TAG) return '🎨属性の種類'
-  if (tag.startsWith('pt:')) return `💪${ATTR_LABEL[tag.slice(3) as Attr]}の子`
+  if (tag.startsWith('pt:')) return `💪${ATTR_LABEL[tag.slice(3) as Attr]}のモンスター`
   if (tag.startsWith('el:')) {
     const e = tag.slice(3) as Element
     return `${CONFIG.formation.elementIcon[e]}${ELEMENT_LABEL[e]}`

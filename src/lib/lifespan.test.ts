@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { castleFloors } from './castle'
-import { floorRatio, lifespanOf } from './lifespan'
+import { floorRatio, idealPool, lifespanOf, lifespansOf } from './lifespan'
 import type { MonsterDef } from '../types'
 
 const ELS = ['fire', 'water', 'wood', 'light', 'dark'] as const
@@ -30,7 +30,7 @@ describe('コンテンツの寿命', () => {
   it('激レアが増えるほど、孤城の階を1日で削れる割合が上がる', () => {
     const few = roster(5)
     const many = roster(40)
-    const avg = (defs: MonsterDef[]) => floorsOf(defs).reduce((s, q) => s + floorRatio(q, defs), 0) / 11
+    const avg = (defs: MonsterDef[]) => floorsOf(defs).reduce((s, q) => s + floorRatio(q, idealPool(defs, q)), 0) / 11
     expect(avg(many)).toBeGreaterThan(avg(few))
   })
   it('全部の階が楽勝になるまでの激レアの数：最短（ぴったり刺さる子）≦ 目安（ばらばらの子）', { timeout: 60000 }, () => {
@@ -38,6 +38,24 @@ describe('コンテンツの寿命', () => {
     expect(r.floors).toHaveLength(11)
     expect(r.best).not.toBeNull()
     if (r.typical !== null) expect(r.best!).toBeLessThanOrEqual(r.typical)
+  })
+})
+
+describe('手持ちの寿命', () => {
+  it('何も持っていなければ1日で倒せる階はなく、理想より厳しい。手持ちを育てきった階の数は理想以下', { timeout: 60000 }, () => {
+    const defs = roster(10)
+    const none = lifespansOf(defs, [], floorsOf, ABS)
+    expect(none.mine.easy).toBe(0)
+    expect(none.mine.grownEasy).toBe(0)
+    // 激レアを全員、生まれたて（1段階目）で持っている
+    const owned = defs
+      .filter((d) => d.tier === 'superRare')
+      .map((d, i) => ({ id: `o${i}`, defId: d.id, nodeId: 'n1', obtainedAt: 0 }))
+    const some = lifespansOf(defs, owned, floorsOf, ABS)
+    const avg = (fs: { ratio: number }[]) => fs.reduce((s, f) => s + f.ratio, 0) / fs.length
+    expect(avg(some.mine.floors)).toBeGreaterThan(0)
+    expect(avg(some.mine.floors)).toBeLessThan(avg(some.ideal.floors))
+    expect(some.mine.grownEasy).toBeLessThanOrEqual(some.ideal.easy)
   })
 })
 

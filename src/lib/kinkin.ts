@@ -4,7 +4,7 @@ import { partTag } from './formation'
 import { bossGradeOf } from './gacha'
 import { standardSessionDamage } from './quest'
 import { autoQuestSetup, ownAbilities } from './questAuto'
-import { PATTERN_PARTS, patternBoss, patternOf, patternPick, weakSlotsFor, patternTag } from './pattern'
+import { PATTERN_PARTS, applyOrder, patternBoss, patternOf, patternPick, weakSlotsFor, patternTag } from './pattern'
 import { isOpenOn, type TowerFloor } from './tower'
 import { isHidden, type GameState, type MonsterDef, type Quest, type QuestGrade } from '../types'
 
@@ -19,7 +19,7 @@ export function kinkinCleared(state: Pick<GameState, 'kinkin'>, month: string): 
   return state.kinkin?.month === month ? state.kinkin.cleared : 0
 }
 
-/** ボス：爆絶の降臨（コラボ・塔限定・孤城限定・城主は入れない）を、炎・水・木・光・闇の順に4周。足りなければ超絶 → ほかの降臨で埋める */
+/** ボス：爆絶の降臨（コラボ・塔限定・孤城限定・城主は入れない）を、炎・水・木・光・闇の順に2周。足りなければ超絶 → ほかの降臨で埋める */
 export function kinkinLineup(defs: MonsterDef[]): (MonsterDef | undefined)[] {
   const order = CONFIG.castle.elementOrder
   const ok = (d: MonsterDef) =>
@@ -43,14 +43,14 @@ export function kinkinLineup(defs: MonsterDef[]): (MonsterDef | undefined)[] {
 export const kinkinLords = (defs: MonsterDef[]) => defs.filter((d) => d.questOnly && d.kinkinLord)
 
 /**
- * 禁筋の獄の20階ぶん。上の階ほどきびしく、16階から爆絶。持ち物検査は属性・アビリティ・部位。
+ * 禁筋の獄の10階ぶん。上の階ほどきびしく、6階から爆絶。持ち物検査は属性・アビリティ・部位。
  * 月ごとのパターン（胸腕・脚・背肩の月）で、部位・弱点・条件と、最上階のボスが変わる
  */
-export function kinkinFloors(month: string, defs: MonsterDef[], gimmicks: string[], quests: Quest[] = []): TowerFloor[] {
+export function kinkinFloors(month: string, defs: MonsterDef[], gimmicks: string[], quests: Quest[] = [], order?: string[]): TowerFloor[] {
   const k = CONFIG.kinkin
   const pattern = patternOf(month)
   const part = PATTERN_PARTS[pattern]
-  const lineup = kinkinLineup(defs)
+  const lineup = applyOrder(kinkinLineup(defs), order)
   const lord = patternPick(kinkinLords(defs), pattern)
   // 前の階の条件も数えて、階ごとにちがう子が主役になるように
   const sofar: Pick<Quest, 'id' | 'requirements' | 'gimmicks'>[] = [...quests]

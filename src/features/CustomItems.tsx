@@ -54,7 +54,7 @@ export function CustomItems({ go }: { go: Go }) {
       </section>
 
       <section className="card">
-        <h2>付けている子（{wearing.length}体）</h2>
+        <h2>付けているモンスター（{wearing.length}体）</h2>
         {wearing.length === 0 ? (
           <p className="muted small">まだいません。</p>
         ) : (

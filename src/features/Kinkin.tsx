@@ -12,7 +12,7 @@ import { towerRewardText } from './Tower'
 import type { Go } from '../nav'
 import { patternLabel, patternTag } from '../lib/pattern'
 
-/** 禁筋の獄：塔と孤城のあいだの高難度。毎月11〜20日・全20階。報酬はオーブ多め＋ちょいレア（ボスは落とさない） */
+/** 禁筋の獄：塔と孤城のあいだの高難度。毎月11〜20日・全10階。報酬はオーブ多め＋ちょいレア（ボスは落とさない） */
 export function Kinkin({ go }: { go: Go }) {
   const { state, kinkin, defs, today } = useStore()
   const cleared = kinkinCleared(state, towerMonth(today))
@@ -25,7 +25,7 @@ export function Kinkin({ go }: { go: Go }) {
       </button>
       <h1 className="title">⛓ 禁筋の獄{patternTag(towerMonth(today))}</h1>
       <p className="pattern-badge">
-        今月は<strong>{patternLabel(towerMonth(today))}</strong>：どのボスもこの部位のボス。この部位の種目がよく効いて、この部位の子が求められます（毎月 胸腕→脚→背肩 の順に入れ替わり、最上階のボスも変わる）
+        今月は<strong>{patternLabel(towerMonth(today))}</strong>：どのボスもこの部位のボス。この部位の種目がよく効いて、この部位のモンスターが求められます（毎月 胸腕→脚→背肩 の順に入れ替わり、最上階のボスも変わる）
       </p>
       <p className="muted">
         {!open
@@ -35,7 +35,7 @@ export function Kinkin({ go }: { go: Go }) {
             : `${cleared}／${k.floors}階クリア・次は${cleared + 1}階。各階の報酬は月に1回です。`}
       </p>
       <p className="muted small">
-        試練の塔より難しく、零の孤城より易しい高難度。1〜{k.bakuzetsuFrom - 1}階は超絶、{k.bakuzetsuFrom}階からは爆絶。どの階も「ボスと同じ部位の子」を求めます。報酬はオーブ多めと、筋肉玉・銀のアイテム・ステッキ（ボスは落としません）。
+        試練の塔より難しく、零の孤城より易しい高難度。1〜{k.bakuzetsuFrom - 1}階は超絶、{k.bakuzetsuFrom}階からは爆絶。どの階も「ボスと同じ部位のモンスター」を求めます。報酬はオーブ多めと、筋肉玉・銀のアイテム・ステッキ（ボスは落としません）。
       </p>
       <ol className="tower castle">
         {[...kinkin].reverse().map((f) => {

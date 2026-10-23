@@ -37,11 +37,11 @@ export function ShinkaPanel({ mon, def, onDone }: { mon: OwnedMonster; def: Mons
     <section className="card shinka-card">
       <h2>{tier ? `${SHINKA_LABEL[tier]}（★4）` : '🌟 獣神化（★4へ）'}</h2>
       {tier ? (
-        <p className="small">獣神化した子です。★4になり、攻撃力が上がっています。</p>
+        <p className="small">獣神化したモンスターです。★4になり、攻撃力が上がっています。</p>
       ) : (
         <>
           <p className="muted small">
-            {ready ? '' : '最終形態まで育てると獣神化できます。'}素材（この子だけのレシピ）：降臨の運を合わせて使います。余った運の子はBOXに残ります。🪙
+            {ready ? '' : '最終形態まで育てると獣神化できます。'}素材（このモンスターだけのレシピ）：降臨の運を合わせて使います。余った運のモンスターはBOXに残ります。🪙
             {CONFIG.shinka.coins}
           </p>
           {rows.length === 0 ? (

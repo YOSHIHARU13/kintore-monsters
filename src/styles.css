@@ -3601,3 +3601,22 @@ details.tuning[open] > summary {
   color: var(--text);
   text-shadow: 0 1px 2px #000;
 }
+
+/* 高難度のボス：各階の行（右に入れ替えボタン） */
+.boss-floor-row {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+.boss-floor-row > .choice {
+  flex: 1;
+  min-width: 0;
+}
+.boss-floor-row > .btn {
+  flex: 0 0 auto;
+  min-width: 44px;
+}
+.lifespan h3 {
+  margin: 12px 0 4px;
+  font-size: 0.95rem;
+}

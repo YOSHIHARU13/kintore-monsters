@@ -11,11 +11,11 @@ describe('禁筋の獄', () => {
     def(`b${i}`, { element: e, bossGrade: 'bakuzetsu' }),
     def(`x${i}`, { element: e, bossGrade: 'chozetsu', series: '鬼' }), // コラボは入れない
   ])
-  it('全20階。15階までは超絶、16階から爆絶。どの階も「ボスと同じ部位の子」を求め、ボスは落とさない', () => {
+  it('全10階。5階までは超絶、6階から爆絶。どの階も「ボスと同じ部位のモンスター」を求め、ボスは落とさない', () => {
     const floors = kinkinFloors('2026-10', bosses, [])
-    expect(floors).toHaveLength(20)
-    expect(floors[14].quest.grade).toBe('chozetsu')
-    expect(floors[15].quest.grade).toBe('bakuzetsu')
+    expect(floors).toHaveLength(10)
+    expect(floors[4].quest.grade).toBe('chozetsu')
+    expect(floors[5].quest.grade).toBe('bakuzetsu')
     expect(floors.every((f) => f.quest.requirements!.some((r) => r.tag === 'pt:legs'))).toBe(true)
     expect(floors.every((f) => f.reward.monsterDefId === null)).toBe(true)
     expect(floors.some((f) => f.quest.bossDefId.startsWith('x'))).toBe(false)
@@ -37,12 +37,28 @@ describe('月のパターン', () => {
   it('最上階のボスは、登録した子が毎月入れ替わる（初回クリアで手に入る）。どの階もその月の部位', async () => {
     const lords = ['L1', 'L2', 'L3'].map((id) => def(id, { element: 'dark', bossGrade: 'bakuzetsu', kinkinLord: true }))
     const others = [def('b', { element: 'fire', bossGrade: 'bakuzetsu' })]
-    const top = (month: string) => kinkinFloors(month, [...others, ...lords], [])[19]
+    const top = (month: string) => kinkinFloors(month, [...others, ...lords], [])[9]
     const ids = ['2026-10', '2026-11', '2026-12'].map((m) => top(m).quest.bossDefId)
     expect(new Set(ids).size).toBe(3)
     expect(top('2026-10').reward.monsterDefId).toBe(top('2026-10').quest.bossDefId)
     expect(top('2027-01').quest.bossDefId).toBe(ids[0]) // 3か月で一回り
     const { patternPart } = await import('./pattern')
     expect(kinkinFloors('2026-10', others, [])[3].quest.attr).toBe(patternPart('2026-10'))
+  })
+})
+
+describe('手で並べたボスの順', () => {
+  const bosses = (['fire', 'water', 'wood', 'light', 'dark'] as const).flatMap((e, i) => [
+    def(`b${i}`, { element: e, bossGrade: 'bakuzetsu' }),
+    def(`d${i}`, { element: e, bossGrade: 'bakuzetsu' }),
+  ])
+  it('並べた順がその階に入り、残りは自動の並びのまま。もう並べられないボスは飛ばす', () => {
+    const auto = kinkinFloors('2026-10', bosses, []).map((f) => f.quest.bossDefId)
+    const order = [auto[2], auto[0], 'gone', auto[1]]
+    const floors = kinkinFloors('2026-10', bosses, [], [], order).map((f) => f.quest.bossDefId)
+    expect(floors.slice(0, 2)).toEqual([auto[2], auto[0]])
+    expect(floors[3]).toBe(auto[1])
+    expect(new Set(floors).size).toBe(10)
+    expect(floors).toEqual(expect.arrayContaining(auto))
   })
 })

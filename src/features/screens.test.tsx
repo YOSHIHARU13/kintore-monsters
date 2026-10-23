@@ -1100,7 +1100,7 @@ describe('画面の表示', () => {
     expect(fake.store.setBossRole).toHaveBeenCalledWith(['B'], 'castleOnly', true)
   })
 
-  it('カスタマイズアイテムの一覧：持っているアイテムと、付けている子が見られる', async () => {
+  it('カスタマイズアイテムの一覧：持っているアイテムと、付けているモンスターが見られる', async () => {
     const { CustomItems } = await import('./CustomItems')
     fake.store.state = { ...state, customItems: { atk1: 2, 'ab:シールド': 1, fav: 0 }, sticks: 3 }
     fake.store.owned = [{ ...owned[0], custom: 'atk3' }]
@@ -1109,7 +1109,7 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('🥇 アビリティ追加：ノヴァ×1')
     expect(el.textContent).toContain('🥉 攻撃力 +500×2')
     expect(el.textContent).not.toContain('得意種目の追加') // 0個は出さない
-    expect(el.textContent).toContain('付けている子（1体）')
+    expect(el.textContent).toContain('付けているモンスター（1体）')
     await click('ムキドラゴ')
     expect(go).toHaveBeenCalledWith({ name: 'monster', id: 'o1' })
   })

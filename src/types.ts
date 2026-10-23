@@ -61,6 +61,7 @@ export interface GameState {
   castle?: { month?: string; cleared: number } // 旧：零の孤城でその月にクリアした階の数（今は castleBattles）
   castleBattles?: { month: string; best: Record<string, number> } // 零の孤城：その月、階ごとに突破したバトルの数（0〜3）
   kinkin?: { month: string; cleared: number } // 禁筋の獄：その月にクリアした階の数
+  bossOrder?: Partial<Record<'tower' | 'kinkin' | 'castle', string[]>> // 高難度の、手で並べた各階のボスの順（なければ自動の並び）
   boosters: Partial<Record<BoosterKey, number>> // 持っているブースターの数
   boosts: { habit?: boolean; quest?: boolean; expSets?: number } // 使用中のブースター（EXPは残りセット数）
   freeClaims: Record<string, boolean> // 引いた無料ガチャ（'thursday:2026-10-22' のようなキー）

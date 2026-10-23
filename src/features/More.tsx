@@ -5,7 +5,7 @@ type Entry = { icon: string; label: string; hint: string; view: View }
 
 const ENTRIES: Entry[] = [
   { icon: '📦', label: '所持アイテム', hint: '結晶・核・筋肉玉の数と、トク玉への交換', view: { name: 'items' } },
-  { icon: '🛠', label: 'カスタマイズアイテム', hint: '神殿で集めたアイテムと、付けている子', view: { name: 'customItems' } },
+  { icon: '🛠', label: 'カスタマイズアイテム', hint: '神殿で集めたアイテムと、付けているモンスター', view: { name: 'customItems' } },
   { icon: '⚙️', label: '設定', hint: '習慣の名前・曲・ログアウト', view: { name: 'settings' } },
 ]
 
