@@ -57,9 +57,12 @@ export function habitGoldNow(state: GameState, today: string, minutes: number): 
     return sameDay ? 0 : CONFIG.morning.habitGold * 2
   }
   if (state.habitMode === 'minutes') {
+    // 1日の最初の habitFullMinutes 分は単価どおり、そこから habitMaxMinutes 分までは habitLateRate
+    const m = CONFIG.morning
     const before = sameDay ? state.habitMinutesToday : 0
-    const room = Math.max(0, CONFIG.morning.habitMaxMinutes - before)
-    return Math.floor(Math.min(mins, room) * habitRate(mins))
+    const paid = Math.max(0, Math.min(mins, m.habitMaxMinutes - before))
+    const full = Math.max(0, Math.min(paid, m.habitFullMinutes - before))
+    return Math.floor(full * habitRate(mins) + (paid - full) * Math.min(habitRate(mins), m.habitLateRate))
   }
   return sameDay ? 0 : CONFIG.morning.habitGold
 }

@@ -81,7 +81,9 @@ export const CONFIG = {
       { from: 1, perMinute: 1.5 },
       { from: 5, perMinute: 3 },
     ],
-    habitMaxMinutes: 10, // 分数で記録するとき、オーブが出るのは1日の合計でこの分数まで（1日30オーブまで）
+    habitMaxMinutes: 30, // 分数で記録するとき、オーブが出るのは1日の合計でこの分数まで
+    habitFullMinutes: 10, // 1日の最初のこの分数までは上の単価。そこから habitMaxMinutes までは habitLateRate（30分で50オーブ）
+    habitLateRate: 1,
     // 2つ目の習慣（設定で1つ選ぶ）。goodThings は「昨日あった良いこと」を1つ書くごとに、1日 max 個まで
     habit2: {
       goodThings: { icon: '📝', label: '昨日あった良いことを書く', gold: 3, max: 3 },

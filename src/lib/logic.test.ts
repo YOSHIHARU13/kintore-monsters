@@ -68,9 +68,11 @@ describe('セット報酬', () => {
     })
     expect(calcSetReward({ isBonus: true, setNo: 4, judge: 'normal', intervalOk: true }).gold).toBe(0)
   })
-  it('習慣：分数は1日の合計10分まで。1回に続けた分数が長いほど単価が高い。○×は1日1回15オーブ', () => {
+  it('習慣：分数は1日の合計30分まで（最初の10分は単価どおり、そこからは1分1オーブ）。○×は1日1回15オーブ', () => {
     const st = (extra: Partial<GameState>) => ({ habitMode: 'minutes', habitDate: '2026-10-05', habitMinutesToday: 5, ...extra }) as GameState
-    expect(habitGoldNow(st({}), '2026-10-05', 10)).toBe(15) // 残り5分ぶん × 10分続けた単価3オーブ
+    expect(habitGoldNow(st({}), '2026-10-05', 10)).toBe(20) // 最初の10分の残り5分 × 3 ＋ 5分 × 1
+    expect(habitGoldNow(st({}), '2026-10-07', 30)).toBe(50) // 10分 × 3 ＋ 20分 × 1
+    expect(habitGoldNow(st({ habitMinutesToday: 30 }), '2026-10-05', 10)).toBe(0) // 30分を超えた分は出ない
     expect(habitGoldNow(st({}), '2026-10-06', 3)).toBe(4) // 4分までは1分1.5オーブ（端数は切り捨て）
     expect(habitGoldNow(st({}), '2026-10-06', 5)).toBe(15) // 5分続けると1分3オーブ＝ガチャ3回
     expect(habitGoldNow(st({ habitMode: 'check' }), '2026-10-05', 0)).toBe(0)
