@@ -30,3 +30,16 @@ describe('適正', () => {
     expect(fitRate(def('c', { element: 'fire', abilities: ['バリア'] }), q)).toBeCloseTo(0.3)
   })
 })
+
+describe('適正キャラの順位は1撃の重さ', () => {
+  it('アビリティが2つ噛み合ったノーマルより、1つだけの激レアが上。零属性の降臨も攻撃が軽ければ下', () => {
+    const q = quest('q', { grade: 'bakuzetsu', requirements: [{ tag: 'ab:バリア', count: 3 }, { tag: 'ab:シールド', count: 3 }] })
+    const list = fitMembers(q, [
+      def('weak', { tier: 'normal', element: 'wood', abilities: ['バリア', 'シールド'] }),
+      def('zero', { questOnly: true, bossGrade: 'jokyu', templateId: 'single', element: undefined, abilities: ['バリア', 'シールド'] }),
+      def('strong', { tier: 'superRare', element: 'wood', abilities: ['バリア'] }),
+    ])
+    expect(list[0].def.id).toBe('strong')
+    expect(list.map((x) => x.hit)).toEqual([...list.map((x) => x.hit)].sort((a, b) => b - a))
+  })
+})

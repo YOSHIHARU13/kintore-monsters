@@ -18,7 +18,7 @@ import { isHidden, nodeAttr, type MonsterDef, type OwnedMonster, type Quest } fr
  */
 
 /** 育ちきった1体（分岐は、その部位の最終形態があればそれ） */
-function grown(def: MonsterDef, part: string): Member {
+export function grown(def: MonsterDef, part: string): Member {
   const finals = getTemplate(def.templateId).nodes.filter((n) => n.next.length === 0)
   const node = finals.find((n) => nodeAttr(def, n.id) === part) ?? finals[0]
   const mon: OwnedMonster = { id: `v-${def.id}`, defId: def.id, nodeId: node.id, obtainedAt: 0, luck: 1, shinka: canShinkaDef(def) }

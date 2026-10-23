@@ -62,22 +62,23 @@ function formNames(def: MonsterDef, quest: Quest): string {
 }
 
 /**
- * そのクエストの適正キャラ：降臨の上位5体と、ガチャの上位5体。順位と刺さる率つき。
+ * そのクエストの適正キャラ：降臨の上位5体と、ガチャの上位5体。1撃の重さの順。
  * 持っていない子も出す（当てる・落とす目標になるように）。絵は薄い影をかけるだけ
  */
 export function FitMembers({ quest }: { quest: Quest }) {
   const { defs, owned } = useStore()
-  const all = fitMembers(quest, defs).filter((x) => x.rate > 0)
+  const all = fitMembers(quest, defs).filter((x) => x.rate > 0 && x.hit > 0)
   const drops = all.filter((x) => x.def.questOnly).slice(0, 5)
   const gacha = all.filter((x) => !x.def.questOnly).slice(0, 5)
   if (drops.length === 0 && gacha.length === 0) return null
   const has = (d: MonsterDef) => owned.some((o) => o.defId === d.id)
   const group = (label: string, list: typeof all) =>
-    list.length > 0 && (
+    list.length > 0 && groupOf(label, list, list[0].hit)
+  const groupOf = (label: string, list: typeof all, top: number) => (
       <div className="fit-group">
         <h3 className="small">{label}</h3>
         <ol className="fit-rank">
-          {list.map(({ def, fit, rate }, i) => (
+          {list.map(({ def, fit, hit }, i) => (
             <li key={def.id} className={`fit-member${has(def) ? '' : ' unowned'}${i === 0 ? ' top' : ''}`}>
               <span className="fit-no">{i + 1}</span>
               <MonsterImage imageId={imageOf(def, bannerNodeOf(def))} awaken={awakenOf(def, bannerNodeOf(def))} glow={glowOf(def)} size={44} />
@@ -86,9 +87,9 @@ export function FitMembers({ quest }: { quest: Quest }) {
                 {!has(def) && <span className="muted">（未所持）</span>}
               </span>
               <span className="fit-rate">
-                <strong>{Math.round(rate * 100)}%</strong>
+                <strong>{hit.toLocaleString()}</strong>
                 <span className="fit-bar">
-                  <i style={{ width: `${Math.round(rate * 100)}%` }} />
+                  <i style={{ width: `${Math.round((hit / Math.max(1, top)) * 100)}%` }} />
                 </span>
               </span>
             </li>
@@ -101,7 +102,9 @@ export function FitMembers({ quest }: { quest: Quest }) {
       <summary>
         <h2>🎯 適正キャラ（降臨{drops.length}体・ガチャ{gacha.length}体）</h2>
       </summary>
-      <p className="muted small">刺さる率：そのモンスター1体で、このクエストの条件（属性・アビリティ・部位）をどれだけ満たせるか</p>
+      <p className="muted small">
+        1撃の重さの順：育ちきった1体が、このボスの部位の種目1セットで与えるダメージ（攻撃力×属性・アビリティ・コラボ・部位一致・弱点・得意種目の倍率。平均）。並ぶのは、属性が合ってアビリティが条件に合うモンスター
+      </p>
       {group('⚔️ 降臨（クエストで手に入る）', drops)}
       {group('🎰 ガチャ', gacha)}
     </details>

@@ -1,8 +1,9 @@
 import { elementInfo, hasAdvantage } from './element'
 import { KINDS_TAG, requirementsOf, tagAbilities, tagsOf } from './formation'
-import { fitsQuest, gradeOf, GRADES, isCollabHero, matchedAbilities } from './quest'
+import { fitsQuest, gradeOf, GRADES, isCollabHero, matchedAbilities, setHit } from './quest'
+import { grown } from './lifespan'
 import { getTemplate } from '../data/evolutionTemplates'
-import { ATTR_LABEL, type Attr } from '../data/exercises'
+import { ATTR_LABEL, DAYS, SLOTS, type Attr } from '../data/exercises'
 import { monsterName, nodeAttr, type MonsterDef, type Quest } from '../types'
 
 /** 適正：◎（属性が合って、条件のアビリティを2つ以上。条件が1つなら全部）・○（属性が合って、アビリティ1つ） */
@@ -72,19 +73,27 @@ export function fitForms(def: MonsterDef, quest: Quest): { name: string; attr: s
   }))
 }
 
-/** そのクエストの適正キャラ（刺さる率の高い順。持っていない子も入る）。降臨とガチャの子に分けて使う */
-export function fitMembers(quest: Quest, defs: MonsterDef[]): { def: MonsterDef; fit: Fit; rate: number }[] {
+/**
+ * 1撃の重さ：育ちきった（その部位の最終形態・獣神化できれば★4）1体が、そのクエストの部位の種目1セットで与えるダメージの平均。
+ * 攻撃力に、属性（半減・3分の1・零属性）・アビリティ・コラボ・部位一致・ボスの部位・弱点・得意種目の倍率を全部かけたもの（編成倍率はかけない）
+ */
+export function hitWeight(def: MonsterDef, quest: Quest): number {
+  const member = grown(def, quest.attr)
+  const day = (Object.keys(DAYS) as (keyof typeof DAYS)[]).find((d) => DAYS[d].attr === quest.attr)
+  const slots = SLOTS.filter((s) => s.day === day)
+  if (slots.length === 0) return 0
+  const total = slots.reduce((sum, s) => sum + setHit({ slotId: s.id, day: s.day, eligible: true }, quest, [member], '').damage, 0)
+  return Math.round(total / slots.length)
+}
+
+/** そのクエストの適正キャラ（1撃の重い順。持っていないモンスターも入る）。降臨とガチャに分けて使う */
+export function fitMembers(quest: Quest, defs: MonsterDef[]): { def: MonsterDef; fit: Fit; rate: number; hit: number }[] {
   return defs
     .flatMap((def) => {
       const fit = fitOf(def, quest)
-      return fit ? [{ def, fit, rate: fitRate(def, quest) }] : []
+      return fit ? [{ def, fit, rate: fitRate(def, quest), hit: hitWeight(def, quest) }] : []
     })
-    .sort(
-      (a, b) =>
-        b.rate - a.rate ||
-        Number(b.fit === 'best') - Number(a.fit === 'best') ||
-        matchedAbilities(b.def, quest) - matchedAbilities(a.def, quest),
-    )
+    .sort((a, b) => b.hit - a.hit || b.rate - a.rate)
 }
 
 export const FIT_MARK: Record<Fit, string> = { best: '◎', good: '○' }
