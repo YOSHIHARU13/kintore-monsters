@@ -118,9 +118,10 @@ export function autoQuestSetup(
     if (highEnd) {
       // 高難度：今いるモンスターに合わせず、これまでの階となるべく重ならないアビリティの組（個性優先）
       if (a.abilities > 0) {
+        const k = Math.max(a.abilities, CONFIG.questAuto.highEndAbilities)
         const pool = gimmicks.filter((g) => !avoid.includes(g))
         const element = bossEl ?? 'none'
-        const set = pickSet(pool.length >= a.abilities ? pool : gimmicks, a.abilities, highEnd, seed, element)
+        const set = pickSet(pool.length >= k ? pool : gimmicks, k, highEnd, seed, element)
         if (a.combo > 0 && set.length >= 2) {
           const pair = leastUsedPair(set, highEnd, element)
           requirements.push({ tag: comboTag(pair[0], pair[1]), count: a.combo })

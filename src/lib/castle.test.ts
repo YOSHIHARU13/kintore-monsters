@@ -131,15 +131,15 @@ describe('高難度の条件は個性優先', () => {
     const all = abilitySets([...tower, ...kinkin, ...castle])
     const sets = all.map((s) => [...s.set].sort().join('+'))
     // 同じ属性の階（塔・禁筋・孤城を全部合わせて）で、アビリティの2つの組み合わせが均等に出る：
-    // ほとんどの組み合わせが出て、どれも2回まで（2つ持ちのモンスターが、どの組み合わせでも同じくらいの数の階に刺さる）
+    // 21通り全部が出て、回数の差は2まで（2つ持ちのモンスターが、どの組み合わせでも同じくらいの数の階に刺さる）
     const pairsOf = (s: string[]) => s.flatMap((a, i) => s.slice(i + 1).map((b) => [a, b].sort().join('+')))
     const hard = all.filter((s) => s.element !== 'none' && s.set.length >= 3)
     for (const el of new Set(hard.map((s) => s.element))) {
       const count: Record<string, number> = {}
       for (const p of hard.filter((s) => s.element === el).flatMap((s) => pairsOf(s.set))) count[p] = (count[p] ?? 0) + 1
       const n = Object.values(count)
-      expect(Object.keys(count).length).toBeGreaterThanOrEqual(18) // 21通りのほとんど（階の数で上限がある）
-      expect(Math.max(...n)).toBeLessThanOrEqual(2)
+      expect(Object.keys(count).length).toBe(21) // 21通り全部（どの激レアにも刺さる階がある）
+      expect(Math.max(...n) - Math.min(...n)).toBeLessThanOrEqual(2)
     }
     // 同じ属性の階では、同じ組を使わない
     const keyed = all.map((s) => `${s.element}:${[...s.set].sort().join('+')}`)

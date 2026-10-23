@@ -214,6 +214,9 @@ export const CONFIG = {
     // 零属性の爆絶は、属性の種類ではなく「3属性×3体ずつ」（1属性のモンスター6体では届かない＝2属性のモンスターが必須級）
     bakuzetsu: { element: 5, kinds: 5, abilities: 4, abilityCount: 3, combo: 2, weak: 2, zeroSplit: 3 },
     chokyukyoku: { element: 4, kinds: 5, abilities: 3, abilityCount: 3, combo: 2, weak: 2 },
+    // 高難度（塔の超絶の階・禁筋・孤城）は、格にかかわらずアビリティ5種類（2つの組み合わせが1階で10通り。
+    // 同じ属性の階が4〜5階あれば、21通りの組み合わせがどれも必ずどこかで出る＝どの激レアにも刺さる階がある）
+    highEndAbilities: 5,
     // 素材クエストは難易度ごと（初級はほぼ縛りなし、究極でやっとアビリティ）
     material: {
       easy: { element: 0, kinds: 0, abilities: 0, abilityCount: 0, combo: 0, weak: 1 },
@@ -367,7 +370,7 @@ export const CONFIG = {
     base: 0.4,
     perExtra: 0.15,
     max: 2.5,
-    maxRequirements: 8,
+    maxRequirements: 10,
     elementIcon: { fire: '🔥', water: '💧', wood: '🌿', light: '✨', dark: '🌑' },
   },
 
