@@ -97,6 +97,11 @@ export function setHit(set: SetInfo, quest: Quest, party: Member[], label: strin
     } else if (hasAdvantage(m.def, quest.element)) {
       own.push('有利属性')
     }
+    // 零属性のボスには、2属性のモンスターが強い
+    if (!quest.element && elementInfo(m.def).elements.length >= 2) {
+      d *= q.multiElementBonus
+      own.push(`2属性×${q.multiElementBonus}`)
+    }
     // コラボの激レア・レアは、同じコラボのボスに×1.5
     if (isCollabHero(m.def, quest)) {
       d *= q.collabBonus

@@ -478,8 +478,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
           setDefs(
             list
               .map((d) => {
-                const partner = d.jogressPartner ? byId.get(d.jogressPartner)?.element : undefined
-                return partner ? { ...d, partnerElement: partner } : d
+                const partner = d.jogressPartner ? byId.get(d.jogressPartner) : undefined
+                return partner?.element ? { ...d, partnerElement: partner.element, partnerAbilities: partner.abilities ?? [] } : d
               })
               .sort((a, b) => a.createdAt - b.createdAt),
           )

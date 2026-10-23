@@ -119,8 +119,9 @@ export function castleFloors(month: string, defs: MonsterDef[], gimmicks: string
       weakSlots: weakSlotsFor(part, `castle:${floor}:${pattern}`, 2),
       // 1〜10階は、有利な属性を少し減らす代わりに「属性の種類」も求める（2属性のモンスター・金の獣神化が活躍する）
       requirements: [
+        // 最上階（零属性の城主）は、アビリティを2種類にしぼって「属性の種類」を主役に（2属性のモンスター必須級）
         ...(top
-          ? setup.requirements
+          ? setup.requirements.filter((r) => !r.tag.startsWith('ab:') || setup.requirements.filter((x) => x.tag.startsWith('ab:')).indexOf(r) < 2)
           : setup.requirements.map((r) => (r.tag.startsWith('el:') ? { ...r, count: c.elementNeed } : r))),
         ...(top ? [] : [{ tag: KINDS_TAG, count: c.kindsNeed }]),
         { tag: partTag(part), count: 4 },

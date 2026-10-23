@@ -18,6 +18,8 @@ function memberPower(m: Member, quest: Quest): number {
 
 function elementPower(m: Member, quest: Quest): number {
   const q = CONFIG.quest
+  // 零属性のボスには、2属性のモンスターが強い
+  if (!quest.element && elementInfo(m.def).elements.length >= 2) return powerOf(m) * q.multiElementBonus
   if (elementInfo(m.def).elements.length === 0) return powerOf(m) * q.zeroBonus
   if (isStrict(quest) && !fitsQuest(m.def, quest)) {
     return powerOf(m) * (gradeOf(quest) === 'bakuzetsu' ? q.offElementBakuzetsu : q.offElementChozetsu)

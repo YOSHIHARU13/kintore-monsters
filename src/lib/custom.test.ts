@@ -3,7 +3,7 @@ import { customAttack, customized, isFavorite, itemInfo, itemLabel, rollItem, ro
 import { tagsOf } from './formation'
 import { attackOf } from './stats'
 import { partnerRate } from './partner'
-import type { MonsterDef, OwnedMonster } from '../types'
+import type { MonsterDef, OwnedMonster, Quest } from '../types'
 
 const seq = (...values: number[]) => () => values.shift() ?? 0.99
 const def = { id: 'd', name: 'd', attr: 'legs', templateId: 'linear3', images: {}, createdAt: 0, rarity: 'normal', abilities: ['バリア'], favoriteSlot: 'mon1' } as MonsterDef
@@ -63,5 +63,21 @@ describe('金の獣神化は2属性', () => {
     expect(kindsOf([gold])).toBe(2)
     expect(elementInfo(customized(def, { nodeId: 'n3' })).elements).toEqual(['fire'])
     expect(elementInfo(customized({ ...def, partnerElement: 'fire' }, { nodeId: 'n3', shinkaGold: true }))).toEqual({ elements: ['fire'], super: true })
+  })
+})
+
+describe('金の獣神化はアビリティ3つ・零属性のボスに強い', () => {
+  it('相手のアビリティから1つ足して3つ。零属性のボスには2属性で×1.5', async () => {
+    const { customized } = await import('./custom')
+    const { setHit } = await import('./quest')
+    const def = { id: 'a', name: 'a', attr: 'legs', templateId: 'linear3', images: {}, createdAt: 0, tier: 'superRare', element: 'fire', abilities: ['バリア', 'ミラー'], jogressPartner: 'b', partnerElement: 'wood', partnerAbilities: ['ミラー', 'ワープ'] } as MonsterDef
+    const mon = { id: 'o', defId: 'a', nodeId: 'n3', obtainedAt: 0, shinka: true, shinkaGold: true }
+    const gold = customized(def, mon)
+    expect(Object.keys(tagsOf(gold)).filter((t) => t.startsWith('ab:')).sort()).toEqual(['ab:バリア', 'ab:ミラー', 'ab:ワープ'])
+    const zero = { id: 'q', name: 'q', bossDefId: 'x', attr: 'backShoulders', weakSlots: [], hp: { easy: 1, normal: 1, hard: 1 }, catchphrase: '', theme: '', createdAt: 0 } as unknown as Quest
+    const set = { slotId: 'mon1', day: 'mon' as const, eligible: true }
+    const plain = customized(def, { ...mon, shinkaGold: false })
+    const ratio = setHit(set, zero, [{ mon, def: gold }], '').damage / setHit(set, zero, [{ mon, def: plain }], '').damage
+    expect(ratio).toBeCloseTo(1.5, 1)
   })
 })
