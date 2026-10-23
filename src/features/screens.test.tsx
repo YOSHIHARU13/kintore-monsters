@@ -165,6 +165,7 @@ beforeEach(() => {
     quests: [],
     tower: [],
     castle: [],
+    kinkin: [],
     seriesPeriods: {},
     week: TODAY,
     saveQuest: vi.fn(),
@@ -838,7 +839,7 @@ describe('画面の表示', () => {
     // まずは入口の一覧（Monstのように、選ぶと中のクエストが出る）
     const top = await render(<Quests go={go} />)
     expect([...top.querySelectorAll('.quest-entry strong')].map((e) => e.textContent)).toEqual([
-      'クエスト', '零の孤城', '試練の塔', '素材クエスト', '神殿',
+      'クエスト', '試練の塔', '禁筋の獄', '零の孤城', '素材クエスト', '神殿',
     ]) // 書庫は終わったコラボがあるときだけ
     expect(top.textContent).toContain('（1/2クリア）')
     await click('素材クエスト')

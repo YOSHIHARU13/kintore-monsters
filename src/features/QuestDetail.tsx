@@ -18,6 +18,7 @@ import { allGimmicks } from '../lib/gimmick'
 import { DROP_ICON, STONE_LABEL, dropLabel, dropOf, expectedDrop } from '../lib/cores'
 import { towerCleared, towerMonth, towerOpen } from '../lib/tower'
 import { castleCleared, castleOpen } from '../lib/castle'
+import { kinkinCleared, kinkinOpen } from '../lib/kinkin'
 import { towerRewardText } from './Tower'
 import { plusName, type QuestDifficulty } from '../types'
 import { customized, isFavorite } from '../lib/custom'
@@ -29,21 +30,28 @@ import type { LotDrop } from '../lib/cores'
 
 /** クエストの詳細：ボスの弱点を見て、難易度と出撃メンバーを選んで挑戦する */
 export function QuestDetail({ id, go }: { id: string; go: Go }) {
-  const { state, quests, tower, castle, defs, owned, menu, today, seriesPeriods, startChallenge } = useStore()
+  const { state, quests, tower, castle, kinkin, defs, owned, menu, today, seriesPeriods, startChallenge } = useStore()
   // 試練の塔か零の孤城の階（どちらも1階ずつ）
   const inCastle = castle.some((f) => f.quest.id === id)
-  const towerFloor = tower.find((f) => f.quest.id === id) ?? castle.find((f) => f.quest.id === id)
+  const inKinkin = kinkin.some((f) => f.quest.id === id)
+  const towerFloor = tower.find((f) => f.quest.id === id) ?? castle.find((f) => f.quest.id === id) ?? kinkin.find((f) => f.quest.id === id)
   const found = quests.find((q) => q.id === id) ?? towerFloor?.quest
   const backTo: View = inCastle
     ? { name: 'castle' }
+    : inKinkin
+      ? { name: 'kinkin' }
     : towerFloor
       ? { name: 'tower' }
       : found
         ? { name: 'quests', category: questCategoryOf(found, defs, seriesPeriods, today) }
         : { name: 'quests' }
-  const cleared = inCastle ? castleCleared(state, towerMonth(today)) : towerCleared(state, towerMonth(today), towerFloor?.tower ?? 0)
+  const cleared = inCastle
+    ? castleCleared(state, towerMonth(today))
+    : inKinkin
+      ? kinkinCleared(state, towerMonth(today))
+      : towerCleared(state, towerMonth(today), towerFloor?.tower ?? 0)
   // 塔・孤城は、開催中で、次の階だけ挑戦できる（条件はいつでも見られる）
-  const closed = !!towerFloor && !(inCastle ? castleOpen(today) : towerOpen(today))
+  const closed = !!towerFloor && !(inCastle ? castleOpen(today) : inKinkin ? kinkinOpen(today) : towerOpen(today))
   const towerLocked = !!towerFloor && (closed || towerFloor.floor !== cleared + 1)
   const current = state.challenge?.date === today ? state.challenge : null
   const [difficulty, setDifficulty] = useState<QuestDifficulty>(
@@ -128,7 +136,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
   return (
     <div className="page">
       <button className="back" onClick={() => go(backTo)}>
-        {inCastle ? '← 零の孤城に戻る' : towerFloor ? '← 試練の塔に戻る' : '← クエストに戻る'}
+        {inCastle ? '← 零の孤城に戻る' : inKinkin ? '← 禁筋の獄に戻る' : towerFloor ? '← 試練の塔に戻る' : '← クエストに戻る'}
       </button>
       <QuestBanner quest={quest} boss={boss} />
 
@@ -303,7 +311,9 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
         }}
       >
         {closed
-          ? inCastle
+          ? inKinkin
+            ? `禁筋の獄は毎月${CONFIG.kinkin.openDays[0]}〜${CONFIG.kinkin.openDays[1]}日に挑戦できます`
+            : inCastle
             ? `零の孤城は毎月${CONFIG.castle.openDays[0]}日〜月末に挑戦できます`
             : `試練の塔は毎月${CONFIG.tower.openDays[0]}〜${CONFIG.tower.openDays[1]}日に挑戦できます`
           : towerLocked

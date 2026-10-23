@@ -29,6 +29,7 @@ export interface TowerReward {
   eggs: number
   cores: number // ボスの部位の核
   sticks?: number // ワクワクステッキ
+  balls?: number // 筋肉玉（禁筋の獄）
   booster: BoosterKey | null // ブースター
   boosters?: BoosterKey[] // ブースター詰め合わせ（孤城）
   custom?: string // カスタマイズアイテム（孤城）

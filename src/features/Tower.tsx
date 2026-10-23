@@ -23,6 +23,7 @@ export function towerRewardText(floor: TowerFloor, defs: MonsterDef[], state: Ga
   if (r.cores > 0 && floor.quest.attr !== 'none') parts.push(`💎${CORE_LABEL[floor.quest.attr]}×${r.cores}`)
   if (r.booster) parts.push(boosterName(state, r.booster))
   if (r.sticks) parts.push(`🪄ワクワクステッキ×${r.sticks}`)
+  if (r.balls) parts.push(`🟣筋肉玉×${r.balls}`)
   if (r.boosters && r.boosters.length > 0) parts.push(`🎁ブースター詰め合わせ×${r.boosters.length}`)
   if (r.custom) parts.push(itemLabel(r.custom))
   const castle = isCastleQuest(floor.quest.id)
