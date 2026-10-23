@@ -107,7 +107,7 @@ describe('塔は超絶10体ごと', () => {
     expect(towers).toHaveLength(2)
     const second = towers[1].slice(0, 10).map((f) => f.quest.bossDefId)
     expect(new Set(second)).toEqual(new Set(twenty.slice(10).map((d) => d.id)))
-    expect(towers[1][0].quest.name).toBe('第2の塔 1階')
+    expect(towers[1][0].quest.name).toBe('第2の塔【脚】 1階')
     expect(towers[1][0].quest.id).not.toBe(towers[0][0].quest.id)
   })
   it('上の階では「ボスと同じ部位の子」も求める', () => {

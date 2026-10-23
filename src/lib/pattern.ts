@@ -15,6 +15,9 @@ export function patternOf(month: string): number {
 
 export const patternPart = (month: string): Attr => PATTERN_PARTS[patternOf(month)]
 
+/** 高難度の名前に付ける、その月のパターン（例：【脚】） */
+export const patternTag = (month: string) => `【${DAYS[(Object.keys(DAYS) as (keyof typeof DAYS)[]).find((d) => DAYS[d].attr === patternPart(month))!].title}】`
+
 export const patternLabel = (month: string) => `${DAYS[(Object.keys(DAYS) as (keyof typeof DAYS)[]).find((d) => DAYS[d].attr === patternPart(month))!].title}の月`
 
 function hash(s: string): number {

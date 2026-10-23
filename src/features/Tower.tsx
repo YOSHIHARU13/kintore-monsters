@@ -10,7 +10,7 @@ import { gradeOf } from '../lib/quest'
 import { towerCleared, towerMonth, towerOpen, type TowerFloor } from '../lib/tower'
 import { FloorReqs } from '../components/FloorReqs'
 import type { Go } from '../nav'
-import { patternLabel } from '../lib/pattern'
+import { patternLabel, patternTag } from '../lib/pattern'
 import type { GameState, MonsterDef } from '../types'
 import { boosterName } from '../lib/boosters'
 import { itemLabel } from '../lib/custom'
@@ -56,7 +56,7 @@ export function Tower({ go }: { go: Go }) {
       <button className="back" onClick={() => go({ name: 'quests' })}>
         ← クエストに戻る
       </button>
-      <h1 className="title">🗼 試練の塔（{m}月）</h1>
+      <h1 className="title">🗼 試練の塔{patternTag(towerMonth(today))}（{m}月）</h1>
       <p className="pattern-badge">
         今月は<strong>{patternLabel(towerMonth(today))}</strong>：どのボスもこの部位のボス。この部位の種目がよく効いて、この部位の子が求められます（毎月 胸腕→脚→背肩 の順に入れ替わり、最上階のボスも変わる）
       </p>

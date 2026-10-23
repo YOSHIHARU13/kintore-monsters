@@ -4,7 +4,7 @@ import { partTag } from './formation'
 import { bossGradeOf } from './gacha'
 import { standardSessionDamage } from './quest'
 import { autoQuestSetup, ownAbilities } from './questAuto'
-import { PATTERN_PARTS, patternBoss, patternOf, patternPick, weakSlotsFor } from './pattern'
+import { PATTERN_PARTS, patternBoss, patternOf, patternPick, weakSlotsFor, patternTag } from './pattern'
 import { isOpenOn, type TowerFloor } from './tower'
 import { isHidden, type GameState, type MonsterDef, type Quest, type QuestGrade } from '../types'
 
@@ -65,7 +65,7 @@ export function kinkinFloors(month: string, defs: MonsterDef[], gimmicks: string
     const hp = Math.max(100, Math.round((standardSessionDamage() * k.hpRatio[i]) / 100) * 100)
     const quest: Quest = {
       id: `${KINKIN_PREFIX}${floor}`,
-      name: `禁筋の獄 ${floor}階`,
+      name: `禁筋の獄${patternTag(month)} ${floor}階`,
       kind: 'boss',
       bossDefId: boss?.id ?? '',
       attr: part,

@@ -2,7 +2,7 @@ import { CONFIG } from '../config/gameConfig'
 import { elementInfo } from './element'
 import { gradeOf, standardSessionDamage } from './quest'
 import { autoQuestSetup } from './questAuto'
-import { PATTERN_PARTS, patternBoss, patternOf, patternPick, weakSlotsFor } from './pattern'
+import { PATTERN_PARTS, patternBoss, patternOf, patternPick, weakSlotsFor, patternTag } from './pattern'
 import { partTag } from './formation'
 import { bossGradeOf, rarityOf } from './gacha'
 import { isOpenOn, type TowerFloor } from './tower'
@@ -108,7 +108,7 @@ export function castleFloors(month: string, defs: MonsterDef[], gimmicks: string
     const hp = Math.max(100, Math.round((standardSessionDamage() * c.hpRatio[i]) / 100) * 100)
     const quest: Quest = {
       id: `${CASTLE_PREFIX}${floor}`,
-      name: top ? '零の孤城 最上階' : `零の孤城 ${floor}階`,
+      name: top ? `零の孤城${patternTag(month)} 最上階` : `零の孤城${patternTag(month)} ${floor}階`,
       kind: 'boss',
       bossDefId: boss?.id ?? '',
       attr: part,

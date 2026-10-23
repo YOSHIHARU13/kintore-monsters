@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { patternTag } from '../lib/pattern'
 import { ATTRS, ATTR_LABEL, type Attr } from '../data/exercises'
 import { ATTR_COLOR } from '../nav'
 import { awakenOf, imageOf, glowOf, monArt } from '../lib/art'
@@ -125,7 +126,7 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
     {
       key: 'tower',
       icon: '🗼',
-      label: '試練の塔',
+      label: `試練の塔${patternTag(towerMonth(today))}`,
       hint: !towerOpen(today)
         ? `毎月${CONFIG.tower.openDays[0]}〜${CONFIG.tower.openDays[1]}日に開催`
         : towerDone >= CONFIG.tower.floors
@@ -137,7 +138,7 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
     {
       key: 'kinkin',
       icon: '⛓',
-      label: '禁筋の獄',
+      label: `禁筋の獄${patternTag(towerMonth(today))}`,
       hint: !kinkinOpen(today)
         ? `毎月${CONFIG.kinkin.openDays[0]}〜${CONFIG.kinkin.openDays[1]}日に開催・全${CONFIG.kinkin.floors}階・オーブ多め`
         : `開催中 ${kinkinCleared(state, towerMonth(today))}／${CONFIG.kinkin.floors}階`,
@@ -147,7 +148,7 @@ export function Quests({ go, category }: { go: Go; category?: QuestCategory }) {
     {
       key: 'castle',
       icon: '🏯',
-      label: '零の孤城',
+      label: `零の孤城${patternTag(towerMonth(today))}`,
       hint: !castleOpen(today)
         ? `毎月${CONFIG.castle.openDays[0]}日〜月末に開催・全階爆絶・最上階は零属性の城主`
         : castleDone >= CONFIG.castle.floors

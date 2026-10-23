@@ -9,7 +9,7 @@ import { towerMonth } from '../lib/tower'
 import { FloorReqs } from '../components/FloorReqs'
 import { towerRewardText } from './Tower'
 import type { Go } from '../nav'
-import { patternLabel } from '../lib/pattern'
+import { patternLabel, patternTag } from '../lib/pattern'
 
 /** 零の孤城：全11階のエンドコンテンツ。毎月21日〜月末。1〜10階は孤城限定の子、11階は零属性の城主（どちらも毎月の初回クリアで手に入る） */
 export function Castle({ go }: { go: Go }) {
@@ -22,7 +22,7 @@ export function Castle({ go }: { go: Go }) {
       <button className="back" onClick={() => go({ name: 'quests' })}>
         ← クエストに戻る
       </button>
-      <h1 className="title">🏯 零の孤城</h1>
+      <h1 className="title">🏯 零の孤城{patternTag(towerMonth(today))}</h1>
       <p className="pattern-badge">
         今月は<strong>{patternLabel(towerMonth(today))}</strong>：どのボスもこの部位のボス。この部位の種目がよく効いて、この部位の子が求められます（毎月 胸腕→脚→背肩 の順に入れ替わり、最上階のボスも変わる）
       </p>

@@ -2,7 +2,7 @@ import { CONFIG } from '../config/gameConfig'
 import { elementInfo } from './element'
 import { gradeOf, standardSessionDamage } from './quest'
 import { autoQuestSetup, ownAbilities } from './questAuto'
-import { PATTERN_PARTS, patternBoss, patternOf, patternPick, weakSlotsFor } from './pattern'
+import { PATTERN_PARTS, patternBoss, patternOf, patternPick, weakSlotsFor, patternTag } from './pattern'
 import { partTag } from './formation'
 import { bossGradeOf, rarityOf } from './gacha'
 import {
@@ -165,7 +165,7 @@ export function towerFloors(
     const hp = Math.max(100, Math.round((standardSessionDamage() * t.hpRatio[i]) / 100) * 100)
     const quest: Quest = {
       id: index === 0 ? `${TOWER_PREFIX}${month}-${floor}` : `${TOWER_PREFIX}${month}-t${index + 1}-${floor}`,
-      name: index === 0 ? `試練の塔 ${floor}階` : `第${index + 1}の塔 ${floor}階`,
+      name: index === 0 ? `試練の塔${patternTag(month)} ${floor}階` : `第${index + 1}の塔${patternTag(month)} ${floor}階`,
       kind: 'boss',
       bossDefId: boss?.id ?? '',
       attr: part,

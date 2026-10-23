@@ -884,7 +884,7 @@ describe('画面の表示', () => {
     // まずは入口の一覧（Monstのように、選ぶと中のクエストが出る）
     const top = await render(<Quests go={go} />)
     expect([...top.querySelectorAll('.quest-entry strong')].map((e) => e.textContent)).toEqual([
-      'クエスト', '試練の塔', '素材クエスト', '神殿',
+      'クエスト', '試練の塔【脚】', '素材クエスト', '神殿',
     ]) // 高難度は開催中のものだけ（5日は試練の塔）。書庫は終わったコラボがあるときだけ
     expect(top.textContent).toContain('次の高難度：禁筋の獄は11日から・零の孤城は21日から')
     expect(top.textContent).toContain('（1/2クリア）')
