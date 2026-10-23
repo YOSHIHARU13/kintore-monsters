@@ -151,16 +151,16 @@ describe('今週のタスク', () => {
 describe('進化', () => {
   const cost = evolutionCost(1)!
   it('初期コスト', () => {
-    expect(cost).toEqual({ exp: 40, coins: 30, cores: 0 })
+    expect(cost).toEqual({ exp: 40, coins: 30, stones: 2, muscle: 0, balls: 0 })
     expect(fusionCost(0)).toEqual({ exp: 100, coins: 100 })
     expect(fusionCost(4)).toEqual({ exp: 500, coins: 500 })
     expect(fusionCost(5)).toBeNull()
-    expect(evolutionCost(2)).toEqual({ exp: 120, coins: 60, cores: 1 }) // ★2→★3 は核が要る
+    expect(evolutionCost(2)).toEqual({ exp: 120, coins: 60, stones: 6, muscle: 3, balls: 1 }) // ★2→★3 は筋肉玉が要る
     // ワープ進化（★1→★3）は、1→2 と 2→3 の合計
     const warp = getTemplate('warp')
-    expect(nextCost(warp, warp.nodes[0])).toEqual({ exp: 160, coins: 90, cores: 1 })
+    expect(nextCost(warp, warp.nodes[0])).toEqual({ exp: 160, coins: 90, stones: 8, muscle: 3, balls: 1 })
     expect(nextCost(warp, warp.nodes[1])).toBeNull()
-    expect(evolutionCost(4)).toEqual({ exp: 2500, coins: 1500 })
+    expect(evolutionCost(4)).toEqual({ exp: 2500, coins: 1500, stones: 25, muscle: 12, balls: 3 })
     expect(evolutionCost(5)).toBeNull()
   })
   it('購入EXPは必要EXPの半分まで', () => {

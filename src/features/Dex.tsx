@@ -115,10 +115,6 @@ export function Dex({ go }: { go: Go }) {
         })}
       </div>
 
-      <button className="btn wide" onClick={() => go({ name: 'registry' })}>
-        モンスターを登録・編集する
-      </button>
-
       {open && (
         <div className="sheet-backdrop" onClick={() => setOpen(null)}>
           <div className="sheet" onClick={(ev) => ev.stopPropagation()}>

@@ -9,13 +9,13 @@ import { elementInfo, elementName } from '../lib/element'
 import { ATTRS, ATTR_LABEL, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot, type Attr } from '../data/exercises'
 import { FIRST_NODE_ID, getNode, getTemplate } from '../data/evolutionTemplates'
 import { CONFIG } from '../config/gameConfig'
-import { boughtCap, isExpFull, nextCost, planPour } from '../lib/evolution'
+import { boughtCap, isExpFull, jogressStones, materialKeys, missingMaterials, nextCost, planPour, type EvoCost } from '../lib/evolution'
 import { Gauge } from '../components/Gauge'
 import { Stars } from '../components/Stars'
 import { Abilities } from '../components/Abilities'
 import { isLuckMax, luckOf } from '../lib/fusion'
 import { ElementBadge } from '../components/ElementBadge'
-import { CORE_LABEL } from '../lib/cores'
+import { BALL_LABEL, CORE_LABEL, STONE_LABEL, ballsOf, coresOf, stonesOf } from '../lib/cores'
 import { attackOf, isJogressReady, jogressNeed } from '../lib/stats'
 import { MonsterImage } from '../components/MonsterImage'
 import { ATTR_COLOR, type Go } from '../nav'
@@ -66,6 +66,23 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
       </div>
     )
   }
+
+  // ジョグレスの素材：コイン・筋肉玉・2体それぞれの属性の結晶
+  const jogressNeeds = (partnerDefId: string) => {
+    const partnerDef = defs.find((d) => d.id === partnerDefId)
+    const els = partnerDef ? jogressStones(def, partnerDef) : []
+    return [...new Set(els)].map((e) => ({ e, n: CONFIG.jogress.stones * els.filter((x) => x === e).length }))
+  }
+  const jogressAffordable = (partnerDefId: string) =>
+    (state.coins ?? 0) >= CONFIG.jogress.coins &&
+    ballsOf(state) >= CONFIG.jogress.balls &&
+    jogressNeeds(partnerDefId).every(({ e, n }) => stonesOf(state, e) >= n)
+  const jogressCostText = (partnerDefId: string) =>
+    [
+      `🪙${CONFIG.jogress.coins}`,
+      `${BALL_LABEL}×${CONFIG.jogress.balls}`,
+      ...jogressNeeds(partnerDefId).map(({ e, n }) => `${STONE_LABEL(e)}×${n}`),
+    ].join('・')
 
   const template = getTemplate(def.templateId)
   const node = getNode(template, mon.nodeId)
@@ -147,7 +164,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
             <MonsterImage imageId={imageOf(def, mon.nodeId)} awaken={awakenOf(def, mon.nodeId)} glow={glowOf(def)} size={180} shiny={mon.shiny} />
             <div className="beat-title">{plusName(def, mon)}</div>
             <div className="beat-sub">
-              クエスト報酬G＋{Math.round(CONFIG.luck.goldBonus * 100)}%・核＋{Math.round(CONFIG.luck.coreBonus * 100)}%
+              クエストのオーブ＋{Math.round(CONFIG.luck.goldBonus * 100)}%・素材のくじ＋{CONFIG.materials.luckRolls}回
             </div>
             <span className="luck-max">運極</span>
           </div>
@@ -208,13 +225,16 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
                       購入EXP {invested.bought}/{boughtCap(cost)} まで
                     </span>
                     {full ? (
-                      <button
-                        className="btn primary small"
-                        disabled={(state.coins ?? 0) < cost.coins || (state.cores[nextAttr] ?? 0) < (cost.cores ?? 0)}
-                        onClick={() => doEvolve(nextId)}
-                      >
-                        進化する（🪙{cost.coins}{cost.cores ? `・${CORE_LABEL[nextAttr]}×${cost.cores}` : ''}）
-                      </button>
+                      <>
+                        <button
+                          className="btn primary small"
+                          disabled={missingMaterials(cost, def, nextId, state).length > 0}
+                          onClick={() => doEvolve(nextId)}
+                        >
+                          進化する
+                        </button>
+                        <EvoMaterials cost={cost} def={def} toNodeId={nextId} />
+                      </>
                     ) : (
                       <>
                       {sources.map((src) => {
@@ -335,7 +355,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
         </div>
         <p className="muted small">
           同じモンスターを食べさせると運が上がります（タダ。食べさせた側の運もそのまま足されます）。運{CONFIG.luck.max}で「運極」。運極を出撃させると、1体につきクエスト報酬のG＋
-          {Math.round(CONFIG.luck.goldBonus * 100)}%、核が落ちる確率＋{Math.round(CONFIG.luck.coreBonus * 100)}%。
+          {Math.round(CONFIG.luck.goldBonus * 100)}%、素材クエストのくじ＋{CONFIG.materials.luckRolls}回（たくさん落ちやすくなる）。
         </p>
         {isLuckMax(mon) ? (
           <p>運極！ クエストで報酬ボーナスがつきます。</p>
@@ -372,8 +392,8 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
             <h2>ジョグレス</h2>
           </summary>
           <p className="muted small">
-            レシピの2体が条件を満たしたら、合わせて隠しモンスターを生めます（🪙{CONFIG.jogress.coins}
-            、2体はいなくなります。図鑑の発見は残ります）。
+            レシピの2体が条件を満たしたら、合わせて隠しモンスターを生めます（🪙{CONFIG.jogress.coins}・{BALL_LABEL}×
+            {CONFIG.jogress.balls}・2体それぞれの属性の結晶×{CONFIG.jogress.stones}。2体はいなくなります。図鑑の発見は残ります）。
           </p>
           <ul className="mini-list">
             {recipes.map(({ hidden, met, partnerDef, partners, need, ready }) => (
@@ -397,7 +417,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
                       <button
                         key={key}
                         className="btn primary small"
-                        disabled={(state.coins ?? 0) < CONFIG.jogress.coins || (state.cores.none ?? 0) < CONFIG.jogress.cores}
+                        disabled={!jogressAffordable(partner.defId)}
                         onClick={() => {
                           const newId = jogress(id, partner.id, hidden.id)
                           setPartnerKey(null)
@@ -407,7 +427,7 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
                           }
                         }}
                       >
-                        本当にジョグレスする（🪙{CONFIG.jogress.coins}・{CORE_LABEL.none}×{CONFIG.jogress.cores}）
+                        本当にジョグレスする（{jogressCostText(partner.defId)}）
                       </button>
                     ) : (
                       <button key={key} className="btn small" onClick={() => setPartnerKey(key)}>
@@ -422,5 +442,26 @@ export function MonsterDetail({ id, go }: { id: string; go: Go }) {
         </details>
       )}
     </div>
+  )
+}
+
+/** 進化に使う素材と、いまの所持数（足りないものは赤） */
+function EvoMaterials({ cost, def, toNodeId }: { cost: EvoCost; def: MonsterDef; toNodeId: string }) {
+  const { state } = useStore()
+  const keys = materialKeys(def, toNodeId, state)
+  const rows = [
+    { label: '🪙進化コイン', need: cost.coins, have: state.coins ?? 0 },
+    { label: `💠${STONE_LABEL(keys.stone)}`, need: cost.stones ?? 0, have: stonesOf(state, keys.stone) },
+    { label: `💎${CORE_LABEL[keys.muscle]}`, need: cost.muscle ?? 0, have: coresOf(state, keys.muscle) },
+    { label: `🟣${BALL_LABEL}`, need: cost.balls ?? 0, have: ballsOf(state) },
+  ].filter((r) => r.need > 0)
+  return (
+    <span className="small evo-materials">
+      {rows.map((r) => (
+        <span key={r.label} className={r.have < r.need ? 'error' : undefined}>
+          {r.label} {r.have.toLocaleString()}/{r.need.toLocaleString()}
+        </span>
+      ))}
+    </span>
   )
 }

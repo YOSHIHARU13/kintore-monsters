@@ -1,71 +1,116 @@
-import { CONFIG } from '../config/gameConfig'
 import { FIRST_NODE_ID } from '../data/evolutionTemplates'
-import { CORE_KEYS, CORE_LABEL } from './cores'
+import type { Attr } from '../data/exercises'
+import { BALL_LABEL, CORE_LABEL, STONE_LABEL } from './cores'
 import { ELEMENTS, elementInfo } from './element'
 import { rarityOf } from './gacha'
-import { defaultHp } from './quest'
+import { DIFFICULTIES, defaultHp } from './quest'
 import { autoQuestSetup } from './questAuto'
-import { isHidden, nodeAttr, type MonsterDef, type Quest } from '../types'
+import { isHidden, nodeAttr, type Element, type MaterialDrop, type MonsterDef, type Quest, type QuestDifficulty, type Requirement } from '../types'
 
 export const MATERIAL_PREFIX = 'mat-'
 
+/** 部位の核のクエストを受け持つ属性（炎・水・木で1つずつ） */
+const MUSCLE_ELEMENT: Record<Attr, Element> = { chestArms: 'fire', backShoulders: 'water', legs: 'wood' }
+
+interface Slot {
+  id: string
+  name: string
+  catchphrase: string
+  element: Element
+  drop: MaterialDrop
+  attr?: Attr
+  turn: number // 日替わりのずらし方
+}
+
 /**
- * いつでも遊べる素材クエスト：核の種類ごとに1つ、最初から用意しておく（作らなくていい）。
- * 敵はハズレのモンスターから日替わり。5つのクエストに毎日5属性を1つずつ割り振るので、どの属性のハズレも出番がある。
+ * いつでも遊べる素材クエスト：最初から10個用意しておく（作らなくていい）。
+ * - 5属性のハズレが、それぞれ自分の属性の結晶を落とす
+ * - 炎・水・木のハズレが、剛腕・背筋・健脚の核を落とす
+ * - 光のハズレが進化コイン、闇のハズレが筋肉玉
+ * 敵はその属性のハズレから日替わり。どれも初級・上級・究極があり、上ほど編成の条件がきつく、たくさん落ちる。
+ * IDは以前のクエストと同じものを使う（クリア回数を引き継ぐ）
  */
-export function builtinMaterialQuests(defs: MonsterDef[], today: string): Quest[] {
+export function builtinMaterialQuests(defs: MonsterDef[], today: string, gimmicks: string[] = []): Quest[] {
   const looks = defs.filter((d) => !isHidden(d) && !d.questOnly)
   const hazure = looks.filter((d) => rarityOf(d) === 'hazure')
   const day = Math.floor(Date.parse(`${today}T12:00:00Z`) / 86400000)
-  // 5つのクエスト（核4種＋コイン）に、毎日5属性を1つずつ割り振る（日ごとにずらす）。
-  // その属性のハズレの中から敵を選ぶ（核のクエストは、その部位のハズレを優先）。同じ日に同じ属性の敵は並ばない
-  const slotElement = (k: number) => ELEMENTS[(k + day) % ELEMENTS.length]
-  const enemyFor = (k: number, attr?: string) => {
-    const e = slotElement(k)
+  // 同じ日に同じ敵が2つのクエストに並ばないよう、使った子は外す（ほかにいなければ仕方なく使う）
+  const used = new Set<string>()
+  const enemyFor = (e: Element, turn: number, attr?: Attr) => {
+    const fresh = (list: MonsterDef[]) => list.filter((d) => !used.has(d.id))
     const sameEl = hazure.filter((d) => elementInfo(d).elements.includes(e))
     const samePart = attr ? sameEl.filter((d) => nodeAttr(d, FIRST_NODE_ID) === attr) : []
-    const pool = samePart.length > 0 ? samePart : sameEl.length > 0 ? sameEl : hazure.length > 0 ? hazure : looks
-    return pool.length > 0 ? pool[Math.floor(day / ELEMENTS.length) % pool.length] : undefined
+    const pool = [fresh(samePart), fresh(sameEl), samePart, sameEl, hazure, looks].find((p) => p.length > 0) ?? []
+    const enemy = pool.length > 0 ? pool[(day + turn) % pool.length] : undefined
+    if (enemy) used.add(enemy.id)
+    return enemy
   }
-  const quests = CORE_KEYS.map((attr, i) => {
-    const enemy = enemyFor(i, attr)
-    const setup = enemy ? autoQuestSetup(enemy, 'kiwami', 'material', [], []) : { requirements: [], weakSlots: [] }
-    return {
+  const slots: Slot[] = [
+    ...ELEMENTS.map((e) => ({
+      id: `${MATERIAL_PREFIX}stone-${e}`,
+      name: `${STONE_LABEL(e)}の洞窟`,
+      catchphrase: `${STONE_LABEL(e)}が眠る。進化に使う`,
+      element: e,
+      drop: 'stone' as const,
+      turn: 0,
+    })),
+    ...(Object.keys(MUSCLE_ELEMENT) as Attr[]).map((attr) => ({
       id: `${MATERIAL_PREFIX}${attr}`,
       name: `${CORE_LABEL[attr]}の採掘場`,
+      catchphrase: `${CORE_LABEL[attr]}を集めよう`,
+      element: MUSCLE_ELEMENT[attr],
+      drop: 'muscle' as const,
+      attr,
+      turn: 1,
+    })),
+    {
+      id: `${MATERIAL_PREFIX}coins`,
+      name: '🪙 コインの金庫',
+      catchphrase: '進化コインがざくざく',
+      element: 'light',
+      drop: 'coins',
+      turn: 1,
+    },
+    {
+      id: `${MATERIAL_PREFIX}none`,
+      name: `${BALL_LABEL}の祭壇`,
+      catchphrase: '★3への進化に欠かせない、レアな玉',
+      element: 'dark',
+      drop: 'ball',
+      turn: 1,
+    },
+  ]
+  // 部位の核のクエストから先に敵を決める（部位が合うハズレは少ないので、先に取っておく）
+  const enemies = new Map<string, MonsterDef | undefined>()
+  for (const slot of [...slots.filter((x) => x.attr), ...slots.filter((x) => !x.attr)])
+    enemies.set(slot.id, enemyFor(slot.element, slot.turn, slot.attr))
+  return slots.map((slot) => {
+    const enemy = enemies.get(slot.id)
+    const requirementsBy: Partial<Record<QuestDifficulty, Requirement[]>> = {}
+    const weakSlotsBy: Partial<Record<QuestDifficulty, string[]>> = {}
+    for (const d of DIFFICULTIES) {
+      const setup = enemy ? autoQuestSetup(enemy, 'kiwami', 'material', [], gimmicks, undefined, defs, false, d) : null
+      requirementsBy[d] = setup?.requirements ?? []
+      weakSlotsBy[d] = setup?.weakSlots ?? []
+    }
+    return {
+      id: slot.id,
+      name: slot.name,
       kind: 'material',
       builtin: true,
+      drop: slot.drop,
       bossDefId: enemy?.id ?? '',
-      attr,
-      element: enemy ? elementInfo(enemy).elements[0] : undefined,
-      weakSlots: setup.weakSlots,
-      requirements: setup.requirements,
+      attr: slot.attr ?? 'none',
+      element: slot.element, // 落ちる結晶の属性（敵がいないときの代わりの子でも変えない）
+      weakSlots: weakSlotsBy.normal ?? [],
+      requirements: requirementsBy.normal ?? [],
+      requirementsBy,
+      weakSlotsBy,
       hp: defaultHp(1, 'material'),
       rank: 1,
-      catchphrase: CONFIG.cores.builtinCatchphrase,
+      catchphrase: slot.catchphrase,
       theme: 'flame',
       createdAt: 0,
     } as Quest
   })
-  // コインの金庫：核の代わりに進化コイン。残りの1属性のハズレ
-  const enemy = enemyFor(CORE_KEYS.length)
-  const setup = enemy ? autoQuestSetup(enemy, 'kiwami', 'material', [], []) : { requirements: [], weakSlots: [] }
-  quests.push({
-    id: `${MATERIAL_PREFIX}coins`,
-    name: '🪙 コインの金庫',
-    kind: 'material',
-    builtin: true,
-    drop: 'coins',
-    bossDefId: enemy?.id ?? '',
-    attr: 'none',
-    element: enemy ? elementInfo(enemy).elements[0] : undefined,
-    weakSlots: setup.weakSlots,
-    requirements: setup.requirements,
-    hp: defaultHp(1, 'material'),
-    rank: 1,
-    catchphrase: '進化コインがざくざく',
-    theme: 'flame',
-    createdAt: 0,
-  })
-  return quests
 }

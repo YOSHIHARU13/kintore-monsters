@@ -6,7 +6,7 @@ import { DAYS, FORM_ATTR_LABEL, SLOTS, exerciseOfSlot } from '../data/exercises'
 import { MonsterImage } from '../components/MonsterImage'
 import { Stars } from '../components/Stars'
 import { QuestBanner } from '../components/QuestBanner'
-import { BOSS_DIFFICULTY, DIFFICULTIES, fitsQuest, isStrict, sessionEstimate, attrOf, dropPlus, gradeOf, powerOf, questGold, questHp, rankOf, type Member } from '../lib/quest'
+import { BOSS_DIFFICULTY, DIFFICULTIES, atDifficulty, fitsQuest, isStrict, sessionEstimate, attrOf, dropPlus, gradeOf, powerOf, questGold, questHp, type Member } from '../lib/quest'
 import { formationOf, requirementsOf, shortfallHelp, tagLabel, tagsOf } from '../lib/formation'
 import { FormationPanel } from '../components/FormationPanel'
 import { luckBonus } from '../lib/fusion'
@@ -14,16 +14,16 @@ import { ELEMENT_COLOR, ELEMENT_LABEL, advantageElements, elementInfo, elementNa
 import { ATTR_COLOR, type Go } from '../nav'
 import { attackOf } from '../lib/stats'
 import { allGimmicks } from '../lib/gimmick'
-import { CORE_LABEL } from '../lib/cores'
+import { DROP_ICON, STONE_LABEL, dropLabel, dropOf, expectedDrop } from '../lib/cores'
 import { towerCleared, towerMonth } from '../lib/tower'
 import { towerRewardText } from './Tower'
-import { plusName, type QuestDifficulty } from '../types'
+import { plusName, type MaterialDrop, type QuestDifficulty } from '../types'
 
 /** クエストの詳細：ボスの弱点を見て、難易度と出撃メンバーを選んで挑戦する */
 export function QuestDetail({ id, go }: { id: string; go: Go }) {
   const { state, quests, tower, defs, owned, menu, today, startChallenge } = useStore()
   const towerFloor = tower.find((f) => f.quest.id === id)
-  const quest = quests.find((q) => q.id === id) ?? towerFloor?.quest
+  const found = quests.find((q) => q.id === id) ?? towerFloor?.quest
   const backTo = towerFloor ? ({ name: 'tower' } as const) : ({ name: 'quests' } as const)
   const towerLocked = !!towerFloor && towerFloor.floor !== towerCleared(state, towerMonth(today)) + 1
   const current = state.challenge?.date === today ? state.challenge : null
@@ -35,7 +35,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
     (state.challenge?.party ?? []).filter((p) => owned.some((o) => o.id === p)),
   )
 
-  if (!quest) {
+  if (!found) {
     return (
       <div className="page">
         <button className="back" onClick={() => go({ name: 'quests' })}>
@@ -46,9 +46,11 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
     )
   }
 
+  // 最初からある素材クエストは、難易度ごとに編成の条件と弱点が違う
+  const quest = atDifficulty(found, difficulty)
   const boss = defs.find((d) => d.id === quest.bossDefId)
-  const rank = rankOf(quest)
   const misses = state.coreMisses[quest.id] ?? 0
+  const kind = dropOf(quest)
   const names = allGimmicks(quests)
   const exerciseName = (slotId: string) => {
     const slot = SLOTS.find((s) => s.id === slotId)
@@ -108,8 +110,8 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
         <FormationPanel formation={formation} names={names} />
         {luck.count > 0 && (
           <p className="small luck-bonus">
-            <span className="luck-max">運極</span> ×{luck.count}：報酬G ×{luck.goldRate.toFixed(1)}
-            {quest.kind === 'material' && `・核が落ちる確率 +${Math.round(luck.coreRate * 100)}%`}
+            <span className="luck-max">運極</span> ×{luck.count}：報酬のオーブ ×{luck.goldRate.toFixed(1)}
+            {quest.kind === 'material' && `・素材のくじ +${luck.extraRolls}回`}
           </p>
         )}
       </section>
@@ -162,7 +164,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
               ))}
             </div>
             <p className="small">
-              格：{rank.label}・HP {questHp(quest, difficulty).toLocaleString()}・{questGold(quest, difficulty)}G
+              HP {questHp(quest, difficulty).toLocaleString()}・🔮{questGold(quest, difficulty)}
             </p>
           </>
         ) : (
@@ -172,25 +174,19 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
             </h2>
             <p className="small">
               HP {questHp(quest, difficulty).toLocaleString()}
-              {!towerFloor && `・${questGold(quest, difficulty)}G`}
+              {!towerFloor && `・🔮${questGold(quest, difficulty)}`}
             </p>
           </>
         )}
-        {quest.drop === 'coins' ? (
-          <p className="small core-drop">🪙 進化コイン {CONFIG.coins.quest[difficulty]}（核は落ちません）</p>
-        ) : quest.kind === 'material' ? (
-          <p className="small core-drop">
-            💎 {CORE_LABEL[quest.attr]}：{Math.round(CONFIG.cores.drop[difficulty].rate * 100)}%で落ちる
-            {CONFIG.cores.drop[difficulty].double > 0 && `（${Math.round(CONFIG.cores.drop[difficulty].double * 100)}%で2個）`}
-            {misses > 0 && `・いま${misses}回連続で落ちていない（${CONFIG.cores.pityMisses}回続くと次は確定）`}
-          </p>
+        {quest.kind === 'material' ? (
+          <MaterialDropInfo kind={kind} label={dropLabel(quest)} difficulty={difficulty} luckCount={luck.count} misses={misses} />
         ) : towerFloor ? (
           <p className="small">報酬（月に1回）：{towerRewardText(towerFloor, defs, state)}</p>
         ) : (
           <p className="small">
             ドロップ {boss?.name ?? '？'}
-            {dropPlus(quest) > 0 ? `＋${dropPlus(quest)}` : ''}・たまに{CORE_LABEL[quest.attr]}（
-            {Math.round(CONFIG.cores.bossBonusRate * 100)}%）
+            {dropPlus(quest) > 0 ? `＋${dropPlus(quest)}` : ''}・ときどき
+            {quest.element ? STONE_LABEL(quest.element) : '結晶'}
           </p>
         )}
       </section>
@@ -284,5 +280,25 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
         </button>
       )}
     </div>
+  )
+}
+
+/** 素材クエストのくじの説明：何回引けて、1回あたりどれくらいで当たるか */
+function MaterialDropInfo({ kind, label, difficulty, luckCount, misses }: {
+  kind: MaterialDrop
+  label: string
+  difficulty: QuestDifficulty
+  luckCount: number
+  misses: number
+}) {
+  const d = CONFIG.materials.drops[kind][difficulty]
+  const extra = luckCount * CONFIG.materials.luckRolls
+  const avg = expectedDrop(kind, difficulty, luckCount)
+  return (
+    <p className="small core-drop">
+      {DROP_ICON[kind]} {label}：くじ{d.rolls}回{extra > 0 && `＋運極${extra}回`}（1回{Math.round(d.rate * 100)}%で
+      {d.amount > 1 ? `${d.amount}枚` : '1個'}）・平均{kind === 'coins' ? Math.round(avg) : avg.toFixed(1)}
+      {kind === 'ball' && misses > 0 && `・いま${misses}回続けて落ちていない（${CONFIG.materials.ballPityMisses}回目は確定）`}
+    </p>
   )
 }

@@ -17,7 +17,6 @@ import { MultiReveal } from '../components/MultiReveal'
 import type { HatchResult } from '../store'
 
 const MULTI_MAX = 10
-import { CORE_KEYS, CORE_LABEL } from '../lib/cores'
 import { Stars } from '../components/Stars'
 import { BoosterPanel } from '../components/BoosterPanel'
 import { GachaBanner, featuredOf, pickupsOf } from '../components/GachaBanner'
@@ -25,7 +24,7 @@ import { isReady, percent, pickupCount, rarityOf, rateTable, tierRates } from '.
 
 
 export function Shop({ go }: { go: Go }) {
-  const { state, defs, owned, gachas, today, yesterday, todaySets, seriesPeriods, buyEgg, hatchEgg, hatchMany, freePull, buyExp, exchangeCores } = useStore()
+  const { state, defs, owned, gachas, today, yesterday, todaySets, seriesPeriods, buyEgg, hatchEgg, hatchMany, freePull, buyExp } = useStore()
   const freeEvents = availableEvents(state, today)
   const active = activeToday(state, todaySets, today, yesterday)
   const upcoming = upcomingEvents(today).slice(0, 3)
@@ -70,7 +69,7 @@ export function Shop({ go }: { go: Go }) {
   return (
     <div className="page">
       <h1 className="title">ショップ</h1>
-      <p className="gold">所持 {state.gold}G・🪙{state.coins ?? 0}</p>
+      <p className="gold">所持 {state.gold}オーブ・🪙{state.coins ?? 0}</p>
 
       <CollabNews />
       <section className="card gacha-stage">
@@ -103,7 +102,7 @@ export function Shop({ go }: { go: Go }) {
             🥚 タマゴ <strong className="num">{state.eggs}</strong>個
           </span>
           <button className="btn small" disabled={!canBuyEgg} onClick={buyEgg}>
-            タマゴを買う（{CONFIG.shop.eggPrice}G）
+            タマゴを買う（{CONFIG.shop.eggPrice}オーブ）
           </button>
           <button className="btn small ghost" onClick={() => go({ name: 'gachaForm', id: gacha.id })}>
             編集
@@ -201,26 +200,6 @@ export function Shop({ go }: { go: Go }) {
 
       <BoosterPanel />
 
-      <section className="card">
-        <h2>💎 核の交換所</h2>
-        <p className="muted small">余った核は、{CONFIG.cores.eggExchange}個でタマゴ1個と交換できます。</p>
-        <ul className="mini-list">
-          {CORE_KEYS.map((k) => (
-            <li key={k}>
-              <span>
-                {CORE_LABEL[k]} <strong>{state.cores[k] ?? 0}</strong>個
-              </span>
-              <button
-                className="btn small"
-                disabled={(state.cores[k] ?? 0) < CONFIG.cores.eggExchange}
-                onClick={() => exchangeCores(k)}
-              >
-                ×{CONFIG.cores.eggExchange} → タマゴ
-              </button>
-            </li>
-          ))}
-        </ul>
-      </section>
 
       <section className="card">
         <h2>EXPを買う</h2>

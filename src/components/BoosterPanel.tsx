@@ -37,7 +37,7 @@ export function BoosterPanel({ compact = false }: { compact?: boolean }) {
                 </button>
                 {!compact && (
                   <button className="btn small" disabled={state.gold < b.price} onClick={() => buyBooster(k)}>
-                    {b.price}G
+                    {b.price}オーブ
                   </button>
                 )}
               </span>

@@ -30,9 +30,9 @@ describe('運', () => {
     expect(isLuckMax({ luck: 99 })).toBe(true)
   })
 
-  it('運極ボーナス：1体につき報酬G+20%、核+10%', () => {
-    expect(luckBonus([{ luck: 99 }, { luck: 99 }, { luck: 5 }])).toEqual({ count: 2, goldRate: 1.4, coreRate: 0.2 })
-    expect(luckBonus([])).toEqual({ count: 0, goldRate: 1, coreRate: 0 })
+  it('運極ボーナス：1体につき報酬のオーブ+20%、素材のくじ+1回', () => {
+    expect(luckBonus([{ luck: 99 }, { luck: 99 }, { luck: 5 }])).toEqual({ count: 2, goldRate: 1.4, extraRolls: 2 })
+    expect(luckBonus([])).toEqual({ count: 0, goldRate: 1, extraRolls: 0 })
   })
 })
 

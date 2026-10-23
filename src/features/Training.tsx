@@ -116,11 +116,11 @@ export function Training({ go }: { go: Go }) {
         </div>
         <ul className="slot-list">{slotButton(BONUS_SLOT)}</ul>
         <p className="bonus-reward">
-          1セットごとに +{CONFIG.bonus.goldPerSet}G ＆ 万能EXP +{CONFIG.bonus.anyExpPerSet}
+          1セットごとに +{CONFIG.bonus.goldPerSet}オーブ ＆ 万能EXP +{CONFIG.bonus.anyExpPerSet}
         </p>
         <p className="muted small">
           万能EXPは、どの属性の進化にも注げます。報酬が出るのは1日{CONFIG.sets.perExercise}セットまでで、日付が変わるとまた
-          {CONFIG.sets.perExercise}セットできます（毎日やれば1日 +{CONFIG.bonus.goldPerSet * CONFIG.sets.perExercise}G ＆ 万能EXP +
+          {CONFIG.sets.perExercise}セットできます（毎日やれば1日 +{CONFIG.bonus.goldPerSet * CONFIG.sets.perExercise}オーブ ＆ 万能EXP +
           {CONFIG.bonus.anyExpPerSet * CONFIG.sets.perExercise}）。
         </p>
         <p className="muted small">だるい日は1セットだけでもOK。それも出席1回に数えます。</p>

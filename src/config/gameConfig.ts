@@ -31,6 +31,17 @@ export const CONFIG = {
     clearGold: 150,
   },
 
+  // プレイヤーランク：筋トレで稼いだEXP（ローラーの万能EXPも。買ったEXPは数えない）の積み上げで上がる
+  // ランクrからr+1に必要なEXP = base + step ×（r − 1）。1回のトレーニングは約180EXP
+  // ランク10まで10回くらい、30まで半年弱、50まで1年くらい
+  rank: {
+    base: 100,
+    step: 20,
+    reward: { eggs: 1 } as Reward, // ランクが上がるたびに
+    milestoneEvery: 10,
+    milestone: { eggs: 5 } as Reward, // 10ランクごとに追加で
+  },
+
   // 重量アップ・上位種目の提案
   progression: {
     streak: 2, // 「基本セットがすべて回数上限」を何回連続で達成したら提案するか
@@ -144,11 +155,12 @@ export const CONFIG = {
       chozetsu: { label: '超絶', hpRatio: 2.5, gold: 300, plus: 1 },
       chokyukyoku: { label: '超究極', hpRatio: 2.5, gold: 300, plus: 1 }, // 主にコラボ用（因縁の強敵など、たまの例外にも）。強さと報酬は超絶と同じ
     },
+    // 素材クエストの難易度：HPは「1回のトレーニングで与えるダメージの目安 × materials.hpRatio × hpRatio」
+    // 上の難易度ほど編成の条件がきつくなるが、セットあたりのドロップは多くなる（そろえられるなら上を回るほうが得）
     difficulties: {
-      // hpRatio：1回のトレーニングで与えるダメージの目安に対するHPの倍率
-      easy: { label: '初級', plus: 0, gold: 50, hpRatio: 0.9 },
-      normal: { label: '中級', plus: 1, gold: 120, hpRatio: 1.5 },
-      hard: { label: '上級', plus: 2, gold: 250, hpRatio: 2.5 },
+      easy: { label: '初級', plus: 0, gold: 30, hpRatio: 0.8 },
+      normal: { label: '上級', plus: 1, gold: 60, hpRatio: 1.4 },
+      hard: { label: '究極', plus: 2, gold: 100, hpRatio: 2 },
     },
     partySize: 6, // 出撃できる数
   },
@@ -159,16 +171,19 @@ export const CONFIG = {
     kyukyoku: { element: 3, abilities: 1, abilityCount: 2, weak: 1 },
     chozetsu: { element: 3, abilities: 2, abilityCount: 2, weak: 2 },
     chokyukyoku: { element: 3, abilities: 2, abilityCount: 2, weak: 2 },
-    material: { element: 2, abilities: 0, abilityCount: 0, weak: 1 },
+    // 素材クエストは難易度ごと（初級はほぼ縛りなし、究極でやっとアビリティ）
+    material: {
+      easy: { element: 0, abilities: 0, abilityCount: 0, weak: 1 },
+      normal: { element: 2, abilities: 0, abilityCount: 0, weak: 1 },
+      hard: { element: 3, abilities: 1, abilityCount: 2, weak: 2 },
+    },
   },
   // 神化：最終形態のガチャの激レアが、降臨モンスター1体（同じ属性）を素材に★4になる
   shinka: {
     coins: 300,
   },
-  // 進化コイン：進化・ジョグレス・EXPの購入に使う（Gはガチャとブースター用）。クエストでGと同じだけもらえる
-  coins: {
-    quest: { easy: 60, normal: 120, hard: 250 } as Record<'easy' | 'normal' | 'hard', number>, // コインの金庫（素材クエスト）
-  },
+  // 進化コイン：進化・ジョグレス・EXPの購入に使う（オーブはガチャとブースター用）。ボスクエストではオーブと同じだけもらえる
+  coins: {},
   // ミッション・ログインボーナス・図鑑の達成報酬・一度きりのプレゼント
   missions: {
     daily: { reward: { gold: 20 }, allReward: { eggs: 1 }, habitMinutes: 5 },
@@ -210,9 +225,9 @@ export const CONFIG = {
   },
   // ブースター：回数制の道具。使うと次の1回（EXPは次の数セット）だけ効く。期限なし
   boosters: {
-    habit: { icon: '🧘', label: 'ブースター', price: 150, text: '次の記録のGが2倍、その日の上限もなし' },
+    habit: { icon: '🧘', label: 'ブースター', price: 150, text: '次の記録のオーブが2倍、その日の上限もなし' },
     exp: { icon: '💪', label: '筋トレブースター', price: 300, text: '次の10セットのEXPが2倍', sets: 10 },
-    quest: { icon: '⚔️', label: '討伐ブースター', price: 250, text: '次のクエスト報酬（G・コイン・核）が2倍' },
+    quest: { icon: '⚔️', label: '討伐ブースター', price: 250, text: '次のクエスト報酬（オーブ・コイン・素材）が2倍' },
   },
   // 試練の塔：毎月10階を自動で作る。下から1階ずつ挑戦し、各階の報酬は月に1回だけ
   tower: {
@@ -265,40 +280,60 @@ export const CONFIG = {
   luck: {
     max: 99,
     gachaStart: 10, // ガチャから出た子は運10（10体当てれば運極）。クエストのドロップは運1
-    goldBonus: 0.2, // 運極1体につき報酬G +20%
-    coreBonus: 0.1, // 運極1体につき核が落ちる確率 +10%
+    goldBonus: 0.2, // 運極1体につき報酬のオーブ +20%（素材のくじは materials.luckRolls）
   },
 
   // ジョグレス：レシピの2体を＋5（最終形態）まで育てて合わせると、隠しモンスターが生まれる
   jogress: {
     coins: 600, // 進化コイン
-    cores: 2, // 無垢の核
+    balls: 2, // 筋肉玉
+    stones: 10, // 素材2体の属性の結晶（それぞれ）
     superRareBonus: 1500, // 素材の激レア1体につき、攻撃力の上乗せ
   },
 
-  // 進化素材「核」：素材クエストで落ちる（毎回ではない）。余ったらショップでタマゴと交換できる
-  // 目安：★3まで育つのは週1体くらい（核2個）、素材クエストは週2回くらい → 週1.3個くらい落ちて、少し足りないくらい
-  cores: {
-    drop: {
-      easy: { rate: 0.5, double: 0 },
-      normal: { rate: 0.65, double: 0 },
-      hard: { rate: 0.8, double: 0.25 },
+  // 進化素材：素材クエストで落ちる。毎回の抽選なので、落ちる数はばらつく（0個のときも、たくさんのときもある）
+  // 抽選：rolls 回くじを引き、1回ごとに rate で当たり（当たり1回で amount 個）。運極が1体いるごとに、くじが luckRolls 回増える
+  // 目安：★1→★3 に結晶8・核3・筋肉玉1。究極を回せれば4回くらい、運極がそろうと2回くらいで1体ぶん
+  materials: {
+    hpRatio: 0.5, // 素材クエストのHPは、ボスクエストのこの割合（× 難易度の hpRatio）
+    luckRolls: 1,
+    drops: {
+      stone: {
+        easy: { rolls: 3, rate: 0.5, amount: 1 },
+        normal: { rolls: 5, rate: 0.6, amount: 1 },
+        hard: { rolls: 7, rate: 0.7, amount: 1 },
+      },
+      muscle: {
+        easy: { rolls: 2, rate: 0.45, amount: 1 },
+        normal: { rolls: 3, rate: 0.55, amount: 1 },
+        hard: { rolls: 5, rate: 0.65, amount: 1 },
+      },
+      ball: {
+        easy: { rolls: 1, rate: 0.15, amount: 1 },
+        normal: { rolls: 1, rate: 0.35, amount: 1 },
+        hard: { rolls: 2, rate: 0.4, amount: 1 },
+      },
+      coins: {
+        easy: { rolls: 3, rate: 0.7, amount: 30 },
+        normal: { rolls: 4, rate: 0.7, amount: 60 },
+        hard: { rolls: 5, rate: 0.7, amount: 100 },
+      },
     },
-    pityMisses: 3, // この回数続けて落ちなかったら、次は必ず落ちる
-    bossBonusRate: 0.15, // ボスクエストでも、たまに落ちる
-    eggExchange: 3, // この数でタマゴ1個と交換
-    materialHpRatio: 0.5, // 素材クエストのHPは、ボスクエストのこの割合
-    materialGoldRatio: 0.5,
-    builtinCatchphrase: 'いつでも挑める。核を集めよう',
+    ballPityMisses: 5, // 筋肉玉がこの回数続けて落ちなかったら、次は必ず1個
+    // ボスクエストのおまけ：ボスの属性の結晶
+    bossBonus: { rolls: 2, rate: 0.5, amount: 1 },
+    // 余った素材はタマゴと交換できる（筋肉玉はできない）
+    eggExchange: { stone: 20, muscle: 10 },
   },
 
   // 進化コスト（上から 1→2, 2→3, 3→4, 4→5）
   // 1体をじっくりより、たくさん育てる：その部位の日のトレーニング1回（約180EXP）で★1→★3まで届く
+  // stones：そのモンスターの属性の結晶、muscle：進化先の部位の核、balls：筋肉玉（★2→★3に必ず要る）
   evolutionCosts: [
-    { exp: 40, coins: 30, cores: 0 },
-    { exp: 120, coins: 60, cores: 1 }, // ★2→★3 は、進化先の属性の核が要る
-    { exp: 1200, coins: 750 },
-    { exp: 2500, coins: 1500 },
+    { exp: 40, coins: 30, stones: 2, muscle: 0, balls: 0 },
+    { exp: 120, coins: 60, stones: 6, muscle: 3, balls: 1 },
+    { exp: 1200, coins: 750, stones: 15, muscle: 8, balls: 2 },
+    { exp: 2500, coins: 1500, stones: 25, muscle: 12, balls: 3 },
   ],
 
   // 画像の圧縮

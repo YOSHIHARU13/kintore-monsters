@@ -30,11 +30,11 @@ export function Morning({ go }: { go: Go }) {
         ← ホームに戻る
       </button>
       <h1 className="title">朝の記録（{shortDate(yesterday)}の分）</h1>
-      <p className="muted small">前日の歩数を、毎朝1回だけ記録します。所持 {state.gold}G</p>
+      <p className="muted small">前日の歩数を、毎朝1回だけ記録します。所持 {state.gold}オーブ</p>
 
       {done ? (
         <section className="card">
-          <h2>記録しました：+{done.stepsGold + done.habitGold}G</h2>
+          <h2>記録しました：+{done.stepsGold + done.habitGold}オーブ</h2>
           <p>歩数 {done.steps.toLocaleString()}歩</p>
           <button className="btn primary wide" onClick={() => go({ name: 'home' })}>
             ホームへ
@@ -57,13 +57,13 @@ export function Morning({ go }: { go: Go }) {
               />
             </label>
             <p>
-              → <strong>+{stepsGold(steps)}G</strong>
-              <span className="muted small">（{CONFIG.morning.stepsPerGold}歩ごとに1G・歩いた分だけ増える）</span>
+              → <strong>+{stepsGold(steps)}オーブ</strong>
+              <span className="muted small">（{CONFIG.morning.stepsPerGold}歩ごとに1オーブ・歩いた分だけ増える）</span>
             </p>
           </section>
 
           <button className="btn primary wide" disabled={stepsText === ''} onClick={record}>
-            記録する（+{stepsGold(steps)}G）
+            記録する（+{stepsGold(steps)}オーブ）
           </button>
         </>
       )}

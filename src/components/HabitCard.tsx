@@ -44,7 +44,7 @@ export function HabitCard() {
   const record = (m: number) => {
     const earned = recordHabit(m)
     if (earned === null) return
-    setFlash(`${label}${byMinutes ? ` ${m}分` : ''} → +${earned}G`)
+    setFlash(`${label}${byMinutes ? ` ${m}分` : ''} → +${earned}オーブ`)
     setMinutesText('')
     navigator.vibrate?.(60)
   }
@@ -55,11 +55,11 @@ export function HabitCard() {
       {state.boosts?.habit && <p className="tag keep small">⚡ブースター使用中：次の記録はG2倍・上限なし</p>}
       <p className="muted small">
         {state.habitStreak}日連続（自己ベスト {state.bestHabitStreak}日）
-        {byMinutes && `・今日 ${todayMinutes}分（Gは${max}分まで）`}
+        {byMinutes && `・今日 ${todayMinutes}分（オーブは${max}分まで）`}
       </p>
       {byMinutes && (
         <p className="small">
-          {CONFIG.morning.habitRates.map((t) => `${t.from}分〜 1分${t.perMinute}G`).join('・')}
+          {CONFIG.morning.habitRates.map((t) => `${t.from}分〜 1分${t.perMinute}オーブ`).join('・')}
           （1回で続けた分数で決まる。{CONFIG.morning.habitRates[CONFIG.morning.habitRates.length - 1].from}分で卵{Math.floor((CONFIG.morning.habitRates[CONFIG.morning.habitRates.length - 1].from * CONFIG.morning.habitRates[CONFIG.morning.habitRates.length - 1].perMinute) / CONFIG.shop.eggPrice)}個ぶん）
         </p>
       )}
@@ -69,7 +69,7 @@ export function HabitCard() {
           <div className="row wrap">
             {[1, 3, 5, 10].map((m) => (
               <button key={m} className="btn" onClick={() => record(m)}>
-                {m}分（+{habitGoldNow(state, today, m)}G）
+                {m}分（+{habitGoldNow(state, today, m)}オーブ）
               </button>
             ))}
           </div>
@@ -107,7 +107,7 @@ export function HabitCard() {
               aria-label={`${label}の分数`}
             />
             <button className="btn primary" disabled={minutes < 1} onClick={() => record(minutes)}>
-              記録（+{gold}G）
+              記録（+{gold}オーブ）
             </button>
           </div>
         </>
@@ -115,7 +115,7 @@ export function HabitCard() {
         <p>今日はできた！ また明日。</p>
       ) : (
         <button className="btn primary wide" onClick={() => record(0)}>
-          今日できた（+{CONFIG.morning.habitGold}G）
+          今日できた（+{CONFIG.morning.habitGold}オーブ）
         </button>
       )}
     </section>

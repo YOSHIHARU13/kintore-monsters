@@ -2521,3 +2521,30 @@ details.tuning[open] > summary {
   flex-direction: column;
   gap: 2px;
 }
+
+/* 進化の素材（所持/必要。足りないものは赤） */
+.evo-materials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+/* その他のメニュー */
+.more-entry {
+  justify-content: flex-start;
+  color: inherit;
+}
+.more-icon {
+  font-size: 1.5rem;
+}
+.more-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* プレイヤーランク */
+.rank-card .btn {
+  margin-top: 8px;
+}

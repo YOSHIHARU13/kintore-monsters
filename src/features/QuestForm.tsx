@@ -157,8 +157,8 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
         </div>
         <p className="muted small">
           {kind === 'boss'
-            ? 'ボスを倒すと、そのボスのモンスターが手に入ります（上級ほど＋が付く）。たまに核も落ちます。'
-            : `HPはボスクエストの半分くらい。ボスの属性の核（${CORE_LABEL[attr]}）が落ちます（毎回ではありません）。`}
+            ? 'ボスを倒すと、そのボスのモンスターが手に入ります（上級ほど＋が付く）。ときどきボスの属性の結晶も落ちます。'
+            : `HPはボスクエストの半分くらい。${attr === 'none' ? '筋肉玉' : CORE_LABEL[attr]}が落ちます（数はくじで決まります）。`}
         </p>
       </section>
 
@@ -203,7 +203,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
           )}
         </div>
         <div className="field">
-          ボスの部位（素材クエストで落ちる核の種類）
+          ボスの部位（素材クエストで落ちる核の種類。無なら筋肉玉）
           <div className="chips" role="group" aria-label="ボスの部位">
             {FORM_ATTRS.map((a) => (
               <button
@@ -450,7 +450,7 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
             ))}
           </div>
           <p className="muted small">
-            {CONFIG.quest.grades[grade].label}：報酬 {CONFIG.quest.grades[grade].gold}G・ボス
+            {CONFIG.quest.grades[grade].label}：報酬 {CONFIG.quest.grades[grade].gold}オーブ・ボス
             {CONFIG.quest.grades[grade].plus > 0 ? `＋${CONFIG.quest.grades[grade].plus}` : ''}がドロップ。格を選ぶとHPが入り直します（手で書き換えてもOK）。
           </p>
           <label className="field">
@@ -484,10 +484,10 @@ export function QuestForm({ id, go }: { id?: string; go: Go }) {
               </button>
             ))}
           </div>
-          <p className="muted small">格を選ぶと、初級・中級・上級のHPが入り直します（HPは手で書き換えてもOK）。</p>
+          <p className="muted small">格を選ぶと、初級・上級・究極のHPが入り直します（HPは手で書き換えてもOK）。</p>
           {DIFFICULTIES.map((d) => (
             <label key={d} className="field">
-              {CONFIG.quest.difficulties[d].label}（{questGold({ rank, kind }, d)}G）
+              {CONFIG.quest.difficulties[d].label}（{questGold({ rank, kind }, d)}オーブ）
               <input
                 type="number"
                 inputMode="numeric"

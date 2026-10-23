@@ -7,7 +7,7 @@ import { abilitySlots } from './gimmick'
 import { rarityOf } from './gacha'
 import { seriesOf } from './series'
 import { tagMates } from './tags'
-import { nodeAttr, type Element, type MonsterDef, type Quest, type QuestGrade, type RarityKey, type Requirement } from '../types'
+import { nodeAttr, type Element, type MonsterDef, type Quest, type QuestDifficulty, type QuestGrade, type RarityKey, type Requirement } from '../types'
 
 /** 文字列から決まる数（同じボスなら毎回同じ結果に） */
 function hash(s: string): number {
@@ -31,8 +31,9 @@ export function autoQuestSetup(
   selfId?: string,
   defs: MonsterDef[] = [],
   useTags = true, // false なら、タグの仲間は見ない（試練の塔：超絶クエストとは別のギミックにするため）
+  difficulty: QuestDifficulty = 'normal', // 素材クエストの難易度
 ): { requirements: Requirement[]; weakSlots: string[]; heroId?: string } {
-  const a = CONFIG.questAuto[kind === 'material' ? 'material' : grade]
+  const a = kind === 'material' ? CONFIG.questAuto.material[difficulty] : CONFIG.questAuto[grade]
   const seed = hash(boss.id + grade + (kind ?? 'boss'))
   const bossEl = elementInfo(boss).elements[0]
   const adv = advantageElements(bossEl)[0]
@@ -71,7 +72,7 @@ export function autoQuestSetup(
     const extra = ranked.find((g) => !requirements.some((r) => tagAbilities(r.tag).includes(g)))
     if (gi >= 4 && extra) requirements.push({ tag: abilityTag(extra), count: 2 })
   } else {
-    if (adv) requirements.push({ tag: elementTag(adv), count: a.element })
+    if (adv && a.element > 0) requirements.push({ tag: elementTag(adv), count: a.element })
     for (const g of ranked.slice(0, a.abilities)) requirements.push({ tag: abilityTag(g), count: a.abilityCount })
   }
   requirements = requirements.slice(0, CONFIG.formation.maxRequirements)

@@ -169,8 +169,9 @@ beforeEach(() => {
     deleteQuest: vi.fn(),
     startChallenge: vi.fn(),
     quitChallenge: vi.fn(),
-    claimQuest: vi.fn(() => ({ monsterId: 'o8', cores: 1, coreKey: 'legs', corePity: false, gold: 50 })),
-    exchangeCores: vi.fn(),
+    claimQuest: vi.fn(() => ({ monsterId: 'o8', drops: [{ icon: '💠', label: '木の結晶', count: 1 }], gold: 50 })),
+    exchangeMaterial: vi.fn(),
+    claimRanks: vi.fn(() => 3),
     setSlot: vi.fn(),
     buyExp: vi.fn(),
     buyEgg: vi.fn(),
@@ -215,11 +216,11 @@ describe('画面の表示', () => {
       date: '2026-10-04', steps: 8200, habit: false, habitLabel: '', streak: 0, stepsGold: 54, habitGold: 0, ts: 1,
     }
     const el = await render(<Home go={go} />)
-    expect(el.textContent).toContain('昨日 8,200歩・+54G')
+    expect(el.textContent).toContain('昨日 8,200歩・+54オーブ')
     expect(el.textContent).not.toContain('前日の歩数を記録する')
   })
 
-  it('上の所持：G・タマゴ・EXPがいつも見えて、増えると +N が浮かぶ', async () => {
+  it('上の所持：ランク・EXP・タマゴ・オーブ・コインがいつも見えて、増えると +N が浮かぶ', async () => {
     const { TopBar } = await import('../components/TopBar')
     let rerender = () => {}
     function Harness() {
@@ -233,8 +234,22 @@ describe('画面の表示', () => {
     fake.store.state = { ...state, gold: 520 }
     await act(async () => rerender())
     expect(el.querySelector('.topbar-pop')?.textContent).toBe('+20')
-    await click('⚙️')
-    expect(go).toHaveBeenCalledWith({ name: 'settings' })
+    // ランク：筋トレEXPの積み上げ 460 → 100＋120＋140 でランク4
+    expect(el.textContent).toContain('R4')
+    expect(el.textContent).not.toContain('💎') // 素材の数は上に出さない
+    await act(async () => el.querySelector<HTMLButtonElement>('.topbar-main')!.click())
+    expect(el.textContent).toContain('ランク 4（次まで 60EXP）')
+    await click('所持アイテム')
+    expect(go).toHaveBeenCalledWith({ name: 'items' })
+  })
+
+  it('ランク：たまったランクアップ報酬をまとめて受け取る', async () => {
+    const { RankCard } = await import('../components/RankCard')
+    fake.store.state = { ...state, claims: { 'rank:2': true } }
+    const el = await render(<RankCard />)
+    expect(el.textContent).toContain('ランク 4')
+    await click('ランクアップ報酬（ランク3〜4）🥚卵×2 を受け取る')
+    expect(fake.store.claimRanks).toHaveBeenCalled()
   })
 
   it('相棒：枠ごとにセットでき、セット入力のEXPに倍率がかかる', async () => {
@@ -255,21 +270,21 @@ describe('画面の表示', () => {
     expect(fake.store.recordSet).toHaveBeenCalledWith(expect.objectContaining({ exp: 20 }), true) // 15 × 1.35
   })
 
-  it('習慣：やった直後にその場で分数を記録してGをもらう（1日30分まで）', async () => {
+  it('習慣：やった直後にその場で分数を記録してオーブをもらう（1日30分まで）', async () => {
     const { HabitCard } = await import('../components/HabitCard')
     fake.store.state = { ...state, habitMode: 'minutes', habitLabel: '瞑想', habitDate: TODAY, habitMinutesToday: 25 }
     const el = await render(<HabitCard />)
-    expect(el.textContent).toContain('今日 25分（Gは30分まで）')
-    expect(el.textContent).toContain('10分（+50G）') // 残り5分ぶんだけ（10分続けた単価10G）
-    await click('10分（+50G）')
+    expect(el.textContent).toContain('今日 25分（オーブは30分まで）')
+    expect(el.textContent).toContain('10分（+50オーブ）') // 残り5分ぶんだけ（10分続けた単価10オーブ）
+    await click('10分（+50オーブ）')
     expect(fake.store.recordHabit).toHaveBeenCalledWith(10)
-    expect(el.textContent).toContain('瞑想 10分 → +20G')
+    expect(el.textContent).toContain('瞑想 10分 → +20オーブ')
   })
 
   it('習慣：○×なら1日1回「できた」', async () => {
     const { HabitCard } = await import('../components/HabitCard')
     await render(<HabitCard />)
-    await click('今日できた（+50G）')
+    await click('今日できた（+50オーブ）')
     expect(fake.store.recordHabit).toHaveBeenCalledWith(0)
     fake.store.state = { ...state, habitDate: TODAY }
     expect((await render(<HabitCard />)).textContent).toContain('今日はできた！')
@@ -336,7 +351,7 @@ describe('画面の表示', () => {
     const el = await render(<SetInput slotId="mon2" go={go} />)
     await click('回で確定')
     expect(el.textContent).toContain('今週 全消し！！')
-    expect(el.textContent).toContain('+150G')
+    expect(el.textContent).toContain('+150オーブ')
     expect(el.textContent).toContain('累計 3週目')
   })
 
@@ -346,7 +361,7 @@ describe('画面の表示', () => {
     expect(fake.store.setSlot).toHaveBeenCalledWith('mon1', 'pushupBar')
   })
 
-  it('朝の記録：前日の歩数を入れて記録（100歩ごとに1G）', async () => {
+  it('朝の記録：前日の歩数を入れて記録（100歩ごとに1オーブ）', async () => {
     fake.store.recordMorning = vi.fn((steps: number) => ({
       date: '2026-10-04', steps, habit: false, habitLabel: '', streak: 0, stepsGold: Math.floor(steps / 100), habitGold: 0, ts: 1,
     }))
@@ -357,9 +372,9 @@ describe('画面の表示', () => {
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, '6500')
       input.dispatchEvent(new Event('input', { bubbles: true }))
     })
-    await click('記録する（+65G）')
+    await click('記録する（+65オーブ）')
     expect(fake.store.recordMorning).toHaveBeenCalledWith(6500)
-    expect(el.textContent).toContain('記録しました：+65G')
+    expect(el.textContent).toContain('記録しました：+65オーブ')
   })
 
   it('朝の記録：記録済みなら結果だけ出る', async () => {
@@ -367,7 +382,7 @@ describe('画面の表示', () => {
       date: '2026-10-04', steps: 5000, habit: false, habitLabel: '', streak: 0, stepsGold: 33, habitGold: 0, ts: 1,
     }
     const el = await render(<Morning go={go} />)
-    expect(el.textContent).toContain('記録しました：+33G')
+    expect(el.textContent).toContain('記録しました：+33オーブ')
     expect(el.textContent).toContain('歩数 5,000歩')
   })
 
@@ -422,7 +437,16 @@ describe('画面の表示', () => {
     expect(el.textContent).toContain('脚EXPで進化')
     expect(el.textContent).toContain('0/120')
     expect(el.textContent).not.toContain('進化の石')
-    await click('進化する（🪙60・剛腕の核×1）')
+    // ★2→★3：結晶6・核3・筋肉玉1。剛腕の核が2個しかないので、まだ進化できない
+    expect(el.textContent).toContain('剛腕の核 2/3')
+    expect(el.textContent).toContain('筋肉玉 2/1')
+    await click('進化する')
+    expect(fake.store.evolve).not.toHaveBeenCalled()
+    // 無属性のモンスターは、いちばん多く持っている結晶を使う
+    fake.store.state = { ...state, stones: { water: 9 }, cores: { chestArms: 3, none: 1 } }
+    const el2 = await render(<MonsterDetail id="o1" go={go} />)
+    expect(el2.textContent).toContain('水の結晶 9/6')
+    await click('進化する')
     expect(fake.store.evolve).toHaveBeenCalledWith('o1', 'n3a')
   })
 
@@ -447,7 +471,8 @@ describe('画面の表示', () => {
       id: 'h1', name: 'カイザードラ', attr: 'none', templateId: 'linear3', images: {}, recipe: ['m1', 'm2'], createdAt: 3,
     }
     fake.store.defs = [...defs, hidden]
-    fake.store.state = { ...state, coins: 1500 }
+    fake.store.defs = [{ ...defs[0], element: 'fire' }, { ...defs[1], element: 'water' }, hidden]
+    fake.store.state = { ...state, coins: 1500, stones: { fire: 10, water: 10 } }
     fake.store.owned = [
       { id: 'o1', defId: 'm1', nodeId: 'n3a', obtainedAt: 1 },
       { id: 'o2', defId: 'm2', nodeId: 'n3', obtainedAt: 2 },
@@ -455,7 +480,7 @@ describe('画面の表示', () => {
     const el = await render(<MonsterDetail id="o1" go={go} />)
     expect(el.textContent).toContain('？？？（★4で誕生）← ムキドラ ＆ アシガメ：どちらも最終形態（★3以上）')
     await click('アシガメとジョグレス')
-    await click('本当にジョグレスする（🪙600・無垢の核×2）')
+    await click('本当にジョグレスする（🪙600・筋肉玉×2・炎の結晶×10・水の結晶×10）')
     expect(fake.store.jogress).toHaveBeenCalledWith('o1', 'o2', 'h1')
     expect(el.textContent).toContain('ジョグレス進化！！')
     expect(el.textContent).toContain('カイザードラ')
@@ -717,7 +742,7 @@ describe('画面の表示', () => {
     expect(names[1]).not.toContain('アーク')
     // ボスクエストは難易度を選ばない。格（決めていなければ極）でHPと報酬が決まる
     expect(el.querySelector('[aria-label="難易度"]')).toBeNull()
-    expect(el.textContent).toContain('HP 3,000・80Gドロップ アシガメ・たまに')
+    expect(el.textContent).toContain('HP 3,000・🔮80ドロップ アシガメ・ときどき木の結晶')
     await click('ムキドラゴ')
     expect(el.textContent).toContain('アーク1/2') // 選ぶとメーターが埋まる
     await click('出撃する')
@@ -743,7 +768,7 @@ describe('画面の表示', () => {
     await click('報酬を受け取る')
     expect(fake.store.claimQuest).toHaveBeenCalled()
     expect(el.textContent).toContain('討伐成功！')
-    expect(el.textContent).toContain('健脚の核 ×1 がドロップ！') // ボスクエストでも、たまに核が落ちる
+    expect(el.textContent).toContain('木の結晶 ×1 がドロップ！') // ボスクエストでも、ときどきボスの属性の結晶が落ちる
     await click('会いに行く')
     expect(go).toHaveBeenCalledWith({ name: 'monster', id: 'o8' })
   })
@@ -781,7 +806,7 @@ describe('画面の表示', () => {
     expect(training.textContent).toContain('⚔️ 脚竜の巣　のこりHP 500')
   })
 
-  it('素材クエスト：倒すと核が落ちる（落ちないこともある）', async () => {
+  it('素材クエスト：倒すとくじの数だけ素材が落ちる（0個のこともある）', async () => {
     const { Quests } = await import('./Quests')
     const quest = {
       id: 'q2', name: '脚の修練場', kind: 'material' as const, bossDefId: 'm2', attr: 'legs' as const, weakSlots: [],
@@ -790,22 +815,26 @@ describe('画面の表示', () => {
     fake.store.quests = [quest]
     fake.store.state = { ...state, challenge: { date: TODAY, questId: 'q2', difficulty: 'easy', party: ['o1'], startTs: 0 } }
     fake.store.weekSets = [past(1, 10, 5, TODAY)]
-    fake.store.claimQuest = vi.fn(() => ({ monsterId: null, cores: 0, coreKey: 'legs', corePity: false, gold: 25 }))
+    fake.store.claimQuest = vi.fn(() => ({ monsterId: null, drops: [{ icon: '💎', label: '健脚の核', count: 0 }], gold: 25 }))
     const el = await render(<Quests go={go} />)
     expect(el.textContent).toContain('💎 素材・健脚の核')
-    await click('報酬を受け取る（健脚の核のチャンス')
-    expect(el.textContent).toContain('今回は核が落ちなかった')
+    await click('報酬を受け取る（健脚の核のくじ')
+    expect(el.textContent).toContain('今回は健脚の核が落ちなかった')
     expect(el.textContent).not.toContain('会いに行く')
   })
 
-  it('ショップ：余った核はタマゴと交換できる', async () => {
-    fake.store.state = { ...state, cores: { legs: 3, chestArms: 1 } }
-    const el = await render(<Shop go={go} />)
-    const row = [...el.querySelectorAll('.mini-list li')].find((li) => li.textContent?.includes('健脚の核'))!
-    await act(async () => row.querySelector('button')!.click())
-    expect(fake.store.exchangeCores).toHaveBeenCalledWith('legs')
-    const chest = [...el.querySelectorAll('.mini-list li')].find((li) => li.textContent?.includes('剛腕の核'))!
-    expect(chest.querySelector('button')!.disabled).toBe(true)
+  it('所持アイテム：素材の数を見て、余った結晶・核はタマゴと交換できる', async () => {
+    const { Items } = await import('./Items')
+    fake.store.state = { ...state, stones: { fire: 20, water: 3 }, cores: { legs: 10, chestArms: 1, none: 4 } }
+    const el = await render(<Items go={go} />)
+    expect(el.textContent).toContain('筋肉玉4')
+    const row = (name: string) => [...el.querySelectorAll('.mini-list li')].find((li) => li.textContent?.includes(name))!
+    await act(async () => row('炎の結晶').querySelector('button')!.click())
+    expect(fake.store.exchangeMaterial).toHaveBeenCalledWith('stone', 'fire')
+    expect(row('水の結晶').querySelector('button')!.disabled).toBe(true)
+    await act(async () => row('健脚の核').querySelector('button')!.click())
+    expect(fake.store.exchangeMaterial).toHaveBeenCalledWith('muscle', 'legs')
+    expect(row('剛腕の核').querySelector('button')!.disabled).toBe(true)
   })
 
   it('BOX：アイコンの一覧を並び替え・属性で絞り込みできる', async () => {

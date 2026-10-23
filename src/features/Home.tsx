@@ -16,6 +16,7 @@ import { isWeekCleared, partProgress, slotDone } from '../lib/week'
 import { nearGoals } from '../lib/progress'
 import { BoosterPanel } from '../components/BoosterPanel'
 import { HabitCard } from '../components/HabitCard'
+import { RankCard } from '../components/RankCard'
 
 export function Home({ go }: { go: Go }) {
   const { state, menu, weekSets, todaySets, week, defs, owned, yesterday, yesterdayCheckin, today } = useStore()
@@ -41,6 +42,7 @@ export function Home({ go }: { go: Go }) {
       <CollabNews go={go} />
       <LoginBonus />
       <Gifts />
+      <RankCard />
       <button className="card mission-entry" onClick={() => go({ name: 'missions' })}>
         <span>🎯 ミッション</span>
         {claimable > 0 ? <span className="tag keep">受け取れる報酬 {claimable}</span> : <span className="muted small">デイリー・ウィークリー・図鑑</span>}
@@ -57,7 +59,7 @@ export function Home({ go }: { go: Go }) {
         {morningDone ? (
           <p>
             {yesterdayCheckin
-              ? `昨日 ${yesterdayCheckin.steps.toLocaleString()}歩・+${yesterdayCheckin.stepsGold + yesterdayCheckin.habitGold}G`
+              ? `昨日 ${yesterdayCheckin.steps.toLocaleString()}歩・+${yesterdayCheckin.stepsGold + yesterdayCheckin.habitGold}オーブ`
               : '前日の分は記録済み'}
           </p>
         ) : (
@@ -65,7 +67,7 @@ export function Home({ go }: { go: Go }) {
             前日の歩数を記録する
           </button>
         )}
-        <p className="muted small">{CONFIG.morning.stepsPerGold}歩ごとに1G。歩いた分だけ増えます。</p>
+        <p className="muted small">{CONFIG.morning.stepsPerGold}歩ごとに1オーブ。歩いた分だけ増えます。</p>
       </section>
 
       <HabitCard />
@@ -99,7 +101,7 @@ export function Home({ go }: { go: Go }) {
           </button>
         )}
         <p className="muted small">
-          月曜はじまり。全部消すと +{CONFIG.weekly.clearGold}G（全消し 累計 <strong>{state.weeklyClears}</strong>週）
+          月曜はじまり。全部消すと +{CONFIG.weekly.clearGold}オーブ（全消し 累計 <strong>{state.weeklyClears}</strong>週）
         </p>
       </section>
 

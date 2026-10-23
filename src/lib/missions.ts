@@ -13,7 +13,7 @@ export interface Reward {
 export function rewardText(r: Reward): string {
   const parts: string[] = []
   if (r.eggs) parts.push(`🥚卵×${r.eggs}`)
-  if (r.gold) parts.push(`${r.gold}G`)
+  if (r.gold) parts.push(`${r.gold}オーブ`)
   if (r.coins) parts.push(`🪙${r.coins}`)
   if (r.booster) parts.push(`${CONFIG.boosters[r.booster].icon}${CONFIG.boosters[r.booster].label}`)
   return parts.join('・')

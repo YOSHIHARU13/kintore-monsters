@@ -26,7 +26,7 @@ import { formationOf, requirementsOf } from '../lib/formation'
 import { luckBonus } from '../lib/fusion'
 import { ELEMENT_COLOR, elementInfo } from '../lib/element'
 import { CONFIG } from '../config/gameConfig'
-import { CORE_LABEL } from '../lib/cores'
+import { dropLabel } from '../lib/cores'
 import { towerCleared, towerMonth } from '../lib/tower'
 import { autoGradeOf, autoQuestSetup } from '../lib/questAuto'
 import { selectableGimmicks } from '../lib/gimmick'
@@ -123,7 +123,7 @@ export function Quests({ go }: { go: Go }) {
       {got && (
         <section className="card center">
           <h2>
-            {got.towerFloor ? `試練の塔 ${got.towerFloor}階 突破！` : '討伐成功！'} +{got.gold}G・🪙{got.coins ?? 0}
+            {got.towerFloor ? `試練の塔 ${got.towerFloor}階 突破！` : '討伐成功！'} 🔮+{got.gold}・🪙+{got.coins ?? 0}
           </h2>
           {got.boosted && <p className="tag keep">⚔️ 討伐ブースターで報酬2倍！</p>}
           {got.eggs > 0 && <p>🥚 卵 ×{got.eggs} を手に入れた！</p>}
@@ -139,15 +139,16 @@ export function Quests({ go }: { go: Go }) {
               </p>
             </>
           )}
-          {got.cores > 0 ? (
-            <p className="core-drop">
-              💎 {CORE_LABEL[got.coreKey]} ×{got.cores} がドロップ！{got.corePity ? '（確定ドロップ）' : ''}
-            </p>
-          ) : (
-            !got.monsterId &&
-            !got.towerFloor && (
-              <p className="muted">今回は核が落ちなかった…（続けて落ちないと、そのうち確定で落ちます）</p>
-            )
+          {got.drops.map((d, i) =>
+            d.count > 0 ? (
+              <p key={i} className="core-drop">
+                {d.icon} {d.label} ×{d.count} がドロップ！{d.pity ? '（確定ドロップ）' : ''}
+              </p>
+            ) : (
+              <p key={i} className="muted">
+                今回は{d.label}が落ちなかった…{d.label === '筋肉玉' ? `（${CONFIG.materials.ballPityMisses}回続けて落ちないと確定）` : ''}
+              </p>
+            ),
           )}
           {got.monsterId && (
             <button className="btn primary wide" onClick={() => go({ name: 'monster', id: got.monsterId! })}>
@@ -178,7 +179,7 @@ export function Quests({ go }: { go: Go }) {
                   requirementsOf(battle.quest),
                 ).rate.toFixed(2)}
                 {luckBonus(battle.party.map((m) => m.mon)).count > 0 &&
-                  `・運極ボーナス 報酬G×${luckBonus(battle.party.map((m) => m.mon)).goldRate.toFixed(1)}`}
+                  `・運極ボーナス オーブ×${luckBonus(battle.party.map((m) => m.mon)).goldRate.toFixed(1)}`}
                 ・今日中に倒そう
               </span>
             </div>
@@ -201,12 +202,10 @@ export function Quests({ go }: { go: Go }) {
               報酬を受け取る（
               {towerFloor
                 ? towerRewardText(towerFloor, defs, state)
-                : battle.quest.drop === 'coins'
-                  ? `🪙${CONFIG.coins.quest[battle.challenge.difficulty]}`
-                  : battle.quest.kind === 'material'
-                    ? `${CORE_LABEL[battle.quest.attr]}のチャンス`
+                : battle.quest.kind === 'material'
+                  ? `${dropLabel(battle.quest)}のくじ`
                   : `${battle.boss?.name}${dropPlus(battle.quest) > 0 ? `＋${dropPlus(battle.quest)}` : ''}`}
-              {!towerFloor && `・${questGold(battle.quest, battle.challenge.difficulty)}G`}）
+              {!towerFloor && `・🔮${questGold(battle.quest, battle.challenge.difficulty)}`}）
             </button>
           ) : (
             <button className="btn primary wide" onClick={() => go({ name: 'training' })}>

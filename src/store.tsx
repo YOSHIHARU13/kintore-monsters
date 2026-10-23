@@ -21,14 +21,28 @@ import { CONFIG } from './config/gameConfig'
 import { ATTRS, DAYS, SLOTS, type Attr, type FormAttr } from './data/exercises'
 import { FIRST_NODE_ID, canChangeTemplate, getNode, getTemplate, pathTo } from './data/evolutionTemplates'
 import { dateKey, prevDateKey, weekStartKey } from './lib/date'
-import { fusionCost, isExpFull, nextCost, planPour } from './lib/evolution'
+import { fusionCost, isExpFull, jogressStones, materialKeys, missingMaterials, nextCost, planPour } from './lib/evolution'
 import { habitGoldNow, stepsGold } from './lib/rewards'
 import { isWeekCleared } from './lib/week'
 import { compressImage } from './lib/imageCompress'
 import { draw, isPickupRarity, isPity, isReady, rarityOf, rateTable, starsOf } from './lib/gacha'
 import { isJogressReady } from './lib/stats'
 import { battleOf, dropPlus, isStrict, questGold } from './lib/quest'
-import { rollBonusCore, rollCoreDrop } from './lib/cores'
+import {
+  BALL_KEY,
+  CORE_LABEL,
+  DROP_ICON,
+  STONE_LABEL,
+  ballsOf,
+  coresOf,
+  dropLabel,
+  dropOf,
+  rollBonusStones,
+  rollMaterialDrop,
+  stonesOf,
+  type CoreKey,
+} from './lib/cores'
+import { pendingRanks, rankClaimKey, rankReward } from './lib/rank'
 import { bulkFeedTarget, canFeed, fusionGain, isLuckMax, luckAfter, luckBonus, planBulkFeed, protectedIds } from './lib/fusion'
 import { autoPartners } from './lib/partner'
 import { finalAttrs, recommend } from './lib/coverage'
@@ -83,6 +97,7 @@ function initialState(): GameState {
     loginDays: 0,
     stats: null,
     cores: {},
+    stones: {},
     coreMisses: {},
   }
 }
@@ -143,6 +158,14 @@ export interface HatchResult {
   pity: boolean // 天井で確定したか
 }
 
+/** 落ちた素材（例：💠 炎の結晶 ×4） */
+export interface ItemDrop {
+  icon: string
+  label: string
+  count: number
+  pity?: boolean // 天井で確定したか
+}
+
 export interface QuestReward {
   monsterId: string | null // 手に入ったボス（素材クエストでは null）
   defId: string | null // 手に入ったモンスターの種類（塔では塔限定モンスター）
@@ -150,10 +173,8 @@ export interface QuestReward {
   towerFloor: number | null // 試練の塔の何階をクリアしたか
   booster?: BoosterKey | null // 試練の塔でもらえたブースター
   boosted?: boolean // 討伐ブースターで2倍になったか
-  cores: number // 落ちた核の数
-  coreKey: FormAttr
-  corePity: boolean // 天井で確定したか
-  gold: number
+  drops: ItemDrop[] // 落ちた素材（素材クエストで何も落ちなければ、0個の行が1つ）
+  gold: number // オーブ
   coins?: number // もらえた進化コイン
 }
 
@@ -227,8 +248,10 @@ interface Store {
   quitChallenge: () => void
   /** 討伐の報酬を受け取る */
   claimQuest: () => QuestReward | null
-  /** 核をタマゴ1個と交換する */
-  exchangeCores: (key: FormAttr) => void
+  /** 余った結晶か核をタマゴ1個と交換する */
+  exchangeMaterial: (kind: 'stone' | 'muscle', key: string) => void
+  /** たまっているランクアップ報酬をまとめて受け取る。受け取った卵の数 */
+  claimRanks: () => number
   setSlot: (slotId: string, exerciseId: string) => void
   buyExp: (attr: Attr, amount: number) => void
   buyEgg: () => void
@@ -412,7 +435,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         return boss
           ? { ...q, name, autoName, element: elementInfo(boss).elements[0], bossTags: tagsOfDef(boss) }
           : { ...q, name, autoName }
-      }).concat(builtinMaterialQuests(defs, today).map((q) => ({ ...q, bossTags: tagsOfDef(defs.find((d) => d.id === q.bossDefId)) }))),
+      }).concat(builtinMaterialQuests(defs, today, selectableGimmicks(questDocs)).map((q) => ({ ...q, bossTags: tagsOfDef(defs.find((d) => d.id === q.bossDefId)) }))),
     [questDocs, defs, today],
   )
   const yesterday = useMemo(() => prevDateKey(today), [today])
@@ -458,7 +481,10 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         update[`lifetimeExp.${attr}`] = increment(rec.exp)
       }
       // ボーナス枠（腹筋ローラー）のEXPは万能EXPに入る
-      if (rec.exp > 0 && rec.day === 'bonus') update.anyExp = increment(rec.exp)
+      if (rec.exp > 0 && rec.day === 'bonus') {
+        update.anyExp = increment(rec.exp)
+        update.lifetimeAnyExp = increment(rec.exp)
+      }
       if (rec.gold > 0) update.gold = increment(rec.gold)
       if (countsBeat) update.beatCount = increment(1)
       // このセットで今週のタスクを全部消したら、全消しボーナス（同じ週に2回は渡さない）
@@ -723,12 +749,14 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const found = findMonster(monsterId)
       if (!found?.cost || !found.node.next.includes(toNodeId)) return
       const { mon, def, node, cost } = found
-      if (!isExpFull(cost, investedFor(mon, toNodeId, node.next[0])) || (state.coins ?? 0) < cost.coins) return
-      const coreKey = nodeAttr(def, toNodeId)
-      if ((state.cores[coreKey] ?? 0) < (cost.cores ?? 0)) return
+      if (!isExpFull(cost, investedFor(mon, toNodeId, node.next[0]))) return
+      if (missingMaterials(cost, def, toNodeId, state).length > 0) return
+      const keys = materialKeys(def, toNodeId, state)
       // 選ばなかった進化先に注いでいたEXPは、元の財布に返す
       const update: DocumentData = { coins: increment(-cost.coins) }
-      if (cost.cores) update[`cores.${coreKey}`] = increment(-cost.cores)
+      if (cost.stones) update[`stones.${keys.stone}`] = increment(-cost.stones)
+      if (cost.muscle) update[`cores.${keys.muscle}`] = increment(-cost.muscle)
+      if (cost.balls) update[`cores.${BALL_KEY}`] = increment(-cost.balls)
       const refund = newRefund()
       addRefund(refund, mon, def, node.next.filter((n) => n !== toNodeId))
       applyRefund(update, refund)
@@ -827,10 +855,17 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const pair = [a.mon.defId, b.mon.defId].sort().join()
       if ([...hidden.recipe].sort().join() !== pair) return null
       if (!isJogressReady(a.mon, a.def, hidden) || !isJogressReady(b.mon, b.def, hidden)) return null
-      if ((state.coins ?? 0) < CONFIG.jogress.coins || (state.cores.none ?? 0) < CONFIG.jogress.cores) return null
+      const stoneEls = jogressStones(a.def, b.def)
+      const stoneNeed = (e: Element) => CONFIG.jogress.stones * stoneEls.filter((x) => x === e).length
+      if ((state.coins ?? 0) < CONFIG.jogress.coins || ballsOf(state) < CONFIG.jogress.balls) return null
+      if (stoneEls.some((e) => stonesOf(state, e) < stoneNeed(e))) return null
       const shiny = false // 色違いはなくなった
       const ref = doc(collection(db, base, 'ownedMonsters'))
-      const update: DocumentData = { coins: increment(-CONFIG.jogress.coins), 'cores.none': increment(-CONFIG.jogress.cores) }
+      const update: DocumentData = {
+        coins: increment(-CONFIG.jogress.coins),
+        [`cores.${BALL_KEY}`]: increment(-CONFIG.jogress.balls),
+      }
+      for (const e of new Set(stoneEls)) update[`stones.${e}`] = increment(-stoneNeed(e))
       consume(update, [a, b])
       if (shiny) update[`dexShiny.${hidden.id}`] = true
       const batch = writeBatch(db)
@@ -1119,35 +1154,38 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const bonus = luckBonus(battle.party.map((m) => m.mon))
       const boost = state.boosts?.quest ? 2 : 1
       const gold = Math.round(questGold(battle.quest, c.difficulty) * bonus.goldRate * boost)
-      const coreKey = battle.quest.attr
-      const coinQuest = material && battle.quest.drop === 'coins'
-      const coins = Math.round(
-        (coinQuest ? CONFIG.coins.quest[c.difficulty] : questGold(battle.quest, c.difficulty)) * bonus.goldRate * boost,
-      )
+      const kind = dropOf(battle.quest)
       const batch = writeBatch(db)
       const update: DocumentData = {
         ...(boost > 1 ? { 'boosts.quest': false } : {}),
         gold: increment(gold),
-        coins: increment(coins),
         questClears: increment(1),
         [`clearedQuests.${battle.quest.id}`]: increment(1),
         challenge: null,
       }
       bumpStats(update, { quest: 1, strict: isStrict(battle.quest) ? 1 : 0 })
       let monsterId: string | null = null
-      let cores = 0
-      let corePity = false
-      if (coinQuest) {
-        // コインの金庫：核の代わりに、たくさんの進化コイン
-      } else if (material) {
-        // 素材クエスト：核が落ちる（毎回ではない。続けて落ちないと確定）
-        const drop = rollCoreDrop(c.difficulty, state.coreMisses[battle.quest.id] ?? 0, Math.random, bonus.coreRate)
-        cores = drop.count
-        corePity = drop.pity
-        update[`coreMisses.${battle.quest.id}`] = cores > 0 ? 0 : increment(1)
+      let coins = 0
+      const drops: ItemDrop[] = []
+      if (material) {
+        // 素材クエスト：くじを引いた数だけ落ちる（運極がいるとくじが増える）
+        const misses = state.coreMisses[battle.quest.id] ?? 0
+        const drop = rollMaterialDrop(kind, c.difficulty, bonus.count, kind === 'ball' ? misses : 0, Math.random)
+        const count = drop.count * boost
+        if (kind === 'ball') update[`coreMisses.${battle.quest.id}`] = drop.count > 0 ? 0 : increment(1)
+        if (kind === 'coins') coins = count
+        else if (count > 0) {
+          if (kind === 'stone' && battle.quest.element) update[`stones.${battle.quest.element}`] = increment(count)
+          if (kind === 'muscle' && battle.quest.attr !== 'none') update[`cores.${battle.quest.attr}`] = increment(count)
+          const ball = kind === 'ball' || (kind === 'muscle' && battle.quest.attr === 'none')
+          if (ball) update[`cores.${BALL_KEY}`] = increment(count)
+        }
+        drops.push({ icon: DROP_ICON[kind], label: dropLabel(battle.quest), count, pity: drop.pity })
       } else {
         const boss = battle.boss
         if (!boss) return null
+        // ボスクエストは、オーブと同じだけ進化コインも
+        coins = gold
         const shiny = false // 色違いはなくなった
         const ref = doc(collection(db, base, 'ownedMonsters'))
         batch.set(ref, {
@@ -1161,10 +1199,14 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         })
         if (shiny) update[`dexShiny.${boss.id}`] = true
         monsterId = ref.id
-        cores = rollBonusCore(Math.random)
+        // おまけ：ボスの属性の結晶
+        const stones = rollBonusStones(Math.random) * boost
+        if (stones > 0 && battle.quest.element) {
+          update[`stones.${battle.quest.element}`] = increment(stones)
+          drops.push({ icon: DROP_ICON.stone, label: STONE_LABEL(battle.quest.element), count: stones })
+        }
       }
-      cores *= boost
-      if (cores > 0) update[`cores.${coreKey}`] = increment(cores)
+      if (coins > 0) update.coins = increment(coins)
       batch.update(stateRef, update)
       batch.commit().catch(fail)
       return {
@@ -1172,9 +1214,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
         coins,
         monsterId,
         defId: battle.boss?.id ?? null,
-        cores,
-        coreKey,
-        corePity,
+        drops,
         gold,
         eggs: 0,
         towerFloor: null,
@@ -1188,7 +1228,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       const bonus = luckBonus(party)
       const boost = state.boosts?.quest ? 2 : 1
       const gold = Math.round(floor.reward.gold * bonus.goldRate * boost)
-      const coins = gold // 進化コインもGと同じだけ
+      const coins = gold // 進化コインもオーブと同じだけ
       const cores = floor.reward.cores * boost
       const batch = writeBatch(db)
       const update: DocumentData = {
@@ -1201,7 +1241,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       }
       bumpStats(update, { quest: 1, strict: isStrict(floor.quest) ? 1 : 0 })
       if (floor.reward.eggs > 0) update.eggs = increment(floor.reward.eggs)
-      if (cores > 0) update[`cores.${floor.quest.attr}`] = increment(cores)
+      const coreKey = floor.quest.attr === 'none' ? null : (floor.quest.attr as CoreKey)
+      if (cores > 0 && coreKey) update[`cores.${coreKey}`] = increment(cores)
       if (floor.reward.booster) update[`boosters.${floor.reward.booster}`] = increment(1)
       let monsterId: string | null = null
       if (floor.reward.monsterDefId) {
@@ -1224,22 +1265,35 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       return {
         monsterId,
         defId: floor.reward.monsterDefId,
-        cores,
+        drops: cores > 0 && coreKey ? [{ icon: DROP_ICON.muscle, label: CORE_LABEL[coreKey], count: cores }] : [],
         coins,
-        coreKey: floor.quest.attr,
         booster: floor.reward.booster,
         boosted: boost > 1,
-        corePity: false,
         gold,
         eggs: floor.reward.eggs,
         towerFloor: floor.floor,
       }
     }
 
-    const exchangeCores: Store['exchangeCores'] = (key) => {
-      const need = CONFIG.cores.eggExchange
-      if ((state.cores[key] ?? 0) < need) return
-      updateState({ [`cores.${key}`]: increment(-need), eggs: increment(1) })
+    const exchangeMaterial: Store['exchangeMaterial'] = (kind, key) => {
+      const need = CONFIG.materials.eggExchange[kind]
+      const have = kind === 'stone' ? stonesOf(state, key as Element) : coresOf(state, key as CoreKey)
+      if (have < need) return
+      updateState({ [`${kind === 'stone' ? 'stones' : 'cores'}.${key}`]: increment(-need), eggs: increment(1) })
+    }
+
+    const claimRanks: Store['claimRanks'] = () => {
+      const ranks = pendingRanks(state)
+      if (ranks.length === 0) return 0
+      const update: DocumentData = {}
+      let eggs = 0
+      for (const r of ranks) {
+        update[`claims.${rankClaimKey(r)}`] = true
+        eggs += rankReward(r).eggs ?? 0
+      }
+      if (eggs > 0) update.eggs = increment(eggs)
+      updateState(update)
+      return eggs
     }
 
     const saveSongs: Store['saveSongs'] = (next) => {
@@ -1310,7 +1364,8 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       startChallenge,
       quitChallenge,
       claimQuest,
-      exchangeCores,
+      exchangeMaterial,
+      claimRanks,
       deleteGacha,
     }
   }, [user, base, state, menu, defs, owned, songs, seriesPeriods, towerFixed, gachas, quests, tower, today, yesterday, yesterdayCheckin, week, weekSets, todaySets, stateRef, menuRef, musicRef, seriesRef, towerRef, fail])

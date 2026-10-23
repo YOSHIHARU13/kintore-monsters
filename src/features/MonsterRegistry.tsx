@@ -77,8 +77,8 @@ export function MonsterRegistry({ go }: { go: Go }) {
 
   return (
     <div className="page">
-      <button className="back" onClick={() => go({ name: 'dex' })}>
-        ← 図鑑に戻る
+      <button className="back" onClick={() => go({ name: 'more' })}>
+        ← その他に戻る
       </button>
       <h1 className="title">モンスターの登録・編集</h1>
       <p className="muted">

@@ -140,7 +140,7 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
     !r.eligible
       ? '記録のみ'
       : r.gold > 0
-        ? `+${r.gold}G${r.exp > 0 ? `・万能EXP +${r.exp}` : ''}`
+        ? `+${r.gold}オーブ${r.exp > 0 ? `・万能EXP +${r.exp}` : ''}`
         : `+${r.exp}EXP`
 
   return (
@@ -152,7 +152,7 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
       <BattleBar go={go} />
       <h1 className="title">{ex.name}</h1>
       <p className="muted">
-        {isBonus ? `ボーナス枠・1セット +${CONFIG.bonus.goldPerSet}G＆万能EXP +${CONFIG.bonus.anyExpPerSet}・` : ''}
+        {isBonus ? `ボーナス枠・1セット +${CONFIG.bonus.goldPerSet}オーブ＆万能EXP +${CONFIG.bonus.anyExpPerSet}・` : ''}
         {rangeText(ex.id)}
       </p>
       <p className="small how">{ex.how}</p>
@@ -314,7 +314,7 @@ export function SetInput({ slotId, go }: { slotId: string; go: Go }) {
           <div className="beat-text">
             <div className="clear-crown">👑</div>
             <div className="beat-title">今週 全消し！！</div>
-            <div className="beat-sub">ボーナス +{CONFIG.weekly.clearGold}G</div>
+            <div className="beat-sub">ボーナス +{CONFIG.weekly.clearGold}オーブ</div>
             <div className="clear-count">全消し 累計 {store.state.weeklyClears + 1}週目</div>
             <div className="muted small">タップして続ける</div>
           </div>

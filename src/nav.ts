@@ -20,6 +20,8 @@ export type View =
   | { name: 'registry' }
   | { name: 'monsterForm'; id?: string; preset?: 'gacha' | 'quest' }
   | { name: 'settings' }
+  | { name: 'more' }
+  | { name: 'items' }
 
 export type Go = (view: View) => void
 

@@ -22,6 +22,7 @@ export interface GameState {
   exp: Record<Attr, AttrExp>
   lifetimeExp: Record<Attr, number>
   anyExp: number // 万能EXP（腹筋ローラーで稼ぐ。どの属性の進化にも注げる）
+  lifetimeAnyExp?: number // これまでに稼いだ万能EXP（ランク用）
   attendance: number
   lastAttendanceDate: string | null
   totalSets: number
@@ -38,8 +39,9 @@ export interface GameState {
   dexFound: Record<string, string[]> // 合体・ジョグレスでいなくなった個体が見つけていた形態（defId → nodeId）
   dexShiny: Record<string, boolean> // 色違いを見つけたモンスター（defId）
   pity: Record<string, number> // ガチャごとの、激レアが出ないまま引いた回数（天井用）
-  cores: Partial<Record<FormAttr, number>> // 進化素材「核」の所持数（属性ごと）
-  coreMisses: Record<string, number> // 素材クエストごとの、核が続けて落ちなかった回数（天井用）
+  cores: Partial<Record<FormAttr, number>> // 進化素材：部位の核（胸腕・脚・背肩）。none は筋肉玉（以前の無垢の核）
+  stones?: Partial<Record<Element, number>> // 進化素材：属性の結晶
+  coreMisses: Record<string, number> // 素材クエストごとの、筋肉玉が続けて落ちなかった回数（天井用）
   activeMonsterId: string | null // 旧：育成中のモンスター（今は使っていない）
   partners: Record<string, string> // 種目の枠ID → 相棒のモンスター（OwnedMonster.id）
   challenge: Challenge | null // 今日挑戦しているクエスト
@@ -148,6 +150,9 @@ export interface Gacha {
 }
 
 export type QuestDifficulty = 'easy' | 'normal' | 'hard'
+
+/** 素材クエストで落ちるもの：属性の結晶・部位の核・筋肉玉・進化コイン */
+export type MaterialDrop = 'stone' | 'muscle' | 'ball' | 'coins'
 export type QuestGrade = 'jokyu' | 'kiwami' | 'kyukyoku' | 'chozetsu' | 'chokyukyoku'
 
 /** クエストが求める人材の条件（タグ：'el:fire' のような属性か、'ab:バリア' のようなアビリティ） */
@@ -161,7 +166,7 @@ export interface Quest {
   name: string // 空ならボスの名前を出す
   autoName?: boolean // 名前を付けていない（読み込むときに付く。保存はしない）
   builtin?: boolean // 最初から用意されている素材クエスト（編集・削除できない）
-  drop?: 'coins' // 素材クエストで、核の代わりに進化コインが出る（コインの金庫）
+  drop?: MaterialDrop // 素材クエストで落ちるもの（なければ、ボスの部位の核。部位がなければ筋肉玉）
   bossTags?: string[] // ボスのタグ（読み込むときに付く。保存はしない）
   kind?: 'boss' | 'material' // ボスクエスト（ボスが手に入る）か、素材クエスト（核が落ちる）か。なければボス
   bossDefId: string // ボス（倒すと手に入るモンスター。素材クエストでは見た目だけ）
@@ -169,6 +174,8 @@ export interface Quest {
   element?: Element // ボスの属性（相性に使う。なければ無属性）
   weakSlots: string[] // 弱点種目（種目の枠ID）
   requirements?: Requirement[] // 求められる編成（6体の合計で満たす）
+  requirementsBy?: Partial<Record<QuestDifficulty, Requirement[]>> // 難易度ごとの編成（最初からある素材クエスト）
+  weakSlotsBy?: Partial<Record<QuestDifficulty, string[]>> // 難易度ごとの弱点種目
   gimmicks?: string[] // 旧：ギミック名（条件ができる前のクエスト。対応アビリティ2体の条件として読む）
   customGimmicks?: Record<string, string> // このクエストで作ったギミック → 対応するアビリティ名
   hp: Record<QuestDifficulty, number>

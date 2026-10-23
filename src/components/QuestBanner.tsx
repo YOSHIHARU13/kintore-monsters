@@ -2,7 +2,7 @@ import { CONFIG } from '../config/gameConfig'
 import { awakenOf, imageOf, glowOf } from '../lib/art'
 import { MonsterImage } from './MonsterImage'
 import { bannerNodeOf } from './GachaBanner'
-import { CORE_LABEL } from '../lib/cores'
+import { DROP_ICON, dropLabel, dropOf } from '../lib/cores'
 import { requirementsOf, tagLabel } from '../lib/formation'
 import { dropPlus, gradeOf } from '../lib/quest'
 import { allGimmicks } from '../lib/gimmick'
@@ -42,7 +42,7 @@ export function QuestBanner({ quest, boss, onClick, selected = false }: {
       </span>
       <span className="auto-text">
         <span className="auto-badge">
-          {quest.kind === 'material' ? `💎 素材・${CORE_LABEL[quest.attr]}` : `⚔️ ${CONFIG.quest.grades[gradeOf(quest)].label}`}
+          {quest.kind === 'material' ? `${DROP_ICON[dropOf(quest)]} 素材・${dropLabel(quest)}` : `⚔️ ${CONFIG.quest.grades[gradeOf(quest)].label}`}
         </span>
         <strong className="auto-title">{quest.name}</strong>
         {quest.catchphrase && <span className="auto-catch">{quest.catchphrase}</span>}
@@ -53,8 +53,8 @@ export function QuestBanner({ quest, boss, onClick, selected = false }: {
         )}
         <span className="small">
           {quest.kind === 'material'
-            ? `${CONFIG.quest.difficulties.easy.label}〜${CONFIG.quest.difficulties.hard.label}・核が落ちる（毎回ではない）`
-            : `ボス${dropPlus(quest) > 0 ? `＋${dropPlus(quest)}` : ''}がドロップ・${CONFIG.quest.grades[gradeOf(quest)].gold}G`}
+            ? `${CONFIG.quest.difficulties.easy.label}・${CONFIG.quest.difficulties.normal.label}・${CONFIG.quest.difficulties.hard.label}・${dropLabel(quest)}が落ちる（数はくじで決まる）`
+            : `ボス${dropPlus(quest) > 0 ? `＋${dropPlus(quest)}` : ''}がドロップ・🔮${CONFIG.quest.grades[gradeOf(quest)].gold}`}
         </span>
       </span>
     </button>

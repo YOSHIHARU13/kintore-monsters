@@ -37,8 +37,8 @@ export function Settings({ go }: { go: Go }) {
 
   return (
     <div className="page">
-      <button className="back" onClick={() => go({ name: 'home' })}>
-        ← ホームに戻る
+      <button className="back" onClick={() => go({ name: 'more' })}>
+        ← その他に戻る
       </button>
       <h1 className="title">設定</h1>
 
@@ -71,7 +71,7 @@ export function Settings({ go }: { go: Go }) {
               className={`chip${state.habitMode !== 'minutes' ? ' on' : ''}`}
               onClick={() => setHabitMode('check')}
             >
-              ○×（できたら +{CONFIG.morning.habitGold}G）
+              ○×（できたら +{CONFIG.morning.habitGold}オーブ）
             </button>
             <button
               type="button"

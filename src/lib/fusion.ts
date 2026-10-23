@@ -34,10 +34,10 @@ export function luckAfter(base: Pick<OwnedMonster, 'luck'>, food: Pick<OwnedMons
   return Math.min(CONFIG.luck.max, luckOf(base) + luckOf(food))
 }
 
-/** 運極ボーナス：出撃メンバーの運極の数で、報酬Gの倍率と、核が落ちる確率の上乗せ */
-export function luckBonus(party: Pick<OwnedMonster, 'luck'>[]): { count: number; goldRate: number; coreRate: number } {
+/** 運極ボーナス：出撃メンバーの運極の数で、報酬オーブの倍率と、素材のくじの追加回数 */
+export function luckBonus(party: Pick<OwnedMonster, 'luck'>[]): { count: number; goldRate: number; extraRolls: number } {
   const count = party.filter(isLuckMax).length
-  return { count, goldRate: 1 + CONFIG.luck.goldBonus * count, coreRate: CONFIG.luck.coreBonus * count }
+  return { count, goldRate: 1 + CONFIG.luck.goldBonus * count, extraRolls: CONFIG.materials.luckRolls * count }
 }
 
 export interface FeedPlan {

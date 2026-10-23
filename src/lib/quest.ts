@@ -62,6 +62,15 @@ export function setHit(set: SetInfo, quest: Quest, party: Member[], label: strin
   return { label, damage: Math.round(damage * rate), notes: [...notes] }
 }
 
+/** その難易度で使う編成の条件と弱点（最初からある素材クエストは難易度ごとに決まっている） */
+export function atDifficulty(quest: Quest, difficulty: QuestDifficulty): Quest {
+  const requirements = quest.requirementsBy?.[difficulty]
+  const weakSlots = quest.weakSlotsBy?.[difficulty]
+  return requirements || weakSlots
+    ? { ...quest, requirements: requirements ?? quest.requirements, weakSlots: weakSlots ?? quest.weakSlots }
+    : quest
+}
+
 /** 挑戦を始めてからの攻撃（報酬が出るセットだけ数える） */
 export function questHits(quest: Quest, party: Member[], sets: SetRecord[], exerciseName: (slotId: string) => string): Hit[] {
   const perSlot: Record<string, number> = {}
@@ -128,8 +137,9 @@ export function battleOf(
   exerciseName: (slotId: string) => string,
 ): Battle | null {
   if (!challenge || challenge.date !== today) return null
-  const quest = quests.find((q) => q.id === challenge.questId)
-  if (!quest) return null
+  const found = quests.find((q) => q.id === challenge.questId)
+  if (!found) return null
+  const quest = atDifficulty(found, challenge.difficulty)
   const party = challenge.party.flatMap((id) => {
     const mon = owned.find((o) => o.id === id)
     const def = mon && defs.find((d) => d.id === mon.defId)
@@ -181,7 +191,7 @@ export function questHp(quest: Pick<Quest, 'kind' | 'hp'>, difficulty: QuestDiff
 /** 倒したときのゴールド：ボスクエストは格で、素材クエストは難易度 × 格（少なめ） */
 export function questGold(quest: Pick<Quest, 'rank' | 'kind' | 'grade'>, difficulty: QuestDifficulty): number {
   if (quest.kind !== 'material') return CONFIG.quest.grades[gradeOf(quest)].gold
-  return Math.round(CONFIG.quest.difficulties[difficulty].gold * rankOf(quest).gold * CONFIG.cores.materialGoldRatio)
+  return Math.round(CONFIG.quest.difficulties[difficulty].gold * rankOf(quest).gold)
 }
 
 /** ボスクエストで手に入るボスの＋ */
@@ -189,7 +199,7 @@ export function dropPlus(quest: Pick<Quest, 'grade' | 'rank'>): number {
   return CONFIG.quest.grades[gradeOf(quest)].plus
 }
 
-/** クエストの格や難易度の表示（例：超絶、素材・中級） */
+/** クエストの格や難易度の表示（例：超絶、素材の上級） */
 export function questLevelLabel(quest: Pick<Quest, 'kind' | 'grade' | 'rank'>, difficulty: QuestDifficulty): string {
   return quest.kind === 'material' ? CONFIG.quest.difficulties[difficulty].label : CONFIG.quest.grades[gradeOf(quest)].label
 }
@@ -201,7 +211,7 @@ export function defaultBossHp(grade: QuestGrade): number {
 
 /** HPの初期値：1回のトレーニングで与えるダメージの目安 × ボスの格 × 難易度（100の位で丸める） */
 export function defaultHp(rank: number, kind: Quest['kind'] = 'boss'): Record<QuestDifficulty, number> {
-  const hp = standardSessionDamage() * rankOf({ rank }).hp * (kind === 'material' ? CONFIG.cores.materialHpRatio : 1)
+  const hp = standardSessionDamage() * rankOf({ rank }).hp * (kind === 'material' ? CONFIG.materials.hpRatio : 1)
   return Object.fromEntries(
     DIFFICULTIES.map((d) => [d, Math.max(100, Math.round((hp * CONFIG.quest.difficulties[d].hpRatio) / 100) * 100)]),
   ) as Record<QuestDifficulty, number>
