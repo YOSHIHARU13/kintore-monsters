@@ -38,10 +38,9 @@ import { BossAdmin } from './features/BossAdmin'
 
 const TABS: { label: string; icon: string; view: View; names: View['name'][] }[] = [
   { label: 'ホーム', icon: '🏠', view: { name: 'home' }, names: ['home', 'morning', 'missions'] },
-  { label: 'トレーニング', icon: '💪', view: { name: 'training' }, names: ['training', 'set', 'menuEdit', 'partner'] },
   { label: 'モンスター', icon: '🐣', view: { name: 'box' }, names: ['box', 'monster', 'dex'] },
   { label: 'ショップ', icon: '🛒', view: { name: 'shop' }, names: ['shop', 'profile'] },
-  { label: 'クエスト', icon: '⚔️', view: { name: 'quests' }, names: ['quests', 'quest', 'tower', 'castle', 'kinkin'] },
+  { label: 'クエスト', icon: '⚔️', view: { name: 'quests' }, names: ['quests', 'quest', 'tower', 'castle', 'kinkin', 'training', 'set', 'menuEdit', 'partner'] },
   { label: 'その他', icon: '☰', view: { name: 'more' }, names: ['more', 'items', 'customItems', 'settings', 'registry', 'monsterForm', 'gachaAdmin', 'gachaForm', 'questAdmin', 'questForm', 'collabAdmin', 'bossAdmin'] },
 ]
 

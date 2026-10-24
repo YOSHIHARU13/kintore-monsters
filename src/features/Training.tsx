@@ -9,10 +9,15 @@ import { MusicButtons } from '../music'
 import { MonsterImage } from '../components/MonsterImage'
 import { BattleBar, useBattle } from '../components/BattleBar'
 import { partnerOf, rateText } from '../lib/partner'
+import { setHit } from '../lib/quest'
 
+type Order = 'todo' | 'damage'
+
+/** 種目の一覧（クエストから出撃して来る）。未クリア優先か、出撃中ならダメージ優先（今のボスに効く順）で並べられる */
 export function Training({ go }: { go: Go }) {
   const { menu, weekSets, todaySets, songs, state, owned, defs, autoSetPartners } = useStore()
   const [partnerFlash, setPartnerFlash] = useState(false)
+  const [order, setOrder] = useState<Order>('todo')
   const progress = partProgress(weekSets)
   // 出撃中なら、ボスに効く種目に印をつける（ボスの部位は×1.3、中でも弱点種目は×2.6）
   const battle = useBattle()
@@ -72,10 +77,33 @@ export function Training({ go }: { go: Go }) {
     )
   }
 
+  const doneOf = (slot: Slot) =>
+    slot.day === 'bonus' ? todaySets.filter((s) => s.slotId === slot.id).length : slotDone(weekSets, slot.id)
+  // 未クリア優先：その部位の中で、まだ終わっていない種目が先
+  const todoFirst = (slots: Slot[]) =>
+    [...slots].sort((a, b) => Number(doneOf(a) >= CONFIG.sets.perExercise) - Number(doneOf(b) >= CONFIG.sets.perExercise))
+  // ダメージ優先：今のボスに1セットで与えるダメージの順（全部の部位・全身枠をまとめて）
+  const damageOf = (slot: Slot) =>
+    battle ? setHit({ slotId: slot.id, day: slot.day, eligible: true }, battle.quest, battle.party, '').damage : 0
+  const byDamage = [...DAY_KEYS.flatMap((d) => slotsOfDay(d)), ...BONUS_SLOTS].sort((a, b) => damageOf(b) - damageOf(a))
+
   return (
     <div className="page">
+      <button className="back" onClick={() => go({ name: 'quests' })}>
+        ← クエストに戻る
+      </button>
       <MusicButtons />
       <BattleBar go={go} />
+      {battle && (
+        <div className="segmented" role="tablist" aria-label="並べ方">
+          <button className={order === 'todo' ? 'on' : ''} onClick={() => setOrder('todo')}>
+            未クリア優先
+          </button>
+          <button className={order === 'damage' ? 'on' : ''} onClick={() => setOrder('damage')}>
+            ダメージ優先
+          </button>
+        </div>
+      )}
       {songs.length === 0 && (
         <button className="btn small" onClick={() => go({ name: 'settings' })}>
           🎵 トレーニング中に流す曲を設定する
@@ -98,7 +126,15 @@ export function Training({ go }: { go: Go }) {
         終わった種目も、余力があれば何セットでも追加できます（EXPもダメージもそのまま入ります）。
       </p>
 
-      {DAY_KEYS.map((day) => (
+      {battle && order === 'damage' && (
+        <section className="card">
+          <h2>今のボスに効く順</h2>
+          <p className="muted small">1セットで与えるダメージが大きい順（弱点・ボスの部位・相棒の得意種目も込み）</p>
+          <ul className="slot-list">{byDamage.map(slotButton)}</ul>
+        </section>
+      )}
+
+      {!(battle && order === 'damage') && DAY_KEYS.map((day) => (
         <section className="card" key={day}>
           <div className="part-head">
             <h2 style={{ color: ATTR_COLOR[DAYS[day].attr] }}>{DAYS[day].title}</h2>
@@ -109,11 +145,11 @@ export function Training({ go }: { go: Go }) {
               種目を差し替える
             </button>
           </div>
-          <ul className="slot-list">{slotsOfDay(day).map(slotButton)}</ul>
+          <ul className="slot-list">{todoFirst(slotsOfDay(day)).map(slotButton)}</ul>
         </section>
       ))}
 
-      <section className="card">
+      {!(battle && order === 'damage') && <section className="card">
         <div className="part-head">
           <h2>全身枠</h2>
           <span className="muted small">タスク外・どの部位でもない</span>
@@ -130,7 +166,7 @@ export function Training({ go }: { go: Go }) {
           万能EXPは、どの属性の進化にも注げます。全身枠は誰の得意種目にもならず、出撃中は全員で同じだけ攻撃します。
         </p>
         <p className="muted small">だるい日は1セットだけでもOK。それも出席1回に数えます。</p>
-      </section>
+      </section>}
     </div>
   )
 }

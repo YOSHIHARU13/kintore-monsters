@@ -317,7 +317,7 @@ export function QuestDetail({ id, go }: { id: string; go: Go }) {
         disabled={party.length === 0 || towerLocked}
         onClick={() => {
           startChallenge(quest.id, quest.kind === 'material' ? difficulty : BOSS_DIFFICULTY, party)
-          go({ name: 'quests' })
+          go({ name: 'training' }) // 出撃したら、そのまま種目の一覧へ
         }}
       >
         {closed

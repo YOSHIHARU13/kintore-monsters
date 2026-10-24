@@ -78,11 +78,11 @@ export function customized(def: MonsterDef, mon: Pick<OwnedMonster, 'custom' | '
   // 部位の条件は、今の形態の部位で数える
   const part = mon.nodeId ? nodeAttr(def, mon.nodeId) : undefined
   if (part && part !== nodeAttr(def, 'n1')) def = { ...def, partNow: part }
-  // 金の獣神化（激レア2体の合体）は、相手の属性も持つ（同じ属性なら超属性）。アビリティは2体ぶん全部
-  // （合体の前の2体が刺さるところでは、合体したあとも必ず刺さる）
+  // 金の獣神化（激レア2体の合体）は、相手の属性も持つ（同じ属性なら超属性）。アビリティは激レアより1つ多い：
+  // 自分のアビリティに、相手のアビリティから持っていないものを1つ足す
   if (mon.shinkaGold && def.element && def.partnerElement) {
     const slots = CONFIG.gimmicks.slots.superRare
-    const abilities = [...new Set([...(def.abilities ?? []).slice(0, slots), ...(def.partnerAbilities ?? []).slice(0, slots)])]
+    const abilities = [...new Set([...(def.abilities ?? []).slice(0, slots), ...(def.partnerAbilities ?? []).slice(0, slots)])].slice(0, slots + 1)
     def = def.partnerElement === def.element
       ? { ...def, abilities, goldElements: [def.element], goldSuper: true }
       : { ...def, abilities, goldElements: [def.element, def.partnerElement] }

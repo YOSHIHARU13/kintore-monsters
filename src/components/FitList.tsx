@@ -1,10 +1,11 @@
+import { useMemo } from 'react'
 import { useStore } from '../store'
 import { CONFIG } from '../config/gameConfig'
 import { FIT_MARK, fitForms, fitMembers, fitQuests } from '../lib/fit'
 import { gradeOf } from '../lib/quest'
 import type { TowerFloor } from '../lib/tower'
-import { awakenOf, glowOf, imageOf } from '../lib/art'
-import { bannerNodeOf } from './GachaBanner'
+import { monArt } from '../lib/art'
+import { grown } from '../lib/lifespan'
 import { MonsterImage } from './MonsterImage'
 import type { Go } from '../nav'
 import type { MonsterDef, Quest } from '../types'
@@ -17,8 +18,16 @@ function fitTargets(quests: Quest[], highEnd: TowerFloor[][]): Quest[] {
 
 /** そのモンスターが適正のクエスト（閉じた欄。タップで開く） */
 export function FitQuests({ def, go, limit }: { def: MonsterDef; go?: Go; limit?: number }) {
-  const { quests, tower, kinkin, castle } = useStore()
-  const list = fitQuests(def, fitTargets(quests, [tower, kinkin, castle])).slice(0, limit ?? 99)
+  const { defs, quests, tower, kinkin, castle } = useStore()
+  // 適正度（適正ランキングと同じ%）をつけて、高い順に
+  const list = useMemo(
+    () =>
+      fitQuests(def, fitTargets(quests, [tower, kinkin, castle]))
+        .map((x) => ({ ...x, percent: fitMembers(x.quest, defs).find((m) => m.def.id === def.id)?.percent ?? 0 }))
+        .sort((a, b) => b.percent - a.percent)
+        .slice(0, limit ?? 99),
+    [def, defs, quests, tower, kinkin, castle, limit],
+  )
   if (list.length === 0) return null
   return (
     <details className="card fold fit-list">
@@ -28,7 +37,7 @@ export function FitQuests({ def, go, limit }: { def: MonsterDef; go?: Go; limit?
         </h2>
       </summary>
       <ul className="mini-list">
-        {list.map(({ quest, fit }) => (
+        {list.map(({ quest, fit, percent }) => (
           <li key={quest.id}>
             <button className="link-button" onClick={() => go?.({ name: 'quest', id: quest.id })}>
               {FIT_MARK[fit]} <span className={`grade-badge grade-${gradeOf(quest)}`}>{CONFIG.quest.grades[gradeOf(quest)].label}</span> {quest.name}
@@ -41,6 +50,7 @@ export function FitQuests({ def, go, limit }: { def: MonsterDef; go?: Go; limit?
                 ) : null
               })()}
             </button>
+            <span className={`tag${percent >= 90 ? ' keep' : ''}`}>{percent}%</span>
           </li>
         ))}
       </ul>
@@ -60,8 +70,18 @@ export function FitHint({ def }: { def: MonsterDef }) {
   )
 }
 
+/** 育ちきった姿の絵（獣神化できれば★4。金・銀の絵や後光も） */
+function grownArt(def: MonsterDef, quest: Quest) {
+  const g = grown(def, quest.attr)
+  return monArt(def, g.mon)
+}
+
 /** 最終形態の名前（分岐があれば、適正の形態だけ。部位の条件がなければ全部を「／」で） */
 function formNames(def: MonsterDef, quest: Quest): string {
+  // 獣神化できるなら★4の名前（金の獣神化の相手がいれば金）
+  const g = grown(def, quest.attr).mon
+  const shinkaName = g.shinka ? def.names?.[g.shinkaGold ? 'gold' : 'shinka']?.trim() : ''
+  if (shinkaName) return `★4 ${shinkaName}`
   const forms = fitForms(def, quest)
   if (forms.length <= 1) return forms[0]?.name ?? def.name
   const ok = forms.filter((f) => f.ok)
@@ -88,7 +108,8 @@ export function FitMembers({ quest }: { quest: Quest }) {
           {list.map(({ def, fit, hit, support, percent }, i) => (
             <li key={def.id} className={`fit-member${has(def) ? '' : ' unowned'}${i === 0 ? ' top' : ''}`}>
               <span className="fit-no">{i + 1}</span>
-              <MonsterImage imageId={imageOf(def, bannerNodeOf(def))} awaken={awakenOf(def, bannerNodeOf(def))} glow={glowOf(def)} size={44} />
+              {/* 育ちきった姿（獣神化できれば★4の絵）で見せる */}
+              <MonsterImage {...grownArt(def, quest)} size={44} />
               <span className="fit-name small">
                 {fit ? `${FIT_MARK[fit]} ` : ''}{formNames(def, quest)}
                 {!has(def) && <span className="muted">（未所持）</span>}
