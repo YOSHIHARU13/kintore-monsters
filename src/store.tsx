@@ -529,14 +529,16 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
   const movedJogress = useRef(false)
   useEffect(() => {
     // 持っている子を読み込む前に動くと、生まれた子が行き場をなくすので、読み込んでから
-    if (!state || state.redesign !== 1 || defs.length === 0 || owned.length === 0 || movedJogress.current) return
+    // 改修のとき（redesign 1）と、そのあとも以前のジョグレスの登録が残っていれば（ジョグレスは廃止。金の獣神化に引っ越す）
+    const leftover = (state?.redesign ?? 0) >= 2 && defs.some(isHidden)
+    if (!state || (state.redesign !== 1 && !leftover) || defs.length === 0 || owned.length === 0 || movedJogress.current) return
     movedJogress.current = true
     const plan = planJogressMove(defs, owned)
     const batch = writeBatch(db)
     for (const d of plan.defs) batch.update(doc(db, base, 'monsterDefs', d.id), d.data)
     for (const o of plan.owned) batch.update(doc(db, base, 'ownedMonsters', o.id), o.data)
     for (const id of plan.remove) batch.delete(doc(db, base, 'monsterDefs', id))
-    batch.update(stateRef, { redesign: 2 })
+    if (state.redesign === 1) batch.update(stateRef, { redesign: 2 })
     batch.commit().catch(fail)
   }, [state, defs, owned, base, stateRef, fail])
 

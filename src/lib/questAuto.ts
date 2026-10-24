@@ -119,9 +119,9 @@ export function autoQuestSetup(
       // 高難度：今いるモンスターに合わせず、これまでの階となるべく重ならないアビリティの組（個性優先）
       if (a.abilities > 0) {
         const k = Math.max(a.abilities, CONFIG.questAuto.highEndAbilities)
-        const pool = gimmicks.filter((g) => !avoid.includes(g))
+        // 高難度は、そのボスのふつうのクエストのアビリティも避けない（7種類全部から決まった並べ方で選ぶ＝どの激レアにも行き場がある）
         const element = bossEl ?? 'none'
-        const set = pickSet(pool.length >= k ? pool : gimmicks, k, highEnd, seed, element)
+        const set = pickSet(gimmicks, k, highEnd, seed, element)
         if (a.combo > 0 && set.length >= 2) {
           const pair = leastUsedPair(set, highEnd, element)
           requirements.push({ tag: comboTag(pair[0], pair[1]), count: a.combo })
@@ -205,6 +205,18 @@ function subsets(pool: string[], k: number): string[][] {
 
 const pairsOf = (s: string[]) => subsets(s, 2).map(([a, b]) => comboTag(a, b))
 
+/** 7種類から5種類を選ぶときに外す2種類（何階目か順）：三角形＋重ならない2組。6階目からはまた別の組で */
+const OUT_DESIGN_SIZE = 7
+const OUT_DESIGN: [number, number][] = [
+  [0, 1],
+  [1, 2],
+  [0, 2],
+  [3, 4],
+  [5, 6],
+  [3, 5],
+  [4, 6],
+]
+
 /**
  * 高難度のアビリティの組。いちばん大事なのは「同じ属性の階（同じ属性のモンスターが刺さる階）で、アビリティの2つの組み合わせが均等に出る」こと：
  * 塔・禁筋・孤城を全部合わせて、その属性の階でまだ出ていない組み合わせを含む組を選ぶ（出た回数の2乗で数える）。
@@ -212,7 +224,17 @@ const pairsOf = (s: string[]) => subsets(s, 2).map(([a, b]) => comboTag(a, b))
  * 次に、全体で同じアビリティばかりにならないように。同じくらいなら seed で決める（月のパターンで変わる）
  */
 export function pickSet(pool: string[], k: number, taken: HighEndSet[], seed: number, element = 'none'): string[] {
-  const options = subsets([...new Set(pool)], Math.min(k, pool.length))
+  const unique = [...new Set(pool)]
+  // 7種類から5種類（2種類を外す）のときは、決まった並べ方を使う：同じ属性の階で外す2種類を
+  // 「三角形（a-b・b-c・a-c）＋重ならない2組（d-e・f-g）」にすると、5階でどの組み合わせも必ず2回以上出る（これ以上は均等にできない）。
+  // どのアビリティを a〜g にするかは属性ごとに決まる（属性で毎回同じ）
+  if (unique.length === OUT_DESIGN_SIZE && k === unique.length - 2 && element !== 'none') {
+    const order = [...unique].sort((a, b) => hash(element + a) - hash(element + b))
+    const n = taken.filter((t) => t.element === element && t.set.length === k).length
+    const [x, y] = OUT_DESIGN[n % OUT_DESIGN.length]
+    return order.filter((_, i) => i !== x && i !== y)
+  }
+  const options = subsets(unique, Math.min(k, unique.length))
   const key = (s: string[]) => [...s].sort().join('+')
   const takenKeys = new Set(taken.filter((t) => t.element === element).map((t) => key(t.set)))
   const pairUse: Record<string, number> = {}
@@ -220,7 +242,8 @@ export function pickSet(pool: string[], k: number, taken: HighEndSet[], seed: nu
   const single: Record<string, number> = {}
   for (const t of taken) for (const g of t.set) single[g] = (single[g] ?? 0) + 1
   const score = (s: string[]) =>
-    (takenKeys.has(key(s)) ? 1e6 : 0) + 100 * pairsOf(s).reduce((sum, p) => sum + (pairUse[p] ?? 0) ** 2, 0) + s.reduce((sum, g) => sum + (single[g] ?? 0), 0)
+    // 出た回数が少ない組み合わせほど強く優先（0回の組み合わせを1つ残すより、2回の組み合わせを何個も重ねるほうがまし）
+    (takenKeys.has(key(s)) ? 1e9 : 0) + 100 * pairsOf(s).reduce((sum, p) => sum + 10 ** (pairUse[p] ?? 0), 0) + s.reduce((sum, g) => sum + (single[g] ?? 0), 0)
   return options
     .map((s, i) => ({ s, v: score(s), tie: hash(`${seed}:${i}`) }))
     .sort((a, b) => a.v - b.v || a.tie - b.tie)[0]?.s ?? []

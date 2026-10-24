@@ -7,7 +7,7 @@ import { Abilities } from '../components/Abilities'
 import { Stars } from '../components/Stars'
 import { bannerNodeOf } from '../components/GachaBanner'
 import { awakenOf, glowOf, imageOf } from '../lib/art'
-import { fitMembers } from '../lib/fit'
+import { fitMembers, isStandIn } from '../lib/fit'
 import { grown } from '../lib/lifespan'
 import { gradeOf } from '../lib/quest'
 import { rarityOf } from '../lib/gacha'
@@ -26,13 +26,15 @@ export function MonsterProfile({ defId, go }: { defId: string; go: Go }) {
   const rows = useMemo(() => {
     if (!def) return []
     const targets: Quest[] = [...quests.filter((q) => q.kind !== 'material' && HARD.includes(gradeOf(q))), ...[...tower, ...kinkin, ...castle].map((f) => f.quest)]
+    // 代役以上（属性が合って、アビリティが2つ以上合う）の階だけ。育ちきった姿（金の獣神化なら2体ぶんのアビリティ）で見る
+    const top = grown(def, def.attr).def
     return targets
+      .filter((quest) => isStandIn(grown(def, quest.attr).def, quest) || isStandIn(top, quest))
       .flatMap((quest) => {
         const list = fitMembers(quest, defs)
         const i = list.findIndex((x) => x.def.id === defId)
         return i < 0 ? [] : [{ quest, percent: list[i].percent, rank: i + 1 }]
       })
-      .filter((r) => r.percent >= 60)
       .sort((a, b) => b.percent - a.percent || a.rank - b.rank)
   }, [def, defs, defId, quests, tower, kinkin, castle])
   if (!def) return null
@@ -58,7 +60,7 @@ export function MonsterProfile({ defId, go }: { defId: string; go: Go }) {
       <section className="card">
         <h2>🎯 活躍できるクエスト（{rows.length}）</h2>
         <p className="muted small">
-          育ちきったときの適正度（このクエストのためにいるような激レアを100%）と、登録しているモンスターの中での順位。超絶以上と高難度で、60%以上（2つ以上のアビリティが合う）のところだけ。
+          育ちきったときの適正度（このクエストのためにいるような激レアを100%）と、登録しているモンスターの中での順位。超絶以上と高難度で、代役以上（属性が合って、アビリティが2つ以上合う）のところだけ。90%以上はド適正。
         </p>
         {rows.length === 0 ? (
           <p className="muted small">今は、ド適正のクエストはありません。</p>

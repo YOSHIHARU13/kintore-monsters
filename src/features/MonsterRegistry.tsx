@@ -17,14 +17,13 @@ import { abilitySlots } from '../lib/gimmick'
 import type { Go } from '../nav'
 import { isHidden, monsterName, type Element, type MonsterDef, type QuestGrade, type RarityKey } from '../types'
 
-type Filter = 'all' | 'todo' | 'gacha' | 'quest' | 'jogress'
+type Filter = 'all' | 'todo' | 'gacha' | 'quest'
 
 const FILTER_LABEL: Record<Filter, string> = {
   all: '全部',
   todo: '未設定',
   gacha: 'ガチャ',
   quest: '降臨',
-  jogress: 'ジョグレス',
 }
 
 /** まだ設定が終わっていないところ（バッジで出す） */
@@ -67,7 +66,6 @@ export function MonsterRegistry({ go }: { go: Go }) {
     if (filter === 'todo') return todosOf(d).length > 0
     if (filter === 'gacha') return !isHidden(d) && !d.questOnly
     if (filter === 'quest') return d.questOnly === true
-    if (filter === 'jogress') return isHidden(d)
     return true
   }
   const list = order

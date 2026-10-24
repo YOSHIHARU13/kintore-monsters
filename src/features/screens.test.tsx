@@ -1295,8 +1295,6 @@ describe('画面の表示', () => {
       Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(select, 'single')
       select.dispatchEvent(new Event('change', { bubbles: true }))
     })
-    await click('保存する')
-    expect(el.textContent).toContain('クエスト限定のモンスター専用です')
     const questOnly = [...el.querySelectorAll('label.row')].find((l) => l.textContent?.includes('クエスト限定にする'))!
     await act(async () => questOnly.querySelector('input')!.click())
     const grades = el.querySelector('[aria-label="降臨の格"]')!

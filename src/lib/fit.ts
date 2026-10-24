@@ -14,7 +14,7 @@ export function fitOf(def: MonsterDef, quest: Quest): Fit | null {
   const reqs = requirementsOf(quest)
   // 属性：ボスに有利か、条件の属性を持つ（零属性のボスなら、どの子もOK）。
   // 零属性の子はどこでも半減されないが、属性の条件は満たさないので、それだけでは適正にしない（どこでも上位を独占しないように）
-  const zeroBoss = reqs.some((r) => r.tag === KINDS_TAG) || !quest.element
+  const zeroBoss = !quest.element // 零属性のボスだけ（孤城の1〜10階の「属性の種類」は、有利な属性とセット）
   const elementOk = zeroBoss || fitsQuest(def, quest)
   if (!elementOk) return null
   const wanted = new Set(reqs.flatMap((r) => tagAbilities(r.tag))).size
@@ -98,7 +98,7 @@ export function fitMembers(
   defs: MonsterDef[],
 ): { def: MonsterDef; fit: Fit | null; hit: number; support: number; score: number; percent: number }[] {
   const reqs = requirementsOf(quest)
-  const zeroBoss = reqs.some((r) => r.tag === KINDS_TAG) || !quest.element
+  const zeroBoss = !quest.element // 零属性のボスだけ（孤城の1〜10階の「属性の種類」は、有利な属性とセット）
   const base = CONFIG.formation.base
   const measure = (def: MonsterDef) => ({
     hit: hitWeight(def, quest),
@@ -137,6 +137,12 @@ function idealFor(quest: Quest): MonsterDef {
     abilities: wanted.slice(0, 2),
     createdAt: 0,
   }
+}
+
+/** 代役以上か：属性が合って（零属性のボスならどれでも）、条件のアビリティを2つ以上持つ（「2つ同時」の組を持てばド適正） */
+export function isStandIn(def: MonsterDef, quest: Quest): boolean {
+  const zeroBoss = !quest.element
+  return (zeroBoss || fitsQuest(def, quest)) && matchedAbilities(def, quest) >= 2
 }
 
 export const FIT_MARK: Record<Fit, string> = { best: '◎', good: '○' }

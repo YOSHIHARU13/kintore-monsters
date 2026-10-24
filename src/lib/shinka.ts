@@ -167,9 +167,15 @@ export function planJogressMove(
 ): { defs: { id: string; data: Record<string, unknown> }[]; owned: { id: string; data: Record<string, unknown> }[]; remove: string[] } {
   const plan = { defs: [] as { id: string; data: Record<string, unknown> }[], owned: [] as { id: string; data: Record<string, unknown> }[], remove: [] as string[] }
   for (const hidden of defs.filter((d) => isHidden(d))) {
-    const [aId, bId] = hidden.recipe!
-    const a = defs.find((d) => d.id === aId && !isHidden(d))
-    if (!a) continue
+    const [r0, r1] = hidden.recipe!
+    // 1体目がもういなければ2体目を本体に
+    const a = defs.find((d) => d.id === r0 && !isHidden(d)) ?? defs.find((d) => d.id === r1 && !isHidden(d))
+    const bId = a?.id === r0 ? r1 : r0
+    if (!a) {
+      // 素材が2体とも登録にない：ふつうの激レアとして残す（持っている個体もそのまま）
+      plan.defs.push({ id: hidden.id, data: { recipe: [], tier: 'superRare', jogressElements: [], jogressSuper: false } })
+      continue
+    }
     const hTemplate = getTemplate(hidden.templateId)
     const hFinal = hTemplate.nodes.find((n) => n.next.length === 0) ?? hTemplate.nodes[0]
     const art = hidden.images[hFinal.id] ?? hidden.images[hTemplate.nodes[0].id]

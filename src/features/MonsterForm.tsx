@@ -159,10 +159,6 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
       setError('名前を入力してください')
       return
     }
-    if (templateId === 'single' && recipe.length !== 2 && !questOnly) {
-      setError('「1形態だけ」は、隠しモンスター（ジョグレス）か、クエスト限定のモンスター専用です。下でどちらかをオンにしてください')
-      return
-    }
     if (recipe.length === 2 && recipe.some((r) => !parents.some((p) => p.id === r))) {
       setError('レシピのモンスターを2体選んでください')
       return

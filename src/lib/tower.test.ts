@@ -71,20 +71,7 @@ describe('試練の塔', () => {
     expect(oct[0].quest.attr).not.toBe(nov[0].quest.attr)
     expect(oct[5].quest.weakSlots.every((w) => w.startsWith(oct[5].quest.attr === 'chestArms' ? 'mon' : oct[5].quest.attr === 'legs' ? 'wed' : 'fri'))).toBe(true)
     expect(towerFloors('2027-01', defs, ['バリア'], quests)[0].quest.attr).toBe(oct[0].quest.attr) // 3か月で一回り
-    expect(oct[6].quest.requirements).toContainEqual({ tag: `pt:${oct[6].quest.attr}`, count: 2 })
-  })
-  it('塔のギミックは、そのボスの超絶クエストで使っているスキルを避ける', () => {
-    const holders = [def('x', { rarity: 'superRare', element: 'fire', abilities: ['バリア', 'シールド'] }), def('y', { rarity: 'superRare', element: 'fire', abilities: ['リジェネ', 'ミラー'] })]
-    const withQuest = [
-      { ...chozetsu('l2'), requirements: [{ tag: 'ab:シールド', count: 3 }, { tag: 'ab:バリア', count: 3 }] },
-      ...quests.filter((q) => q.bossDefId !== 'l2'),
-    ]
-    const floors = towerFloors('2026-10', [...defs, ...holders], ['バリア', 'シールド', 'リジェネ', 'ミラー'], withQuest)
-    const l2 = floors.find((f) => f.quest.bossDefId === 'l2')!
-    const abilities = l2.quest.requirements!.filter((r) => r.tag.startsWith('ab:')).map((r) => r.tag)
-    expect(abilities.length).toBeGreaterThan(0)
-    expect(abilities).not.toContain('ab:シールド')
-    expect(abilities).not.toContain('ab:バリア')
+    expect(oct[6].quest.requirements).toContainEqual({ tag: `pt:${oct[6].quest.attr}`, count: 3 }) // 6階から超絶
   })
   it('コラボの子と、超究極のボスは塔に入れない', () => {
     const extra = [def('c1', { questOnly: true, element: 'fire', series: '鬼' }), def('k1', { questOnly: true, element: 'fire' })]

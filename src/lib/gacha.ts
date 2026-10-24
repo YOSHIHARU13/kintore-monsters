@@ -141,6 +141,8 @@ export function starsOf(def: MonsterDef, nodeId: string): number {
   }
   const grade = bossGradeOf(def)
   if (grade) return CONFIG.quest.bossGrades[grade].stars
+  // 進化しない（1形態だけの）ガチャのモンスターは、そのレア度のいちばん上の星で生まれる
+  if (template.nodes.length === 1) return CONFIG.gacha.rarities[rarityOf(def)].maxStars
   return Math.min(CONFIG.gacha.rarities[rarityOf(def)].maxStars, CONFIG.gacha.formStarBase + stage)
 }
 
