@@ -31,7 +31,7 @@ import { requirementsOf, tagAbilities } from '../lib/formation'
 export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' | 'quest'; go: Go }) {
   // 降臨用：クエスト限定・1形態だけ・★3・激レアで始める（名前と画像だけで登録できる）
   const questPreset = !id && preset === 'quest'
-  const { defs, gachas, menu, quests, saveMonsterDef } = useStore()
+  const { defs, gachas, menu, quests, owned, saveMonsterDef, deleteMonsterDef } = useStore()
   const existing = id ? defs.find((d) => d.id === id) : undefined
   // 登録済みのモンスターは、ツリーを変えられないか、分岐を増やす方向にだけ変えられる
   const selectable = TEMPLATES.filter((t) =>
@@ -225,7 +225,7 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
       <section className="card">
         <label className="field">
           <span>名前（段階ごとの名前を付けないときに使われます）</span>
-          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={20} placeholder="なまえ" />
+          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={12} placeholder="なまえ" />
         </label>
         <label className="field">
           <span>シリーズ（コラボ名・省略可。クエスト・BOX・図鑑をシリーズごとに分けて見られる）</span>
@@ -685,6 +685,21 @@ export function MonsterForm({ id, preset, go }: { id?: string; preset?: 'gacha' 
           {saving ? '保存中…' : '保存する'}
         </button>
       </div>
+      {existing && (
+        <button
+          className="btn danger wide"
+          onClick={() => {
+            const mons = owned.filter((o) => o.defId === existing.id).length
+            const qs = quests.filter((q) => q.kind !== 'material' && q.bossDefId === existing.id).length
+            const msg = `「${existing.name}」の登録を消します。持っている${mons}体${qs > 0 ? `と、このボスのクエスト${qs}個` : ''}も消えます。元に戻せません。よろしいですか？`
+            if (!window.confirm(msg)) return
+            deleteMonsterDef(existing.id)
+            go({ name: 'registry' })
+          }}
+        >
+          🗑 この登録を削除する
+        </button>
+      )}
     </div>
   )
 }

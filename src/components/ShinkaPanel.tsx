@@ -53,7 +53,7 @@ export function ShinkaPanel({ mon, def, onDone }: { mon: OwnedMonster; def: Mons
                   <span className="monster-row">
                     {d && <MonsterImage imageId={imageOf(d, bannerNodeOf(d))} awaken={awakenOf(d, bannerNodeOf(d))} glow={glowOf(d)} size={36} />}
                     <span>
-                      {d?.name ?? '？'} ×{item.count}体（運{item.luck}以上）
+                      {d?.name ?? '？'} 運{item.luck}（{item.luck}体ぶん）
                     </span>
                   </span>
                   <span className={have >= need ? 'tag keep' : 'error small'}>

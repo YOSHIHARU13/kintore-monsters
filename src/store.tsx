@@ -348,6 +348,8 @@ interface Store {
    */
   shinka: (monsterId: string, gold?: boolean) => boolean
   saveMonsterDef: (input: MonsterDefInput) => Promise<void>
+  /** 登録したモンスターを消す（持っている個体と、そのボスのクエストも消える。相棒・合体の相手からも外す） */
+  deleteMonsterDef: (id: string) => void
   /** 属性・得意種目・アビリティを、足りないものでまとめて埋める（1体ずつ、前に埋めた分も数えて） */
   autoTuneDefs: (ids: string[]) => void
   /** 全モンスターのアビリティを、枠の数ぴったりにおまかせで配り直す（前のは abilitiesBefore に残す）。変えた数を返す */
@@ -1193,6 +1195,21 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       }
     }
 
+    const deleteMonsterDef: Store['deleteMonsterDef'] = (id) => {
+      const batch = writeBatch(db)
+      const mons = owned.filter((o) => o.defId === id)
+      const monIds = new Set(mons.map((o) => o.id))
+      for (const o of mons) batch.delete(doc(db, base, 'ownedMonsters', o.id))
+      for (const q of questDocs.filter((q) => q.kind !== 'material' && q.bossDefId === id)) batch.delete(doc(db, base, 'quests', q.id))
+      for (const d of defs.filter((d) => d.jogressPartner === id)) batch.update(doc(db, base, 'monsterDefs', d.id), { jogressPartner: '' })
+      const update: DocumentData = {}
+      for (const [slot, monId] of Object.entries(state.partners ?? {})) if (monIds.has(monId as string)) update[`partners.${slot}`] = deleteField()
+      if (state.challenge && state.challenge.party.some((p) => monIds.has(p))) update.challenge = null
+      if (Object.keys(update).length > 0) batch.update(stateRef, update)
+      batch.delete(doc(db, base, 'monsterDefs', id))
+      batch.commit().catch(fail)
+    }
+
     const saveMonsterDef: Store['saveMonsterDef'] = async (input) => {
       const existing = input.id ? defs.find((d) => d.id === input.id) : undefined
       const defRef = existing ? doc(db, base, 'monsterDefs', existing.id) : doc(collection(db, base, 'monsterDefs'))
@@ -1853,6 +1870,7 @@ export function StoreProvider({ user, children }: { user: User; children: ReactN
       jogress,
       shinka,
       saveMonsterDef,
+      deleteMonsterDef,
       autoTuneDefs,
       replanAllAbilities,
       loadImage,

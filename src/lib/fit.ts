@@ -28,11 +28,16 @@ const gradeRank = (q: Quest) => GRADES.indexOf(gradeOf(q))
 
 /** その子が適正のクエスト（◎が先、格の高い順） */
 export function fitQuests(def: MonsterDef, quests: Quest[]): { quest: Quest; fit: Fit }[] {
+  // 適正ランキングと同じ見方：育ちきった姿（金の獣神化なら2体ぶんのアビリティ）で、
+  // ◎＝ド適正（「2つ同時」の組を持つ）、○＝代役（属性が合って、アビリティが2つ以上合う）
   return quests
     .filter((q) => q.kind !== 'material')
     .flatMap((quest) => {
-      const fit = fitOf(def, quest)
-      return fit ? [{ quest, fit }] : []
+      const me = grown(def, quest.attr).def
+      if (!isStandIn(me, quest)) return []
+      const combo = requirementsOf(quest).find((r) => r.tag.startsWith('ab2:'))
+      const fit: Fit = combo && tagsOf(me)[combo.tag] ? 'best' : 'good'
+      return [{ quest, fit }]
     })
     .sort((a, b) => Number(b.fit === 'best') - Number(a.fit === 'best') || gradeRank(b.quest) - gradeRank(a.quest))
 }

@@ -3666,3 +3666,36 @@ details.tuning[open] > summary {
 .pickup.tappable:active {
   transform: scale(0.96);
 }
+
+/* ガチャのバナー：名前が長くても崩れない（入りきらなければ「…」で切る） */
+.pickup-name {
+  max-width: 100%;
+}
+.hero-name,
+.auto-title,
+.trio-title,
+.gacha-banner strong {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gacha-banner .auto-text {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* 消す操作のボタン（赤） */
+.btn.danger {
+  margin-top: 16px;
+  background: transparent;
+  border: 1px solid #ef476f;
+  color: #ef476f;
+}
+
+/* 図鑑：持っていない姿は少し暗く */
+.dex-dim {
+  display: inline-block;
+  filter: brightness(0.4) saturate(0.6);
+}

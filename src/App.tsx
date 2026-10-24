@@ -62,7 +62,7 @@ function Screen({ view, go }: { view: View; go: (v: View) => void }) {
     case 'box':
       return <Box go={go} />
     case 'profile':
-      return <MonsterProfile key={view.defId} defId={view.defId} go={go} />
+      return <MonsterProfile key={view.defId} defId={view.defId} from={view.from} go={go} />
     case 'monster':
       return <MonsterDetail key={view.id} id={view.id} go={go} />
     case 'shop':

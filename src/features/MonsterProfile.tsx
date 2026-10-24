@@ -20,7 +20,7 @@ const HARD = ['chozetsu', 'chokyukyoku', 'bakuzetsu']
  * モンスターのプロフィール（ガチャのピックアップから）：育ちきった姿と、どのクエストでどれだけ活躍できるか。
  * 超絶以上と高難度（塔・禁筋・孤城）の、適正度と順位（登録しているモンスターの中で何位か）を高い順に
  */
-export function MonsterProfile({ defId, go }: { defId: string; go: Go }) {
+export function MonsterProfile({ defId, from = 'shop', go }: { defId: string; from?: 'dex' | 'shop'; go: Go }) {
   const { defs, owned, quests, tower, kinkin, castle } = useStore()
   const def = defs.find((d) => d.id === defId)
   const rows = useMemo(() => {
@@ -43,8 +43,8 @@ export function MonsterProfile({ defId, go }: { defId: string; go: Go }) {
   const top = grown(def, def.attr).def
   return (
     <div className="page">
-      <button className="back" onClick={() => go({ name: 'shop' })}>
-        ← ガチャに戻る
+      <button className="back" onClick={() => go({ name: from })}>
+        {from === 'dex' ? '← 図鑑に戻る' : '← ガチャに戻る'}
       </button>
       <section className="card center">
         <MonsterImage imageId={imageOf(def, node)} awaken={awakenOf(def, node)} glow={glowOf(def)} size={180} />

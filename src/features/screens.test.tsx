@@ -542,7 +542,7 @@ describe('画面の表示', () => {
     expect(fake.store.markQuestRules).toHaveBeenCalledWith(4)
   })
 
-  it('図鑑：隠しモンスターはヒントだけ。合体でいなくなった個体の発見も残る', async () => {
+  it('図鑑：持っていない姿も見られる。合体でいなくなった個体の発見も残る', async () => {
     fake.store.defs = [
       ...defs,
       { id: 'h1', name: 'カイザードラ', attr: 'none', templateId: 'linear3', images: {}, recipe: ['m1', 'm2'], createdAt: 3 },
@@ -558,7 +558,7 @@ describe('画面の表示', () => {
     expect(sheet).toContain('ジョグレスのレシピ')
     expect(sheet).toContain('いちばん育っているのは★2')
     expect(sheet).toContain('アシガメ未所持')
-    expect(sheet).not.toContain('カイザードラ')
+    expect(sheet).toContain('カイザードラ') // 持っていない姿も、名前と中身が見られる
   })
 
   it('モンスター詳細：手持ちのEXPがあれば進化先を選んで注げる', async () => {
@@ -1019,7 +1019,7 @@ describe('画面の表示', () => {
     ]
     fake.store.state = { ...state, coins: 1000 }
     const el = await render(<MonsterDetail id="me" go={go} />)
-    expect(el.textContent).toContain(`イザナミ ×${recipe[0].count}体（運${recipe[0].luck}以上）`)
+    expect(el.textContent).toContain(`イザナミ 運${recipe[0].luck}（${recipe[0].luck}体ぶん）`)
     expect(el.textContent).toContain(`運 ${need}/${need}`)
     await click('🥉 獣神化する')
     expect(fake.store.shinka).toHaveBeenCalledWith('me', false)

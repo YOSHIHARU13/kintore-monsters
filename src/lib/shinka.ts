@@ -71,7 +71,7 @@ function seeded(seed: string): () => number {
  * - 爆絶の降臨：同じ属性の超絶の降臨から
  * - コラボの激レア：同じコラボの降臨（超究極は除く）から。なければ、ふつうの激レアと同じ
  * - ふつうの激レア：図鑑の並びが近い、超絶以上の降臨から
- * 超究極のボスは素材にしない。種類は2つ（たまに1つか3つ）。運は1種類あたり shinka.maxLuckPerItem まで、合計 shinka.maxLuckTotal まで
+ * 超究極のボスは素材にしない（コラボは究極以下だけ）。種類は2つ（たまに1つか3つ）。運は全部合わせて shinka.maxLuckTotal（運1＝1体ぶん）
  */
 export function shinkaRecipe(def: MonsterDef, defs: MonsterDef[]): RecipeItem[] {
   const r = seeded(`shinka:${def.id}`)
@@ -104,7 +104,8 @@ export function shinkaRecipe(def: MonsterDef, defs: MonsterDef[]): RecipeItem[] 
     const same = chozetsu.filter((d) => elementInfo(d).elements.some((e) => els.includes(e)))
     pool = same.length > 0 ? same : chozetsu
   } else if (series) {
-    pool = farmable.filter((d) => seriesOf(d) === series)
+    // コラボは同じコラボの究極以下の降臨だけ（超絶・超究極は求めない）
+    pool = farmable.filter((d) => seriesOf(d) === series && ['jokyu', 'kiwami', 'kyukyoku'].includes(bossGradeOf(d) ?? 'kyukyoku'))
     if (pool.length === 0) pool = near()
   } else {
     pool = near()
@@ -115,16 +116,11 @@ export function shinkaRecipe(def: MonsterDef, defs: MonsterDef[]): RecipeItem[] 
   const kinds = Math.min(pool.length, roll < 0.15 ? 1 : roll < 0.85 ? 2 : 3)
   // 決まった順で混ぜて、先頭から選ぶ
   const shuffled = pool.map((d) => ({ d, k: r() })).sort((a, b) => a.k - b.k).map((x) => x.d)
-  const c = CONFIG.shinka
-  // 1種類あたりの運：合計の上限を種類で割った分まで（1種類でも maxLuckPerItem まで）。半分〜上限のあいだで決める
-  const cap = Math.min(c.maxLuckPerItem, Math.floor(c.maxLuckTotal / kinds))
-  return shuffled.slice(0, kinds).map((d) => {
-    const total = Math.ceil(cap / 2) + Math.floor(r() * (cap - Math.ceil(cap / 2) + 1))
-    // 体数は1〜3体。運は体数で割り切れるように（3体×運5 など）
-    const count = [1, 2, 3].filter((n) => total % n === 0 && total / n >= 1)
-    const n = count[Math.floor(r() * count.length)]
-    return { defId: d.id, count: n, luck: total / n }
-  })
+  // 運は全部の種類を合わせて shinka.maxLuckTotal（3）まで。運1＝1体ぶん（1種類なら運3、2種類なら運2と運1、3種類なら運1ずつ）
+  const total = CONFIG.shinka.maxLuckTotal
+  const picked = shuffled.slice(0, kinds)
+  const lucks = picked.map((_, i) => Math.floor(total / kinds) + (i < total % kinds ? 1 : 0))
+  return picked.map((d, i) => ({ defId: d.id, count: 1, luck: lucks[i] }))
 }
 
 /** 素材の子の運の使い方：運の低い子から使い切り、最後の子は要るぶんだけ減らして残す（足りなければ null） */

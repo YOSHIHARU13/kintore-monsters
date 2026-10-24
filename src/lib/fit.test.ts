@@ -17,10 +17,11 @@ describe('適正', () => {
     expect(fitOf(def('z', { abilities: ['バリア', 'シールド'] }), q)).toBeNull()
     expect(fitOf(def('z', { abilities: ['バリア', 'シールド'] }), { ...q, element: undefined, requirements: [{ tag: 'kinds', count: 5 }, { tag: 'ab:バリア', count: 3 }] })).toBe('best')
   })
-  it('その子の適正クエストは◎が先・格の高い順。クエストの適正キャラは◎が先', () => {
+  it('そのモンスターの適正クエストは代役以上だけ。クエストの適正キャラは貢献の順', () => {
     const easy = quest('e', { grade: 'kiwami', requirements: [{ tag: 'el:wood', count: 3 }, { tag: 'ab:バリア', count: 2 }] })
     const a = def('a', { element: 'wood', abilities: ['バリア', 'シールド'] })
-    expect(fitQuests(a, [easy, q]).map((x) => x.quest.id)).toEqual(['q', 'e'])
+    // 適正＝アビリティが2つ以上合うところだけ（1つしか求めないクエストには出さない）
+    expect(fitQuests(a, [easy, q]).map((x) => x.quest.id)).toEqual(['q'])
     const b = def('b', { element: 'wood', abilities: ['バリア'] })
     expect(fitMembers(q, [b, a]).map((x) => x.def.id)).toEqual(['a', 'b'])
   })

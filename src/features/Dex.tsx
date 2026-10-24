@@ -105,14 +105,11 @@ export function Dex({ go }: { go: Go }) {
               aria-label={`No.${e.no} ${e.found ? monsterName(e.def, e.node.id) : '未発見'}`}
             >
               <span className="dex-no">{String(e.no).padStart(3, '0')}</span>
-              <MonsterImage
-                imageId={imageOf(e.def, e.node.id)}
-                awaken={awakenOf(e.def, e.node.id)} glow={glowOf(e.def)}
-                silhouette={!e.found}
-                shiny={e.found && e.shiny}
-                size={56}
-              />
-              {e.found && <Stars def={e.def} nodeId={e.node.id} />}
+              {/* 持っていない姿も見られる（少し暗く） */}
+              <span className={e.found ? undefined : 'dex-dim'}>
+                <MonsterImage imageId={imageOf(e.def, e.node.id)} awaken={awakenOf(e.def, e.node.id)} glow={glowOf(e.def)} shiny={e.found && e.shiny} size={56} />
+              </span>
+              <Stars def={e.def} nodeId={e.node.id} />
               {lucky && <span className="dex-luck">運極</span>}
             </button>
             </Fragment>
@@ -124,17 +121,13 @@ export function Dex({ go }: { go: Go }) {
         <div className="sheet-backdrop" onClick={() => setOpen(null)}>
           <div className="sheet" onClick={(ev) => ev.stopPropagation()}>
             <span className="muted small">No.{String(open.no).padStart(3, '0')}</span>
-            <MonsterImage
-              imageId={imageOf(open.def, open.node.id)}
-              awaken={awakenOf(open.def, open.node.id)} glow={glowOf(open.def)}
-              silhouette={!open.found}
-              shiny={open.found && open.shiny}
-              size={160}
-            />
-            <h2>{open.found ? monsterName(open.def, open.node.id) : '？？？'}</h2>
+            <span className={open.found ? undefined : 'dex-dim'}>
+              <MonsterImage imageId={imageOf(open.def, open.node.id)} awaken={awakenOf(open.def, open.node.id)} glow={glowOf(open.def)} shiny={open.found && open.shiny} size={160} />
+            </span>
+            <h2>{monsterName(open.def, open.node.id)}</h2>
             <Stars def={open.def} nodeId={open.node.id} />
-            {open.found ? (
-              <>
+            {!open.found && <p className="muted small">まだ持っていない姿</p>}
+            <>
                 <span className="row wrap center">
                   <ElementBadge def={open.def} />
                   <span className="small" style={{ color: ATTR_COLOR[nodeAttr(open.def, open.node.id)] }}>
@@ -149,10 +142,10 @@ export function Dex({ go }: { go: Go }) {
                 <p className="muted small">
                   所持 {open.count}体
                 </p>
-              </>
-            ) : (
-              <p className="muted small">まだ見つけていない姿です。</p>
-            )}
+                <button className="btn small" onClick={() => go({ name: 'profile', defId: open.def.id, from: 'dex' })}>
+                  🎯 活躍できるクエストを見る
+                </button>
+            </>
             {isHidden(open.def) && (
               <div className="recipe">
                 <strong className="small">

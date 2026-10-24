@@ -232,8 +232,7 @@ export const CONFIG = {
     coins: 300,
     bonus: { gold: 6000, silver: 3000, bronze: 1500 },
     questBonus: 0,
-    maxLuckPerItem: 15,
-    maxLuckTotal: 30,
+    maxLuckTotal: 3, // 獣神化の素材の運は、全部の種類を合わせてこれだけ（運1＝1体ぶん。合計3体）
   },
   // 進化コイン：進化・ジョグレス・EXPの購入に使う（オーブはガチャとブースター用）。ボスクエストではオーブと同じだけもらえる
   coins: {
